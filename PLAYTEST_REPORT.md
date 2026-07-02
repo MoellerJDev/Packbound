@@ -3,336 +3,239 @@
 ## 1. Executive Summary
 
 Packbound remains demoable as an internal systems demo at commit
-`6f7d923141436801ebcd8299190ea601d7b36076`. The current debug client supports
-the full engine-first loop: starter selection, card inspection, trait/teamup
-scanning, Source Row review, legal loadout edits, combat preview, recorded
-combat, gold rewards, priced pack purchases, latest reward markers, reward-card
-inspection, round advancement, normal-run duplicate progress, and duplicate
-upgrades through the upgrade lab.
+`35183ea153d730d46d7a75d50ec6f6e7dfaf8ad3`. The debug client still supports the
+full deterministic loop: starter selection, card inspection, trait/teamup
+review, Source Row review, legal loadout edits, combat preview, recorded combat,
+gold rewards, priced reward packs, latest reward markers, round advancement,
+normal-run duplicate visibility, and the upgrade lab.
 
-Normal-run upgrade progress is now understandable. The Upgrade Progress panel
-surfaced partial `2 / 3` groups, row badges made duplicate candidates easy to
-notice, active copies were called out as non-pool copies, and duplicate Sources
-or Relics explained why they are not upgrade material. The only small clarity
-gap is timing: during `combatResolved` and `reward`, the blocked reason says
-upgrades can only be made during planning, so the more helpful active-copy
-reason is clearest after advancing.
+The compact Player Board Grid and Enemy Board Grid materially improve board
+readability. The old board list forced a mental translation from `r0 c2 ground`
+text into a spatial board. The grid now makes occupied cells, empty cells, and
+front-row spacing much easier to scan. It is not beautiful, but it is enough for
+internal playtesting.
 
-Pack decisions feel more meaningful than before because pack price, traits, and
-duplicate progress now create multiple visible reasons to choose a reward. Ember
-and Cloudspire both created natural duplicate-chase incentives, Rotbloom made
-non-upgradeable duplicate Relics explicit, and Source Pack's 3-gold cost still
-stood out beside 4-gold archetype packs. The reward rows themselves still do not
-explain pack bias, likely contents, trait relevance, or duplicate relevance.
+Layer readability is the biggest win. Same-coordinate ground/support pairs such
+as Sparkcatch Apprentice plus Signal Nest, or Sporeback Beast plus Ash Ledger,
+are now understandable without reading the list row-by-row. Grid inspection also
+feels natural: clicking a board card in either grid routes to the existing Card
+Inspector and keeps all detailed card text in one place.
 
-The next task should be a compact React/HTML board grid layer view. Upgrade
-visibility is now good enough for normal runs, and pack-offer explanations are
-important soon, but the current list-only board is now the biggest internal demo
-readability blocker for a tactical autobattler. A small grid would make ground
-versus support layers, adjacency, and placement choices easier to understand
-without requiring Pixi or drag-and-drop.
+The board grid is now good enough to move on. It still lacks direct placement
+controls and richer threat badges, but those are not blocking the next internal
+demo pass. The next task should be reward-offer explanations, because pack rows
+still show cost and affordability without explaining expected contents, trait
+fit, duplicate relevance, or strategic role.
 
 Top 3 remaining blockers:
 
-1. Board and support-layer positioning are still represented as list rows with
-   `r0 c2 ground` text instead of a spatial board.
-2. Reward offers show cost and affordability, but not pack bias, expected role,
-   duplicate relevance, or trait relevance.
-3. Early economy remains generous; every tested offer was affordable, so price
-   creates mild preference but not hard buy/save tension.
+1. Reward offers still do not explain pack bias, likely roles, trait relevance,
+   or duplicate relevance.
+2. Grid placement is read-only; actual placement still depends on list order and
+   default positions, which caused one easy misclick in the upgrade lab.
+3. Enemy threat reading is better spatially, but still lacks compact ability,
+   keyword, or danger summaries in-grid.
 
-Recommended next task: `feat(client): add compact board grid layer view`.
+Recommended next task: `feat(client): improve reward offer explanations`.
 
 ## 2. Environment And Commands
 
-- Commit hash tested: `6f7d923141436801ebcd8299190ea601d7b36076`
-- OS/environment: `Microsoft Windows NT 10.0.26200.0`, PowerShell
+- Commit hash tested: `35183ea153d730d46d7a75d50ec6f6e7dfaf8ad3`
+- OS/environment: `Microsoft Windows NT 10.0.26200.0`, PowerShell, Codex desktop
 - Node version: `v24.14.0`
 - pnpm version: `11.7.0`
 - Browser/tool used: Codex in-app Browser for manual playtest; Playwright
   Chromium for `pnpm test:browser`
 - Dev server URL: `http://127.0.0.1:5173/`
-- Browser console warnings/errors during manual pass: none observed
+- Browser console warnings/errors during manual pass: none captured
 - Stale dev servers before testing: none found on ports `4173`, `5173`-`5180`
-- Dev server cleanup after manual playtest: stopped Vite listener on PID `29672`
+- Listeners after Playwright smoke: none found
+- Dev server cleanup after manual playtest: stopped Vite listener on PID `26432`
 - Common dev ports after cleanup: clear
 - Temporary Vite logs: removed after cleanup
 
-| Command               | Status | Notes                                            |
-| --------------------- | ------ | ------------------------------------------------ |
-| `pnpm format:check`   | Pass   | All matched files used Prettier style.           |
-| `pnpm lint`           | Pass   | ESLint completed.                                |
-| `pnpm typecheck`      | Pass   | All workspace typechecks completed.              |
-| `pnpm test`           | Pass   | 22 test files, 226 tests.                        |
-| `pnpm build`          | Pass   | Workspace build and Vite client bundle passed.   |
-| `pnpm balance:report` | Pass   | Deterministic report printed with no warnings.   |
-| `pnpm test:browser`   | Pass   | 2 Chromium smoke tests passed.                   |
-| `pnpm dev`            | Pass   | Managed Vite start succeeded on `127.0.0.1:5173` |
+| Command               | Status | Notes                                          |
+| --------------------- | ------ | ---------------------------------------------- |
+| `pnpm format:check`   | Pass   | All matched files used Prettier style.         |
+| `pnpm lint`           | Pass   | ESLint completed.                              |
+| `pnpm typecheck`      | Pass   | All workspace typechecks completed.            |
+| `pnpm test`           | Pass   | 23 test files, 230 tests.                      |
+| `pnpm build`          | Pass   | Workspace build and Vite client bundle passed. |
+| `pnpm balance:report` | Pass   | Deterministic report printed no warnings.      |
+| `pnpm test:browser`   | Pass   | 2 Chromium smoke tests passed.                 |
+| `pnpm dev`            | Pass   | Managed Vite start on `127.0.0.1:5173`.        |
 
 ## 3. Coverage Summary
 
-| Scenario         | Rounds reached        | Combat recorded | Rewards opened                  | Upgrade progress observed                                             | Notes                                                                                            |
-| ---------------- | --------------------- | --------------- | ------------------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| Ember Scrappers  | Round 2 reward opened | Yes, rounds 1-2 | Ember Foundry Pack, Source Pack | Ember Scraprunner `2 / 3`; active copy; duplicate Source              | Best active-vs-pool clarity after advancing to planning. Source Pack cost mattered in round 2.   |
-| Rotbloom Recall  | Round 2 reward opened | Yes, rounds 1-2 | Rotbloom Pack twice             | Due Marker duplicate Relic; Bloom Source duplicate; Sporeback `2 / 3` | Non-upgradeable duplicate wording was clear. Relic/Source duplicates no longer looked like bugs. |
-| Cloudspire Phase | Round 2 reward opened | Yes, rounds 1-2 | Cloudspire Pack twice           | Mistwing `2 / 3` plus active copy; Vanishing Warden `3 / 3`           | Strongest normal-run upgrade-progress case. Row badges made duplicate candidates easy to spot.   |
-| Upgrade Lab      | Round 1 reward phase  | Yes, round 1    | None                            | Cinder Scout `3 / 3` ready, then Lv 1 `1 / 3`                         | Upgrade flow still works; upgraded stats and combat contribution were readable.                  |
+| Scenario         | Rounds reached       | Combat recorded | Reward opened   | Grid inspected                    | Notes                                                                                          |
+| ---------------- | -------------------- | --------------- | --------------- | --------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Ember Scrappers  | Round 2 reward phase | Yes, rounds 1-2 | Yes, round 1    | Player, enemy, support Relic      | Tide Source reward enabled Signal Nest; grid showed Sparkcatch plus Signal Nest at r0 c0.      |
+| Rotbloom Recall  | Round 2 reward phase | Yes, rounds 1-2 | Yes, round 1    | Player, enemy, support Relic      | Grid made Sporeback Beast plus Ash Ledger at r0 c0 much clearer than the list.                 |
+| Cloudspire Phase | Round 3 planning     | Yes, rounds 1-2 | Yes, rounds 1-2 | Player, enemy, latest reward card | Latest reward Signal Wisp Echo placed into grid at r0 c1; duplicate progress remained visible. |
+| Upgrade Lab      | Round 1 reward phase | Yes, round 1    | No              | Upgraded Cinder Scout from grid   | Lv 1 badge appeared in Player Board Grid; grid inspection showed upgraded stats.               |
 
-## 4. Normal-Run Upgrade Visibility
+## 4. Player Board Grid Evaluation
 
-### Ember Scrappers
+The Player Board Grid is easier to understand than the Board list. The list is
+still precise, but the grid makes spatial state visible immediately: initial
+starters appear as a single ground card near the front, added Units fill earlier
+cells, and support Relics stack inside the same coordinate instead of becoming
+another abstract line.
 
-- Duplicate cards appeared: yes. Ember Foundry Pack produced two Ember
-  Scraprunner pool copies while the starter Ember Scraprunner stayed active.
-  It also produced a duplicate Ember Source.
-- Upgrade Progress panel explained them: yes. During `combatResolved`, it showed
-  `Ember Scraprunner: 2 / 3 pool copies at Lv 0 (2 pool + 1 active copy). Card
-upgrades can only be made during planning.` After advancing, it changed to
-  `Return active copies to pool to upgrade.`
-- Row badges helped: yes. The two pool Ember Scraprunner rows showed `2 / 3`,
-  the active board row showed `ACTIVE COPY`, and Ember Source showed
-  `DUPLICATE`.
-- Inspector explained upgrade state: yes. Inspecting Ember Scraprunner showed
-  `Level 0: 2 / 3 pool copies`, one active copy, and the blocked reason.
-- Active versus pool copies were clear: clear after advancing to planning; less
-  clear in reward/combatResolved because the phase restriction is prioritized.
-- Non-upgradeable duplicates were explained: yes. Ember Source displayed
-  `duplicate Source. Sources are not upgradeable yet.`
-- Upgrade progress affected pack choice: yes. Seeing Ember Scraprunner at
-  `2 / 3` made another Ember pack tempting, while Source Pack's lower price and
-  fixing competed with that chase.
+Occupied and empty cells are clear enough. Empty cells are quiet and labelled,
+which helps the grid read as a board rather than a sparse list. The coordinate
+labels are useful for internal testing, especially when comparing the grid to
+combat summary lines, but they are still technical. They should not be mistaken
+for final player-facing board language.
 
-### Rotbloom Recall
+Ground/support layers are clear. The best examples were:
 
-- Duplicate cards appeared: yes. The first Rotbloom Pack produced two Due
-  Markers and a duplicate Bloom Source. The second added a duplicate Ash Ledger,
-  another Bloom Source, and a partial `Sporeback Beast: 2 / 3` Unit group.
-- Upgrade Progress panel explained them: yes. It listed duplicate Relics and
-  Sources with explicit non-upgradeable reasons. After the second pack,
-  Sporeback Beast appeared as a partial Unit upgrade group.
-- Row badges helped: yes. `DUPLICATE` badges on Due Marker, Bloom Source, and
-  Ash Ledger separated duplicate awareness from actual upgrade eligibility.
-  Sporeback Beast rows showed `2 / 3`.
-- Inspector explained upgrade state: yes. Due Marker inspection said `Relics are
-not upgradeable yet` and `Level 0: 2 owned copies`.
-- Active versus pool copies were clear: no active duplicate Unit case appeared
-  in this starter path, but the panel stayed clear for pool-only and
-  non-upgradeable groups.
-- Non-upgradeable duplicates were explained: yes, clearly for Relic and Source.
-- Upgrade progress affected pack choice: moderately. Rotbloom remained the best
-  archetype choice, but the panel made it clear which duplicates were upgrade
-  material and which were just duplicate context.
+- Ember: Sparkcatch Apprentice at `r0 c0 ground` plus Signal Nest at
+  `r0 c0 support`.
+- Rotbloom: Sporeback Beast at `r0 c0 ground` plus Ash Ledger at
+  `r0 c0 support`.
 
-### Cloudspire Phase
+Support cards are visually associated with their coordinate. This finally makes
+Relics feel like board objects instead of side-list entries.
 
-- Duplicate cards appeared: yes. Cloudspire Pack produced two Mistwing Scout
-  pool copies while the starter Mistwing was active, plus partial Cloudgate
-  Adept and Vanishing Warden groups. The second pack pushed Vanishing Warden to
-  `3 / 3`.
-- Upgrade Progress panel explained them: yes. After advancing, Mistwing Scout
-  showed `2 / 3 pool copies at Lv 0 (2 pool + 1 active copy). Return active
-copies to pool to upgrade.`
-- Row badges helped: yes. Mistwing pool rows showed `2 / 3`, the board Mistwing
-  row showed `ACTIVE COPY`, Vanishing Warden rows showed `2 / 3` and later
-  `3 / 3`.
-- Inspector explained upgrade state: yes. Mistwing inspection showed `Level 0:
-2 / 3 pool copies`, one active copy, and a blocked reason.
-- Active versus pool copies were clear: yes after returning to planning.
-- Non-upgradeable duplicates were explained: no non-upgradeable duplicate was
-  central in this path.
-- Upgrade progress affected pack choice: yes. Seeing Mistwing at `2 / 3` and
-  Vanishing Warden near or at `3 / 3` made Cloudspire Pack feel like a strong
-  duplicate-chase pick.
+Upgraded cards are visible. In the upgrade lab, Cinder Scout appeared in the
+Player Board Grid at `r0 c0 ground` with an `Lv 1` badge, and inspecting it from
+the grid showed `2 ATK / 3 HP / 1.1 speed / 1 range`.
 
-## 5. Upgrade Lab Confirmation
+The grid updates correctly after loadout changes. It updated after placing
+Sparkcatch Apprentice, Sporeback Beast, Ash Ledger, Mistwing Scout, Signal Nest,
+Signal Wisp Echo, and upgraded Cinder Scout. Grid inspection feels natural and
+should remain the primary way to inspect active board cards.
 
-The lab is still clear. Loading `/?scenario=upgrade-lab` showed three Cinder
-Scout pool rows with `READY` badges and an Upgrade Progress row:
+## 5. Enemy Board Grid Evaluation
 
-`Cinder Scout: 3 / 3 pool copies at Lv 0 -> Upgrade to Lv 1`
+The Enemy Board Grid makes encounter threats easier to read than the old
+encounter board list. Early encounters are simple, but even a single enemy Unit
+at `r0 c3 ground` reads better spatially than a list row. It was easier to
+anticipate how Ember Scraprunner, Rootbrace Guardian, and later Shade boards
+lined up against the player board.
 
-The 3-copy upgrade was obvious. Clicking Upgrade consumed the extra copies and
-left one Lv 1 Cinder Scout in the pool.
+Enemy card inspection works easily. Inspecting enemy grid cards selected the
+same Card Inspector with zone `encounter`, no legal actions, and normal card
+details. This is a good pattern: the grid answers "where is it?" and the
+inspector answers "what does it do?"
 
-The upgraded card was easy to identify. The pool row showed `LV 1`, and the
-inspector showed:
+Enemy positioning is clearer, but threat reading is still incomplete. The grid
+does not yet show compact keyword or danger markers, so the player still needs
+to inspect Rootbrace Guardian for Guard, Ember Scraprunner for Quickstart, and
+Cloudspire or boss Relics for support effects. That is acceptable for internal
+iteration, but future enemy-grid badges would help.
 
-- `2 ATK / 3 HP / 1.1 speed / 1 range`
-- `Current bonus: +1 ATK / +1 HP.`
-- `Level 1: 1 / 3 pool copies.`
-- `Blocked: Need 3 matching pool copies; found 1.`
+## 6. Layer And Positioning Readability
 
-Placement worked. The Lv 1 Cinder Scout could be placed on the board, filling
-the remaining Board Charge. Combat reflected the upgrade clearly enough in the
-summary: Cinder Scout dealt 2 attack damage and destroyed the enemy Ember
-Scraprunner.
+The ground layer is clear. Units read as board occupants, and adding new Units
+visibly fills the grid. This made Mistwing Scout, Sporeback Beast, Sparkcatch
+Apprentice, Signal Wisp Echo, and upgraded Cinder Scout easier to understand.
 
-## 6. Pack Choice And Economy
+The support layer is the main improvement. Signal Nest and Ash Ledger were much
+easier to reason about once they appeared as support cards inside a coordinate.
+Due Marker was also easier to evaluate after the grid made the support-layer
+concept obvious, even when not placed in every run.
 
-Pack costs are visible and readable. Reward rows show `Cost N gold`, and
-affordable rows show `After purchase: N gold`.
+Same-cell ground/support pairs are now understandable. They still need the
+small layer labels, but they no longer look like accidental duplicate card rows.
 
-Current gold is visible in Run State. Gold changes were easy to follow:
+Adjacency is better but not solved. The grid helps explain "adjacent" because
+cells are visible, yet there is no hover, highlight, or placement preview. For
+now that is fine. A compact grid is enough before Pixi; direct grid placement
+controls can wait until reward explanations are done.
 
-- Ember round 1 win: gold `0 -> 6`, opened Ember Foundry Pack for 4, then gold
-  `6 -> 2`.
-- Ember round 2 loss: gold `2 -> 6`, opened Source Pack for 3, then gold
-  `6 -> 3`.
-- Rotbloom round 1 win: gold `0 -> 6`, opened Rotbloom Pack for 4.
-- Rotbloom round 2 win: gold `2 -> 8`, opened Rotbloom Pack for 4.
-- Cloudspire round 1 win: gold `0 -> 6`, opened Cloudspire Pack for 4.
-- Cloudspire round 2 win: gold `2 -> 8`, opened Cloudspire Pack for 4.
-- Upgrade lab round 1 win: gold `0 -> 6`.
+Row/column language remains technical. It is useful for debugging and
+cross-checking logs, but final UI should eventually communicate front/back and
+neighbor relationships more naturally.
 
-Gold earned after combat is clear because Last Recorded Combat shows
-`Gold: +N`. Affordability remained generous; every tested offer was affordable,
-so disabled reward states were not observed manually.
+## 7. Reward, Trait, Upgrade, And Economy Context
 
-Pack choice feels like a real decision, but mostly because of traits and
-duplicates rather than budget pressure. Source Pack's cheaper 3-gold price
-matters because it leaves one more gold than a 4-gold archetype pack, especially
-when the run wants fixing or Source Greed.
+Pack costs and gold still read clearly. Reward rows show `Cost N gold` and
+`After purchase: N gold`, and Run State shows current gold. The economy remains
+generous in these early runs; every observed reward offer was affordable.
 
-Duplicate progress now influences pack choice. Ember Foundry looked tempting
-after Ember Scraprunner reached `2 / 3`; Cloudspire looked very tempting after
-Mistwing reached `2 / 3` and Vanishing Warden later reached `3 / 3`.
+Reward markers still work. New pool cards showed `new` badges after each opened
+pack, and latest reward rows were easy to find. Cloudspire's second reward
+produced latest reward cards including Signal Wisp Echo, Skyhook Lookout, Gleam
+Lantern, Vanishing Warden, and Tide-Gleam Conduit; placing Signal Wisp Echo from
+a latest reward row updated the Player Board Grid.
 
-Traits also influence pack choice. Ember pushed toward Scrapper/Echo Fodder,
-Rotbloom pushed toward Ashes/Recall/Offering, and Cloudspire pushed toward
-Phase/Barrier/Warden. Trait direction and duplicate progress now work together.
+Traits/teamups remain useful but dense. The grid helps trait context indirectly
+because active board contributors are easier to locate, but the trait panel
+still carries most of that explanation.
 
-The next economy task should not be tuning yet. Reward rows need better pack
-explanations first, then tuning can decide whether early income is too generous.
+Duplicate progress remains visible. Cloudspire showed Vanishing Warden at
+`2 / 3`, and the upgrade lab still showed Cinder Scout ready to upgrade. The
+grid improved upgrade visibility once an upgraded card moved to the board, but
+pool duplicate decisions still rely on badges and the Upgrade Progress panel.
 
-## 7. Traits / Teamups
+The board grid helps understand Relics and support placement more than it helps
+pack choice. Reward-offer explanations are now the clearer next gap.
 
-Active traits are understandable enough for internal testing. They gave each
-starter a direction:
+## 8. Combat And Card Readability
 
-- Ember: Ember, Echo Fodder, Scrapper.
-- Rotbloom: Shade, Source Greed, Ashes, Recall.
-- Cloudspire: Tide, Gleam, Source Greed, Phase.
+Combat summaries remain readable. Winner, damage, event count, warnings, gold,
+and concise event lines are enough for normal internal reading. Trigger-source
+lines are still valuable; Ember and Rotbloom runs showed destroyed-trigger,
+Recall, and support-generated summon behavior without requiring raw event JSON.
 
-Near traits create useful pack direction, especially when a count is one away
-from the next tier. Source Greed also helped justify Source Pack and off-aspect
-Source choices.
+Card inspection from the grid works naturally. Player board cards, enemy board
+cards, support Relics, latest reward board cards, and upgraded Cinder Scout all
+used the existing Card Inspector. There is no need for a second inspector.
 
-The panel is dense. It is mechanically useful, but Active and Near can repeat
-the same trait when a trait is already active and also close to the next tier.
-That repetition is understandable after reading it, but it is heavy in a
-browser playtest.
+Remaining wording confusion is minor. The phrase "grid" itself is not
+player-facing, and row/column labels remain debug-ish. Raw JSON is still not
+needed for normal internal reading, though the debug details remain useful when
+checking exact event metadata.
 
-Trait progress and duplicate progress work together well now. The player can
-see both "this pack reinforces my trait lane" and "this pack might finish a
-duplicate upgrade."
+## 9. Bugs Or Suspected Bugs
 
-## 8. Board / Positioning Readability
+No gameplay or rules bugs were found in this pass.
 
-The list-based board is still tolerable for internal rules testing but no
-longer feels adequate for a tactical autobattler demo. It shows row, column, and
-layer text, but spatial relationships are hard to parse. Support-layer Relics
-and adjacency-dependent abilities are especially abstract.
+UX confusion:
 
-Ground/support layers are technically understandable from `r0 c0 support` and
-`r0 c2 ground`, but they do not feel intuitive. The player has to translate
-text into a board in their head.
+- Title: Generic `Place on Board` list buttons can target the wrong card.
+- Steps to reproduce: Open `/?scenario=upgrade-lab`, upgrade Cinder Scout, then
+  click the first global `Place on Board` action without reading the row.
+- Observed behavior: Sparkcatch Apprentice is placed first because it appears
+  earlier in the Pool Cards list, consuming the remaining Board Charge.
+- Expected behavior: This is legal, but the player intent was to place upgraded
+  Cinder Scout.
+- Reproducibility: Reproducible when using unscoped/generic action clicks.
+- Severity: Low UX confusion, not a bug. Direct grid placement or stronger row
+  affordances can address it later.
 
-A compact React/HTML board grid should be next. It does not need Pixi,
-animation, drag-and-drop, or card art. A simple grid with ground/support layer
-signals would make board state, placement, adjacency, and support objects much
-easier to inspect.
+UX confusion:
 
-Board readability is now a bigger blocker than pack/upgrade clarity. Upgrade
-progress is good enough for normal-run playtesting; the board is the biggest
-remaining gap between "engine debug client" and "internal systems demo."
+- Title: Reward cards cannot be used until advancing back to planning.
+- Steps to reproduce: Record combat, open a reward pack, then look for loadout
+  actions before pressing Advance.
+- Observed behavior: New cards are visible, but actions are unavailable because
+  the phase is `combatResolved`.
+- Expected behavior: Rules are correct; loadout edits only happen during
+  planning.
+- Reproducibility: Always.
+- Severity: Low. The phase guidance says to advance, but the reward-to-planning
+  transition is still easy to forget during a playtest checklist.
 
-## 9. Combat And Card Readability
+## 10. Recommended Next Tasks
 
-Combat summaries remain readable. Winner, damage, event count, warnings, and
-gold are easy to scan. Trigger-source lines are helpful: Ember Scraprunner and
-Sparkcatch Apprentice interactions were understandable, and Recall lines in
-Rotbloom were especially useful.
+Do Next: `feat(client): improve reward offer explanations`
 
-Upgrade-related combat clarity is adequate in the lab. Cinder Scout's Lv 1 stat
-increase was clear in the inspector, and combat showed it dealing 2 attack
-damage. Normal-run partial upgrades do not affect combat yet, so their clarity
-is mostly a planning UI question.
-
-Card inspector wording is stronger after the upgrade-progress pass. It explains
-level, required copies, pool copy count, active copy count, non-upgradeable card
-types, and blocked reasons.
-
-Blocked reasons are useful but can become long. The most awkward text appears
-outside planning, where upgrade progress says the phase blocks upgrades before
-it tells the player the active-copy fix. That is technically correct, but the
-planning-phase wording is more helpful.
-
-## 10. Bugs Or Suspected Bugs
-
-Confirmed bugs: none observed.
-
-UX confusion, not confirmed bugs:
-
-- Title: Active-copy explanation is less helpful outside planning.
-  Steps to reproduce: Ember or Cloudspire, create a `2 pool + 1 active` duplicate
-  group, inspect it before advancing from reward/combatResolved.
-  Observed behavior: panel and inspector prioritize `Card upgrades can only be
-made during planning.`
-  Expected behavior: this is mechanically correct, but the UI could also keep
-  the active-copy fix visible because it is the more actionable explanation.
-  Reproducibility: deterministic in Ember and Cloudspire paths.
-  Severity: low UX.
-
-- Title: Board layout is hard to parse from list rows.
-  Steps to reproduce: any starter with multiple board cards or a support Relic.
-  Observed behavior: board shows rows such as `r0 c0 support` and `r0 c2 ground`.
-  Expected behavior: a compact grid should show ground and support layers
-  spatially.
-  Reproducibility: always.
-  Severity: medium UX.
-
-- Title: Reward offers do not explain strategic pack identity.
-  Steps to reproduce: reach any reward phase.
-  Observed behavior: rows show pack name, cost, affordability, and gold after
-  purchase, but not pack bias, expected card roles, trait relevance, or duplicate
-  relevance.
-  Expected behavior: reward rows should briefly explain why the player might
-  choose that pack.
-  Reproducibility: always.
-  Severity: medium UX.
-
-- Title: Early reward economy rarely creates unaffordable states.
-  Steps to reproduce: play the three starters through rounds 1-2 with reasonable
-  legal actions.
-  Observed behavior: every tested offer was affordable.
-  Expected behavior: later tuning should create occasional buy/save tension
-  without softlocking the run.
-  Reproducibility: observed across this deterministic pass.
-  Severity: low tuning/UX.
-
-- Title: Trait panel can feel repetitive.
-  Steps to reproduce: inspect Traits / Teamups after adding cards.
-  Observed behavior: traits can appear in both Active and Near when active and
-  close to the next tier.
-  Expected behavior: a "near next tier" label or compact grouping would make the
-  repetition feel intentional.
-  Reproducibility: frequent.
-  Severity: low UX.
-
-## 11. Recommended Next Tasks
-
-Do Next:
-
-- `feat(client): add compact board grid layer view`
+Why: board readability is good enough for internal playtesting, while reward
+offers still do not explain why one pack is strategically better than another.
+The next iteration should add concise pack-bias, trait-fit, duplicate-fit, and
+role hints to reward choices.
 
 Do Soon:
 
-- `feat(client): improve pack offer explanations`
-- `feat(client): simplify trait/upgrade panels`
-- `test(client): add stable browser coverage for one normal-run partial
-duplicate group`
-- `feat(rules): tune economy and affordability pressure` after pack-offer
-  explanations make reward decisions easier to evaluate
+- Improve enemy-grid threat badges for keywords, Relics, and likely danger.
+- Add optional grid placement affordances after reward explanations.
+- Make row/column language friendlier once the board UX moves beyond debug
+  tooling.
+- Consider compact support/adjacency hints for Relics such as Due Marker, Cinder
+  Tally, Ash Ledger, Signal Nest, and Gleam Lantern.
 
 Still Wait:
 
@@ -344,26 +247,20 @@ Still Wait:
 - full visual combat replay
 - board resources
 - deployment
+- economy tuning, until reward explanations make pack choice intent clearer
 
-## 12. Raw Notes
+## 11. Raw Notes
 
-- Ember: inspected Ember Scraprunner and Sparkcatch Apprentice; placed
-  Sparkcatch Apprentice; won round 1 for `+6`; opened Ember Foundry Pack; saw
-  Ember Scraprunner `2 / 3`, active copy, and duplicate Ember Source; advanced;
-  added Ember Source; lost round 2 for `+4`; opened Source Pack.
-- Rotbloom: inspected Hollow Caller and Ash Ledger; placed Ash Ledger support;
-  won round 1 for `+6`; opened Rotbloom Pack; saw duplicate Due Marker and Bloom
-  Source explanations; advanced; added Bloom Source; won round 2 for `+6`;
-  opened Rotbloom Pack; saw Sporeback Beast `2 / 3` and duplicate Ash Ledger.
-- Cloudspire: inspected Cloudgate Adept and Mistwing Scout; placed Mistwing;
-  won round 1 for `+6`; opened Cloudspire Pack; saw Mistwing `2 / 3` with active
-  copy, Cloudgate partial progress, and Vanishing Warden `2 / 3`; advanced;
-  added Ember Source and Shade Source; won round 2 for `+6`; opened Cloudspire
-  Pack; saw Vanishing Warden `3 / 3` while outside planning.
-- Upgrade lab: loaded `/?scenario=upgrade-lab`; confirmed Cinder Scout `3 / 3`
-  and `READY` badges; upgraded to Lv 1; inspector showed `2 ATK / 3 HP`,
-  `Current bonus: +1 ATK / +1 HP`, and `Level 1: 1 / 3 pool copies`; placed the
-  upgraded card and recorded a winning combat.
-- Browser logs: no warnings or errors observed.
-- Dev server lifecycle: no stale listeners before testing; Vite listener on
-  `5173` stopped after manual playtest; common dev ports clear afterward.
+- No stale dev-port listeners were found before testing.
+- `pnpm test:browser` passed before the manual browser pass.
+- Dev server ran at `http://127.0.0.1:5173/` and was stopped afterward.
+- Browser console errors/warnings captured during manual testing: none.
+- Ember: placed Sparkcatch Apprentice, added a reward Tide Source, then placed
+  Signal Nest as support over Sparkcatch's coordinate.
+- Rotbloom: placed Sporeback Beast and Ash Ledger into the same coordinate,
+  making ground/support layering clear.
+- Cloudspire: placed Mistwing Scout, later placed latest-reward Signal Wisp Echo
+  into the grid, and saw Vanishing Warden duplicate progress.
+- Upgrade lab: upgraded Cinder Scout, placed it intentionally from its row, saw
+  `Lv 1` in the Player Board Grid, inspected upgraded stats from the grid, and
+  recorded combat.

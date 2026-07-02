@@ -9,10 +9,21 @@ import {
 } from "@packbound/shared";
 
 import { removeUnit } from "./placement";
-import { aliveUnits, attackIntervalMs, emit, opponentOf } from "./state";
+import {
+  aliveUnits,
+  attackIntervalMs,
+  collectAbilitySources,
+  emit,
+  opponentOf
+} from "./state";
 import { hasStatus } from "./statuses";
 import { selectEnemyTarget } from "./targeting";
-import type { MutableCombatState, MutableUnit, ResolveAbilities } from "./types";
+import type {
+  AbilitySource,
+  MutableCombatState,
+  MutableUnit,
+  ResolveAbilities
+} from "./types";
 
 type DamageSource = {
   readonly sourceId: string;
@@ -63,6 +74,63 @@ const sourceEventMetadata = (
   ...(source.sourceSide !== undefined ? { sourceSide: source.sourceSide } : {})
 });
 
+const sourceIsPresent = (state: MutableCombatState, source: AbilitySource): boolean => {
+  if (source.unit) {
+    const unitId = source.unit.unitId;
+    return state.sides[source.sideState.side].units.some(
+      (unit) => unit.unitId === unitId
+    );
+  }
+
+  return state.sides[source.sideState.side].permanents.some(
+    (permanent) => permanent.cardInstanceId === source.cardInstanceId
+  );
+};
+
+const resolveSourcesForTrigger = (
+  state: MutableCombatState,
+  sources: readonly AbilitySource[],
+  triggerType:
+    | "OnAllyDestroyed"
+    | "OnEnemyDestroyed"
+    | "WhenFirstAllyDestroyed"
+    | "WhenFirstEnemyDestroyed",
+  depth: number,
+  resolveAbilities: ResolveAbilities
+): void => {
+  for (const source of sources) {
+    if (!sourceIsPresent(state, source)) {
+      continue;
+    }
+    resolveAbilities(state, source, triggerType, depth);
+  }
+};
+
+const resolveFirstDestroyedTriggers = (
+  state: MutableCombatState,
+  sources: readonly AbilitySource[],
+  triggerType: "WhenFirstAllyDestroyed" | "WhenFirstEnemyDestroyed",
+  depth: number,
+  resolveAbilities: ResolveAbilities
+): void => {
+  for (const source of sources) {
+    if (!sourceIsPresent(state, source)) {
+      continue;
+    }
+
+    const firedSources =
+      triggerType === "WhenFirstAllyDestroyed"
+        ? source.sideState.firstAllyDestroyedTriggerSources
+        : source.sideState.firstEnemyDestroyedTriggerSources;
+    if (firedSources.has(source.cardInstanceId)) {
+      continue;
+    }
+
+    firedSources.add(source.cardInstanceId);
+    resolveAbilities(state, source, triggerType, depth);
+  }
+};
+
 export const destroyUnit = (
   state: MutableCombatState,
   unit: MutableUnit,
@@ -102,6 +170,43 @@ export const destroyUnit = (
     },
     "OnDestroyed",
     depth
+  );
+
+  side.destroyedUnitsThisCombat += 1;
+
+  const alliedSources = collectAbilitySources(side).filter(
+    (source) => source.cardInstanceId !== unit.cardInstanceId
+  );
+  const enemySide = state.sides[opponentOf(unit.side)];
+  const enemySources = collectAbilitySources(enemySide);
+
+  resolveSourcesForTrigger(
+    state,
+    alliedSources,
+    "OnAllyDestroyed",
+    depth,
+    resolveAbilities
+  );
+  resolveSourcesForTrigger(
+    state,
+    enemySources,
+    "OnEnemyDestroyed",
+    depth,
+    resolveAbilities
+  );
+  resolveFirstDestroyedTriggers(
+    state,
+    alliedSources,
+    "WhenFirstAllyDestroyed",
+    depth,
+    resolveAbilities
+  );
+  resolveFirstDestroyedTriggers(
+    state,
+    enemySources,
+    "WhenFirstEnemyDestroyed",
+    depth,
+    resolveAbilities
   );
 };
 

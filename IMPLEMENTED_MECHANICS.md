@@ -42,6 +42,25 @@ Ability triggers currently resolved by the simulator:
 - `OnEntry`
 - `OnCombatStart`
 - `OnDestroyed`
+- `OnAllyDestroyed`
+- `OnEnemyDestroyed`
+- `WhenFirstAllyDestroyed`
+- `WhenFirstEnemyDestroyed`
+
+Destroyed-unit trigger behavior:
+
+- `OnDestroyed` resolves for the destroyed Unit/Echo itself.
+- `OnAllyDestroyed` resolves for surviving allied Unit/Echo sources and allied
+  Relic/Field permanents after another allied Unit/Echo is destroyed. It
+  excludes the destroyed source's own destruction.
+- `OnEnemyDestroyed` resolves for surviving enemy Unit/Echo sources and enemy
+  Relic/Field permanents when an opposing Unit/Echo is destroyed.
+- `WhenFirstAllyDestroyed` and `WhenFirstEnemyDestroyed` are tracked once per
+  source card instance per combat, not once per side.
+- Echo destruction counts for ally/enemy destroyed triggers and
+  destroyed-this-combat conditions, but Echoes still do not enter Ashes.
+- `AllyDestroyedThisCombat` and `EnemyDestroyedThisCombat` use real
+  destroyed-unit tracking from the source side's perspective.
 
 Technique triggers currently resolved by the simulator:
 
@@ -57,8 +76,6 @@ loop:
 - `OnCombatEnd`
 - `OnLeaveBoard`
 - `OnOffered`
-- `OnAllyDestroyed`
-- `OnEnemyDestroyed`
 - `OnSummoned`
 - `OnTechniqueUsed`
 - `OnTakeDamage`
@@ -66,8 +83,6 @@ loop:
 - `OnAttack`
 - `OnKill`
 - `OnCombatChargeGained`
-- `WhenFirstAllyDestroyed`
-- `WhenFirstEnemyDestroyed`
 - `WhenFirstEnemyUsesTechnique`
 
 ## Known Simulator Limitations

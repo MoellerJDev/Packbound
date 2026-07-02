@@ -14,6 +14,7 @@ import {
 } from "@packbound/shared";
 
 import type {
+  AbilitySource,
   CombatantSetup,
   CombatStateSnapshot,
   MutableCombatState,
@@ -82,6 +83,33 @@ export const hasKeyword = (unit: MutableUnit, keyword: string): boolean =>
 
 export const aliveUnits = (side: MutableSideState): readonly MutableUnit[] =>
   side.units.filter((unit) => unit.currentHealth > 0);
+
+export const collectAbilitySources = (
+  side: MutableSideState
+): readonly AbilitySource[] => {
+  const sources: AbilitySource[] = [];
+
+  for (const unit of aliveUnits(side)) {
+    sources.push({
+      sideState: side,
+      cardInstanceId: unit.cardInstanceId,
+      def: unit.def,
+      unit
+    });
+  }
+
+  for (const permanent of side.permanents) {
+    sources.push({
+      sideState: side,
+      cardInstanceId: permanent.cardInstanceId,
+      def: permanent.def,
+      placement: permanent.placement
+    });
+  }
+
+  sources.sort((a, b) => a.cardInstanceId.localeCompare(b.cardInstanceId));
+  return sources;
+};
 
 const copyCard = (card: CardInstance): CardInstance => ({
   ...card,
@@ -180,7 +208,10 @@ const buildSideState = (
     combatCharge: 0,
     combatChargePerSecond,
     nextSummonIndex: 0,
-    firstAllyBelowHealthTriggered: false
+    firstAllyBelowHealthTriggered: false,
+    destroyedUnitsThisCombat: 0,
+    firstAllyDestroyedTriggerSources: new Set(),
+    firstEnemyDestroyedTriggerSources: new Set()
   };
 };
 

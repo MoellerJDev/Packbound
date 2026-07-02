@@ -51,8 +51,6 @@ const schemaReservedTriggers = new Set<Trigger["type"]>([
   "OnCombatEnd",
   "OnLeaveBoard",
   "OnOffered",
-  "OnAllyDestroyed",
-  "OnEnemyDestroyed",
   "OnSummoned",
   "OnTechniqueUsed",
   "OnTakeDamage",
@@ -60,8 +58,6 @@ const schemaReservedTriggers = new Set<Trigger["type"]>([
   "OnAttack",
   "OnKill",
   "OnCombatChargeGained",
-  "WhenFirstAllyDestroyed",
-  "WhenFirstEnemyDestroyed",
   "WhenFirstEnemyUsesTechnique"
 ]);
 

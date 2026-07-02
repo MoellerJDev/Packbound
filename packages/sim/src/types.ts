@@ -112,6 +112,9 @@ export type MutableSideState = {
   readonly combatChargePerSecond: number;
   nextSummonIndex: number;
   firstAllyBelowHealthTriggered: boolean;
+  destroyedUnitsThisCombat: number;
+  readonly firstAllyDestroyedTriggerSources: Set<CardInstanceId>;
+  readonly firstEnemyDestroyedTriggerSources: Set<CardInstanceId>;
 };
 
 export type MutableCombatState = {

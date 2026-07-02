@@ -1,5 +1,7 @@
 # Packbound Playtest Report
 
+## Playtest 1
+
 ## Environment
 
 - Commit hash: `85755101704fde17edc02e5e9931e487e4e1e529`
@@ -269,3 +271,229 @@ CombatStarted -> TechniqueQueued(phase_step, sparkfall)
 -> StatusRemoved(Barrier, consumed)
 -> DamageDealt(amount 0, attack)
 ```
+
+## Playtest 2 - Card Inspector Follow-up
+
+### Environment And Commands
+
+- Commit hash: `235c041687e151345be8f7a840fd442cf19b61fc`
+- OS/environment: `Microsoft Windows NT 10.0.26200.0`, PowerShell
+  `5.1.26100.8655`
+- Node version: `v24.14.0`
+- pnpm version: `11.7.0`
+- Dev server URL: `http://127.0.0.1:5174/`
+- Browser/tool used: Codex in-app Browser with its Playwright control surface
+- Browser console logs: no console log entries returned during the session
+- Screenshots committed: none
+
+Commands run before browser playtest:
+
+- `pnpm format:check`: pass
+- `pnpm lint`: pass
+- `pnpm typecheck`: pass
+- `pnpm test`: pass, 15 test files / 157 tests
+- `pnpm build`: pass, including Vite production build
+- `pnpm balance:report`: pass
+- `pnpm dev`: pass. Vite reported port `5173` in use and served the app at
+  `http://127.0.0.1:5174/`.
+
+Commands run after writing the report:
+
+- `pnpm format:check`: initial fail on `PLAYTEST_REPORT_2.md`
+- `pnpm exec prettier --write PLAYTEST_REPORT_2.md`: pass
+- `pnpm format:check`: pass
+
+### Executive Summary
+
+- The prototype is clearer than the first playtest. The card inspector turns
+  card names into evaluable game objects: type, zone, Aspect, cost, stats,
+  rules text, design metadata, legal actions, and blocked reasons are visible.
+- The card inspector is useful enough for internal playtesting.
+- The combat summary is useful enough for normal internal reading without raw
+  JSON.
+- The next step can be a narrow mechanics pass. More clarity work is still
+  useful, but the UI now exposes enough cause-and-effect to inspect destroyed
+  unit triggers.
+- Top remaining blockers: missing next-action guidance, reward cards still need
+  manual inspection/comparison, and Echo/unsupported card-type inspection was
+  not directly covered by the browser loop.
+
+### Coverage
+
+#### `ember_scrappers`
+
+- Rounds reached: round 2 planning
+- Cards inspected: Ember Scraprunner, Ember Source, Sparkfall, Signal Nest,
+  Cinder Scout
+- Legal actions tried: placed Cinder Scout on board
+- No-action case inspected: Signal Nest initially had no legal action because
+  board Charge would exceed Source Row capacity
+- Reward pack opened: Cloudspire Pack
+- Reward cards inspected: Tide Source, Cracked Prism, Mistwing Scout
+- New card used: Tide Source was added to Source Row in round 2
+- Combat recorded: yes
+- Notes: the inspector made the Signal Nest decision much clearer than before.
+
+#### `rotbloom_recall`
+
+- Rounds reached: round 2 planning
+- Cards inspected: Hollow Caller, Shade Source, Bloom Source, Sporeback Beast,
+  Contract Husk
+- Legal actions tried: placed Sporeback Beast on board
+- No-action case inspected: after opening rewards and advancing, Thicket
+  Colossus and Due Marker showed Charge blockers
+- Reward pack opened: Rotbloom Pack
+- Reward cards inspected: Shade Binder, Bloom Source, Contract Husk
+- New card used: Shade Binder was added to Spellrail in round 2
+- Combat recorded: yes
+- Notes: Recall is now readable in combat summary form.
+
+#### `cloudspire_phase`
+
+- Rounds reached: round 2 planning
+- Cards inspected: Cloudgate Adept, Tide Source, Gleam Source, Phase Step,
+  Vanishing Warden, Mistwing Scout
+- Legal actions tried: returned Cloudgate Adept to pool, then placed Vanishing
+  Warden
+- No-action case inspected: Vanishing Warden initially had no legal action
+  because board Charge would exceed Source Row capacity
+- Reward pack opened: Rotbloom Pack
+- Reward cards inspected: Rootbrace Guardian, Shade Binder, Contract Husk
+- New card used: Ember-Shade Conduit was added to Source Row in round 2
+- Combat recorded: yes
+- Notes: returning Cloudgate Adept made Vanishing Warden legal, and the
+  inspector made the Charge reason explicit.
+
+### Card Inspector Evaluation
+
+The inspector now shows enough information for most internal card evaluation:
+name, type, zone, Aspect, Charge/cost, Unit stats, Source output, Technique
+timing/cost/effect, keywords, rules text, design role/archetypes, legal actions,
+and blocked reasons.
+
+Observed strengths:
+
+- Signal Nest displayed Relic details, combat-start summon text, design role,
+  and blocked reasons.
+- Ember Source and Tide Source displayed board Charge, Aspect access, and combat
+  Charge/sec.
+- Sparkfall, Phase Step, and Shade Binder displayed Technique cost, trigger,
+  effect, and target.
+- Vanishing Warden made the high-cost blocker obvious before and after returning
+  Cloudgate Adept.
+
+Missing or confusing items:
+
+- Medium: card rows say `No legal action`, but the player must click Inspect to
+  learn why. Add row-level reason text or a tooltip later.
+- Medium: Source Row totals are not summarized. Add board Charge used/capacity
+  and Aspect access totals later.
+- Low: Echo and unsupported card-type inspection was not directly covered by the
+  browser run.
+
+### Loadout Decision Clarity
+
+- Board decisions are mostly understandable now.
+- Board Charge capacity is understandable after inspecting blocked cards, but
+  not at a glance.
+- Aspect access is understandable for individual cards/Sources, but totals are
+  not summarized.
+- High-cost blockers are now clear through messages such as
+  `Board uses X Charge, but the Source Row provides Y`.
+- Non-Source and non-Technique blockers are clear in the inspector.
+- Recovery from bad loadout edits works because active cards show
+  `Return to Pool`.
+
+### Reward Pack Clarity
+
+- The latest pack name is visible.
+- Newly added cards are listed by name and appear in the pool, but rows are not
+  visually highlighted.
+- Newly opened cards are easy to inspect.
+- Immediate usability still requires advancing back to planning and inspecting
+  or scanning for legal buttons.
+
+Observed reward uses:
+
+- Ember opened Cloudspire Pack and later used Tide Source.
+- Rotbloom opened Rotbloom Pack and later used Shade Binder.
+- Cloudspire opened Rotbloom Pack and later used Ember-Shade Conduit.
+
+### Combat Summary Evaluation
+
+- Winner, damage to player/enemy, event count, warnings, Techniques, destroyed
+  Units, Barrier blocks, and Recall were readable.
+- Raw JSON is no longer needed during normal internal playtesting, though it
+  remains useful for engineering.
+- Representative rows:
+  - Ember: `You win combat`, damage to you `0`, damage to enemy `1`, 11 events,
+    no warnings.
+  - Rotbloom: `You win combat`, damage to you `0`, damage to enemy `3`, 34
+    events, no warnings. Recall was understandable.
+  - Cloudspire: `You win combat`, damage to you `0`, damage to enemy `1`, 43
+    events, no warnings. Barrier blocking was understandable.
+
+### Remaining UX Issues
+
+Critical: none found. The browser prototype completed all three starter loops.
+
+High: next-action guidance is still implicit.
+
+- Repro steps: record combat, open a reward, or advance phases.
+- Observed behavior: the player infers next action from enabled buttons and
+  phase labels.
+- Recommended fix: add phase-aware guidance near the topbar.
+
+Medium: row-level no-action reasons require an extra click.
+
+- Repro steps: inspect Signal Nest, Vanishing Warden, Thicket Colossus, or Due
+  Marker while their row says `No legal action`.
+- Recommended fix: surface the first blocked reason inline for no-action cards.
+
+Medium: Source Row totals are not summarized.
+
+- Repro steps: compare high-cost cards against available Sources.
+- Recommended fix: add a Source Row summary panel.
+
+Medium: reward cards are not visually marked in the pool.
+
+- Repro steps: open any reward pack.
+- Recommended fix: add a `new` marker or temporary highlight to latest pack
+  cards.
+
+Low: Echo and unsupported card-type inspection are not directly covered.
+
+- Recommended fix: add a future debug catalog inspector or explicit fixture
+  state, not new gameplay content.
+
+### Mechanics Readiness
+
+The project is ready for a narrow next mechanic pass.
+
+- It is now reasonable to implement `OnAllyDestroyed` / `OnEnemyDestroyed`.
+- Card text can show the trigger, combat summary can show destroyed units, and
+  triggered effects that emit damage/summon/destroy/Recall/Phase/status events
+  should be explainable by the current UI.
+- Nothing must block the simulator pass. The useful companion work is tests and
+  enough event output to make the trigger cause debuggable.
+
+### Recommended Next Tasks
+
+Do next: `feat(sim): add ally destroyed triggers`.
+
+Do soon:
+
+1. `feat(client): add next-action guidance`
+2. `feat(client): improve legal-action blocked reasons`
+3. `feat(client): improve reward display`
+4. Add focused combat-summary coverage for ally/enemy destroyed trigger
+   consequences once the mechanic exists
+
+Still wait:
+
+- Pixi
+- drag/drop
+- multiplayer
+- backend
+- broad card expansion
+- visual combat replay

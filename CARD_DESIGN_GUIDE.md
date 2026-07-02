@@ -75,7 +75,12 @@ Implemented effects include damage, healing, stat modification, status and
 keyword changes, Echo/Unit summoning, Offer, Destroy, Phase, Recall, and combat
 Charge gain/drain.
 
-Implemented ability triggers are `OnEntry`, `OnCombatStart`, and `OnDestroyed`.
+Implemented ability triggers are `OnEntry`, `OnCombatStart`, `OnDestroyed`,
+`OnAllyDestroyed`, `OnEnemyDestroyed`, `WhenFirstAllyDestroyed`, and
+`WhenFirstEnemyDestroyed`. `OnAllyDestroyed` excludes the destroyed source's own
+destruction; first-destroyed triggers are once per source card instance per
+combat. Destroyed Echoes count for these triggers but still do not enter Ashes.
+
 Implemented Technique triggers are `AfterSeconds`, `WhenCombatChargeAtLeast`,
 and `WhenFirstAllyBelowHealthPercent`.
 

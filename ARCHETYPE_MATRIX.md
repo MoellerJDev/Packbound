@@ -17,8 +17,7 @@ least one enabler, one payoff, and one interaction or defensive tool.
   spare `signal_nest` to teach board capacity pressure.
 - Pack implications: Ember Foundry Pack biases Scrapper, Tinkerer, Relic, and
   Ember cards.
-- Not implemented yet: Ally-death triggers, persistent Relic counters, and
-  movement-based tempo.
+- Not implemented yet: Persistent Relic counters and movement-based tempo.
 
 ## `shade_ashes`
 
@@ -32,8 +31,7 @@ least one enabler, one payoff, and one interaction or defensive tool.
   and a small Unit in Ashes so Recall is visible immediately.
 - Pack implications: Rotbloom Pack biases Shade, Bloom, Husk, Beast, and Recall
   cards.
-- Not implemented yet: OnAllyDestroyed, OnEnemyDestroyed, MillToAshes, and Void
-  recursion.
+- Not implemented yet: MillToAshes and Void recursion.
 
 ## `bloom_bodies`
 

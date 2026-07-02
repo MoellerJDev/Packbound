@@ -1,11 +1,15 @@
 import { MAX_TRIGGER_DEPTH, type AbilityDefinition } from "@packbound/shared";
 
 import { applyEffect } from "./effects";
-import { addWarning } from "./state";
+import { addWarning, collectAbilitySources, opponentOf } from "./state";
 import { hasStatus } from "./statuses";
 import type { AbilitySource, MutableCombatState } from "./types";
 
-const conditionPasses = (source: AbilitySource, ability: AbilityDefinition): boolean => {
+const conditionPasses = (
+  state: MutableCombatState,
+  source: AbilitySource,
+  ability: AbilityDefinition
+): boolean => {
   switch (ability.condition.type) {
     case "Always":
       return true;
@@ -28,8 +32,9 @@ const conditionPasses = (source: AbilitySource, ability: AbilityDefinition): boo
     case "AshesHasCard":
       return source.sideState.ashes.length > 0;
     case "AllyDestroyedThisCombat":
+      return source.sideState.destroyedUnitsThisCombat > 0;
     case "EnemyDestroyedThisCombat":
-      return true;
+      return state.sides[opponentOf(source.sideState.side)].destroyedUnitsThisCombat > 0;
   }
 };
 
@@ -49,7 +54,10 @@ export const resolveAbilities = (
   }
 
   for (const ability of source.def.abilities) {
-    if (ability.trigger.type !== triggerType || !conditionPasses(source, ability)) {
+    if (
+      ability.trigger.type !== triggerType ||
+      !conditionPasses(state, source, ability)
+    ) {
       continue;
     }
     applyEffect(state, source, ability, ability.effect, depth + 1, resolveAbilities);
@@ -76,29 +84,11 @@ export const resolveEntryTriggers = (state: MutableCombatState): void => {
 };
 
 export const resolveCombatStartTriggers = (state: MutableCombatState): void => {
-  const sources: AbilitySource[] = [];
+  const sources = [
+    ...collectAbilitySources(state.sides.playerA),
+    ...collectAbilitySources(state.sides.playerB)
+  ].sort((a, b) => a.cardInstanceId.localeCompare(b.cardInstanceId));
 
-  for (const side of [state.sides.playerA, state.sides.playerB]) {
-    for (const unit of side.units) {
-      sources.push({
-        sideState: side,
-        cardInstanceId: unit.cardInstanceId,
-        def: unit.def,
-        unit
-      });
-    }
-
-    for (const permanent of side.permanents) {
-      sources.push({
-        sideState: side,
-        cardInstanceId: permanent.cardInstanceId,
-        def: permanent.def,
-        placement: permanent.placement
-      });
-    }
-  }
-
-  sources.sort((a, b) => a.cardInstanceId.localeCompare(b.cardInstanceId));
   for (const source of sources) {
     resolveAbilities(state, source, "OnCombatStart", 0);
   }

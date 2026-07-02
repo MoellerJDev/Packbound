@@ -126,10 +126,11 @@ The debug client has small Playwright smoke tests for the current browser loop
 and the duplicate-upgrade path. They start the Vite client, load the app,
 inspect a card, ready and record combat, open a reward, verify latest reward
 markers, advance the run, and use a debug-only upgrade lab scenario to click an
-actual Unit upgrade and inspect the upgraded stats. CI installs Playwright
-Chromium and runs the same smoke tests with `pnpm test:browser`. Keep this layer
-focused on stable text and roles. Avoid screenshots, broad brittle snapshots,
-animation timing, and visual assertions.
+actual Unit upgrade, inspect the upgraded stats, and verify the Upgrade Progress
+panel/inspector wording for that stable duplicate scenario. CI installs
+Playwright Chromium and runs the same smoke tests with `pnpm test:browser`.
+Keep this layer focused on stable text and roles. Avoid screenshots, broad
+brittle snapshots, animation timing, and visual assertions.
 
 ### Manual Playtesting
 
@@ -155,7 +156,8 @@ Row contribution.
 Duplicate upgrades need property tests before broad content usage. Important
 invariants include preserving card identity where intended, consuming duplicate
 instances deterministically, keeping card instances in only one zone, preserving
-serializability, and replaying the same combine actions to the same result.
+serializability, replaying the same combine actions to the same result, and
+keeping helper output clear about pool copies versus active or non-pool copies.
 
 Economy and pack pricing should be modeled as replayable RunActions. Tests
 should cover deterministic pack prices, gold changes, discounts, rerolls later,

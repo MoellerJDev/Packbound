@@ -29,6 +29,9 @@ import type { RunState } from "./runState";
 import {
   MAX_CARD_UPGRADE_LEVEL,
   UPGRADE_COPIES_REQUIRED,
+  describeUpgradeIneligibleReason,
+  getUpgradeProgressForCard,
+  type UpgradeProgressGroup,
   isUpgradeEligibleCard
 } from "./upgrades";
 
@@ -51,6 +54,8 @@ export type CardInspection = {
   readonly upgradeLevel?: number;
   readonly upgradeText?: string;
   readonly upgradeBonusText?: string;
+  readonly upgradeProgressText?: string;
+  readonly upgradeProgressDetails?: readonly string[];
   readonly sourceText?: string;
   readonly techniqueText?: string;
   readonly keywords: readonly Keyword[];
@@ -162,7 +167,7 @@ const formatUpgradeText = (
 
   const level = cardUpgradeLevel(card);
   if (!isUpgradeEligibleCard(def)) {
-    return `Level ${level}. This card type is not upgradeable in the current prototype.`;
+    return `Level ${level}. ${describeUpgradeIneligibleReason(def.cardType)}`;
   }
 
   if (level >= MAX_CARD_UPGRADE_LEVEL) {
@@ -184,6 +189,51 @@ const formatUpgradeBonus = (
   return level > 0
     ? `Current bonus: +${level} ATK / +${level} HP.`
     : "Current bonus: none. Each upgrade level adds +1 ATK and +1 HP.";
+};
+
+const copyNoun = (count: number): string => (count === 1 ? "copy" : "copies");
+
+const formatUpgradeProgressText = (
+  progress: UpgradeProgressGroup | undefined
+): string | undefined => {
+  if (!progress) {
+    return undefined;
+  }
+
+  if (progress.cardType !== "Unit" && progress.cardType !== "Echo") {
+    return `Level ${progress.upgradeLevel}: ${progress.totalCopies} owned ${copyNoun(
+      progress.totalCopies
+    )}.`;
+  }
+
+  return `Level ${progress.upgradeLevel}: ${progress.poolCopies} / ${progress.requiredCopies} pool copies.`;
+};
+
+const formatUpgradeProgressDetails = (
+  progress: UpgradeProgressGroup | undefined
+): readonly string[] | undefined => {
+  if (!progress) {
+    return undefined;
+  }
+
+  const lines = [
+    progress.canUpgrade
+      ? `Can upgrade to Lv ${progress.nextUpgradeLevel}.`
+      : "Cannot upgrade now.",
+    progress.activeCopies > 0
+      ? `${progress.activeCopies} active ${copyNoun(progress.activeCopies)} ${
+          progress.activeCopies === 1 ? "does" : "do"
+        } not count toward pool-copy upgrades.`
+      : "",
+    progress.otherCopies > 0
+      ? `${progress.otherCopies} non-pool ${copyNoun(progress.otherCopies)} ${
+          progress.otherCopies === 1 ? "does" : "do"
+        } not count toward pool-copy upgrades.`
+      : "",
+    progress.blockedReason ? `Blocked: ${progress.blockedReason}` : ""
+  ].filter((line) => line.length > 0);
+
+  return lines.length > 0 ? lines : undefined;
 };
 
 const formatSource = (def: CardDefinition): string | undefined =>
@@ -478,6 +528,12 @@ const inspectDefinition = (
   const statsText = formatStats(def, options.card);
   const upgradeText = formatUpgradeText(def, options.card);
   const upgradeBonusText = formatUpgradeBonus(def, options.card);
+  const upgradeProgress =
+    options.card && options.run
+      ? getUpgradeProgressForCard(options.run, catalog, options.card.instanceId)
+      : undefined;
+  const upgradeProgressText = formatUpgradeProgressText(upgradeProgress);
+  const upgradeProgressDetails = formatUpgradeProgressDetails(upgradeProgress);
   const sourceText = formatSource(def);
   const techniqueText = formatTechnique(def, catalog);
   const designText = formatDesign(def.design);
@@ -499,6 +555,8 @@ const inspectDefinition = (
     ...(options.card ? { upgradeLevel: options.card.upgradeLevel } : {}),
     ...(upgradeText ? { upgradeText } : {}),
     ...(upgradeBonusText ? { upgradeBonusText } : {}),
+    ...(upgradeProgressText ? { upgradeProgressText } : {}),
+    ...(upgradeProgressDetails ? { upgradeProgressDetails } : {}),
     ...(sourceText ? { sourceText } : {}),
     ...(techniqueText ? { techniqueText } : {}),
     keywords: def.keywords,

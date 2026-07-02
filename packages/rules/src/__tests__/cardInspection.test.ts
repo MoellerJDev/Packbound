@@ -81,6 +81,76 @@ describe("card inspection helpers", () => {
     expect(inspection.designText).toContain("enabler");
   });
 
+  it("includes pool duplicate upgrade progress for inspected cards", () => {
+    const baseRun = createStarterRun();
+    const runWithoutCinders: RunState = {
+      ...baseRun,
+      pool: baseRun.pool.filter((card) => card.defId !== asCardDefId("cinder_scout"))
+    };
+    const run = withPoolCard(
+      withPoolCard(runWithoutCinders, "cinder_scout", "cinder-a"),
+      "cinder_scout",
+      "cinder-b"
+    );
+    const cinder = requirePoolCard(run, "cinder_scout");
+    const inspection = requireInspection(run, cinder);
+
+    expect(inspection.upgradeProgressText).toBe("Level 0: 2 / 3 pool copies.");
+    expect(inspection.upgradeProgressDetails).toContain("Cannot upgrade now.");
+    expect(inspection.upgradeProgressDetails).toContain(
+      "Blocked: Need 3 matching pool copies; found 2."
+    );
+  });
+
+  it("explains active copies do not count toward inspected upgrade progress", () => {
+    const baseRun = createStarterRun("ember_scrappers", "inspection:active-upgrade");
+    const runWithoutCinders: RunState = {
+      ...baseRun,
+      pool: baseRun.pool.filter((card) => card.defId !== asCardDefId("cinder_scout"))
+    };
+    const activeSeedRun = withPoolCard(
+      runWithoutCinders,
+      "cinder_scout",
+      "cinder-active"
+    );
+    const activeCinder = requirePoolCard(activeSeedRun, "cinder_scout");
+    const activeRun = placeCardOnBoard(activeSeedRun, activeCinder.instanceId, {
+      row: 0,
+      col: 0,
+      layer: "ground"
+    });
+    const run = withPoolCard(
+      withPoolCard(activeRun, "cinder_scout", "cinder-pool-a"),
+      "cinder_scout",
+      "cinder-pool-b"
+    );
+    const inspection = requireInspection(run, activeCinder);
+
+    expect(inspection.upgradeProgressText).toBe("Level 0: 2 / 3 pool copies.");
+    expect(inspection.upgradeProgressDetails).toContain(
+      "1 active copy does not count toward pool-copy upgrades."
+    );
+    expect(inspection.upgradeProgressDetails).toContain(
+      "Blocked: Return active copies to pool to upgrade."
+    );
+  });
+
+  it("explains non-upgradeable duplicate card types during inspection", () => {
+    const run = withPoolCard(
+      withPoolCard(createStarterRun("rotbloom_recall"), "due_marker_relic", "due-a"),
+      "due_marker_relic",
+      "due-b"
+    );
+    const dueMarker = requirePoolCard(run, "due_marker_relic");
+    const inspection = requireInspection(run, dueMarker);
+
+    expect(inspection.upgradeText).toBe("Level 0. Relics are not upgradeable yet.");
+    expect(inspection.upgradeProgressText).toBe("Level 0: 2 owned copies.");
+    expect(inspection.upgradeProgressDetails).toContain(
+      "Blocked: Relics are not upgradeable yet."
+    );
+  });
+
   it("shows upgraded Unit stats and upgrade bonus text", () => {
     const baseRun = createStarterRun("ember_scrappers", "inspection:upgraded-unit");
     const activeCard = baseRun.activeCards[0];

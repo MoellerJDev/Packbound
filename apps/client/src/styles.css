@@ -429,6 +429,24 @@ h4 {
   text-transform: uppercase;
 }
 
+.progress-badge {
+  background: #fff6d9;
+  border: 1px solid #ead48a;
+  border-radius: 999px;
+  color: #69510d;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  padding: 2px 7px;
+  text-transform: uppercase;
+}
+
+.progress-badge.ready {
+  background: #e6f4ea;
+  border-color: #b8d8c0;
+  color: #255436;
+}
+
 .combat-summary {
   margin-top: 14px;
 }

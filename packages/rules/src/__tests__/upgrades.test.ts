@@ -16,6 +16,9 @@ import {
   canUpgradeCardGroup,
   createCardInstance,
   createRunFromStarterKit,
+  describeUpgradeProgressGroup,
+  getUpgradeProgressForCard,
+  getUpgradeProgressGroups,
   getUpgradeableCardGroups,
   placeCardOnBoard,
   upgradeCardGroup,
@@ -76,6 +79,91 @@ describe("duplicate card upgrades", () => {
     expect(() =>
       upgradeCardGroup(run, sampleCatalog, asCardDefId("cinder_scout"), 0)
     ).toThrow(/Need 3 matching pool copies/);
+  });
+
+  it("reports partial duplicate progress without exposing an upgrade action", () => {
+    const baseRun = createStarterRun("partial-progress");
+    const run = withPoolCards(baseRun, ...cinderDuplicates(baseRun, ["a", "b"]));
+    const group = getUpgradeProgressGroups(run, sampleCatalog).find(
+      (candidate) => candidate.defId === asCardDefId("cinder_scout")
+    );
+
+    expect(group).toMatchObject({
+      defId: asCardDefId("cinder_scout"),
+      name: "Cinder Scout",
+      cardType: "Unit",
+      upgradeLevel: 0,
+      nextUpgradeLevel: 1,
+      poolCopies: 2,
+      activeCopies: 0,
+      otherCopies: 0,
+      totalCopies: 2,
+      eligible: true,
+      canUpgrade: false,
+      progressText: "2 / 3 pool copies at Lv 0"
+    });
+    expect(group?.blockedReason).toBe("Need 3 matching pool copies; found 2.");
+    expect(group ? describeUpgradeProgressGroup(group) : "").toBe(
+      "Cinder Scout: 2 / 3 pool copies at Lv 0. Need 3 matching pool copies; found 2."
+    );
+    expect(getUpgradeableCardGroups(run, sampleCatalog)).toEqual([]);
+  });
+
+  it("shows active copies separately because only pool copies count", () => {
+    const baseRun = createStarterRun("active-progress");
+    const activeCopy = poolCard(baseRun, "cinder_scout", "active");
+    const withActiveCopy = placeCardOnBoard(
+      withPoolCards(baseRun, activeCopy),
+      activeCopy.instanceId,
+      { row: 0, col: 0, layer: "ground" }
+    );
+    const run = withPoolCards(
+      withActiveCopy,
+      poolCard(withActiveCopy, "cinder_scout", "pool-a"),
+      poolCard(withActiveCopy, "cinder_scout", "pool-b")
+    );
+    const group = getUpgradeProgressGroups(run, sampleCatalog).find(
+      (candidate) => candidate.defId === asCardDefId("cinder_scout")
+    );
+
+    expect(group).toMatchObject({
+      poolCopies: 2,
+      activeCopies: 1,
+      otherCopies: 0,
+      totalCopies: 3,
+      eligible: true,
+      canUpgrade: false,
+      progressText: "2 / 3 pool copies at Lv 0 (2 pool + 1 active copy)"
+    });
+    expect(group?.blockedReason).toBe("Return active copies to pool to upgrade.");
+    expect(group?.activeCardInstanceIds).toEqual([activeCopy.instanceId]);
+    expect(getUpgradeableCardGroups(run, sampleCatalog)).toEqual([]);
+  });
+
+  it("reports non-upgradeable duplicate card types with a specific reason", () => {
+    const baseRun = createStarterRun("relic-progress");
+    const run = withPoolCards(
+      baseRun,
+      poolCard(baseRun, "due_marker_relic", "a"),
+      poolCard(baseRun, "due_marker_relic", "b")
+    );
+    const group = getUpgradeProgressGroups(run, sampleCatalog).find(
+      (candidate) => candidate.defId === asCardDefId("due_marker_relic")
+    );
+
+    expect(group).toMatchObject({
+      name: "Due Marker",
+      cardType: "Relic",
+      poolCopies: 2,
+      totalCopies: 2,
+      eligible: false,
+      canUpgrade: false,
+      blockedReason: "Relics are not upgradeable yet."
+    });
+    expect(group ? describeUpgradeProgressGroup(group) : "").toBe(
+      "Due Marker: duplicate Relic. Relics are not upgradeable yet."
+    );
+    expect(getUpgradeableCardGroups(run, sampleCatalog)).toEqual([]);
   });
 
   it("combines 3 same-definition same-level Unit copies deterministically", () => {
@@ -158,6 +246,17 @@ describe("duplicate card upgrades", () => {
       nextUpgradeLevel: MAX_CARD_UPGRADE_LEVEL
     });
     expect(check.blockedReason).toContain("max upgrade level");
+
+    const progressGroup = getUpgradeProgressGroups(maxRun, sampleCatalog).find(
+      (candidate) => candidate.defId === asCardDefId("cinder_scout")
+    );
+    expect(progressGroup).toMatchObject({
+      poolCopies: 3,
+      totalCopies: 3,
+      eligible: false,
+      canUpgrade: false,
+      blockedReason: "Max upgrade level reached."
+    });
   });
 
   it("does not expose non-Unit or non-Echo card groups", () => {
@@ -203,6 +302,27 @@ describe("duplicate card upgrades", () => {
       poolCard(withActiveCopy, "cinder_scout", "pool-b").instanceId
     ]);
     expect(getUpgradeableCardGroups(run, sampleCatalog)).toEqual([]);
+  });
+
+  it("counts the same card instance once if it appears in more than one zone", () => {
+    const baseRun = createStarterRun("dedupe-progress");
+    const card = poolCard(baseRun, "cinder_scout", "same-card");
+    const run: RunState = {
+      ...withPoolCards(baseRun, card),
+      sourceRow: {
+        ...baseRun.sourceRow,
+        cards: [...baseRun.sourceRow.cards, { ...card, zone: "sourceRow" }]
+      }
+    };
+    const progress = getUpgradeProgressForCard(run, sampleCatalog, card.instanceId);
+
+    expect(progress).toMatchObject({
+      poolCopies: 1,
+      activeCopies: 0,
+      otherCopies: 0,
+      totalCopies: 1,
+      progressText: "1 / 3 pool copies at Lv 0"
+    });
   });
 
   it("upgrades Echo copies and remains JSON-serializable", () => {

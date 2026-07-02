@@ -854,6 +854,8 @@ rule for Units and Echoes only. Three matching pool copies with the same
 definition, owner, and upgrade level combine into one card at the next level,
 preserving the lowest sorted instance ID and consuming the next two. The current
 max level is 2, and each upgrade level adds +1 ATK and +1 HP in combat.
+Active, Ashes, and Void copies can be shown as duplicate context, but only pool
+copies count toward the current combine action.
 
 ## Run Structure
 

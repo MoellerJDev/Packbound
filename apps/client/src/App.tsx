@@ -11,12 +11,12 @@ import {
   canEditLoadout,
   canRecordCombat,
   createRunFromStarterKit,
-  describeUpgradeGroup,
+  describeUpgradeProgressGroup,
   getCurrentEncounter,
   getCurrentRewardChoices,
   getLatestOpenedPackCardInstanceIds,
   getLegalLoadoutActions,
-  getUpgradeableCardGroups,
+  getUpgradeProgressGroups,
   getRunPhase,
   getRunNextActionMessage,
   inspectEncounterCard,
@@ -28,7 +28,7 @@ import {
   type RunState,
   type TraitCount,
   type TraitSummary,
-  type UpgradeCardGroup
+  type UpgradeProgressGroup
 } from "@packbound/rules";
 import { asPlayerId, type CardDefId, type CardInstanceId } from "@packbound/shared";
 import {
@@ -96,6 +96,45 @@ const optionalList = (values: readonly string[]): string =>
 const UpgradeBadge = ({ level }: { readonly level: number }) =>
   level > 0 ? <span className="level-badge">Lv {level}</span> : null;
 
+const upgradeProgressBadgeText = (
+  group: UpgradeProgressGroup | undefined,
+  cardInstanceId: CardInstanceId,
+  zone: "pool" | "active"
+): string | undefined => {
+  if (!group) {
+    return undefined;
+  }
+
+  if (group.cardType !== "Unit" && group.cardType !== "Echo") {
+    return "duplicate";
+  }
+
+  if (zone === "active" || group.activeCardInstanceIds.includes(cardInstanceId)) {
+    return "active copy";
+  }
+
+  return group.canUpgrade ? "ready" : `${group.poolCopies} / ${group.requiredCopies}`;
+};
+
+const UpgradeProgressBadge = ({
+  group,
+  cardInstanceId,
+  zone
+}: {
+  readonly group: UpgradeProgressGroup | undefined;
+  readonly cardInstanceId: CardInstanceId;
+  readonly zone: "pool" | "active";
+}) => {
+  const text = upgradeProgressBadgeText(group, cardInstanceId, zone);
+  if (!text) {
+    return null;
+  }
+
+  return (
+    <span className={`progress-badge ${text === "ready" ? "ready" : ""}`}>{text}</span>
+  );
+};
+
 const CardInspectorView = ({
   inspection
 }: {
@@ -162,6 +201,20 @@ const CardInspectorView = ({
           <dd>{optionalList(inspection.traitNames)}</dd>
         </div>
       </dl>
+
+      {inspection.upgradeProgressText ? (
+        <div className="inspector-block">
+          <h4>Upgrade Progress</h4>
+          <p>{inspection.upgradeProgressText}</p>
+          {inspection.upgradeProgressDetails ? (
+            <ul className="message-list compact">
+              {inspection.upgradeProgressDetails.map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      ) : null}
 
       {inspection.rulesText ? (
         <div className="inspector-block">
@@ -366,10 +419,23 @@ export function App() {
     [run]
   );
   const traitSummary = useMemo(() => buildRunTraitSummary(run, sampleCatalog), [run]);
-  const availableUpgrades = useMemo(
-    () => getUpgradeableCardGroups(run, sampleCatalog),
+  const upgradeProgressGroups = useMemo(
+    () => getUpgradeProgressGroups(run, sampleCatalog),
     [run]
   );
+  const upgradeProgressByCardId = useMemo(() => {
+    const byCardId = new Map<CardInstanceId, UpgradeProgressGroup>();
+    for (const group of upgradeProgressGroups) {
+      for (const cardInstanceId of [
+        ...group.poolCardInstanceIds,
+        ...group.activeCardInstanceIds,
+        ...group.otherCardInstanceIds
+      ]) {
+        byCardId.set(cardInstanceId, group);
+      }
+    }
+    return byCardId;
+  }, [upgradeProgressGroups]);
   const nextActionMessage = useMemo(
     () => getRunNextActionMessage(run, validation, canApplyReward(run)),
     [run, validation]
@@ -543,7 +609,7 @@ export function App() {
     );
   };
 
-  const upgradeGroup = (group: UpgradeCardGroup) => {
+  const upgradeGroup = (group: UpgradeProgressGroup) => {
     setRun((currentRun) =>
       applyRunAction(currentRun, sampleCatalog, {
         type: "upgradeCardGroup",
@@ -840,6 +906,11 @@ export function App() {
                   <UpgradeBadge
                     level={upgradeLevelForActiveCard(placement.cardInstanceId)}
                   />
+                  <UpgradeProgressBadge
+                    group={upgradeProgressByCardId.get(placement.cardInstanceId)}
+                    cardInstanceId={placement.cardInstanceId}
+                    zone="active"
+                  />
                 </div>
                 <small>
                   r{placement.position.row} c{placement.position.col}{" "}
@@ -877,6 +948,11 @@ export function App() {
                 <div className="card-name-cell">
                   <span>{cardName(card.defId)}</span>
                   <UpgradeBadge level={card.upgradeLevel} />
+                  <UpgradeProgressBadge
+                    group={upgradeProgressByCardId.get(card.instanceId)}
+                    cardInstanceId={card.instanceId}
+                    zone="active"
+                  />
                 </div>
                 <small>{card.zone}</small>
                 {renderLoadoutActions(card.instanceId)}
@@ -893,6 +969,11 @@ export function App() {
                 <div className="card-name-cell">
                   <span>{cardName(card.defId)}</span>
                   <UpgradeBadge level={card.upgradeLevel} />
+                  <UpgradeProgressBadge
+                    group={upgradeProgressByCardId.get(card.instanceId)}
+                    cardInstanceId={card.instanceId}
+                    zone="active"
+                  />
                 </div>
                 <small>{card.zone}</small>
                 {renderLoadoutActions(card.instanceId)}
@@ -902,25 +983,28 @@ export function App() {
         </div>
 
         <div className="panel">
-          <h2>Available Upgrades</h2>
-          {availableUpgrades.length > 0 ? (
+          <h2>Upgrade Progress</h2>
+          {upgradeProgressGroups.length > 0 ? (
             <ol className="card-list">
-              {availableUpgrades.map((group) => (
+              {upgradeProgressGroups.map((group) => (
                 <li key={`${group.defId}:${group.upgradeLevel}`}>
-                  <span>{describeUpgradeGroup(group)}</span>
-                  <button
-                    type="button"
-                    onClick={() => upgradeGroup(group)}
-                    disabled={!editable}
-                  >
-                    Upgrade
-                  </button>
+                  <span>{describeUpgradeProgressGroup(group)}</span>
+                  {group.canUpgrade ? (
+                    <button
+                      type="button"
+                      onClick={() => upgradeGroup(group)}
+                      disabled={!editable}
+                    >
+                      Upgrade
+                    </button>
+                  ) : null}
                 </li>
               ))}
             </ol>
           ) : (
             <p className="muted">
-              No pool card has 3 matching Unit or Echo copies at the same level.
+              No duplicate upgrade progress yet. Unit and Echo cards need 3 matching pool
+              copies at the same level.
             </p>
           )}
         </div>
@@ -957,6 +1041,11 @@ export function App() {
                   <div className="card-name-cell">
                     <span>{cardName(card.defId)}</span>
                     <UpgradeBadge level={card.upgradeLevel} />
+                    <UpgradeProgressBadge
+                      group={upgradeProgressByCardId.get(card.instanceId)}
+                      cardInstanceId={card.instanceId}
+                      zone="pool"
+                    />
                     {isLatestReward ? <span className="new-badge">new</span> : null}
                   </div>
                   <small>{card.zone}</small>

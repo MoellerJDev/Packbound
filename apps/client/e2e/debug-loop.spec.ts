@@ -42,6 +42,9 @@ test("debug loop can inspect, preview, record, reward, and advance", async ({ pa
   await expect(
     page.getByRole("heading", { name: "Source Row", exact: true })
   ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Upgrade Progress", exact: true })
+  ).toBeVisible();
 
   const boardPanel = panel(page, "Board");
   const inspectorPanel = panel(page, "Card Inspector");
@@ -100,17 +103,15 @@ test("upgrade lab can perform and inspect a duplicate upgrade", async ({ page })
 
   await expect(page.getByRole("heading", { name: "Packbound" })).toBeVisible();
 
-  const upgradePanel = panel(page, "Available Upgrades");
+  const upgradePanel = panel(page, "Upgrade Progress");
   await expect(upgradePanel).toBeVisible();
   await expect(
-    upgradePanel.getByText(/Cinder Scout: 3 \/ 3 copies at level 0 -> upgrade to level 1/)
+    upgradePanel.getByText(/Cinder Scout: 3 \/ 3 pool copies at Lv 0 -> Upgrade to Lv 1/)
   ).toBeVisible();
 
   await upgradePanel.getByRole("button", { name: "Upgrade" }).click();
 
-  await expect(
-    upgradePanel.getByText(/No pool card has 3 matching Unit or Echo copies/)
-  ).toBeVisible();
+  await expect(upgradePanel.getByText(/No duplicate upgrade progress yet/)).toBeVisible();
 
   const poolPanel = panel(page, "Pool Cards");
   const cinderRows = poolPanel.getByRole("listitem").filter({ hasText: "Cinder Scout" });
@@ -134,6 +135,13 @@ test("upgrade lab can perform and inspect a duplicate upgrade", async ({ page })
     )
   ).toBeVisible();
   await expect(inspectorPanel.getByText("Current bonus: +1 ATK / +1 HP.")).toBeVisible();
+  await expect(
+    inspectorPanel.getByRole("heading", { name: "Upgrade Progress" })
+  ).toBeVisible();
+  await expect(inspectorPanel.getByText("Level 1: 1 / 3 pool copies.")).toBeVisible();
+  await expect(
+    inspectorPanel.getByText("Blocked: Need 3 matching pool copies; found 1.")
+  ).toBeVisible();
 
   expect(errors.pageErrors).toEqual([]);
   expect(errors.consoleErrors).toEqual([]);

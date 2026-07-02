@@ -85,13 +85,15 @@ pnpm dev
   event data while keeping raw events available behind debug details.
 - The debug client includes a card inspection panel for readable card details,
   clearer normalized ability text, legal loadout actions, and blocked-action
-  reasons.
+  reasons, including upgrade progress and why duplicates may be blocked.
 - The debug client shows Source Row resource totals, phase-aware next-action
   guidance, display-only trait/teamup summaries, and latest reward markers for
   newly opened pool cards.
 - Duplicate upgrades currently combine 3 matching Unit or Echo instances in the
   pool at the same level, preserve one deterministic card identity, and add +1
-  ATK/+1 HP per upgrade level in combat up to level 2.
+  ATK/+1 HP per upgrade level in combat up to level 2. The debug client also
+  surfaces partial duplicate progress, active-vs-pool copy counts, and reasons
+  duplicate Relics, Sources, and Techniques are not upgradeable yet.
 - Run actions provide a serializable reducer/replay layer for the current loop,
   allowing the debug client and integration tests to share the same action path.
 - `pnpm test:browser` runs minimal Playwright smoke tests for debug-loop and

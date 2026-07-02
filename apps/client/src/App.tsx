@@ -11,10 +11,12 @@ import {
   canEditLoadout,
   canRecordCombat,
   createRunFromStarterKit,
+  describeUpgradeGroup,
   getCurrentEncounter,
   getCurrentRewardChoices,
   getLatestOpenedPackCardInstanceIds,
   getLegalLoadoutActions,
+  getUpgradeableCardGroups,
   getRunPhase,
   getRunNextActionMessage,
   inspectEncounterCard,
@@ -25,7 +27,8 @@ import {
   type LoadoutAction,
   type RunState,
   type TraitCount,
-  type TraitSummary
+  type TraitSummary,
+  type UpgradeCardGroup
 } from "@packbound/rules";
 import { asPlayerId, type CardDefId, type CardInstanceId } from "@packbound/shared";
 import {
@@ -84,6 +87,9 @@ const timeLabel = (timeMs?: number): string =>
 const optionalList = (values: readonly string[]): string =>
   values.length > 0 ? values.join(", ") : "None";
 
+const UpgradeBadge = ({ level }: { readonly level: number }) =>
+  level > 0 ? <span className="level-badge">Lv {level}</span> : null;
+
 const CardInspectorView = ({
   inspection
 }: {
@@ -111,6 +117,18 @@ const CardInspectorView = ({
           <div>
             <dt>Stats</dt>
             <dd>{inspection.statsText}</dd>
+          </div>
+        ) : null}
+        {inspection.upgradeText ? (
+          <div>
+            <dt>Upgrade</dt>
+            <dd>{inspection.upgradeText}</dd>
+          </div>
+        ) : null}
+        {inspection.upgradeBonusText ? (
+          <div>
+            <dt>Upgrade Bonus</dt>
+            <dd>{inspection.upgradeBonusText}</dd>
           </div>
         ) : null}
         {inspection.sourceText ? (
@@ -342,6 +360,10 @@ export function App() {
     [run]
   );
   const traitSummary = useMemo(() => buildRunTraitSummary(run, sampleCatalog), [run]);
+  const availableUpgrades = useMemo(
+    () => getUpgradeableCardGroups(run, sampleCatalog),
+    [run]
+  );
   const nextActionMessage = useMemo(
     () => getRunNextActionMessage(run, validation, canApplyReward(run)),
     [run, validation]
@@ -513,6 +535,19 @@ export function App() {
       </div>
     );
   };
+
+  const upgradeGroup = (group: UpgradeCardGroup) => {
+    setRun((currentRun) =>
+      applyRunAction(currentRun, sampleCatalog, {
+        type: "upgradeCardGroup",
+        defId: group.defId,
+        upgradeLevel: group.upgradeLevel
+      })
+    );
+  };
+
+  const upgradeLevelForActiveCard = (cardInstanceId: CardInstanceId): number =>
+    run.activeCards.find((card) => card.instanceId === cardInstanceId)?.upgradeLevel ?? 0;
 
   const inspectEncounterBoard = (cardInstanceId: CardInstanceId) => {
     setSelectedCardRef({ type: "encounterBoard", cardInstanceId });
@@ -775,7 +810,12 @@ export function App() {
           <ol className="card-list">
             {run.board.placements.map((placement) => (
               <li key={placement.cardInstanceId}>
-                <span>{cardName(placement.defId)}</span>
+                <div className="card-name-cell">
+                  <span>{cardName(placement.defId)}</span>
+                  <UpgradeBadge
+                    level={upgradeLevelForActiveCard(placement.cardInstanceId)}
+                  />
+                </div>
                 <small>
                   r{placement.position.row} c{placement.position.col}{" "}
                   {placement.position.layer}
@@ -809,7 +849,10 @@ export function App() {
           <ol className="card-list">
             {run.sourceRow.cards.map((card) => (
               <li key={card.instanceId}>
-                <span>{cardName(card.defId)}</span>
+                <div className="card-name-cell">
+                  <span>{cardName(card.defId)}</span>
+                  <UpgradeBadge level={card.upgradeLevel} />
+                </div>
                 <small>{card.zone}</small>
                 {renderLoadoutActions(card.instanceId)}
               </li>
@@ -822,12 +865,39 @@ export function App() {
           <ol className="card-list">
             {run.spellrail.cards.map((card) => (
               <li key={card.instanceId}>
-                <span>{cardName(card.defId)}</span>
+                <div className="card-name-cell">
+                  <span>{cardName(card.defId)}</span>
+                  <UpgradeBadge level={card.upgradeLevel} />
+                </div>
                 <small>{card.zone}</small>
                 {renderLoadoutActions(card.instanceId)}
               </li>
             ))}
           </ol>
+        </div>
+
+        <div className="panel">
+          <h2>Available Upgrades</h2>
+          {availableUpgrades.length > 0 ? (
+            <ol className="card-list">
+              {availableUpgrades.map((group) => (
+                <li key={`${group.defId}:${group.upgradeLevel}`}>
+                  <span>{describeUpgradeGroup(group)}</span>
+                  <button
+                    type="button"
+                    onClick={() => upgradeGroup(group)}
+                    disabled={!editable}
+                  >
+                    Upgrade
+                  </button>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p className="muted">
+              No pool card has 3 matching Unit or Echo copies at the same level.
+            </p>
+          )}
         </div>
 
         <div className="panel">
@@ -853,6 +923,7 @@ export function App() {
                 >
                   <div className="card-name-cell">
                     <span>{cardName(card.defId)}</span>
+                    <UpgradeBadge level={card.upgradeLevel} />
                     {isLatestReward ? <span className="new-badge">new</span> : null}
                   </div>
                   <small>{card.zone}</small>

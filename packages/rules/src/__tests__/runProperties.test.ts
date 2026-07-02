@@ -74,6 +74,20 @@ const withPoolCard = (run: RunState, card: CardInstance): RunState => ({
   pool: [...run.pool, card]
 });
 
+const upgradeCopy = (run: RunState, suffix: string, upgradeLevel = 0): CardInstance => ({
+  instanceId: asCardInstanceId(`${run.runId}:property-upgrade:${suffix}`),
+  defId: asCardDefId("cinder_scout"),
+  ownerId: run.playerId,
+  zone: "pool",
+  modifiers: [],
+  upgradeLevel
+});
+
+const withUpgradeCopies = (run: RunState): RunState => ({
+  ...run,
+  pool: [...run.pool, upgradeCopy(run, "c"), upgradeCopy(run, "a"), upgradeCopy(run, "b")]
+});
+
 const zoneCardIds = (run: RunState): readonly CardInstanceId[] => [
   ...run.pool.map((card) => card.instanceId),
   ...run.activeCards.map((card) => card.instanceId),
@@ -284,6 +298,34 @@ describe("run property invariants", () => {
         }
       ),
       { numRuns: 40 }
+    );
+  });
+
+  it("keeps zone membership unique after duplicate upgrades", () => {
+    fc.assert(
+      fc.property(seedArbitrary, (seed) => {
+        const initialRun = withUpgradeCopies(createStarterRun(seed));
+        const consumedIds = [
+          upgradeCopy(initialRun, "b").instanceId,
+          upgradeCopy(initialRun, "c").instanceId
+        ];
+        const upgraded = applyRunAction(initialRun, sampleCatalog, {
+          type: "upgradeCardGroup",
+          defId: asCardDefId("cinder_scout"),
+          upgradeLevel: 0
+        });
+
+        expect(upgraded.pool).toContainEqual({
+          ...upgradeCopy(initialRun, "a"),
+          upgradeLevel: 1
+        });
+        for (const consumedId of consumedIds) {
+          expect(zoneCardIds(upgraded)).not.toContain(consumedId);
+        }
+        expectUniqueRunZoneMembership(upgraded);
+        expect(jsonClone(upgraded)).toEqual(upgraded);
+      }),
+      { numRuns: 30 }
     );
   });
 

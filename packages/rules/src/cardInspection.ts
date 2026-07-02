@@ -26,6 +26,11 @@ import {
   type LoadoutAction
 } from "./loadout";
 import type { RunState } from "./runState";
+import {
+  MAX_CARD_UPGRADE_LEVEL,
+  UPGRADE_COPIES_REQUIRED,
+  isUpgradeEligibleCard
+} from "./upgrades";
 
 export type CardInspectionAction = {
   readonly type: "placeOnBoard" | "addToSourceRow" | "addToSpellrail" | "returnToPool";
@@ -43,6 +48,9 @@ export type CardInspection = {
   readonly aspectText: string;
   readonly costText: string;
   readonly statsText?: string;
+  readonly upgradeLevel?: number;
+  readonly upgradeText?: string;
+  readonly upgradeBonusText?: string;
   readonly sourceText?: string;
   readonly techniqueText?: string;
   readonly keywords: readonly Keyword[];
@@ -127,10 +135,56 @@ export const formatChargeCost = (def: CardDefinition): string => {
   return `${total} Charge${parts.length > 0 ? ` (${parts.join(", ")})` : ""}`;
 };
 
-const formatStats = (def: CardDefinition): string | undefined =>
-  def.cardType === "Unit" || def.cardType === "Echo"
-    ? `${def.stats.attack} ATK / ${def.stats.health} HP / ${def.stats.attackSpeed} speed / ${def.stats.range} range`
-    : undefined;
+const cardUpgradeLevel = (card: CardInstance | undefined): number =>
+  card?.upgradeLevel ?? 0;
+
+const formatStats = (
+  def: CardDefinition,
+  card: CardInstance | undefined
+): string | undefined => {
+  if (def.cardType !== "Unit" && def.cardType !== "Echo") {
+    return undefined;
+  }
+
+  const upgradeLevel = cardUpgradeLevel(card);
+  return `${def.stats.attack + upgradeLevel} ATK / ${
+    def.stats.health + upgradeLevel
+  } HP / ${def.stats.attackSpeed} speed / ${def.stats.range} range`;
+};
+
+const formatUpgradeText = (
+  def: CardDefinition,
+  card: CardInstance | undefined
+): string | undefined => {
+  if (!card) {
+    return undefined;
+  }
+
+  const level = cardUpgradeLevel(card);
+  if (!isUpgradeEligibleCard(def)) {
+    return `Level ${level}. This card type is not upgradeable in the current prototype.`;
+  }
+
+  if (level >= MAX_CARD_UPGRADE_LEVEL) {
+    return `Level ${level}. Max upgrade level reached.`;
+  }
+
+  return `Level ${level}. Combine ${UPGRADE_COPIES_REQUIRED} matching pool copies at this level to upgrade.`;
+};
+
+const formatUpgradeBonus = (
+  def: CardDefinition,
+  card: CardInstance | undefined
+): string | undefined => {
+  if (!card || !isUpgradeEligibleCard(def)) {
+    return undefined;
+  }
+
+  const level = cardUpgradeLevel(card);
+  return level > 0
+    ? `Current bonus: +${level} ATK / +${level} HP.`
+    : "Current bonus: none. Each upgrade level adds +1 ATK and +1 HP.";
+};
 
 const formatSource = (def: CardDefinition): string | undefined =>
   def.cardType === "Source"
@@ -421,7 +475,9 @@ const inspectDefinition = (
   } = {}
 ): CardInspection => {
   const actionInfo = legalActionInfo(options.run, catalog, options.card, def);
-  const statsText = formatStats(def);
+  const statsText = formatStats(def, options.card);
+  const upgradeText = formatUpgradeText(def, options.card);
+  const upgradeBonusText = formatUpgradeBonus(def, options.card);
   const sourceText = formatSource(def);
   const techniqueText = formatTechnique(def, catalog);
   const designText = formatDesign(def.design);
@@ -440,6 +496,9 @@ const inspectDefinition = (
     aspectText: formatAspects(def.aspects),
     costText: formatChargeCost(def),
     ...(statsText ? { statsText } : {}),
+    ...(options.card ? { upgradeLevel: options.card.upgradeLevel } : {}),
+    ...(upgradeText ? { upgradeText } : {}),
+    ...(upgradeBonusText ? { upgradeBonusText } : {}),
     ...(sourceText ? { sourceText } : {}),
     ...(techniqueText ? { techniqueText } : {}),
     keywords: def.keywords,

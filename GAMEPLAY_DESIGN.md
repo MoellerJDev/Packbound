@@ -841,6 +841,12 @@ Constraints:
 - Add property tests for instance preservation before expanding content around
   upgrades.
 
+Current implementation note: duplicate upgrades now use a narrow generic combine
+rule for Units and Echoes only. Three matching pool copies with the same
+definition, owner, and upgrade level combine into one card at the next level,
+preserving the lowest sorted instance ID and consuming the next two. The current
+max level is 2, and each upgrade level adds +1 ATK and +1 HP in combat.
+
 ## Run Structure
 
 Default run length should be finite.

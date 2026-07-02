@@ -1,5 +1,5 @@
 import type { ContentCatalog } from "@packbound/content";
-import type { BoardPosition, CardInstanceId } from "@packbound/shared";
+import type { BoardPosition, CardDefId, CardInstanceId } from "@packbound/shared";
 
 import { prepareEncounterForRound } from "./encounters";
 import {
@@ -18,6 +18,7 @@ import {
   type CombatResultLike
 } from "./runProgression";
 import type { RunState } from "./runState";
+import { upgradeCardGroup } from "./upgrades";
 
 export type RunAction =
   | { readonly type: "prepareEncounter" }
@@ -36,6 +37,11 @@ export type RunAction =
   | {
       readonly type: "removeCardFromSpellrail";
       readonly cardInstanceId: CardInstanceId;
+    }
+  | {
+      readonly type: "upgradeCardGroup";
+      readonly defId: CardDefId;
+      readonly upgradeLevel: number;
     }
   | { readonly type: "markCombatReady" }
   | {
@@ -72,6 +78,8 @@ export const applyRunAction = (
       return addCardToSpellrail(run, action.cardInstanceId);
     case "removeCardFromSpellrail":
       return removeCardFromSpellrail(run, action.cardInstanceId);
+    case "upgradeCardGroup":
+      return upgradeCardGroup(run, catalog, action.defId, action.upgradeLevel);
     case "markCombatReady":
       return markCombatReady(run, catalog);
     case "recordCombatResult":

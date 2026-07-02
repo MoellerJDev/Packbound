@@ -124,27 +124,33 @@ export const makeUnitFromPlacement = (
   placement: BoardPlacement,
   def: UnitLikeDefinition,
   sourceCard?: CardInstance
-): MutableUnit => ({
-  unitId: asUnitInstanceId(`${side}:${placement.cardInstanceId}`),
-  cardInstanceId: placement.cardInstanceId,
-  def,
-  ownerId: placement.ownerId,
-  side,
-  position: placement.position,
-  attack: def.stats.attack,
-  maxHealth: def.stats.health,
-  currentHealth: def.stats.health,
-  attackSpeed: def.stats.attackSpeed,
-  range: def.stats.range,
-  keywords: [...def.keywords],
-  statuses: def.keywords.includes("Barrier") ? [{ type: "Barrier" }] : [],
-  attackTimerMs: def.keywords.includes("Quickstart")
-    ? 0
-    : Math.round(1000 / def.stats.attackSpeed),
-  summonedThisCombat: false,
-  isEcho: def.cardType === "Echo",
-  ...(sourceCard ? { sourceCard: copyCard({ ...sourceCard, zone: "board" }) } : {})
-});
+): MutableUnit => {
+  const upgradeLevel = sourceCard?.upgradeLevel ?? 0;
+  const attack = def.stats.attack + upgradeLevel;
+  const health = def.stats.health + upgradeLevel;
+
+  return {
+    unitId: asUnitInstanceId(`${side}:${placement.cardInstanceId}`),
+    cardInstanceId: placement.cardInstanceId,
+    def,
+    ownerId: placement.ownerId,
+    side,
+    position: placement.position,
+    attack,
+    maxHealth: health,
+    currentHealth: health,
+    attackSpeed: def.stats.attackSpeed,
+    range: def.stats.range,
+    keywords: [...def.keywords],
+    statuses: def.keywords.includes("Barrier") ? [{ type: "Barrier" }] : [],
+    attackTimerMs: def.keywords.includes("Quickstart")
+      ? 0
+      : Math.round(1000 / def.stats.attackSpeed),
+    summonedThisCombat: false,
+    isEcho: def.cardType === "Echo",
+    ...(sourceCard ? { sourceCard: copyCard({ ...sourceCard, zone: "board" }) } : {})
+  };
+};
 
 const buildSideState = (
   inputCatalog: ResolveCombatInput["catalog"],

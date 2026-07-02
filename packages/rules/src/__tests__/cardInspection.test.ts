@@ -70,12 +70,35 @@ describe("card inspection helpers", () => {
     expect(inspection.cardType).toBe("Unit");
     expect(inspection.costText).toContain("Charge");
     expect(inspection.statsText).toContain("ATK");
+    expect(inspection.upgradeLevel).toBe(0);
+    expect(inspection.upgradeText).toContain("Combine 3 matching pool copies");
+    expect(inspection.upgradeBonusText).toContain("Each upgrade level adds +1 ATK");
     expect(inspection.keywords).toContain("Quickstart");
     expect(inspection.rulesText).toContain("Quickstart");
     expect(inspection.traitIds).toEqual(["ember", "scrapper", "echo_fodder"]);
     expect(inspection.traitNames).toEqual(["Ember", "Scrapper", "Echo Fodder"]);
     expect(inspection.design?.archetypes).toContain("ember_scrappers");
     expect(inspection.designText).toContain("enabler");
+  });
+
+  it("shows upgraded Unit stats and upgrade bonus text", () => {
+    const baseRun = createStarterRun("ember_scrappers", "inspection:upgraded-unit");
+    const activeCard = baseRun.activeCards[0];
+    if (!activeCard) {
+      throw new Error("Expected active starter card");
+    }
+    const run: RunState = {
+      ...baseRun,
+      activeCards: baseRun.activeCards.map((card) =>
+        card.instanceId === activeCard.instanceId ? { ...card, upgradeLevel: 1 } : card
+      )
+    };
+    const inspection = requireInspection(run, { ...activeCard, upgradeLevel: 1 });
+
+    expect(inspection.upgradeLevel).toBe(1);
+    expect(inspection.upgradeText).toContain("Level 1");
+    expect(inspection.upgradeBonusText).toBe("Current bonus: +1 ATK / +1 HP.");
+    expect(inspection.statsText).toBe("3 ATK / 2 HP / 1.3 speed / 1 range");
   });
 
   it("inspects a Source with board Charge, Aspect access, and combat Charge", () => {

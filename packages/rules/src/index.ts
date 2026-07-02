@@ -11,4 +11,5 @@ export * from "./runProgression";
 export * from "./runState";
 export * from "./starterKits";
 export * from "./teamups";
+export * from "./upgrades";
 export * from "./validation";

@@ -171,6 +171,10 @@ This package may depend on `shared` and `content`.
 
 It should not depend on React, Pixi, or browser APIs.
 
+Current upgrade rules live entirely in this package. They are replayable
+RunActions that combine eligible pool card instances deterministically without
+mutating card definitions.
+
 ### `packages/sim`
 
 Pure deterministic combat simulator.

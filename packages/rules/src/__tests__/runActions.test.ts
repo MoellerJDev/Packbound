@@ -1,11 +1,19 @@
 import { describe, expect, it } from "vitest";
 
 import { sampleCatalog } from "@packbound/content";
-import { asPlayerId, type CardInstanceId, type CombatEvent } from "@packbound/shared";
+import {
+  asCardDefId,
+  asCardInstanceId,
+  asPlayerId,
+  type CardInstance,
+  type CardInstanceId,
+  type CombatEvent
+} from "@packbound/shared";
 
 import {
   applyRunAction,
   applyRunActions,
+  createCardInstance,
   createRunFromStarterKit,
   getCurrentRewardChoices,
   getLegalLoadoutActions,
@@ -86,6 +94,24 @@ const firstLegalPoolAction = (run: RunState): RunAction | undefined => {
   return undefined;
 };
 
+const duplicatePoolCard = (run: RunState, defId: string, suffix: string): CardInstance =>
+  createCardInstance({
+    ownerId: run.playerId,
+    defId: asCardDefId(defId),
+    zone: "pool",
+    instanceId: asCardInstanceId(`${run.runId}:run-action-upgrade:${suffix}`)
+  });
+
+const withUpgradeCopies = (run: RunState): RunState => ({
+  ...run,
+  pool: [
+    ...run.pool,
+    duplicatePoolCard(run, "cinder_scout", "c"),
+    duplicatePoolCard(run, "cinder_scout", "a"),
+    duplicatePoolCard(run, "cinder_scout", "b")
+  ]
+});
+
 describe("run action reducer", () => {
   it.each(starterKitIds)(
     "applies and replays a full tiny run loop deterministically for %s",
@@ -149,6 +175,32 @@ describe("run action reducer", () => {
     ]);
   });
 
+  it("applies and replays an upgrade action deterministically", () => {
+    const initialRun = withUpgradeCopies(createReplayRun("ember_scrappers"));
+    const actions: readonly RunAction[] = [
+      {
+        type: "upgradeCardGroup",
+        defId: asCardDefId("cinder_scout"),
+        upgradeLevel: 0
+      }
+    ];
+    const run = applyRunActions(initialRun, sampleCatalog, actions);
+    const cinderCards = run.pool.filter(
+      (card) => card.defId === asCardDefId("cinder_scout")
+    );
+
+    expect(cinderCards).toHaveLength(1);
+    expect(cinderCards[0]).toMatchObject({
+      instanceId: asCardInstanceId(`${initialRun.runId}:run-action-upgrade:a`),
+      upgradeLevel: 1,
+      zone: "pool"
+    });
+    expect(replayRunActions(initialRun, sampleCatalog, actions)).toEqual(run);
+    expect(JSON.parse(JSON.stringify(toRunActionLog(actions)))).toEqual(
+      toRunActionLog(actions)
+    );
+  });
+
   it("rejects wrong-phase actions predictably through the reducer", () => {
     const initialRun = createReplayRun("ember_scrappers");
 
@@ -168,6 +220,13 @@ describe("run action reducer", () => {
         choiceId: "missing"
       })
     ).toThrow(/Cannot apply a reward/);
+    expect(() =>
+      applyRunAction(initialRun, sampleCatalog, {
+        type: "upgradeCardGroup",
+        defId: asCardDefId("signal_nest"),
+        upgradeLevel: 0
+      })
+    ).toThrow(/Only Unit and Echo/);
 
     const readyRun = applyRunActions(initialRun, sampleCatalog, [
       { type: "prepareEncounter" },
@@ -184,5 +243,12 @@ describe("run action reducer", () => {
         cardInstanceId: activeCardId
       })
     ).toThrow(/phase is combatReady/);
+    expect(() =>
+      applyRunAction(withUpgradeCopies(readyRun), sampleCatalog, {
+        type: "upgradeCardGroup",
+        defId: asCardDefId("cinder_scout"),
+        upgradeLevel: 0
+      })
+    ).toThrow(/only be made during planning/);
   });
 });

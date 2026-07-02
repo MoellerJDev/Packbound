@@ -7,7 +7,13 @@ import {
   samplePacks,
   sampleTraitDefinitions
 } from "@packbound/content";
-import { createCardInstance } from "@packbound/rules";
+import {
+  buildCombatantSetupForRun,
+  createCardInstance,
+  createRunFromStarterKit,
+  placeCardOnBoard,
+  upgradeCardGroup
+} from "@packbound/rules";
 import {
   asCardInstanceId,
   asCardDefId,
@@ -146,6 +152,19 @@ const testCards: readonly CardDefinition[] = [
     keywords: [],
     abilities: [],
     stats: { attack: 0, health: 99, attackSpeed: 1, range: 1 }
+  },
+  {
+    id: asCardDefId("test_executioner"),
+    name: "Test Executioner",
+    set: "test_lab",
+    rarity: "common",
+    cardType: "Unit",
+    aspects: ["Ember"],
+    cost: { generic: 1 },
+    tags: ["Scrapper"],
+    keywords: ["Quickstart"],
+    abilities: [],
+    stats: { attack: 99, health: 99, attackSpeed: 1, range: 1 }
   },
   {
     id: asCardDefId("test_recaller"),
@@ -455,7 +474,7 @@ describe("deterministic combat", () => {
         [],
         [original]
       ),
-      playerB: combatant(playerB, unitBoard(playerB, "b", "debt_bound_colossus"))
+      playerB: combatant(playerB, unitBoard(playerB, "b", "test_executioner"))
     });
 
     expect(result.finalState.ashes.playerA[0]).toEqual({
@@ -463,6 +482,152 @@ describe("deterministic combat", () => {
       zone: "ashes"
     });
     expect(original.zone).toBe("board");
+  });
+
+  it("applies upgraded Unit stats from active card instances", () => {
+    const upgradedPlacement = placement(playerA, "a", "cinder_scout", 0, 0, "up");
+    const upgradedCard = createCardInstance({
+      ownerId: playerA,
+      defId: asCardDefId("cinder_scout"),
+      zone: "board",
+      instanceId: upgradedPlacement.cardInstanceId,
+      upgradeLevel: 2
+    });
+
+    const result = resolve({
+      playerA: combatant(
+        playerA,
+        board(upgradedPlacement),
+        emptySourceRow(),
+        emptySpellrail(),
+        [],
+        [upgradedCard]
+      ),
+      playerB: combatant(playerB, unitBoard(playerB, "b", "test_endless_wall")),
+      maxDurationMs: 0
+    });
+    const unit = result.finalState.units.find(
+      (candidate) => candidate.cardInstanceId === upgradedPlacement.cardInstanceId
+    );
+
+    expect(unit).toMatchObject({
+      attack: 3,
+      maxHealth: 4,
+      currentHealth: 4
+    });
+    expect(upgradedCard).toMatchObject({ zone: "board", upgradeLevel: 2 });
+  });
+
+  it("uses level 0 stats when combat only has a board placement fallback", () => {
+    const fallbackPlacement = placement(playerA, "a", "cinder_scout", 0, 0, "fallback");
+
+    const result = resolve({
+      playerA: combatant(playerA, board(fallbackPlacement)),
+      playerB: combatant(playerB, unitBoard(playerB, "b", "test_endless_wall")),
+      maxDurationMs: 0
+    });
+    const unit = result.finalState.units.find(
+      (candidate) => candidate.cardInstanceId === fallbackPlacement.cardInstanceId
+    );
+
+    expect(unit).toMatchObject({
+      attack: 1,
+      maxHealth: 2,
+      currentHealth: 2
+    });
+  });
+
+  it("preserves destroyed upgraded non-Echo cards in Ashes", () => {
+    const doomed = placement(playerA, "a", "ember_scraprunner", 0, 0, "upgraded");
+    const upgradedCard = createCardInstance({
+      ownerId: playerA,
+      defId: asCardDefId("ember_scraprunner"),
+      zone: "board",
+      instanceId: doomed.cardInstanceId,
+      upgradeLevel: 2
+    });
+
+    const result = resolve({
+      playerA: combatant(
+        playerA,
+        board(doomed),
+        emptySourceRow(),
+        emptySpellrail(),
+        [],
+        [upgradedCard]
+      ),
+      playerB: combatant(playerB, unitBoard(playerB, "b", "test_executioner"))
+    });
+
+    expect(result.finalState.ashes.playerA).toContainEqual({
+      ...upgradedCard,
+      zone: "ashes"
+    });
+  });
+
+  it("carries an upgraded pool card through board placement into combat stats", () => {
+    const baseRun = createRunFromStarterKit({
+      seed: "combat-upgrade-run",
+      catalog: sampleCatalog,
+      starterKitId: "ember_scrappers",
+      playerId: playerA
+    });
+    const withCopies = {
+      ...baseRun,
+      pool: [
+        ...baseRun.pool,
+        createCardInstance({
+          ownerId: playerA,
+          defId: asCardDefId("cinder_scout"),
+          zone: "pool",
+          instanceId: asCardInstanceId("combat-upgrade-run:cinder:a")
+        }),
+        createCardInstance({
+          ownerId: playerA,
+          defId: asCardDefId("cinder_scout"),
+          zone: "pool",
+          instanceId: asCardInstanceId("combat-upgrade-run:cinder:b")
+        }),
+        createCardInstance({
+          ownerId: playerA,
+          defId: asCardDefId("cinder_scout"),
+          zone: "pool",
+          instanceId: asCardInstanceId("combat-upgrade-run:cinder:c")
+        })
+      ]
+    };
+    const upgradedRun = upgradeCardGroup(
+      withCopies,
+      sampleCatalog,
+      asCardDefId("cinder_scout"),
+      0
+    );
+    const upgradedCard = upgradedRun.pool.find(
+      (card) => card.defId === asCardDefId("cinder_scout") && card.upgradeLevel === 1
+    );
+    if (!upgradedCard) {
+      throw new Error("Expected upgraded Cinder Scout");
+    }
+    const placedRun = placeCardOnBoard(upgradedRun, upgradedCard.instanceId, {
+      row: 0,
+      col: 1,
+      layer: "ground"
+    });
+
+    const result = resolve({
+      playerA: buildCombatantSetupForRun(placedRun),
+      playerB: combatant(playerB, unitBoard(playerB, "b", "test_endless_wall")),
+      maxDurationMs: 0
+    });
+    const unit = result.finalState.units.find(
+      (candidate) => candidate.cardInstanceId === upgradedCard.instanceId
+    );
+
+    expect(unit).toMatchObject({
+      attack: 2,
+      maxHealth: 3,
+      currentHealth: 3
+    });
   });
 
   it("destroyed Echoes do not enter Ashes", () => {

@@ -22,9 +22,9 @@ resolves combat into an event log.
   and starter kit content, now expanded into a first archetype micro-set with
   design metadata and display-only trait/teamup definitions.
 - `packages/rules`: Seeded RNG, deterministic pack opening, board/source
-  validation, trait/teamup summary helpers, and a minimal deterministic
-  run-state / reward / encounter / starter kit progression skeleton with
-  explicit lifecycle phases and replayable run actions.
+  validation, trait/teamup summary helpers, pool-based duplicate upgrades, and a
+  minimal deterministic run-state / reward / encounter / starter kit progression
+  skeleton with explicit lifecycle phases and replayable run actions.
 - `packages/sim`: Pure deterministic combat simulation and event log output.
 - `packages/sim/src/__fixtures__`: Deterministic combat fixtures used by tests to
   preserve representative event ordering and final-state summaries.
@@ -86,6 +86,9 @@ pnpm dev
 - The debug client shows Source Row resource totals, phase-aware next-action
   guidance, display-only trait/teamup summaries, and latest reward markers for
   newly opened pool cards.
+- Duplicate upgrades currently combine 3 matching Unit or Echo instances in the
+  pool at the same level, preserve one deterministic card identity, and add +1
+  ATK/+1 HP per upgrade level in combat up to level 2.
 - Run actions provide a serializable reducer/replay layer for the current loop,
   allowing the debug client and integration tests to share the same action path.
 - `pnpm test:browser` runs a minimal Playwright smoke test for debug-loop

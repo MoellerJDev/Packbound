@@ -36,6 +36,10 @@ implemented as a reusable rule first.
 - Duplicate-friendly cards should be obvious upgrade candidates. Cheap Units,
   pets/Echoes, simple engines, and visible payoffs are better duplicate targets
   than complex one-off answers.
+- The first implemented duplicate system only upgrades Units and Echoes: 3
+  matching pool copies combine up to level 2, and each level currently grants +1
+  ATK and +1 HP. Do not design card-specific branches until the generic combine
+  rule has more playtest mileage.
 - Do not design playable board-resource cards until board resources exist in
   rules, validation, event logs, and tests. It is fine to reserve future tags or
   mention resource identity in design notes.

@@ -11,6 +11,7 @@ import {
 } from "@packbound/shared";
 
 import type { EncounterDefinition } from "./encounters";
+import type { StarterKitDefinition } from "./starterKits";
 import { loadContentCatalog } from "./catalog";
 
 const encounterPlayer = (encounterId: string): PlayerId =>
@@ -41,6 +42,39 @@ const encounterPlacement = (
   index: number = 0
 ): BoardPlacement => ({
   cardInstanceId: asCardInstanceId(`${encounterId}:${defId}:board:${index}`),
+  defId: asCardDefId(defId),
+  ownerId,
+  position: { row, col, layer }
+});
+
+const starterKitPlayer = (starterKitId: string): PlayerId =>
+  asPlayerId(`starter:${starterKitId}`);
+
+const starterKitCard = (
+  starterKitId: string,
+  ownerId: PlayerId,
+  defId: string,
+  zone: CardInstance["zone"],
+  index: number
+): CardInstance => ({
+  instanceId: asCardInstanceId(`${starterKitId}:${defId}:${zone}:${index}`),
+  defId: asCardDefId(defId),
+  ownerId,
+  zone,
+  modifiers: [],
+  upgradeLevel: 0
+});
+
+const starterKitPlacement = (
+  starterKitId: string,
+  ownerId: PlayerId,
+  defId: string,
+  row: number,
+  col: number,
+  layer: BoardPlacement["position"]["layer"] = "ground",
+  index: number = 0
+): BoardPlacement => ({
+  cardInstanceId: asCardInstanceId(`${starterKitId}:${defId}:board:${index}`),
   defId: asCardDefId(defId),
   ownerId,
   position: { row, col, layer }
@@ -429,10 +463,176 @@ export const samplePacks: readonly PackDefinition[] = [
   }
 ];
 
+const emberScrappersPlayer = starterKitPlayer("ember_scrappers");
+const rotbloomRecallPlayer = starterKitPlayer("rotbloom_recall");
+const cloudspirePhasePlayer = starterKitPlayer("cloudspire_phase");
+
+export const sampleStarterKits: readonly StarterKitDefinition[] = [
+  {
+    id: "ember_scrappers",
+    name: "Ember Scrappers",
+    description: "A fast Ember opener with early pressure and a spare Relic.",
+    aspects: ["Ember"],
+    pool: [
+      starterKitCard("ember_scrappers", emberScrappersPlayer, "signal_nest", "pool", 0)
+    ],
+    board: {
+      placements: [
+        starterKitPlacement(
+          "ember_scrappers",
+          emberScrappersPlayer,
+          "ember_scraprunner",
+          0,
+          2
+        )
+      ]
+    },
+    sourceRow: {
+      maxSlots: 4,
+      cards: [
+        starterKitCard(
+          "ember_scrappers",
+          emberScrappersPlayer,
+          "ember_source",
+          "sourceRow",
+          0
+        )
+      ]
+    },
+    spellrail: {
+      maxSlots: 4,
+      cards: [
+        starterKitCard(
+          "ember_scrappers",
+          emberScrappersPlayer,
+          "sparkfall",
+          "spellrail",
+          0
+        )
+      ]
+    },
+    tags: ["scrapper", "pressure"]
+  },
+  {
+    id: "rotbloom_recall",
+    name: "Rotbloom Recall",
+    description: "Shade/Bloom sources with a small Ashes setup for Recall.",
+    aspects: ["Shade", "Bloom"],
+    pool: [
+      starterKitCard(
+        "rotbloom_recall",
+        rotbloomRecallPlayer,
+        "sporeback_beast",
+        "pool",
+        0
+      )
+    ],
+    board: {
+      placements: [
+        starterKitPlacement(
+          "rotbloom_recall",
+          rotbloomRecallPlayer,
+          "hollow_caller",
+          0,
+          2
+        )
+      ]
+    },
+    sourceRow: {
+      maxSlots: 4,
+      cards: [
+        starterKitCard(
+          "rotbloom_recall",
+          rotbloomRecallPlayer,
+          "shade_source",
+          "sourceRow",
+          0
+        ),
+        starterKitCard(
+          "rotbloom_recall",
+          rotbloomRecallPlayer,
+          "bloom_source",
+          "sourceRow",
+          1
+        )
+      ]
+    },
+    spellrail: { maxSlots: 4, cards: [] },
+    ashes: [
+      starterKitCard(
+        "rotbloom_recall",
+        rotbloomRecallPlayer,
+        "ember_scraprunner",
+        "ashes",
+        0
+      )
+    ],
+    tags: ["ashes", "recall"]
+  },
+  {
+    id: "cloudspire_phase",
+    name: "Cloudspire Phase",
+    description: "Tide/Gleam setup with Barrier support and Phase Step.",
+    aspects: ["Tide", "Gleam"],
+    pool: [
+      starterKitCard(
+        "cloudspire_phase",
+        cloudspirePhasePlayer,
+        "vanishing_warden",
+        "pool",
+        0
+      )
+    ],
+    board: {
+      placements: [
+        starterKitPlacement(
+          "cloudspire_phase",
+          cloudspirePhasePlayer,
+          "cloudgate_adept",
+          0,
+          2
+        )
+      ]
+    },
+    sourceRow: {
+      maxSlots: 4,
+      cards: [
+        starterKitCard(
+          "cloudspire_phase",
+          cloudspirePhasePlayer,
+          "tide_source",
+          "sourceRow",
+          0
+        ),
+        starterKitCard(
+          "cloudspire_phase",
+          cloudspirePhasePlayer,
+          "gleam_source",
+          "sourceRow",
+          1
+        )
+      ]
+    },
+    spellrail: {
+      maxSlots: 4,
+      cards: [
+        starterKitCard(
+          "cloudspire_phase",
+          cloudspirePhasePlayer,
+          "phase_step",
+          "spellrail",
+          0
+        )
+      ]
+    },
+    tags: ["phase", "warden"]
+  }
+];
+
 const earlyEmberPressurePlayer = encounterPlayer("early_ember_pressure");
 const earlyBloomBodyPlayer = encounterPlayer("early_bloom_body");
 const shadeAshesPlayer = encounterPlayer("shade_ashes_recall");
-const cloudspirePhasePlayer = encounterPlayer("cloudspire_phase_patrol");
+const cloudspirePhaseEncounterPlayer = encounterPlayer("cloudspire_phase_patrol");
 const finalBossPlayer = encounterPlayer("ledger_champion");
 
 export const sampleEncounters: readonly EncounterDefinition[] = [
@@ -579,12 +779,12 @@ export const sampleEncounters: readonly EncounterDefinition[] = [
     maxRound: 4,
     difficulty: 3,
     loadout: {
-      playerId: cloudspirePhasePlayer,
+      playerId: cloudspirePhaseEncounterPlayer,
       board: {
         placements: [
           encounterPlacement(
             "cloudspire_phase_patrol",
-            cloudspirePhasePlayer,
+            cloudspirePhaseEncounterPlayer,
             "cloudgate_adept",
             0,
             2,
@@ -593,7 +793,7 @@ export const sampleEncounters: readonly EncounterDefinition[] = [
           ),
           encounterPlacement(
             "cloudspire_phase_patrol",
-            cloudspirePhasePlayer,
+            cloudspirePhaseEncounterPlayer,
             "vanishing_warden",
             0,
             3,
@@ -607,14 +807,14 @@ export const sampleEncounters: readonly EncounterDefinition[] = [
         cards: [
           encounterCard(
             "cloudspire_phase_patrol",
-            cloudspirePhasePlayer,
+            cloudspirePhaseEncounterPlayer,
             "tide_source",
             "sourceRow",
             0
           ),
           encounterCard(
             "cloudspire_phase_patrol",
-            cloudspirePhasePlayer,
+            cloudspirePhaseEncounterPlayer,
             "gleam_source",
             "sourceRow",
             1
@@ -626,7 +826,7 @@ export const sampleEncounters: readonly EncounterDefinition[] = [
         cards: [
           encounterCard(
             "cloudspire_phase_patrol",
-            cloudspirePhasePlayer,
+            cloudspirePhaseEncounterPlayer,
             "phase_step",
             "spellrail",
             0
@@ -702,5 +902,6 @@ export const sampleEncounters: readonly EncounterDefinition[] = [
 export const sampleCatalog = loadContentCatalog({
   cards: sampleCards,
   packs: samplePacks,
-  encounters: sampleEncounters
+  encounters: sampleEncounters,
+  starterKits: sampleStarterKits
 });

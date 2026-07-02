@@ -2,7 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import { asCardDefId, asPackId } from "@packbound/shared";
 
-import { sampleCards, sampleEncounters, samplePacks } from "../sampleContent";
+import {
+  sampleCards,
+  sampleEncounters,
+  samplePacks,
+  sampleStarterKits
+} from "../sampleContent";
 import { ContentValidationError, loadContentCatalog } from "../catalog";
 import { parseCardDefinitions } from "../schemas";
 
@@ -11,7 +16,8 @@ describe("content validation", () => {
     const catalog = loadContentCatalog({
       cards: sampleCards,
       packs: samplePacks,
-      encounters: sampleEncounters
+      encounters: sampleEncounters,
+      starterKits: sampleStarterKits
     });
 
     expect(catalog.cardsById.get(asCardDefId("ember_scraprunner"))).toMatchObject({
@@ -24,6 +30,10 @@ describe("content validation", () => {
     expect(catalog.encountersById.get("early_ember_pressure")).toMatchObject({
       name: "Ember Pressure Crew",
       kind: "normal"
+    });
+    expect(catalog.starterKitsById.get("ember_scrappers")).toMatchObject({
+      name: "Ember Scrappers",
+      aspects: ["Ember"]
     });
   });
 
@@ -207,6 +217,134 @@ describe("content validation", () => {
         cards: sampleCards,
         packs: samplePacks,
         encounters: [update()]
+      })
+    ).toThrow(ContentValidationError);
+  });
+
+  it("rejects duplicate starter kit ids during catalog loading", () => {
+    expect(() =>
+      loadContentCatalog({
+        cards: sampleCards,
+        packs: samplePacks,
+        starterKits: [sampleStarterKits[0], sampleStarterKits[0]]
+      })
+    ).toThrow(ContentValidationError);
+  });
+
+  it("rejects starter kit references to missing card definitions", () => {
+    const starterKit = sampleStarterKits[0];
+    const placement = starterKit?.board.placements[0];
+    if (!starterKit || !placement) {
+      throw new Error("Expected a sample starter kit placement");
+    }
+
+    expect(() =>
+      loadContentCatalog({
+        cards: sampleCards,
+        packs: samplePacks,
+        starterKits: [
+          {
+            ...starterKit,
+            board: {
+              placements: [
+                {
+                  ...placement,
+                  defId: asCardDefId("missing_starter_card")
+                }
+              ]
+            }
+          }
+        ]
+      })
+    ).toThrow(ContentValidationError);
+  });
+
+  it.each([
+    {
+      name: "board",
+      update: () => {
+        const starterKit = sampleStarterKits[0];
+        const placement = starterKit?.board.placements[0];
+        if (!starterKit || !placement) {
+          throw new Error("Expected a sample starter kit placement");
+        }
+        return {
+          ...starterKit,
+          board: {
+            placements: [{ ...placement, defId: asCardDefId("ember_source") }]
+          }
+        };
+      }
+    },
+    {
+      name: "source row",
+      update: () => {
+        const starterKit = sampleStarterKits[0];
+        const source = starterKit?.sourceRow.cards[0];
+        if (!starterKit || !source) {
+          throw new Error("Expected a sample starter kit source");
+        }
+        return {
+          ...starterKit,
+          sourceRow: {
+            ...starterKit.sourceRow,
+            cards: [{ ...source, defId: asCardDefId("ember_scraprunner") }]
+          }
+        };
+      }
+    },
+    {
+      name: "spellrail",
+      update: () => {
+        const starterKit = sampleStarterKits[0];
+        const technique = starterKit?.spellrail.cards[0];
+        if (!starterKit || !technique) {
+          throw new Error("Expected a sample starter kit technique");
+        }
+        return {
+          ...starterKit,
+          spellrail: {
+            ...starterKit.spellrail,
+            cards: [{ ...technique, defId: asCardDefId("ember_scraprunner") }]
+          }
+        };
+      }
+    }
+  ])("rejects invalid starter kit $name cards", ({ update }) => {
+    expect(() =>
+      loadContentCatalog({
+        cards: sampleCards,
+        packs: samplePacks,
+        starterKits: [update()]
+      })
+    ).toThrow(ContentValidationError);
+  });
+
+  it("rejects starter kits that reuse an instance id across zones", () => {
+    const starterKit = sampleStarterKits[0];
+    const poolCard = starterKit?.pool[0];
+    const placement = starterKit?.board.placements[0];
+    if (!starterKit || !poolCard || !placement) {
+      throw new Error("Expected a sample starter kit");
+    }
+
+    expect(() =>
+      loadContentCatalog({
+        cards: sampleCards,
+        packs: samplePacks,
+        starterKits: [
+          {
+            ...starterKit,
+            board: {
+              placements: [
+                {
+                  ...placement,
+                  cardInstanceId: poolCard.instanceId
+                }
+              ]
+            }
+          }
+        ]
       })
     ).toThrow(ContentValidationError);
   });

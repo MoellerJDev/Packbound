@@ -5,24 +5,16 @@ import {
   advanceRunAfterCombat,
   applyPackReward,
   buildCombatantSetupForEncounter,
-  createCardInstance,
-  createRun,
+  buildCombatantSetupForRun,
+  createRunFromStarterKit,
   getCurrentEncounter,
   getCurrentRewardChoices,
   prepareEncounterForRound,
   recordCombatResult,
-  validatePlanningState,
+  validateRunLoadout,
   type RunState
 } from "@packbound/rules";
-import {
-  asCardDefId,
-  asCardInstanceId,
-  asPlayerId,
-  type BoardState,
-  type CardDefId,
-  type SourceRowState,
-  type SpellrailState
-} from "@packbound/shared";
+import { asPlayerId, type CardDefId } from "@packbound/shared";
 import { resolveCombat } from "@packbound/sim";
 
 const playerId = asPlayerId("debug-player");
@@ -31,62 +23,12 @@ const runSeed = "client-debug-run";
 const cardName = (defId: CardDefId): string =>
   sampleCatalog.cardsById.get(defId)?.name ?? defId;
 
-const makeInstance = (
-  ownerId: ReturnType<typeof asPlayerId>,
-  defId: string,
-  zone: "sourceRow" | "spellrail"
-) =>
-  createCardInstance({
-    ownerId,
-    defId: asCardDefId(defId),
-    zone,
-    instanceId: asCardInstanceId(`${ownerId}:${defId}:${zone}`)
-  });
-
-const debugSourceRow = (
-  ownerId: ReturnType<typeof asPlayerId>,
-  ...defIds: string[]
-): SourceRowState => ({
-  maxSlots: 4,
-  cards: defIds.map((defId, index) =>
-    createCardInstance({
-      ownerId,
-      defId: asCardDefId(defId),
-      zone: "sourceRow",
-      instanceId: asCardInstanceId(`${ownerId}:${defId}:source:${index}`)
-    })
-  )
-});
-
-const debugSpellrail = (
-  ownerId: ReturnType<typeof asPlayerId>,
-  ...defIds: string[]
-): SpellrailState => ({
-  maxSlots: 2,
-  cards: defIds.map((defId) => makeInstance(ownerId, defId, "spellrail"))
-});
-
-const playerBoard: BoardState = {
-  placements: [
-    {
-      cardInstanceId: asCardInstanceId("debug-player:ember_scraprunner:board"),
-      defId: asCardDefId("ember_scraprunner"),
-      ownerId: playerId,
-      position: { row: 0, col: 2, layer: "ground" }
-    },
-    {
-      cardInstanceId: asCardInstanceId("debug-player:signal_nest:board"),
-      defId: asCardDefId("signal_nest"),
-      ownerId: playerId,
-      position: { row: 1, col: 2, layer: "support" }
-    }
-  ]
-};
-
 const createDebugRun = (): RunState =>
   prepareEncounterForRound(
-    createRun({
+    createRunFromStarterKit({
       seed: runSeed,
+      catalog: sampleCatalog,
+      starterKitId: "ember_scrappers",
       playerId,
       maxRounds: 3
     }),
@@ -102,23 +44,11 @@ export function App() {
       currentEncounter ? buildCombatantSetupForEncounter(currentEncounter) : undefined,
     [currentEncounter]
   );
+  const playerSetup = useMemo(() => buildCombatantSetupForRun(run), [run]);
+  const starterKitName =
+    sampleCatalog.starterKitsById.get(run.starterKitId ?? "")?.name ?? "None";
 
-  const sourceRow = useMemo(
-    () => debugSourceRow(playerId, "ember_source", "ember_source"),
-    []
-  );
-  const spellrail = useMemo(() => debugSpellrail(playerId, "sparkfall"), []);
-
-  const validation = useMemo(
-    () =>
-      validatePlanningState({
-        catalog: sampleCatalog,
-        board: playerBoard,
-        sourceRow,
-        spellrail
-      }),
-    [sourceRow, spellrail]
-  );
+  const validation = useMemo(() => validateRunLoadout(run, sampleCatalog), [run]);
 
   const combat = useMemo(() => {
     if (!opponentSetup) {
@@ -128,22 +58,10 @@ export function App() {
     return resolveCombat({
       catalog: sampleCatalog,
       seed: `client-debug-combat:${run.seed}:${run.currentRound}:${currentEncounter?.id}`,
-      playerA: {
-        playerId,
-        board: playerBoard,
-        sourceRow,
-        spellrail
-      },
+      playerA: playerSetup,
       playerB: opponentSetup
     });
-  }, [
-    currentEncounter?.id,
-    opponentSetup,
-    run.currentRound,
-    run.seed,
-    sourceRow,
-    spellrail
-  ]);
+  }, [currentEncounter?.id, opponentSetup, playerSetup, run.currentRound, run.seed]);
   const latestCombatSummary = run.combatHistory.at(-1);
   const latestOpenedPack = run.openedPacks.at(-1);
 
@@ -223,6 +141,10 @@ export function App() {
               <dt>Status</dt>
               <dd>{run.status}</dd>
             </div>
+            <div>
+              <dt>Starter</dt>
+              <dd>{starterKitName}</dd>
+            </div>
           </dl>
         </div>
 
@@ -269,6 +191,46 @@ export function App() {
         </div>
 
         <div className="panel">
+          <h2>Player Loadout</h2>
+          <dl className="run-stats">
+            <div>
+              <dt>Board</dt>
+              <dd>
+                {run.board.placements.length > 0
+                  ? run.board.placements
+                      .map((placement) => cardName(placement.defId))
+                      .join(", ")
+                  : "-"}
+              </dd>
+            </div>
+            <div>
+              <dt>Source Row</dt>
+              <dd>
+                {run.sourceRow.cards.length > 0
+                  ? run.sourceRow.cards.map((card) => cardName(card.defId)).join(", ")
+                  : "-"}
+              </dd>
+            </div>
+            <div>
+              <dt>Spellrail</dt>
+              <dd>
+                {run.spellrail.cards.length > 0
+                  ? run.spellrail.cards.map((card) => cardName(card.defId)).join(", ")
+                  : "-"}
+              </dd>
+            </div>
+            <div>
+              <dt>Ashes</dt>
+              <dd>
+                {run.ashes.length > 0
+                  ? run.ashes.map((card) => cardName(card.defId)).join(", ")
+                  : "-"}
+              </dd>
+            </div>
+          </dl>
+        </div>
+
+        <div className="panel">
           <h2>Planning Check</h2>
           <div className={validation.ok ? "status ok" : "status error"}>
             {validation.ok ? "Legal" : "Illegal"}
@@ -283,7 +245,7 @@ export function App() {
         </div>
 
         <div className="panel">
-          <h2>Opened Cards</h2>
+          <h2>Pool Cards</h2>
           <p className="muted">
             {latestOpenedPack ? latestOpenedPack.seed : "No pack opened"}
           </p>

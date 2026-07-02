@@ -13,11 +13,11 @@ resolves combat into an event log.
 - `apps/client`: Minimal Vite React debug client.
 - `packages/shared`: Serializable domain types, IDs, board positions, zones,
   costs, events, and validation types.
-- `packages/content`: Zod schemas plus starter Packbound card, pack, and
-  encounter content.
+- `packages/content`: Zod schemas plus starter Packbound card, pack, encounter,
+  and starter kit content.
 - `packages/rules`: Seeded RNG, deterministic pack opening, board/source
   validation, teamup counting helpers, and a minimal deterministic run-state /
-  reward / encounter progression skeleton.
+  reward / encounter / starter kit progression skeleton.
 - `packages/sim`: Pure deterministic combat simulation and event log output.
 - `packages/sim/src/__fixtures__`: Deterministic combat fixtures used by tests to
   preserve representative event ordering and final-state summaries.
@@ -52,6 +52,9 @@ pnpm dev
 - Encounter selection is deterministic content-driven run logic: each active
   round can prepare an eligible encounter by seed, with final rounds preferring
   boss encounters when available.
+- Starter kits and loadout helpers let a run build player combat setup from
+  `RunState`; the debug client now resolves combat from run-owned player state
+  against content-driven encounters.
 - Core state uses plain objects so future server validation, async ghost PvP,
   and replay tooling can share the same rules engine.
 

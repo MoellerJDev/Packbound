@@ -91,6 +91,7 @@ export type RunState = {
   readonly status: RunStatus;
   readonly currentRound: number;
   readonly maxRounds: number;
+  readonly starterKitId?: string;
   readonly currentEncounterId?: string;
   readonly playerHealth: number;
   readonly playerGold: number;
@@ -157,6 +158,7 @@ export const createRun = (config: RunConfig): RunState => {
     status: "active",
     currentRound: 1,
     maxRounds: config.maxRounds ?? DEFAULT_MAX_ROUNDS,
+    ...(starterKit ? { starterKitId: starterKit.id } : {}),
     playerHealth: config.startingHealth ?? DEFAULT_STARTING_HEALTH,
     playerGold: config.startingGold ?? DEFAULT_STARTING_GOLD,
     playerId: config.playerId ?? asPlayerId("player"),

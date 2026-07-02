@@ -9,23 +9,29 @@ import {
   type CardDefinition,
   type CardInstance,
   type PackDefinition,
-  type PackId
+  type PackId,
+  type PlayerId,
+  asPlayerId
 } from "@packbound/shared";
 
 import type { EncounterDefinition } from "./encounters";
+import type { StarterKitDefinition } from "./starterKits";
 import {
   parseCardDefinitions,
   parseEncounterDefinitions,
-  parsePackDefinitions
+  parsePackDefinitions,
+  parseStarterKitDefinitions
 } from "./schemas";
 
 export type ContentCatalog = {
   readonly cards: readonly CardDefinition[];
   readonly packs: readonly PackDefinition[];
   readonly encounters: readonly EncounterDefinition[];
+  readonly starterKits: readonly StarterKitDefinition[];
   readonly cardsById: ReadonlyMap<CardDefId, CardDefinition>;
   readonly packsById: ReadonlyMap<PackId, PackDefinition>;
   readonly encountersById: ReadonlyMap<string, EncounterDefinition>;
+  readonly starterKitsById: ReadonlyMap<string, StarterKitDefinition>;
 };
 
 export class ContentValidationError extends Error {
@@ -42,6 +48,7 @@ export type LoadContentInput = {
   readonly cards: unknown;
   readonly packs: unknown;
   readonly encounters?: unknown;
+  readonly starterKits?: unknown;
 };
 
 type EffectReferenceValidator = (
@@ -246,10 +253,203 @@ const validateEncounter = (
   }
 };
 
+const starterKitPlayerId = (starterKitId: string): PlayerId =>
+  asPlayerId(`starter:${starterKitId}`);
+
+const validateStarterKitCardInstance = (
+  starterKit: StarterKitDefinition,
+  card: CardInstance,
+  expectedZone: CardInstance["zone"],
+  expectedOwnerId: PlayerId,
+  cardsById: ReadonlyMap<CardDefId, CardDefinition>,
+  issues: string[]
+): CardDefinition | undefined => {
+  const def = cardsById.get(card.defId);
+  if (!def) {
+    issues.push(
+      `${starterKit.id} starter kit references unknown card definition '${card.defId}'`
+    );
+    return undefined;
+  }
+
+  if (card.ownerId !== expectedOwnerId) {
+    issues.push(
+      `${starterKit.id} starter kit card ${card.instanceId} owner must be ${expectedOwnerId}`
+    );
+  }
+
+  if (card.zone !== expectedZone) {
+    issues.push(
+      `${starterKit.id} starter kit card ${card.instanceId} must be in ${expectedZone}, not ${card.zone}`
+    );
+  }
+
+  return def;
+};
+
+const validateStarterKitBoardPlacement = (
+  starterKit: StarterKitDefinition,
+  placement: BoardPlacement,
+  expectedOwnerId: PlayerId,
+  cardsById: ReadonlyMap<CardDefId, CardDefinition>,
+  issues: string[]
+): void => {
+  const def = cardsById.get(placement.defId);
+  if (!def) {
+    issues.push(
+      `${starterKit.id} starter kit board references unknown card definition '${placement.defId}'`
+    );
+    return;
+  }
+
+  if (placement.ownerId !== expectedOwnerId) {
+    issues.push(
+      `${starterKit.id} starter kit board placement ${placement.cardInstanceId} owner must be ${expectedOwnerId}`
+    );
+  }
+
+  if (placement.position.row >= BOARD_ROWS || placement.position.col >= BOARD_COLS) {
+    issues.push(
+      `${starterKit.id} starter kit board placement ${placement.cardInstanceId} is outside the board`
+    );
+  }
+
+  const legalLayers = boardLayersForCard(def);
+  if (!legalLayers) {
+    issues.push(
+      `${starterKit.id} starter kit board placement ${placement.cardInstanceId} references ${def.cardType}, which cannot be placed on the board`
+    );
+    return;
+  }
+
+  if (!legalLayers.includes(placement.position.layer)) {
+    issues.push(
+      `${starterKit.id} starter kit board placement ${placement.cardInstanceId} puts ${def.cardType} on invalid ${placement.position.layer} layer`
+    );
+  }
+};
+
+const trackStarterKitInstanceId = (
+  starterKit: StarterKitDefinition,
+  cardInstanceId: string,
+  seenInstanceIds: Set<string>,
+  issues: string[]
+): void => {
+  if (seenInstanceIds.has(cardInstanceId)) {
+    issues.push(
+      `${starterKit.id} starter kit reuses card instance id '${cardInstanceId}' across zones`
+    );
+    return;
+  }
+  seenInstanceIds.add(cardInstanceId);
+};
+
+const validateStarterKit = (
+  starterKit: StarterKitDefinition,
+  cardsById: ReadonlyMap<CardDefId, CardDefinition>,
+  issues: string[]
+): void => {
+  const expectedOwnerId = starterKitPlayerId(starterKit.id);
+  const seenInstanceIds = new Set<string>();
+
+  for (const card of starterKit.pool) {
+    trackStarterKitInstanceId(starterKit, card.instanceId, seenInstanceIds, issues);
+    validateStarterKitCardInstance(
+      starterKit,
+      card,
+      "pool",
+      expectedOwnerId,
+      cardsById,
+      issues
+    );
+  }
+
+  for (const placement of starterKit.board.placements) {
+    trackStarterKitInstanceId(
+      starterKit,
+      placement.cardInstanceId,
+      seenInstanceIds,
+      issues
+    );
+    validateStarterKitBoardPlacement(
+      starterKit,
+      placement,
+      expectedOwnerId,
+      cardsById,
+      issues
+    );
+  }
+
+  if (starterKit.sourceRow.cards.length > starterKit.sourceRow.maxSlots) {
+    issues.push(`${starterKit.id} starter kit source row exceeds its max slot count`);
+  }
+  for (const card of starterKit.sourceRow.cards) {
+    trackStarterKitInstanceId(starterKit, card.instanceId, seenInstanceIds, issues);
+    const def = validateStarterKitCardInstance(
+      starterKit,
+      card,
+      "sourceRow",
+      expectedOwnerId,
+      cardsById,
+      issues
+    );
+    if (def && def.cardType !== "Source") {
+      issues.push(
+        `${starterKit.id} starter kit source row card ${card.instanceId} references ${def.cardType}, not Source`
+      );
+    }
+  }
+
+  if (starterKit.spellrail.cards.length > starterKit.spellrail.maxSlots) {
+    issues.push(`${starterKit.id} starter kit spellrail exceeds its max slot count`);
+  }
+  for (const card of starterKit.spellrail.cards) {
+    trackStarterKitInstanceId(starterKit, card.instanceId, seenInstanceIds, issues);
+    const def = validateStarterKitCardInstance(
+      starterKit,
+      card,
+      "spellrail",
+      expectedOwnerId,
+      cardsById,
+      issues
+    );
+    if (def && def.cardType !== "Technique") {
+      issues.push(
+        `${starterKit.id} starter kit spellrail card ${card.instanceId} references ${def.cardType}, not Technique`
+      );
+    }
+  }
+
+  for (const card of starterKit.ashes ?? []) {
+    trackStarterKitInstanceId(starterKit, card.instanceId, seenInstanceIds, issues);
+    validateStarterKitCardInstance(
+      starterKit,
+      card,
+      "ashes",
+      expectedOwnerId,
+      cardsById,
+      issues
+    );
+  }
+
+  for (const card of starterKit.void ?? []) {
+    trackStarterKitInstanceId(starterKit, card.instanceId, seenInstanceIds, issues);
+    validateStarterKitCardInstance(
+      starterKit,
+      card,
+      "void",
+      expectedOwnerId,
+      cardsById,
+      issues
+    );
+  }
+};
+
 export const loadContentCatalog = (input: LoadContentInput): ContentCatalog => {
   const cards = parseCardDefinitions(input.cards);
   const packs = parsePackDefinitions(input.packs);
   const encounters = parseEncounterDefinitions(input.encounters ?? []);
+  const starterKits = parseStarterKitDefinitions(input.starterKits ?? []);
   const issues: string[] = [];
 
   const cardsById = new Map<CardDefId, CardDefinition>();
@@ -277,6 +477,15 @@ export const loadContentCatalog = (input: LoadContentInput): ContentCatalog => {
       continue;
     }
     encountersById.set(encounter.id, encounter);
+  }
+
+  const starterKitsById = new Map<string, StarterKitDefinition>();
+  for (const starterKit of starterKits) {
+    if (starterKitsById.has(starterKit.id)) {
+      issues.push(`Duplicate starter kit definition id: ${starterKit.id}`);
+      continue;
+    }
+    starterKitsById.set(starterKit.id, starterKit);
   }
 
   const knownSets = new Set(cards.map((card) => card.set));
@@ -343,6 +552,10 @@ export const loadContentCatalog = (input: LoadContentInput): ContentCatalog => {
     validateEncounter(encounter, cardsById, issues);
   }
 
+  for (const starterKit of starterKits) {
+    validateStarterKit(starterKit, cardsById, issues);
+  }
+
   if (issues.length > 0) {
     throw new ContentValidationError(issues);
   }
@@ -351,8 +564,10 @@ export const loadContentCatalog = (input: LoadContentInput): ContentCatalog => {
     cards,
     packs,
     encounters,
+    starterKits,
     cardsById,
     packsById,
-    encountersById
+    encountersById,
+    starterKitsById
   };
 };

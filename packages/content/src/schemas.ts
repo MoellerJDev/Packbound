@@ -17,6 +17,7 @@ import {
 } from "@packbound/shared";
 
 import { ENCOUNTER_KINDS, ENCOUNTER_TIERS, type EncounterDefinition } from "./encounters";
+import type { StarterKitDefinition } from "./starterKits";
 
 export const aspectSchema = z.enum(ASPECTS);
 export const raritySchema = z.enum(RARITIES);
@@ -378,6 +379,20 @@ export const encounterDefinitionSchema = z
     path: ["maxRound"]
   });
 
+export const starterKitDefinitionSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  description: z.string().min(1).optional(),
+  aspects: z.array(aspectSchema),
+  pool: z.array(cardInstanceSchema),
+  board: boardStateSchema,
+  sourceRow: sourceRowStateSchema,
+  spellrail: spellrailStateSchema,
+  ashes: z.array(cardInstanceSchema).optional(),
+  void: z.array(cardInstanceSchema).optional(),
+  tags: z.array(z.string().min(1)).optional()
+});
+
 export const parseCardDefinitions = (raw: unknown): readonly CardDefinition[] =>
   z.array(cardDefinitionSchema).parse(raw) as readonly CardDefinition[];
 
@@ -386,3 +401,8 @@ export const parsePackDefinitions = (raw: unknown): readonly PackDefinition[] =>
 
 export const parseEncounterDefinitions = (raw: unknown): readonly EncounterDefinition[] =>
   z.array(encounterDefinitionSchema).parse(raw) as readonly EncounterDefinition[];
+
+export const parseStarterKitDefinitions = (
+  raw: unknown
+): readonly StarterKitDefinition[] =>
+  z.array(starterKitDefinitionSchema).parse(raw) as readonly StarterKitDefinition[];

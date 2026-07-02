@@ -39,6 +39,20 @@ button:hover {
   background: #343b49;
 }
 
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.secondary {
+  background: #fffaf1;
+  color: #20242c;
+}
+
+.secondary:hover {
+  background: #ebe2d3;
+}
+
 .app-shell {
   width: min(1180px, calc(100% - 32px));
   margin: 0 auto;
@@ -51,6 +65,13 @@ button:hover {
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 24px;
+}
+
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
 }
 
 h1,
@@ -114,6 +135,36 @@ h2 {
   font-weight: 700;
 }
 
+.card-list button {
+  font-size: 0.84rem;
+  min-height: 30px;
+  padding: 0 10px;
+}
+
+.run-stats {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+}
+
+.run-stats div {
+  border-top: 1px solid #ebe2d3;
+  padding-top: 10px;
+}
+
+.run-stats dt {
+  color: #64616a;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.run-stats dd {
+  margin: 2px 0 0;
+  overflow-wrap: anywhere;
+}
+
 .status {
   border-radius: 6px;
   display: inline-flex;
@@ -159,5 +210,13 @@ pre {
 
   button {
     width: 100%;
+  }
+
+  .button-row {
+    width: 100%;
+  }
+
+  .card-list button {
+    width: auto;
   }
 }

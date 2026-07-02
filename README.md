@@ -15,8 +15,17 @@ resolves combat into an event log.
   costs, events, and validation types.
 - `packages/content`: Zod schemas plus starter Packbound card and pack content.
 - `packages/rules`: Seeded RNG, deterministic pack opening, board/source
-  validation, and teamup counting helpers.
+  validation, teamup counting helpers, and a minimal deterministic run-state /
+  reward progression skeleton.
 - `packages/sim`: Pure deterministic combat simulation and event log output.
+- `packages/sim/src/__fixtures__`: Deterministic combat fixtures used by tests to
+  preserve representative event ordering and final-state summaries.
+
+## Continuous Integration
+
+GitHub Actions runs the same verification stack expected locally on push and
+pull request: install with a frozen pnpm lockfile, then `pnpm format:check`,
+`pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build`.
 
 ## Commands
 
@@ -36,6 +45,9 @@ pnpm dev
 - Randomness in rules and simulation flows through a seeded RNG.
 - Content is declarative and validated through Zod before use.
 - Combat resolves to serializable events that a future renderer can replay.
+- Run progression is deterministic and serializable: seeds produce reward
+  choices, pack openings, combat summaries, round advancement, and terminal
+  won/lost states without renderer involvement.
 - Core state uses plain objects so future server validation, async ghost PvP,
   and replay tooling can share the same rules engine.
 

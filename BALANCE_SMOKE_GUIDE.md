@@ -68,3 +68,20 @@ For the first micro-set:
   seeds
 - Source Pack should reliably expose Source or fixing cards
 - no playable sample content should rely on schema-reserved effects or triggers
+
+## Balance Report
+
+Run `pnpm balance:report` when changing starter kits, encounters, packs, card
+stats, or design metadata. The report prints broad deterministic
+starter-vs-encounter rows and aggregate pack usability rows using the same
+summary style as smoke tests.
+
+Use the report for manual review:
+
+- scan winners, player damage, durations, and warning codes
+- check which Techniques were used and which Units survived or were destroyed
+- confirm packs expose expected archetypes, roles, Sources, and fixing cards
+
+The report is observational tooling. Smoke tests remain the pass/fail
+guardrails; the report helps decide whether those guardrails and the content
+still make sense.

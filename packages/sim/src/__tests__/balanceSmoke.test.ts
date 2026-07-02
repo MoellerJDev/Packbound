@@ -15,14 +15,14 @@ import {
 } from "@packbound/rules";
 import { asPlayerId, type CombatEvent, type CombatWinner } from "@packbound/shared";
 
-import { resolveCombat, summarizeCombatOutcome } from "../index";
+import {
+  buildDefaultStarterEncounterFixtures,
+  resolveCombat,
+  summarizeCombatOutcome,
+  type StarterEncounterBalanceFixture
+} from "../index";
 
-type BalanceSmokeFixture = {
-  readonly id: string;
-  readonly starterKitId: string;
-  readonly encounterId: string;
-  readonly seed: string;
-  readonly maxDurationMs: number;
+type BalanceSmokeFixture = StarterEncounterBalanceFixture & {
   readonly expectation: {
     readonly allowedWinners: readonly CombatWinner[];
     readonly maxDamageToPlayer?: number;
@@ -34,44 +34,30 @@ type BalanceSmokeFixture = {
 };
 
 const starterKitIds = ["ember_scrappers", "rotbloom_recall", "cloudspire_phase"] as const;
+const expectationForFixture = (
+  fixture: StarterEncounterBalanceFixture
+): BalanceSmokeFixture["expectation"] =>
+  fixture.encounterId === "ledger_champion"
+    ? {
+        allowedWinners: ["playerA", "playerB", "draw"],
+        maxDamageToPlayer: 4,
+        maxWarnings: 0,
+        requiresThreat: true,
+        requiredEventTypes: ["CombatStarted", "DamageDealt", "CombatEnded"]
+      }
+    : {
+        allowedWinners: ["playerA", "playerB", "draw"],
+        maxDamageToPlayer: 2,
+        maxWarnings: 0,
+        requiredEventTypes: ["CombatStarted", "UnitAttacked", "CombatEnded"]
+      };
 
-const earlyFixture = (
-  starterKitId: (typeof starterKitIds)[number]
-): BalanceSmokeFixture => ({
-  id: `${starterKitId}-early-ember-pressure`,
-  starterKitId,
-  encounterId: "early_ember_pressure",
-  seed: `balance-smoke:${starterKitId}:early`,
-  maxDurationMs: 30_000,
-  expectation: {
-    allowedWinners: ["playerA", "playerB", "draw"],
-    maxDamageToPlayer: 2,
-    maxWarnings: 0,
-    requiredEventTypes: ["CombatStarted", "UnitAttacked", "CombatEnded"]
-  }
-});
-
-const bossFixture = (
-  starterKitId: (typeof starterKitIds)[number]
-): BalanceSmokeFixture => ({
-  id: `${starterKitId}-ledger-champion`,
-  starterKitId,
-  encounterId: "ledger_champion",
-  seed: `balance-smoke:${starterKitId}:boss`,
-  maxDurationMs: 45_000,
-  expectation: {
-    allowedWinners: ["playerA", "playerB", "draw"],
-    maxDamageToPlayer: 4,
-    maxWarnings: 0,
-    requiresThreat: true,
-    requiredEventTypes: ["CombatStarted", "DamageDealt", "CombatEnded"]
-  }
-});
-
-const fixtures: readonly BalanceSmokeFixture[] = [
-  ...starterKitIds.map(earlyFixture),
-  ...starterKitIds.map(bossFixture)
-];
+const fixtures: readonly BalanceSmokeFixture[] = buildDefaultStarterEncounterFixtures(
+  sampleCatalog
+).map((fixture) => ({
+  ...fixture,
+  expectation: expectationForFixture(fixture)
+}));
 
 const resolveFixture = (fixture: BalanceSmokeFixture) => {
   const playerId = asPlayerId(`balance:${fixture.starterKitId}`);

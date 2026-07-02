@@ -115,6 +115,10 @@ encounter, or pack became impossible or nonsensical, fix the content.
 See `BALANCE_SMOKE_GUIDE.md` for current fixture expectations and update
 guidance.
 
+The `pnpm balance:report` script is observational tooling for manual review. It
+prints the same kind of broad outcome and pack-usability data, while smoke tests
+remain the automated pass/fail guardrails.
+
 ### UI Smoke Tests Later
 
 Playwright smoke tests will be useful once the debug client has enough stable UI

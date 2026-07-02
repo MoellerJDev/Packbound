@@ -41,6 +41,7 @@ pnpm lint
 pnpm typecheck
 pnpm test
 pnpm build
+pnpm balance:report
 pnpm dev
 ```
 
@@ -85,3 +86,8 @@ See `ARCHETYPE_MATRIX.md` for the first micro-set archetypes, card roles,
 starter-kit implications, and pack implications.
 See `BALANCE_SMOKE_GUIDE.md` for broad content confidence fixtures, pack
 usability checks, and how to update expectations without overfitting exact logs.
+
+`pnpm balance:report` prints a deterministic text report for manual review of
+starter-vs-encounter outcomes and aggregate pack usability. It is not a
+pass/fail balance oracle; use it to spot outliers before or after content
+changes.

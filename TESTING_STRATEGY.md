@@ -31,7 +31,7 @@ Property/invariant tests
 Integration/replay tests
 Combat fixtures
 Balance smoke tests
-UI smoke tests later
+UI smoke tests
 Manual playtesting checklist
 ```
 
@@ -120,12 +120,13 @@ The `pnpm balance:report` script is observational tooling for manual review. It
 prints the same kind of broad outcome and pack-usability data, while smoke tests
 remain the automated pass/fail guardrails.
 
-### UI Smoke Tests Later
+### UI Smoke Tests
 
-Playwright smoke tests will be useful once the debug client has enough stable UI
-surface. They should verify the client can start a run and move through the
-core loop. Avoid broad brittle snapshots and tests that depend on animation
-timing.
+The debug client has a small Playwright smoke test for the current browser loop.
+It starts the Vite client, loads the app, inspects a card, readies and records
+combat, opens a reward, verifies latest reward markers, and advances the run.
+Keep this layer focused on stable text and roles. Avoid screenshots, broad
+brittle snapshots, animation timing, and visual assertions.
 
 ### Manual Playtesting
 

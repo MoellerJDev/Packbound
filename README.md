@@ -40,6 +40,7 @@ pnpm format
 pnpm lint
 pnpm typecheck
 pnpm test
+pnpm test:browser
 pnpm build
 pnpm balance:report
 pnpm dev
@@ -79,6 +80,8 @@ pnpm dev
   guidance, and latest reward markers for newly opened pool cards.
 - Run actions provide a serializable reducer/replay layer for the current loop,
   allowing the debug client and integration tests to share the same action path.
+- `pnpm test:browser` runs a minimal Playwright smoke test for the debug loop
+  without screenshots, traces, videos, or broad UI snapshots.
 - Property-based invariant tests cover generated seeds, legal loadout action
   sequences, card instance preservation, replay determinism, and mutation safety.
 - Core state uses plain objects so future server validation, async ghost PvP,

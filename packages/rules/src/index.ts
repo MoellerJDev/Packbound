@@ -6,6 +6,7 @@ export * from "./instances";
 export * from "./loadout";
 export * from "./packOpening";
 export * from "./rng";
+export * from "./rewardOffers";
 export * from "./rewards";
 export * from "./runActions";
 export * from "./runClarity";

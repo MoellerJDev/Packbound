@@ -23,7 +23,7 @@ resolves combat into an event log.
   design metadata, display-only trait/teamup definitions, and pack costs.
 - `packages/rules`: Seeded RNG, deterministic pack opening, board/source
   validation, trait/teamup summary helpers, pool-based duplicate upgrades,
-  combat gold rewards, priced reward purchases, and a
+  combat gold rewards, priced reward purchases, reward offer explanations, and a
   minimal deterministic run-state / reward / encounter / starter kit progression
   skeleton with explicit lifecycle phases and replayable run actions.
 - `packages/sim`: Pure deterministic combat simulation and event log output.
@@ -74,7 +74,9 @@ pnpm dev
   `combatResolved`, `reward`, `complete`) so combat, rewards, advancement, and
   loadout edits have rules-level guardrails.
 - The debug loop now awards deterministic combat gold, shows current gold, and
-  makes reward pack choices spend their content-defined costs.
+  makes reward pack choices spend their content-defined costs. Reward choices
+  now show deterministic pack-cost and run-relevance explanations for traits,
+  duplicate progress, Source/fixing needs, and pack bias.
 - Loadout movement preserves full card instance data when cards move between
   pool, board, Source Row, and Spellrail. Board positions remain separate from
   the active card instance store.

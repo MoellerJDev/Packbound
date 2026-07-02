@@ -5,6 +5,7 @@ import {
   applyRunAction,
   buildBoardGridSummary,
   buildLoadoutResourceSummary,
+  buildRewardOfferExplanations,
   buildRunTraitSummary,
   buildCombatantSetupForEncounter,
   buildCombatantSetupForRun,
@@ -468,6 +469,17 @@ export function App() {
   const [selectedCardRef, setSelectedCardRef] = useState<SelectedCardRef | undefined>();
   const phase = getRunPhase(run);
   const rewardChoices = useMemo(() => getCurrentRewardChoices(run, sampleCatalog), [run]);
+  const rewardOfferExplanations = useMemo(
+    () => buildRewardOfferExplanations(run, sampleCatalog),
+    [run]
+  );
+  const rewardOfferExplanationByChoiceId = useMemo(
+    () =>
+      new Map(
+        rewardOfferExplanations.map((explanation) => [explanation.choiceId, explanation])
+      ),
+    [rewardOfferExplanations]
+  );
   const currentEncounter = useMemo(() => getCurrentEncounter(run, sampleCatalog), [run]);
   const opponentSetup = useMemo(
     () =>
@@ -979,28 +991,47 @@ export function App() {
               : "Rewards appear after combat is recorded."}
           </p>
           <ol className="card-list">
-            {rewardChoices.map((choice) => (
-              <li key={choice.id}>
-                <div className="reward-choice-cell">
-                  <span>{choice.label}</span>
-                  <small>Cost {choice.cost} gold</small>
-                  {!choice.affordable ? (
-                    <small>
-                      Need {choice.cost} gold, have {run.playerGold}
-                    </small>
-                  ) : (
-                    <small>After purchase: {choice.goldAfterPurchase} gold</small>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => openReward(choice.id)}
-                  disabled={!choice.affordable}
-                >
-                  Open
-                </button>
-              </li>
-            ))}
+            {rewardChoices.map((choice) => {
+              const explanation = rewardOfferExplanationByChoiceId.get(choice.id);
+
+              return (
+                <li key={choice.id}>
+                  <div className="reward-choice-cell">
+                    <span>{choice.label}</span>
+                    <small>Cost {choice.cost} gold</small>
+                    {!choice.affordable ? (
+                      <small>
+                        Need {choice.cost} gold, have {run.playerGold}
+                      </small>
+                    ) : (
+                      <small>After purchase: {choice.goldAfterPurchase} gold</small>
+                    )}
+                    {explanation ? (
+                      <>
+                        <p className="reward-headline">{explanation.headline}</p>
+                        <ul className="reward-reasons">
+                          {explanation.reasons.map((reason, index) => (
+                            <li
+                              key={`${reason.kind}:${index}:${reason.text}`}
+                              className={`reward-reason ${reason.severity}`}
+                            >
+                              {reason.text}
+                            </li>
+                          ))}
+                        </ul>
+                      </>
+                    ) : null}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => openReward(choice.id)}
+                    disabled={!choice.affordable}
+                  >
+                    Open
+                  </button>
+                </li>
+              );
+            })}
           </ol>
         </div>
 

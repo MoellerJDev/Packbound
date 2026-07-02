@@ -96,6 +96,13 @@ test("debug loop can inspect, preview, record, reward, and advance", async ({ pa
   const rewardPanel = panel(page, "Reward Choices");
   await expect(rewardPanel.getByText(/Cost \d+ gold/).first()).toBeVisible();
   await expect(rewardPanel.getByText(/After purchase: \d+ gold/).first()).toBeVisible();
+  await expect(rewardPanel.locator(".reward-headline").first()).toBeVisible();
+  await expect(rewardPanel.locator(".reward-reasons li").first()).toBeVisible();
+  await expect(
+    rewardPanel
+      .getByText(/Biased toward|Matches active|Can add Aspect|Can contain/)
+      .first()
+  ).toBeVisible();
   await expect(rewardPanel.getByRole("button", { name: "Open" }).first()).toBeVisible();
   await rewardPanel.getByRole("button", { name: "Open" }).first().click();
 

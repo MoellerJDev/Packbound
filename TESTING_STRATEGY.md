@@ -54,6 +54,7 @@ validated centrally so future effect types can be added without scattered checks
 Use focused unit tests for deterministic helpers and specific mechanics:
 
 - pack opening
+- reward offer explanations
 - planning validation
 - starter kit creation
 - loadout movement
@@ -128,11 +129,11 @@ inspect a card, ready and record combat, open a reward, verify latest reward
 markers, advance the run, and use a debug-only upgrade lab scenario to click an
 actual Unit upgrade, inspect the upgraded stats, and verify the Upgrade Progress
 panel/inspector wording for that stable duplicate scenario. The debug-loop smoke
-also checks that compact player and enemy board grids can inspect board cards
-without asserting exact visual layout. CI installs Playwright Chromium and runs
-the same smoke tests with `pnpm test:browser`. Keep this layer focused on stable
-text and roles. Avoid screenshots, broad brittle snapshots, animation timing,
-and visual assertions.
+also checks that reward explanations render, and that compact player and enemy
+board grids can inspect board cards without asserting exact visual layout. CI
+installs Playwright Chromium and runs the same smoke tests with
+`pnpm test:browser`. Keep this layer focused on stable text and roles. Avoid
+screenshots, broad brittle snapshots, animation timing, and visual assertions.
 
 ### Manual Playtesting
 
@@ -168,6 +169,10 @@ The first economy MVP specifically needs coverage for combat gold formulas,
 pack-cost content validation, reward affordability, purchase spending,
 reward-history gold bookkeeping, no-mutation guarantees, replay determinism, and
 normal-flow no-softlock affordability.
+Reward offer explanations should stay deterministic, JSON-serializable, and
+rules-side. Test them through helper output for affordability, trait/teamup fit,
+duplicate progress, Source/fixing relevance, pack bias, and non-upgradeable
+duplicate warnings.
 
 Board resources need deterministic fixture tests before browser coverage.
 Fixtures should prove tile resource generation, extraction timing, denial,

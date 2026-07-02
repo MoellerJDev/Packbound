@@ -37,44 +37,62 @@ test("debug loop can inspect, preview, record, reward, and advance", async ({ pa
     page.getByRole("heading", { name: "Planning Check", exact: true })
   ).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Card Inspector", exact: true })
+    page.getByRole("heading", { name: "Battlefield", exact: true })
   ).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Enemy Board Grid", exact: true })
+    page.getByRole("heading", { name: "Ally Inspector", exact: true })
   ).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Player Board Grid", exact: true })
+    page.getByRole("heading", { name: "Enemy Inspector", exact: true })
   ).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Source Row", exact: true })
   ).toBeVisible();
-  await expect(
-    page.getByRole("heading", { name: "Upgrade Progress", exact: true })
-  ).toBeVisible();
+  await expect(panel(page, "Upgrade Progress")).toBeVisible();
 
   const boardPanel = panel(page, "Board");
-  const playerGridPanel = panel(page, "Player Board Grid");
-  const enemyGridPanel = panel(page, "Enemy Board Grid");
-  const inspectorPanel = panel(page, "Card Inspector");
+  const battlefield = page.locator(".battlefield-section");
+  const playerGridPanel = battlefield.locator(".battlefield-board-side.ally");
+  const enemyGridPanel = battlefield.locator(".battlefield-board-side.enemy");
+  const allyInspector = battlefield.locator(".battlefield-inspector.ally");
+  const enemyInspector = battlefield.locator(".battlefield-inspector.enemy");
 
   await expect(boardPanel.getByRole("button", { name: "Inspect" }).first()).toBeVisible();
   await expect(playerGridPanel.getByText("r0 c2")).toBeVisible();
   await expect(playerGridPanel.getByText("ground").first()).toBeVisible();
+  await expect(playerGridPanel.getByText("2 ATK").first()).toBeVisible();
+  await expect(playerGridPanel.getByText("1 RNG").first()).toBeVisible();
+  await expect(playerGridPanel.getByText("Melee").first()).toBeVisible();
   await playerGridPanel
     .getByRole("button", { name: /Inspect Ember Scraprunner ground r0 c2/ })
     .click();
-  await expect(inspectorPanel.getByText(/Unit \| board \| Ember/)).toBeVisible();
-  await expect(inspectorPanel.getByText("Cost")).toBeVisible();
-  await expect(inspectorPanel.getByText(/Charge/)).toBeVisible();
   await expect(
-    inspectorPanel.getByRole("heading", { name: "Legal Actions" })
+    allyInspector.getByRole("heading", { name: "Ember Scraprunner" })
+  ).toBeVisible();
+  await expect(allyInspector.getByText(/Unit \| board \| Ember/)).toBeVisible();
+  await expect(allyInspector.getByText("Cost")).toBeVisible();
+  await expect(allyInspector.getByText(/Charge/)).toBeVisible();
+  await expect(allyInspector.getByText("Attack speed: 1.3 AS")).toBeVisible();
+  await expect(
+    allyInspector.getByText(/used by the simulator attack timer/)
+  ).toBeVisible();
+  await expect(
+    allyInspector.getByRole("heading", { name: "Legal Actions" })
   ).toBeVisible();
 
   await enemyGridPanel
     .getByRole("button", { name: /Inspect .+/ })
     .first()
     .click();
-  await expect(inspectorPanel.getByText(/\| encounter \|/)).toBeVisible();
+  await expect(enemyInspector.getByText(/\| encounter \|/)).toBeVisible();
+  await expect(enemyInspector.getByText(/ATK/).first()).toBeVisible();
+  await expect(
+    enemyInspector.getByRole("heading", { name: "Legal Actions" })
+  ).toHaveCount(0);
+  await expect(
+    allyInspector.getByRole("heading", { name: "Ember Scraprunner" })
+  ).toBeVisible();
+  await expect(enemyInspector).toBeVisible();
 
   await page.getByRole("button", { name: "Ready Combat" }).click();
 
@@ -146,7 +164,7 @@ test("upgrade lab can perform and inspect a duplicate upgrade", async ({ page })
 
   await upgradedCinderRow.getByRole("button", { name: "Inspect" }).click();
 
-  const inspectorPanel = panel(page, "Card Inspector");
+  const inspectorPanel = page.locator(".battlefield-inspector.ally");
   await expect(
     inspectorPanel.getByRole("heading", { name: "Cinder Scout" })
   ).toBeVisible();

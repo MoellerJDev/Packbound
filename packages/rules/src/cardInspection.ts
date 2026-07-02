@@ -25,6 +25,7 @@ import {
   getLegalLoadoutActions,
   type LoadoutAction
 } from "./loadout";
+import { buildCombatStatSummary, type CombatStatSummary } from "./combatStats";
 import type { RunState } from "./runState";
 import {
   MAX_CARD_UPGRADE_LEVEL,
@@ -51,6 +52,7 @@ export type CardInspection = {
   readonly aspectText: string;
   readonly costText: string;
   readonly statsText?: string;
+  readonly combatStats?: CombatStatSummary;
   readonly upgradeLevel?: number;
   readonly upgradeText?: string;
   readonly upgradeBonusText?: string;
@@ -147,14 +149,7 @@ const formatStats = (
   def: CardDefinition,
   card: CardInstance | undefined
 ): string | undefined => {
-  if (def.cardType !== "Unit" && def.cardType !== "Echo") {
-    return undefined;
-  }
-
-  const upgradeLevel = cardUpgradeLevel(card);
-  return `${def.stats.attack + upgradeLevel} ATK / ${
-    def.stats.health + upgradeLevel
-  } HP / ${def.stats.attackSpeed} speed / ${def.stats.range} range`;
+  return buildCombatStatSummary(def, cardUpgradeLevel(card))?.summaryText;
 };
 
 const formatUpgradeText = (
@@ -525,6 +520,7 @@ const inspectDefinition = (
   } = {}
 ): CardInspection => {
   const actionInfo = legalActionInfo(options.run, catalog, options.card, def);
+  const combatStats = buildCombatStatSummary(def, cardUpgradeLevel(options.card));
   const statsText = formatStats(def, options.card);
   const upgradeText = formatUpgradeText(def, options.card);
   const upgradeBonusText = formatUpgradeBonus(def, options.card);
@@ -552,6 +548,7 @@ const inspectDefinition = (
     aspectText: formatAspects(def.aspects),
     costText: formatChargeCost(def),
     ...(statsText ? { statsText } : {}),
+    ...(combatStats ? { combatStats } : {}),
     ...(options.card ? { upgradeLevel: options.card.upgradeLevel } : {}),
     ...(upgradeText ? { upgradeText } : {}),
     ...(upgradeBonusText ? { upgradeBonusText } : {}),

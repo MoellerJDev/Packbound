@@ -4,6 +4,7 @@ import { sampleCatalog } from "@packbound/content";
 import {
   applyRunAction,
   buildBoardGridSummary,
+  COMBAT_MODEL_FACTS,
   buildLoadoutResourceSummary,
   buildRewardOfferExplanations,
   buildRunTraitSummary,
@@ -91,6 +92,9 @@ type SelectedCardRef =
   | { readonly type: "encounterSource"; readonly cardInstanceId: CardInstanceId }
   | { readonly type: "encounterSpellrail"; readonly cardInstanceId: CardInstanceId };
 
+type AllySelectedCardRef = Extract<SelectedCardRef, { readonly type: "run" }>;
+type EnemySelectedCardRef = Exclude<SelectedCardRef, AllySelectedCardRef>;
+
 const timeLabel = (timeMs?: number): string =>
   timeMs === undefined ? "--" : `${(timeMs / 1000).toFixed(1)}s`;
 
@@ -140,12 +144,16 @@ const UpgradeProgressBadge = ({
 };
 
 const CardInspectorView = ({
-  inspection
+  inspection,
+  emptyText,
+  showLegalActions = true
 }: {
   readonly inspection: CardInspection | undefined;
+  readonly emptyText: string;
+  readonly showLegalActions?: boolean;
 }) => {
   if (!inspection) {
-    return <p className="muted">Select a card to inspect its details.</p>;
+    return <p className="muted">{emptyText}</p>;
   }
 
   return (
@@ -206,6 +214,32 @@ const CardInspectorView = ({
         </div>
       </dl>
 
+      {inspection.combatStats ? (
+        <div className="inspector-block">
+          <h4>Combat Stats</h4>
+          <div
+            className="stat-chip-row"
+            aria-label={`${inspection.name} combat stat chips`}
+          >
+            {inspection.combatStats.chips.map((chip) => (
+              <span key={chip} className="stat-chip">
+                {chip}
+              </span>
+            ))}
+          </div>
+          <dl className="combat-stat-details">
+            {inspection.combatStats.details.map((detail) => (
+              <div key={detail.label}>
+                <dt>
+                  {detail.label}: {detail.value}
+                </dt>
+                <dd>{detail.description}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      ) : null}
+
       {inspection.upgradeProgressText ? (
         <div className="inspector-block">
           <h4>Upgrade Progress</h4>
@@ -262,23 +296,27 @@ const CardInspectorView = ({
         </div>
       ) : null}
 
-      <div className="inspector-block">
-        <h4>Legal Actions</h4>
-        {inspection.legalActions.length > 0 ? (
-          <ul className="message-list compact">
-            {inspection.legalActions.map((action) => (
-              <li key={action.type}>
-                <strong>{action.label}</strong>
-                {action.reason ? <span className="muted"> - {action.reason}</span> : null}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="muted">No legal action from the current state.</p>
-        )}
-      </div>
+      {showLegalActions ? (
+        <div className="inspector-block">
+          <h4>Legal Actions</h4>
+          {inspection.legalActions.length > 0 ? (
+            <ul className="message-list compact">
+              {inspection.legalActions.map((action) => (
+                <li key={action.type}>
+                  <strong>{action.label}</strong>
+                  {action.reason ? (
+                    <span className="muted"> - {action.reason}</span>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="muted">No legal action from the current state.</p>
+          )}
+        </div>
+      ) : null}
 
-      {inspection.blockedReasons.length > 0 ? (
+      {showLegalActions && inspection.blockedReasons.length > 0 ? (
         <div className="inspector-block">
           <h4>Blocked Reasons</h4>
           <ul className="message-list compact">
@@ -399,6 +437,19 @@ const TraitSummaryView = ({ summary }: { readonly summary: TraitSummary }) => (
   </div>
 );
 
+const CombatModelFactsView = () => (
+  <div className="combat-model-facts">
+    <h3>Combat Model</h3>
+    <ul className="message-list compact">
+      {COMBAT_MODEL_FACTS.map((fact) => (
+        <li key={fact.label}>
+          <strong>{fact.label}:</strong> {fact.text}
+        </li>
+      ))}
+    </ul>
+  </div>
+);
+
 const boardGridStyle = (cols: number): CSSProperties => ({
   gridTemplateColumns: `repeat(${cols}, minmax(112px, 1fr))`
 });
@@ -407,12 +458,14 @@ const BoardGridView = ({
   summary,
   emptyText,
   onInspect,
-  renderCardMeta
+  renderCardMeta,
+  selectedCardInstanceId
 }: {
   readonly summary: BoardGridSummary;
   readonly emptyText: string;
   readonly onInspect: (card: BoardGridCardSummary) => void;
   readonly renderCardMeta?: (card: BoardGridCardSummary) => ReactNode;
+  readonly selectedCardInstanceId?: CardInstanceId | undefined;
 }) => {
   const occupiedCount = summary.cells.reduce(
     (count, cell) => count + cell.cards.length,
@@ -434,10 +487,28 @@ const BoardGridView = ({
               cell.cards.map((card) => (
                 <div
                   key={card.cardInstanceId}
-                  className={`board-grid-layer ${card.layer}`}
+                  className={`board-grid-layer ${card.layer} ${
+                    selectedCardInstanceId === card.cardInstanceId ? "selected" : ""
+                  }`}
                 >
                   <span className="board-grid-layer-label">{card.layer}</span>
                   <span className="board-grid-card-name">{card.name}</span>
+                  <span className="board-grid-card-type">{card.cardType}</span>
+                  {card.combatStats ? (
+                    <div
+                      className="board-stat-chips"
+                      aria-label={`${card.name} combat stats`}
+                    >
+                      {card.combatStats.chips.map((chip) => (
+                        <span key={chip} className="stat-chip compact">
+                          {chip}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
+                  {card.keywords.length > 0 ? (
+                    <span className="board-keywords">{card.keywords.join(", ")}</span>
+                  ) : null}
                   {renderCardMeta ? renderCardMeta(card) : null}
                   <button
                     type="button"
@@ -466,7 +537,12 @@ export function App() {
   const [lastRecordedCombat, setLastRecordedCombat] = useState<
     RecordedCombatDebug | undefined
   >();
-  const [selectedCardRef, setSelectedCardRef] = useState<SelectedCardRef | undefined>();
+  const [selectedAllyCardRef, setSelectedAllyCardRef] = useState<
+    AllySelectedCardRef | undefined
+  >();
+  const [selectedEnemyCardRef, setSelectedEnemyCardRef] = useState<
+    EnemySelectedCardRef | undefined
+  >();
   const phase = getRunPhase(run);
   const rewardChoices = useMemo(() => getCurrentRewardChoices(run, sampleCatalog), [run]);
   const rewardOfferExplanations = useMemo(
@@ -574,26 +650,39 @@ export function App() {
         : undefined,
     [lastRecordedCombat]
   );
-  const selectedCardInspection = useMemo(() => {
-    if (!selectedCardRef) {
+  const defaultAllyCardRef = useMemo<AllySelectedCardRef | undefined>(() => {
+    const placement = run.board.placements[0];
+    return placement
+      ? { type: "run", cardInstanceId: placement.cardInstanceId }
+      : undefined;
+  }, [run.board.placements]);
+  const defaultEnemyCardRef = useMemo<EnemySelectedCardRef | undefined>(() => {
+    const placement = currentEncounter?.loadout.board.placements[0];
+    return placement
+      ? { type: "encounterBoard", cardInstanceId: placement.cardInstanceId }
+      : undefined;
+  }, [currentEncounter]);
+  const effectiveAllyCardRef = selectedAllyCardRef ?? defaultAllyCardRef;
+  const effectiveEnemyCardRef = selectedEnemyCardRef ?? defaultEnemyCardRef;
+  const selectedAllyInspection = useMemo(() => {
+    if (!effectiveAllyCardRef) {
       return undefined;
     }
 
-    if (selectedCardRef.type === "run") {
-      return inspectRunCard({
-        catalog: sampleCatalog,
-        run,
-        cardInstanceId: selectedCardRef.cardInstanceId
-      });
-    }
-
-    if (!currentEncounter) {
+    return inspectRunCard({
+      catalog: sampleCatalog,
+      run,
+      cardInstanceId: effectiveAllyCardRef.cardInstanceId
+    });
+  }, [effectiveAllyCardRef, run]);
+  const selectedEnemyInspection = useMemo(() => {
+    if (!effectiveEnemyCardRef || !currentEncounter) {
       return undefined;
     }
 
-    if (selectedCardRef.type === "encounterBoard") {
+    if (effectiveEnemyCardRef.type === "encounterBoard") {
       const placement = currentEncounter.loadout.board.placements.find(
-        (candidate) => candidate.cardInstanceId === selectedCardRef.cardInstanceId
+        (candidate) => candidate.cardInstanceId === effectiveEnemyCardRef.cardInstanceId
       );
       return placement
         ? inspectEncounterCard({ catalog: sampleCatalog, placement })
@@ -601,16 +690,16 @@ export function App() {
     }
 
     const card =
-      selectedCardRef.type === "encounterSource"
+      effectiveEnemyCardRef.type === "encounterSource"
         ? currentEncounter.loadout.sourceRow.cards.find(
-            (candidate) => candidate.instanceId === selectedCardRef.cardInstanceId
+            (candidate) => candidate.instanceId === effectiveEnemyCardRef.cardInstanceId
           )
         : currentEncounter.loadout.spellrail.cards.find(
-            (candidate) => candidate.instanceId === selectedCardRef.cardInstanceId
+            (candidate) => candidate.instanceId === effectiveEnemyCardRef.cardInstanceId
           );
 
     return card ? inspectEncounterCard({ catalog: sampleCatalog, card }) : undefined;
-  }, [currentEncounter, run, selectedCardRef]);
+  }, [currentEncounter, effectiveEnemyCardRef]);
   const latestPackName = latestOpenedPack
     ? (sampleCatalog.packsById.get(latestOpenedPack.packId)?.name ??
       latestOpenedPack.packId)
@@ -626,7 +715,8 @@ export function App() {
     setSelectedStarterKitId(starterKitId);
     setRun(createDebugRun(starterKitId));
     setLastRecordedCombat(undefined);
-    setSelectedCardRef(undefined);
+    setSelectedAllyCardRef(undefined);
+    setSelectedEnemyCardRef(undefined);
   };
 
   const performLoadoutAction = (
@@ -666,7 +756,7 @@ export function App() {
       <button
         type="button"
         className="secondary"
-        onClick={() => setSelectedCardRef({ type: "run", cardInstanceId })}
+        onClick={() => setSelectedAllyCardRef({ type: "run", cardInstanceId })}
       >
         Inspect
       </button>
@@ -710,15 +800,15 @@ export function App() {
     run.activeCards.find((card) => card.instanceId === cardInstanceId)?.upgradeLevel ?? 0;
 
   const inspectEncounterBoard = (cardInstanceId: CardInstanceId) => {
-    setSelectedCardRef({ type: "encounterBoard", cardInstanceId });
+    setSelectedEnemyCardRef({ type: "encounterBoard", cardInstanceId });
   };
 
   const inspectEncounterSource = (cardInstanceId: CardInstanceId) => {
-    setSelectedCardRef({ type: "encounterSource", cardInstanceId });
+    setSelectedEnemyCardRef({ type: "encounterSource", cardInstanceId });
   };
 
   const inspectEncounterSpellrail = (cardInstanceId: CardInstanceId) => {
-    setSelectedCardRef({ type: "encounterSpellrail", cardInstanceId });
+    setSelectedEnemyCardRef({ type: "encounterSpellrail", cardInstanceId });
   };
 
   const renderPlayerGridCardMeta = (card: BoardGridCardSummary): ReactNode => (
@@ -824,6 +914,106 @@ export function App() {
         </div>
       </section>
 
+      <section className="battlefield-section" aria-labelledby="battlefield-heading">
+        <div className="battlefield-header">
+          <div>
+            <h2 id="battlefield-heading">Battlefield</h2>
+            <p className="muted">
+              Automatic combat setup for round {run.currentRound}. Inspect one ally and
+              one enemy at the same time to compare stats, keywords, and targeting clues.
+            </p>
+          </div>
+          <dl className="battlefield-run-strip">
+            <div>
+              <dt>Phase</dt>
+              <dd>{phase}</dd>
+            </div>
+            <div>
+              <dt>Health</dt>
+              <dd>{run.playerHealth}</dd>
+            </div>
+            <div>
+              <dt>Gold</dt>
+              <dd>{run.playerGold}</dd>
+            </div>
+            <div>
+              <dt>Encounter</dt>
+              <dd>{currentEncounter?.name ?? "None"}</dd>
+            </div>
+          </dl>
+        </div>
+
+        <div className="battlefield-layout">
+          <aside className="battlefield-inspector ally">
+            <h3>Ally Inspector</h3>
+            <CardInspectorView
+              inspection={selectedAllyInspection}
+              emptyText="Select an ally board, pool, Source Row, or Spellrail card."
+            />
+          </aside>
+
+          <div className="battlefield-board">
+            <div className="battlefield-board-side enemy">
+              <div className="board-side-heading">
+                <h3>Enemy Board</h3>
+                <span>{currentEncounter?.kind ?? "none"}</span>
+              </div>
+              {encounterBoardGrid ? (
+                <BoardGridView
+                  summary={encounterBoardGrid}
+                  emptyText="No enemy board cards are placed."
+                  onInspect={(card) => inspectEncounterBoard(card.cardInstanceId)}
+                  renderCardMeta={renderEncounterGridCardMeta}
+                  selectedCardInstanceId={
+                    effectiveEnemyCardRef?.type === "encounterBoard"
+                      ? effectiveEnemyCardRef.cardInstanceId
+                      : undefined
+                  }
+                />
+              ) : (
+                <p className="muted">No current encounter board to show.</p>
+              )}
+            </div>
+
+            <div className="battlefield-vs">vs</div>
+
+            <div className="battlefield-board-side ally">
+              <div className="board-side-heading">
+                <h3>Ally Board</h3>
+                <span>{resourceSummary.boardChargeText} Charge</span>
+              </div>
+              <BoardGridView
+                summary={playerBoardGrid}
+                emptyText="No player board cards are placed."
+                onInspect={(card) =>
+                  setSelectedAllyCardRef({
+                    type: "run",
+                    cardInstanceId: card.cardInstanceId
+                  })
+                }
+                renderCardMeta={renderPlayerGridCardMeta}
+                selectedCardInstanceId={
+                  effectiveAllyCardRef?.type === "run"
+                    ? effectiveAllyCardRef.cardInstanceId
+                    : undefined
+                }
+              />
+            </div>
+          </div>
+
+          <aside className="battlefield-inspector enemy">
+            <h3>Enemy Inspector</h3>
+            <CardInspectorView
+              inspection={selectedEnemyInspection}
+              emptyText="Select an enemy board, Source Row, or Spellrail card."
+              showLegalActions={false}
+            />
+          </aside>
+        </div>
+
+        <CombatModelFactsView />
+      </section>
+
       <section className="debug-grid">
         <div className="panel">
           <h2>Run State</h2>
@@ -879,7 +1069,7 @@ export function App() {
             </div>
             <div>
               <dt>Opponent Board</dt>
-              <dd>{currentEncounter ? "Inspect below" : "-"}</dd>
+              <dd>{currentEncounter ? "Inspect in battlefield" : "-"}</dd>
             </div>
           </dl>
           {currentEncounter ? (
@@ -945,20 +1135,6 @@ export function App() {
           ) : null}
         </div>
 
-        <div className="panel wide">
-          <h2>Enemy Board Grid</h2>
-          {encounterBoardGrid ? (
-            <BoardGridView
-              summary={encounterBoardGrid}
-              emptyText="No enemy board cards are placed."
-              onInspect={(card) => inspectEncounterBoard(card.cardInstanceId)}
-              renderCardMeta={renderEncounterGridCardMeta}
-            />
-          ) : (
-            <p className="muted">No current encounter board to show.</p>
-          )}
-        </div>
-
         <div className="panel">
           <h2>Planning Check</h2>
           <div className={validation.ok ? "status ok" : "status error"}>
@@ -976,11 +1152,6 @@ export function App() {
         <div className="panel">
           <h2>Traits / Teamups</h2>
           <TraitSummaryView summary={traitSummary} />
-        </div>
-
-        <div className="panel">
-          <h2>Card Inspector</h2>
-          <CardInspectorView inspection={selectedCardInspection} />
         </div>
 
         <div className="panel">
@@ -1033,21 +1204,6 @@ export function App() {
               );
             })}
           </ol>
-        </div>
-
-        <div className="panel wide">
-          <h2>Player Board Grid</h2>
-          <BoardGridView
-            summary={playerBoardGrid}
-            emptyText="No player board cards are placed."
-            onInspect={(card) =>
-              setSelectedCardRef({
-                type: "run",
-                cardInstanceId: card.cardInstanceId
-              })
-            }
-            renderCardMeta={renderPlayerGridCardMeta}
-          />
         </div>
 
         <div className="panel">

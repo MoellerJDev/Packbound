@@ -80,8 +80,15 @@ describe("board grid summaries", () => {
 
     expect(cell.ground?.name).toBe("Cinder Scout");
     expect(cell.ground?.upgradeLevel).toBe(2);
+    expect(cell.ground?.combatStats).toMatchObject({
+      attack: 3,
+      health: 4,
+      role: "Melee",
+      chips: ["3 ATK", "4 HP", "1.1 AS", "1 RNG", "Melee"]
+    });
     expect(cell.support?.name).toBe("Cinder Tally");
     expect(cell.support?.upgradeLevel).toBeUndefined();
+    expect(cell.support?.combatStats).toBeUndefined();
     expect(cell.cards.map((card) => `${card.layer}:${card.name}`)).toEqual([
       "ground:Cinder Scout",
       "support:Cinder Tally"
@@ -101,6 +108,7 @@ describe("board grid summaries", () => {
     const ids = cardInstanceIds(summary);
 
     expect(requireCell(summary, 0, 2).ground?.name).toBe("Cloudgate Adept");
+    expect(requireCell(summary, 0, 2).ground?.combatStats?.chips).toContain("Ranged");
     expect(supportCell.support?.name).toBe("Gleam Lantern");
     expect(ids).toHaveLength(encounter.loadout.board.placements.length);
     expect(new Set(ids).size).toBe(ids.length);

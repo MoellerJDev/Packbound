@@ -88,9 +88,14 @@ pnpm dev
 - The debug client includes a card inspection panel for readable card details,
   clearer normalized ability text, legal loadout actions, and blocked-action
   reasons, including upgrade progress and why duplicates may be blocked.
-- The debug client shows Source Row resource totals, phase-aware next-action
-  guidance, compact player/enemy board grids with layer rows, display-only
-  trait/teamup summaries, and latest reward markers for newly opened pool cards.
+- The debug client now opens on a battlefield-first board view with Ally and
+  Enemy Inspectors, compact ATK/HP/AS/RNG chips, Source Row resource totals,
+  phase-aware next-action guidance, display-only trait/teamup summaries, and
+  latest reward markers for newly opened pool cards.
+- The battlefield explains the current simulator model honestly: attack, health,
+  attack speed, distance targeting, Guard, Barrier, Quickstart, Airborne, and
+  AntiAir matter today; range is displayed for card identity but is not yet a
+  maximum attack-distance gate.
 - Duplicate upgrades currently combine 3 matching Unit or Echo instances in the
   pool at the same level, preserve one deterministic card identity, and add +1
   ATK/+1 HP per upgrade level in combat up to level 2. The debug client also
@@ -98,11 +103,13 @@ pnpm dev
   duplicate Relics, Sources, and Techniques are not upgradeable yet.
 - Run actions provide a serializable reducer/replay layer for the current loop,
   allowing the debug client and integration tests to share the same action path.
-- `pnpm test:browser` runs minimal Playwright smoke tests for debug-loop and
-  duplicate-upgrade regressions, not visual polish or full end-to-end coverage.
-  It runs without screenshots, traces, videos, or broad UI snapshots. The
-  debug-only `?scenario=upgrade-lab` URL seeds 3 deterministic Cinder Scout pool
-  copies for that browser smoke path.
+- `pnpm test:browser` runs minimal Playwright smoke tests for the battlefield
+  debug loop and duplicate-upgrade regressions, not visual polish or full
+  end-to-end coverage. It checks the visible Battlefield, Ally Inspector, Enemy
+  Inspector, stat text, reward flow, and upgrade-lab path without screenshots,
+  traces, videos, or broad UI snapshots. The debug-only `?scenario=upgrade-lab`
+  URL seeds 3 deterministic Cinder Scout pool copies for that browser smoke
+  path.
 - Property-based invariant tests cover generated seeds, legal loadout action
   sequences, card instance preservation, replay determinism, and mutation safety.
 - Core state uses plain objects so future server validation, async ghost PvP,

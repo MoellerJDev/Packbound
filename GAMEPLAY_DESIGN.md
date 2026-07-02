@@ -496,6 +496,13 @@ Positioning should matter for:
 - Summon placement
 - Phase return placement
 
+Current implementation note: the MVP simulator already uses attack, health,
+attack speed, board distance, Guard, Barrier, Quickstart, Airborne, AntiAir,
+support-layer Relic trigger positions, and Technique combat Charge. It does not
+yet implement movement/pathing, and range is currently a displayed Unit stat
+rather than an enforced maximum attack distance. The debug client says this
+plainly instead of presenting range as a finished tactical rule.
+
 ### Future Board Resources
 
 Positioning should eventually matter more visibly than "frontline versus

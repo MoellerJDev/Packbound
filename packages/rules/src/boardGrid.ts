@@ -12,6 +12,8 @@ import {
   type PlayerId
 } from "@packbound/shared";
 
+import { buildCombatStatSummary, type CombatStatSummary } from "./combatStats";
+
 export const BOARD_GRID_LAYER_ORDER: readonly BoardLayer[] = [
   "ground",
   "support",
@@ -27,6 +29,7 @@ export type BoardGridCardSummary = {
   readonly layer: BoardLayer;
   readonly ownerId: PlayerId;
   readonly upgradeLevel?: number;
+  readonly combatStats?: CombatStatSummary;
   readonly traits: readonly string[];
   readonly keywords: readonly Keyword[];
   readonly definitionMissing?: true;
@@ -73,6 +76,8 @@ const buildCardSummary = (
 ): BoardGridCardSummary => {
   const def = catalog.cardsById.get(boardCard.defId);
   const activeCard = activeCardsById.get(boardCard.cardInstanceId);
+  const upgradeLevel = activeCard?.upgradeLevel ?? 0;
+  const combatStats = def ? buildCombatStatSummary(def, upgradeLevel) : undefined;
 
   return {
     cardInstanceId: boardCard.cardInstanceId,
@@ -82,6 +87,7 @@ const buildCardSummary = (
     layer: boardCard.position.layer,
     ownerId: boardCard.ownerId,
     ...(activeCard ? { upgradeLevel: activeCard.upgradeLevel } : {}),
+    ...(combatStats ? { combatStats } : {}),
     traits: [...(def?.traits ?? [])],
     keywords: [...(def?.keywords ?? [])],
     ...(!def ? { definitionMissing: true as const } : {})

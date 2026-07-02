@@ -84,8 +84,10 @@ Responsibilities:
 - Debug views
 
 The client may call `packages/rules` and `packages/sim`, but it must not duplicate gameplay logic.
-The current compact React board grid is a debug visualization of discrete board
-positions and layers, not the final Pixi battlefield renderer.
+The current React/HTML battlefield is a debug visualization of discrete board
+positions and layers, not the final Pixi battlefield renderer. Its Ally and
+Enemy Inspectors render stat and combat-model facts from rules/simulator helper
+data so the UI does not claim unimplemented behavior.
 
 ### `apps/server`
 
@@ -201,6 +203,14 @@ No Pixi.
 No DOM.
 No animation code.
 No unseeded randomness.
+
+Current simulator stat audit: attack determines basic-attack damage, health
+determines survival, attack speed feeds the attack timer, board distance affects
+target priority, Guard and AntiAir can override target choice, Airborne changes
+target sorting, Barrier blocks one damage instance, and Quickstart starts the
+first attack timer ready. Range is stored on runtime Units and displayed in the
+debug UI, but the current MVP does not enforce range as a maximum attack
+distance or implement movement/pathing.
 
 ## Core Rule: Simulation Does Not Render
 

@@ -70,6 +70,12 @@ describe("card inspection helpers", () => {
     expect(inspection.cardType).toBe("Unit");
     expect(inspection.costText).toContain("Charge");
     expect(inspection.statsText).toContain("ATK");
+    expect(inspection.combatStats).toMatchObject({
+      attack: 2,
+      health: 1,
+      role: "Melee",
+      chips: ["2 ATK", "1 HP", "1.3 AS", "1 RNG", "Melee"]
+    });
     expect(inspection.upgradeLevel).toBe(0);
     expect(inspection.upgradeText).toContain("Combine 3 matching pool copies");
     expect(inspection.upgradeBonusText).toContain("Each upgrade level adds +1 ATK");
@@ -169,6 +175,11 @@ describe("card inspection helpers", () => {
     expect(inspection.upgradeText).toContain("Level 1");
     expect(inspection.upgradeBonusText).toBe("Current bonus: +1 ATK / +1 HP.");
     expect(inspection.statsText).toBe("3 ATK / 2 HP / 1.3 speed / 1 range");
+    expect(inspection.combatStats?.details).toContainEqual({
+      label: "Attack speed",
+      value: "1.3 AS",
+      description: "Attacks per second, used by the simulator attack timer."
+    });
   });
 
   it("inspects a Source with board Charge, Aspect access, and combat Charge", () => {
@@ -324,6 +335,13 @@ describe("card inspection helpers", () => {
     expect(inspection?.zone).toBe("encounter");
     expect(inspection?.legalActions).toEqual([]);
     expect(inspection?.statsText).toContain("ATK");
+    expect(
+      inspection?.combatStats?.details.find((detail) => detail.label === "Range")
+    ).toMatchObject({
+      value: "1 RNG",
+      description:
+        "Range is displayed for card identity; current MVP targeting still attacks the selected target without movement/range gating."
+    });
   });
 
   it("is deterministic and JSON-serializable", () => {

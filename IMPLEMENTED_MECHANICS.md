@@ -89,6 +89,11 @@ loop:
 
 ## Known Simulator Limitations
 
+- Attack, health, attack speed, board distance, Guard, Barrier, Quickstart,
+  Airborne, AntiAir, support-layer trigger positions, and Technique combat
+  Charge affect combat today.
+- Range is stored on runtime Units and displayed in the debug UI, but it is not
+  currently enforced as a maximum attack distance.
 - Movement/pathing is not implemented; units attack from their submitted tiles.
 - Pierce, Airborne, and AntiAir are only partially represented through targeting.
 - Phase uses scheduled return events, but phased-out units do not count as active

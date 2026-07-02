@@ -72,6 +72,8 @@ describe("card inspection helpers", () => {
     expect(inspection.statsText).toContain("ATK");
     expect(inspection.keywords).toContain("Quickstart");
     expect(inspection.rulesText).toContain("Quickstart");
+    expect(inspection.traitIds).toEqual(["ember", "scrapper", "echo_fodder"]);
+    expect(inspection.traitNames).toEqual(["Ember", "Scrapper", "Echo Fodder"]);
     expect(inspection.design?.archetypes).toContain("ember_scrappers");
     expect(inspection.designText).toContain("enabler");
   });

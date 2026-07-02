@@ -1224,6 +1224,11 @@ from a board that feels discovered: a pull that looked like fixing becomes a
 splash, a duplicate turns into a carry, or a defensive tag unlocks an unexpected
 payoff.
 
+Current implementation note: traits/teamups now have content definitions,
+card-side trait metadata, rules-side active/near-active summaries, and a debug
+client display. Threshold labels are descriptive only. Trait combat effects are
+future work.
+
 Initial Aspect teamups:
 
 ### Ember

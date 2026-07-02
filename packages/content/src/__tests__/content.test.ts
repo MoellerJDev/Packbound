@@ -17,6 +17,7 @@ import {
 } from "../sampleContent";
 import { ContentValidationError, loadContentCatalog } from "../catalog";
 import { parseCardDefinitions } from "../schemas";
+import { sampleTraitDefinitions } from "../traits";
 
 const archetypes = [
   "ember_scrappers",
@@ -34,6 +35,12 @@ const expectedNonSourcePackArchetypes: Readonly<Record<string, readonly string[]
   ember_foundry_pack: ["ember_scrappers"],
   rotbloom_pack: ["shade_ashes", "bloom_bodies"],
   cloudspire_pack: ["cloudspire_phase"]
+};
+const expectedPackTraits: Readonly<Record<string, readonly string[]>> = {
+  ember_foundry_pack: ["ember", "scrapper", "relic_engine"],
+  rotbloom_pack: ["shade", "bloom", "ashes"],
+  cloudspire_pack: ["tide", "gleam", "phase"],
+  source_pack: ["source_greed"]
 };
 const destroyedContentCardIds = [
   asCardDefId("sparkcatch_apprentice"),
@@ -89,6 +96,18 @@ const instanceIdsForCards = (cards: readonly CardInstance[]): readonly string[] 
   cards.map((card) => card.instanceId);
 
 const cardDefsById = new Map(sampleCards.map((card) => [card.id, card]));
+const traitDefsById = new Map(sampleTraitDefinitions.map((trait) => [trait.id, trait]));
+
+const catalogInput = (
+  overrides: Partial<Parameters<typeof loadContentCatalog>[0]> = {}
+): Parameters<typeof loadContentCatalog>[0] => ({
+  cards: sampleCards,
+  packs: samplePacks,
+  traits: sampleTraitDefinitions,
+  encounters: sampleEncounters,
+  starterKits: sampleStarterKits,
+  ...overrides
+});
 
 const requireCardDef = (defId: CardDefinition["id"]): CardDefinition => {
   const def = cardDefsById.get(defId);
@@ -107,6 +126,14 @@ const starterKitCardDefs = (
   ...starterKit.spellrail.cards.map((card) => requireCardDef(card.defId)),
   ...(starterKit.ashes ?? []).map((card) => requireCardDef(card.defId)),
   ...(starterKit.void ?? []).map((card) => requireCardDef(card.defId))
+];
+
+const starterKitActiveCardDefs = (
+  starterKit: (typeof sampleStarterKits)[number]
+): readonly CardDefinition[] => [
+  ...starterKit.board.placements.map((placement) => requireCardDef(placement.defId)),
+  ...starterKit.sourceRow.cards.map((card) => requireCardDef(card.defId)),
+  ...starterKit.spellrail.cards.map((card) => requireCardDef(card.defId))
 ];
 
 const encounterCardDefs = (
@@ -135,12 +162,7 @@ const cardMatchesPackBias = (
 
 describe("content validation", () => {
   it("loads the starter Packbound content catalog", () => {
-    const catalog = loadContentCatalog({
-      cards: sampleCards,
-      packs: samplePacks,
-      encounters: sampleEncounters,
-      starterKits: sampleStarterKits
-    });
+    const catalog = loadContentCatalog(catalogInput());
 
     expect(catalog.cardsById.get(asCardDefId("ember_scraprunner"))).toMatchObject({
       name: "Ember Scraprunner",
@@ -171,9 +193,9 @@ describe("content validation", () => {
   it("rejects duplicate card ids during catalog loading", () => {
     const duplicateCards = [sampleCards[0], sampleCards[0]];
 
-    expect(() =>
-      loadContentCatalog({ cards: duplicateCards, packs: samplePacks })
-    ).toThrow(ContentValidationError);
+    expect(() => loadContentCatalog(catalogInput({ cards: duplicateCards }))).toThrow(
+      ContentValidationError
+    );
   });
 
   it("rejects effect references to missing card definitions", () => {
@@ -195,7 +217,7 @@ describe("content validation", () => {
         : card
     );
 
-    expect(() => loadContentCatalog({ cards: brokenCards, packs: samplePacks })).toThrow(
+    expect(() => loadContentCatalog(catalogInput({ cards: brokenCards }))).toThrow(
       ContentValidationError
     );
   });
@@ -219,18 +241,16 @@ describe("content validation", () => {
         : card
     );
 
-    expect(() => loadContentCatalog({ cards: brokenCards, packs: samplePacks })).toThrow(
+    expect(() => loadContentCatalog(catalogInput({ cards: brokenCards }))).toThrow(
       ContentValidationError
     );
   });
 
   it("rejects duplicate encounter ids during catalog loading", () => {
     expect(() =>
-      loadContentCatalog({
-        cards: sampleCards,
-        packs: samplePacks,
-        encounters: [sampleEncounters[0], sampleEncounters[0]]
-      })
+      loadContentCatalog(
+        catalogInput({ encounters: [sampleEncounters[0], sampleEncounters[0]] })
+      )
     ).toThrow(ContentValidationError);
   });
 
@@ -260,11 +280,7 @@ describe("content validation", () => {
     };
 
     expect(() =>
-      loadContentCatalog({
-        cards: sampleCards,
-        packs: samplePacks,
-        encounters: [brokenEncounter]
-      })
+      loadContentCatalog(catalogInput({ encounters: [brokenEncounter] }))
     ).toThrow(ContentValidationError);
   });
 
@@ -334,22 +350,16 @@ describe("content validation", () => {
       }
     }
   ])("rejects invalid encounter $name cards", ({ update }) => {
-    expect(() =>
-      loadContentCatalog({
-        cards: sampleCards,
-        packs: samplePacks,
-        encounters: [update()]
-      })
-    ).toThrow(ContentValidationError);
+    expect(() => loadContentCatalog(catalogInput({ encounters: [update()] }))).toThrow(
+      ContentValidationError
+    );
   });
 
   it("rejects duplicate starter kit ids during catalog loading", () => {
     expect(() =>
-      loadContentCatalog({
-        cards: sampleCards,
-        packs: samplePacks,
-        starterKits: [sampleStarterKits[0], sampleStarterKits[0]]
-      })
+      loadContentCatalog(
+        catalogInput({ starterKits: [sampleStarterKits[0], sampleStarterKits[0]] })
+      )
     ).toThrow(ContentValidationError);
   });
 
@@ -361,23 +371,23 @@ describe("content validation", () => {
     }
 
     expect(() =>
-      loadContentCatalog({
-        cards: sampleCards,
-        packs: samplePacks,
-        starterKits: [
-          {
-            ...starterKit,
-            board: {
-              placements: [
-                {
-                  ...placement,
-                  defId: asCardDefId("missing_starter_card")
-                }
-              ]
+      loadContentCatalog(
+        catalogInput({
+          starterKits: [
+            {
+              ...starterKit,
+              board: {
+                placements: [
+                  {
+                    ...placement,
+                    defId: asCardDefId("missing_starter_card")
+                  }
+                ]
+              }
             }
-          }
-        ]
-      })
+          ]
+        })
+      )
     ).toThrow(ContentValidationError);
   });
 
@@ -433,13 +443,9 @@ describe("content validation", () => {
       }
     }
   ])("rejects invalid starter kit $name cards", ({ update }) => {
-    expect(() =>
-      loadContentCatalog({
-        cards: sampleCards,
-        packs: samplePacks,
-        starterKits: [update()]
-      })
-    ).toThrow(ContentValidationError);
+    expect(() => loadContentCatalog(catalogInput({ starterKits: [update()] }))).toThrow(
+      ContentValidationError
+    );
   });
 
   it("rejects starter kits that reuse an instance id across zones", () => {
@@ -451,23 +457,23 @@ describe("content validation", () => {
     }
 
     expect(() =>
-      loadContentCatalog({
-        cards: sampleCards,
-        packs: samplePacks,
-        starterKits: [
-          {
-            ...starterKit,
-            board: {
-              placements: [
-                {
-                  ...placement,
-                  cardInstanceId: poolCard.instanceId
-                }
-              ]
+      loadContentCatalog(
+        catalogInput({
+          starterKits: [
+            {
+              ...starterKit,
+              board: {
+                placements: [
+                  {
+                    ...placement,
+                    cardInstanceId: poolCard.instanceId
+                  }
+                ]
+              }
             }
-          }
-        ]
-      })
+          ]
+        })
+      )
     ).toThrow(ContentValidationError);
   });
 
@@ -485,6 +491,99 @@ describe("content validation", () => {
       expect(card.design?.complexity, card.id).toBeGreaterThanOrEqual(1);
       expect(card.design?.complexity, card.id).toBeLessThanOrEqual(3);
       expect(JSON.parse(JSON.stringify(card.design))).toEqual(card.design);
+    }
+  });
+
+  it("trait definitions are valid, unique, and serializable", () => {
+    expect(sampleCatalog.traits).toEqual(sampleTraitDefinitions);
+    expect(new Set(sampleTraitDefinitions.map((trait) => trait.id)).size).toBe(
+      sampleTraitDefinitions.length
+    );
+
+    for (const trait of sampleTraitDefinitions) {
+      expect(JSON.parse(JSON.stringify(trait))).toEqual(trait);
+      expect(trait.thresholds.length, trait.id).toBeGreaterThan(0);
+      expect(
+        trait.thresholds.map((threshold) => threshold.count),
+        trait.id
+      ).toEqual(
+        [...trait.thresholds].map((threshold) => threshold.count).sort((a, b) => a - b)
+      );
+      for (const partnerTraitId of trait.partnerTraitIds) {
+        expect(traitDefsById.has(partnerTraitId), `${trait.id}:${partnerTraitId}`).toBe(
+          true
+        );
+      }
+    }
+  });
+
+  it("sample cards declare known gameplay traits", () => {
+    for (const card of sampleCards) {
+      expect(card.traits?.length, card.id).toBeGreaterThan(0);
+      expect(JSON.parse(JSON.stringify(card.traits))).toEqual(card.traits);
+      for (const traitId of card.traits ?? []) {
+        expect(traitDefsById.has(traitId), `${card.id}:${traitId}`).toBe(true);
+      }
+    }
+  });
+
+  it("rejects cards that reference unknown traits", () => {
+    const brokenCards = sampleCards.map((card) =>
+      card.id === asCardDefId("ember_scraprunner")
+        ? { ...card, traits: [...(card.traits ?? []), "missing_trait"] }
+        : card
+    );
+
+    expect(() => loadContentCatalog(catalogInput({ cards: brokenCards }))).toThrow(
+      ContentValidationError
+    );
+  });
+
+  it("rejects invalid trait definitions", () => {
+    const duplicateTraitIds = [sampleTraitDefinitions[0], sampleTraitDefinitions[0]];
+    expect(() => loadContentCatalog(catalogInput({ traits: duplicateTraitIds }))).toThrow(
+      ContentValidationError
+    );
+
+    const brokenPartner = {
+      ...sampleTraitDefinitions[0],
+      partnerTraitIds: ["missing_partner_trait"]
+    };
+    expect(() =>
+      loadContentCatalog(
+        catalogInput({ traits: [brokenPartner, ...sampleTraitDefinitions.slice(1)] })
+      )
+    ).toThrow(ContentValidationError);
+
+    const unsortedThresholds = {
+      ...sampleTraitDefinitions[0],
+      thresholds: [
+        { count: 3, label: "Late", description: "Out of order." },
+        { count: 2, label: "Early", description: "Out of order." }
+      ]
+    };
+    expect(() =>
+      loadContentCatalog(
+        catalogInput({ traits: [unsortedThresholds, ...sampleTraitDefinitions.slice(1)] })
+      )
+    ).toThrow(ContentValidationError);
+  });
+
+  it("starter active loadouts expose active or near-active traits", () => {
+    for (const starterKit of sampleStarterKits) {
+      const counts = new Map<string, number>();
+      for (const card of starterKitActiveCardDefs(starterKit)) {
+        for (const traitId of card.traits ?? []) {
+          counts.set(traitId, (counts.get(traitId) ?? 0) + 1);
+        }
+      }
+
+      const visibleTraitIds = [...counts.entries()].filter(([traitId, count]) => {
+        const firstThreshold = traitDefsById.get(traitId)?.thresholds[0]?.count;
+        return firstThreshold !== undefined && count >= Math.max(1, firstThreshold - 1);
+      });
+
+      expect(visibleTraitIds.length, starterKit.id).toBeGreaterThan(0);
     }
   });
 
@@ -671,6 +770,24 @@ describe("content validation", () => {
     }
   });
 
+  it("pack families expose their expected gameplay traits", () => {
+    for (const pack of samplePacks) {
+      const expectedTraits = expectedPackTraits[pack.id];
+      if (!expectedTraits) {
+        continue;
+      }
+
+      const eligibleCards = sampleCards.filter((card) =>
+        Object.prototype.hasOwnProperty.call(pack.setWeights, card.set)
+      );
+      const traitIds = new Set(eligibleCards.flatMap((card) => card.traits ?? []));
+
+      for (const traitId of expectedTraits) {
+        expect(traitIds.has(traitId), `${pack.id}:${traitId}`).toBe(true);
+      }
+    }
+  });
+
   it("rejects encounters that reuse an instance id across zones", () => {
     const encounter = sampleEncounters[0];
     const placement = encounter?.loadout.board.placements[0];
@@ -680,22 +797,22 @@ describe("content validation", () => {
     }
 
     expect(() =>
-      loadContentCatalog({
-        cards: sampleCards,
-        packs: samplePacks,
-        encounters: [
-          {
-            ...encounter,
-            loadout: {
-              ...encounter.loadout,
-              sourceRow: {
-                ...encounter.loadout.sourceRow,
-                cards: [{ ...source, instanceId: placement.cardInstanceId }]
+      loadContentCatalog(
+        catalogInput({
+          encounters: [
+            {
+              ...encounter,
+              loadout: {
+                ...encounter.loadout,
+                sourceRow: {
+                  ...encounter.loadout.sourceRow,
+                  cards: [{ ...source, instanceId: placement.cardInstanceId }]
+                }
               }
             }
-          }
-        ]
-      })
+          ]
+        })
+      )
     ).toThrow(ContentValidationError);
   });
 });

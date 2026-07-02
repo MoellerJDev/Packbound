@@ -14,6 +14,7 @@ import {
 import { loadContentCatalog } from "./catalog";
 import type { EncounterDefinition } from "./encounters";
 import type { StarterKitDefinition } from "./starterKits";
+import { sampleTraitDefinitions } from "./traits";
 
 const design = (
   role: CardDesignMetadata["role"],
@@ -103,6 +104,7 @@ export const sampleCards: readonly CardDefinition[] = [
     aspects: ["Ember"],
     cost: { generic: 1, aspect: { Ember: 1 } },
     tags: ["Scrapper", "Tinkerer"],
+    traits: ["ember", "scrapper", "echo_fodder"],
     keywords: ["Quickstart"],
     abilities: [
       {
@@ -130,6 +132,7 @@ export const sampleCards: readonly CardDefinition[] = [
     aspects: ["Ember"],
     cost: { generic: 1 },
     tags: ["Scrapper", "Scout"],
+    traits: ["ember", "scrapper"],
     keywords: ["Quickstart"],
     abilities: [],
     stats: { attack: 1, health: 2, attackSpeed: 1.1, range: 1 },
@@ -145,6 +148,7 @@ export const sampleCards: readonly CardDefinition[] = [
     aspects: ["Ember"],
     cost: { generic: 1 },
     tags: ["Scrapper", "Spark"],
+    traits: ["ember", "scrapper", "echo_fodder"],
     keywords: [],
     abilities: [
       {
@@ -172,6 +176,7 @@ export const sampleCards: readonly CardDefinition[] = [
     aspects: ["Ember"],
     cost: { generic: 1 },
     tags: ["Wisp", "Spark"],
+    traits: ["ember", "wisp", "echo_fodder"],
     keywords: [],
     abilities: [],
     stats: { attack: 1, health: 1, attackSpeed: 1.2, range: 1 },
@@ -187,6 +192,7 @@ export const sampleCards: readonly CardDefinition[] = [
     aspects: ["Ember"],
     cost: { generic: 1, aspect: { Ember: 1 } },
     tags: ["Scrapper", "Spark"],
+    traits: ["ember", "scrapper", "echo_fodder"],
     keywords: [],
     abilities: [
       {
@@ -213,6 +219,7 @@ export const sampleCards: readonly CardDefinition[] = [
     aspects: ["Ember"],
     cost: { generic: 1, aspect: { Ember: 1 } },
     tags: ["Relic", "Tinkerer"],
+    traits: ["ember", "relic_engine", "echo_fodder"],
     keywords: [],
     abilities: [
       {
@@ -244,6 +251,7 @@ export const sampleCards: readonly CardDefinition[] = [
     aspects: ["Ember"],
     cost: { generic: 1, aspect: { Ember: 1 } },
     tags: ["Relic", "Scrapper", "Spark"],
+    traits: ["ember", "scrapper", "relic_engine", "echo_fodder"],
     keywords: [],
     abilities: [
       {
@@ -271,6 +279,7 @@ export const sampleCards: readonly CardDefinition[] = [
     aspects: ["Ember"],
     cost: { generic: 2, aspect: { Ember: 1 } },
     tags: ["Relic", "Charge"],
+    traits: ["ember", "relic_engine", "source_greed"],
     keywords: [],
     abilities: [
       {
@@ -297,6 +306,7 @@ export const sampleCards: readonly CardDefinition[] = [
     aspects: ["Ember"],
     cost: { generic: 2, aspect: { Ember: 1 } },
     tags: ["Relic", "Tinkerer"],
+    traits: ["ember", "relic_engine"],
     keywords: [],
     abilities: [
       {
@@ -324,6 +334,7 @@ export const sampleCards: readonly CardDefinition[] = [
     aspects: ["Ember"],
     cost: { generic: 1, aspect: { Ember: 1 } },
     tags: ["Technique", "Damage"],
+    traits: ["ember"],
     keywords: [],
     abilities: [],
     technique: {
@@ -344,6 +355,7 @@ export const sampleCards: readonly CardDefinition[] = [
     aspects: ["Ember"],
     cost: { generic: 2, aspect: { Ember: 1 } },
     tags: ["Scrapper", "Tinkerer"],
+    traits: ["ember", "scrapper"],
     keywords: [],
     abilities: [
       {
@@ -367,6 +379,7 @@ export const sampleCards: readonly CardDefinition[] = [
     aspects: ["Shade"],
     cost: { generic: 1, aspect: { Shade: 1 } },
     tags: ["Husk", "Adept"],
+    traits: ["shade", "husk", "ashes", "recall"],
     keywords: [],
     abilities: [
       {
@@ -395,6 +408,7 @@ export const sampleCards: readonly CardDefinition[] = [
     aspects: ["Shade"],
     cost: { generic: 1, aspect: { Shade: 1 } },
     tags: ["Husk", "Runner"],
+    traits: ["shade", "husk", "ashes", "echo_fodder"],
     keywords: ["Quickstart"],
     abilities: [
       {
@@ -422,6 +436,7 @@ export const sampleCards: readonly CardDefinition[] = [
     aspects: ["Shade"],
     cost: { generic: 1, aspect: { Shade: 1 } },
     tags: ["Husk"],
+    traits: ["shade", "husk", "ashes"],
     keywords: ["Guard"],
     abilities: [],
     stats: { attack: 1, health: 4, attackSpeed: 0.7, range: 1 },
@@ -437,6 +452,7 @@ export const sampleCards: readonly CardDefinition[] = [
     aspects: ["Shade"],
     cost: { generic: 1, aspect: { Shade: 1 } },
     tags: ["Husk", "Keeper"],
+    traits: ["shade", "husk", "ashes"],
     keywords: ["Guard"],
     abilities: [
       {
@@ -464,6 +480,7 @@ export const sampleCards: readonly CardDefinition[] = [
     aspects: ["Shade"],
     cost: { generic: 1 },
     tags: ["Wisp", "Husk"],
+    traits: ["shade", "wisp", "husk", "echo_fodder", "ashes"],
     keywords: [],
     abilities: [],
     stats: { attack: 1, health: 1, attackSpeed: 1, range: 1 },
@@ -479,6 +496,7 @@ export const sampleCards: readonly CardDefinition[] = [
     aspects: ["Shade"],
     cost: { generic: 1, aspect: { Shade: 1 } },
     tags: ["Technique", "Recall"],
+    traits: ["shade", "ashes", "recall"],
     keywords: [],
     abilities: [],
     technique: {
@@ -504,6 +522,7 @@ export const sampleCards: readonly CardDefinition[] = [
     aspects: ["Shade"],
     cost: { generic: 1, aspect: { Shade: 1 } },
     tags: ["Technique", "Damage"],
+    traits: ["shade", "ashes"],
     keywords: [],
     abilities: [],
     technique: {
@@ -524,6 +543,7 @@ export const sampleCards: readonly CardDefinition[] = [
     aspects: ["Shade"],
     cost: { generic: 2, aspect: { Shade: 1 } },
     tags: ["Husk", "Debt"],
+    traits: ["shade", "husk", "ashes"],
     keywords: [],
     abilities: [
       {
@@ -552,6 +572,7 @@ export const sampleCards: readonly CardDefinition[] = [
     aspects: ["Shade"],
     cost: { generic: 2, aspect: { Shade: 1 } },
     tags: ["Relic", "Offer"],
+    traits: ["shade", "ashes", "offering", "relic_engine"],
     keywords: [],
     abilities: [
       {
@@ -575,6 +596,7 @@ export const sampleCards: readonly CardDefinition[] = [
     aspects: ["Shade"],
     cost: { generic: 1, aspect: { Shade: 1 } },
     tags: ["Relic", "Offer", "Recall"],
+    traits: ["shade", "ashes", "offering", "recall", "relic_engine"],
     keywords: [],
     abilities: [
       {
@@ -604,6 +626,7 @@ export const sampleCards: readonly CardDefinition[] = [
     aspects: ["Bloom"],
     cost: { generic: 2, aspect: { Bloom: 1 } },
     tags: ["Beast", "Spore"],
+    traits: ["bloom", "beast"],
     keywords: [],
     abilities: [],
     stats: { attack: 3, health: 4, attackSpeed: 0.7, range: 1 },
@@ -619,6 +642,7 @@ export const sampleCards: readonly CardDefinition[] = [
     aspects: ["Bloom"],
     cost: { generic: 1, aspect: { Bloom: 1 } },
     tags: ["Root", "Guardian"],
+    traits: ["bloom", "guardian"],
     keywords: ["Guard"],
     abilities: [],
     stats: { attack: 1, health: 5, attackSpeed: 0.6, range: 1 },
@@ -634,6 +658,7 @@ export const sampleCards: readonly CardDefinition[] = [
     aspects: ["Bloom", "Gleam"],
     cost: { generic: 1, aspect: { Bloom: 1 } },
     tags: ["Root", "Tender"],
+    traits: ["bloom", "gleam", "guardian", "barrier"],
     keywords: [],
     abilities: [
       {
@@ -660,6 +685,7 @@ export const sampleCards: readonly CardDefinition[] = [
     aspects: ["Bloom"],
     cost: { generic: 3, aspect: { Bloom: 1 } },
     tags: ["Beast"],
+    traits: ["bloom", "beast"],
     keywords: [],
     abilities: [],
     stats: { attack: 3, health: 6, attackSpeed: 0.6, range: 1 },
@@ -675,6 +701,7 @@ export const sampleCards: readonly CardDefinition[] = [
     aspects: ["Bloom"],
     cost: { generic: 1, aspect: { Bloom: 1 } },
     tags: ["Technique", "Growth"],
+    traits: ["bloom"],
     keywords: [],
     abilities: [],
     technique: {
@@ -695,6 +722,7 @@ export const sampleCards: readonly CardDefinition[] = [
     aspects: ["Bloom", "Gleam"],
     cost: { generic: 1, aspect: { Bloom: 1 } },
     tags: ["Technique", "Heal"],
+    traits: ["bloom", "gleam", "barrier"],
     keywords: [],
     abilities: [],
     technique: {
@@ -718,6 +746,7 @@ export const sampleCards: readonly CardDefinition[] = [
     aspects: ["Shade", "Bloom"],
     cost: { generic: 3, aspect: { Shade: 1, Bloom: 1 } },
     tags: ["Husk", "Beast"],
+    traits: ["shade", "bloom", "husk", "beast", "ashes"],
     keywords: ["Guard"],
     abilities: [],
     stats: { attack: 4, health: 7, attackSpeed: 0.5, range: 1 },
@@ -737,6 +766,7 @@ export const sampleCards: readonly CardDefinition[] = [
     aspects: ["Bloom", "Gleam"],
     cost: { generic: 4, aspect: { Bloom: 1 } },
     tags: ["Root", "Guardian"],
+    traits: ["bloom", "gleam", "guardian"],
     keywords: ["Guard"],
     abilities: [],
     stats: { attack: 4, health: 8, attackSpeed: 0.45, range: 1 },
@@ -752,6 +782,7 @@ export const sampleCards: readonly CardDefinition[] = [
     aspects: ["Tide", "Gleam"],
     cost: { generic: 1, aspect: { Tide: 1, Gleam: 1 } },
     tags: ["Adept", "Warden"],
+    traits: ["tide", "gleam", "phase", "barrier", "warden"],
     keywords: [],
     abilities: [
       {
@@ -775,6 +806,7 @@ export const sampleCards: readonly CardDefinition[] = [
     aspects: ["Tide", "Gleam"],
     cost: { generic: 2, aspect: { Tide: 1, Gleam: 1 } },
     tags: ["Warden", "Phase"],
+    traits: ["tide", "gleam", "phase", "barrier", "warden"],
     keywords: ["Guard", "Barrier"],
     abilities: [],
     stats: { attack: 2, health: 6, attackSpeed: 0.7, range: 1 },
@@ -793,6 +825,7 @@ export const sampleCards: readonly CardDefinition[] = [
     aspects: ["Tide"],
     cost: { generic: 1, aspect: { Tide: 1 } },
     tags: ["Technique", "Phase"],
+    traits: ["tide", "phase"],
     keywords: [],
     abilities: [],
     technique: {
@@ -819,6 +852,7 @@ export const sampleCards: readonly CardDefinition[] = [
     aspects: ["Tide"],
     cost: { generic: 1, aspect: { Tide: 1 } },
     tags: ["Scout", "Wisp"],
+    traits: ["tide", "wisp", "phase"],
     keywords: ["Airborne"],
     abilities: [],
     stats: { attack: 1, health: 2, attackSpeed: 1, range: 2 },
@@ -834,6 +868,7 @@ export const sampleCards: readonly CardDefinition[] = [
     aspects: ["Gleam"],
     cost: { generic: 1, aspect: { Gleam: 1 } },
     tags: ["Scout", "Warden"],
+    traits: ["gleam", "warden", "barrier"],
     keywords: ["AntiAir"],
     abilities: [],
     stats: { attack: 1, health: 3, attackSpeed: 0.9, range: 3 },
@@ -849,6 +884,7 @@ export const sampleCards: readonly CardDefinition[] = [
     aspects: ["Gleam"],
     cost: { generic: 1, aspect: { Gleam: 1 } },
     tags: ["Relic", "Barrier"],
+    traits: ["gleam", "barrier", "relic_engine"],
     keywords: [],
     abilities: [
       {
@@ -875,6 +911,7 @@ export const sampleCards: readonly CardDefinition[] = [
     aspects: ["Tide", "Gleam"],
     cost: { generic: 1, aspect: { Tide: 1 } },
     tags: ["Technique", "Phase"],
+    traits: ["tide", "gleam", "phase", "barrier"],
     keywords: [],
     abilities: [],
     technique: {
@@ -901,6 +938,7 @@ export const sampleCards: readonly CardDefinition[] = [
     aspects: ["Tide"],
     cost: { generic: 1 },
     tags: ["Wisp"],
+    traits: ["tide", "wisp", "phase", "echo_fodder"],
     keywords: ["Airborne"],
     abilities: [],
     stats: { attack: 1, health: 1, attackSpeed: 1, range: 2 },
@@ -918,6 +956,7 @@ export const sampleCards: readonly CardDefinition[] = [
     cardType: "Source",
     aspects: ["Ember"],
     tags: ["Source"],
+    traits: ["ember", "source_greed"],
     keywords: [],
     abilities: [],
     source: {
@@ -938,6 +977,7 @@ export const sampleCards: readonly CardDefinition[] = [
     cardType: "Source",
     aspects: ["Shade"],
     tags: ["Source"],
+    traits: ["shade", "source_greed"],
     keywords: [],
     abilities: [],
     source: {
@@ -958,6 +998,7 @@ export const sampleCards: readonly CardDefinition[] = [
     cardType: "Source",
     aspects: ["Bloom"],
     tags: ["Source"],
+    traits: ["bloom", "source_greed"],
     keywords: [],
     abilities: [],
     source: {
@@ -978,6 +1019,7 @@ export const sampleCards: readonly CardDefinition[] = [
     cardType: "Source",
     aspects: ["Tide"],
     tags: ["Source"],
+    traits: ["tide", "source_greed"],
     keywords: [],
     abilities: [],
     source: {
@@ -998,6 +1040,7 @@ export const sampleCards: readonly CardDefinition[] = [
     cardType: "Source",
     aspects: ["Gleam"],
     tags: ["Source"],
+    traits: ["gleam", "source_greed"],
     keywords: [],
     abilities: [],
     source: {
@@ -1018,6 +1061,7 @@ export const sampleCards: readonly CardDefinition[] = [
     cardType: "Source",
     aspects: ["Ember", "Shade", "Bloom", "Tide", "Gleam"],
     tags: ["Source", "Fixing"],
+    traits: ["ember", "shade", "bloom", "tide", "gleam", "source_greed"],
     keywords: [],
     abilities: [],
     source: {
@@ -1036,6 +1080,7 @@ export const sampleCards: readonly CardDefinition[] = [
     cardType: "Source",
     aspects: ["Ember", "Shade"],
     tags: ["Source", "Fixing"],
+    traits: ["ember", "shade", "source_greed"],
     keywords: [],
     abilities: [],
     source: {
@@ -1056,6 +1101,7 @@ export const sampleCards: readonly CardDefinition[] = [
     cardType: "Source",
     aspects: ["Tide", "Gleam"],
     tags: ["Source", "Fixing"],
+    traits: ["tide", "gleam", "source_greed"],
     keywords: [],
     abilities: [],
     source: {
@@ -1076,6 +1122,7 @@ export const sampleCards: readonly CardDefinition[] = [
     cardType: "Source",
     aspects: ["Bloom", "Gleam"],
     tags: ["Source", "Fixing"],
+    traits: ["bloom", "gleam", "source_greed"],
     keywords: [],
     abilities: [],
     source: {
@@ -1694,6 +1741,7 @@ export const sampleEncounters: readonly EncounterDefinition[] = [
 export const sampleCatalog = loadContentCatalog({
   cards: sampleCards,
   packs: samplePacks,
+  traits: sampleTraitDefinitions,
   encounters: sampleEncounters,
   starterKits: sampleStarterKits
 });

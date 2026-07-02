@@ -9,12 +9,14 @@ import {
   RARITIES,
   ZONES,
   STATUS_EFFECTS,
+  TRAIT_CATEGORIES,
   asCardDefId,
   asCardInstanceId,
   asPackId,
   asPlayerId,
   type CardDefinition,
-  type PackDefinition
+  type PackDefinition,
+  type TraitDefinition
 } from "@packbound/shared";
 
 import { ENCOUNTER_KINDS, ENCOUNTER_TIERS, type EncounterDefinition } from "./encounters";
@@ -27,11 +29,13 @@ export const boardLayerSchema = z.enum(BOARD_LAYERS);
 export const keywordSchema = z.enum(KEYWORDS);
 export const statusEffectSchema = z.enum(STATUS_EFFECTS);
 export const cardDesignRoleSchema = z.enum(CARD_DESIGN_ROLES);
+export const traitCategorySchema = z.enum(TRAIT_CATEGORIES);
 
 export const cardDefIdSchema = z.string().min(1).transform(asCardDefId);
 export const cardInstanceIdSchema = z.string().min(1).transform(asCardInstanceId);
 export const packIdSchema = z.string().min(1).transform(asPackId);
 export const playerIdSchema = z.string().min(1).transform(asPlayerId);
+export const traitIdSchema = z.string().min(1);
 
 export const chargeCostSchema = z.object({
   generic: z.number().int().min(0),
@@ -252,6 +256,22 @@ export const cardDesignMetadataSchema = z.object({
   mechanicTags: z.array(z.string().min(1))
 });
 
+export const traitThresholdSchema = z.object({
+  count: z.number().int().min(1),
+  label: z.string().min(1),
+  description: z.string().min(1)
+});
+
+export const traitDefinitionSchema = z.object({
+  id: traitIdSchema,
+  name: z.string().min(1),
+  category: traitCategorySchema,
+  description: z.string().min(1),
+  thresholds: z.array(traitThresholdSchema).min(1),
+  partnerTraitIds: z.array(traitIdSchema),
+  tags: z.array(z.string().min(1))
+});
+
 const baseCardSchema = {
   id: cardDefIdSchema,
   name: z.string().min(1),
@@ -260,6 +280,7 @@ const baseCardSchema = {
   aspects: z.array(aspectSchema),
   cost: chargeCostSchema.optional(),
   tags: z.array(z.string().min(1)),
+  traits: z.array(traitIdSchema).optional(),
   keywords: z.array(keywordSchema),
   abilities: z.array(abilitySchema),
   rulesText: z.string().min(1).optional(),
@@ -408,6 +429,9 @@ export const parseCardDefinitions = (raw: unknown): readonly CardDefinition[] =>
 
 export const parsePackDefinitions = (raw: unknown): readonly PackDefinition[] =>
   z.array(packDefinitionSchema).parse(raw) as readonly PackDefinition[];
+
+export const parseTraitDefinitions = (raw: unknown): readonly TraitDefinition[] =>
+  z.array(traitDefinitionSchema).parse(raw) as readonly TraitDefinition[];
 
 export const parseEncounterDefinitions = (raw: unknown): readonly EncounterDefinition[] =>
   z.array(encounterDefinitionSchema).parse(raw) as readonly EncounterDefinition[];

@@ -11,6 +11,7 @@ import {
   type PackDefinition,
   type PackId,
   type PlayerId,
+  type TraitDefinition,
   asPlayerId
 } from "@packbound/shared";
 
@@ -20,16 +21,19 @@ import {
   parseCardDefinitions,
   parseEncounterDefinitions,
   parsePackDefinitions,
-  parseStarterKitDefinitions
+  parseStarterKitDefinitions,
+  parseTraitDefinitions
 } from "./schemas";
 
 export type ContentCatalog = {
   readonly cards: readonly CardDefinition[];
   readonly packs: readonly PackDefinition[];
+  readonly traits: readonly TraitDefinition[];
   readonly encounters: readonly EncounterDefinition[];
   readonly starterKits: readonly StarterKitDefinition[];
   readonly cardsById: ReadonlyMap<CardDefId, CardDefinition>;
   readonly packsById: ReadonlyMap<PackId, PackDefinition>;
+  readonly traitsById: ReadonlyMap<string, TraitDefinition>;
   readonly encountersById: ReadonlyMap<string, EncounterDefinition>;
   readonly starterKitsById: ReadonlyMap<string, StarterKitDefinition>;
 };
@@ -47,6 +51,7 @@ export class ContentValidationError extends Error {
 export type LoadContentInput = {
   readonly cards: unknown;
   readonly packs: unknown;
+  readonly traits?: unknown;
   readonly encounters?: unknown;
   readonly starterKits?: unknown;
 };
@@ -89,6 +94,41 @@ const effectReferenceValidators: readonly EffectReferenceValidator[] = [
   validateSummonReference("SummonEcho", ["Echo", "Unit"]),
   validateSummonReference("SummonUnit", ["Unit", "Echo"])
 ];
+
+const validateTraitDefinition = (
+  trait: TraitDefinition,
+  traitsById: ReadonlyMap<string, TraitDefinition>,
+  issues: string[]
+): void => {
+  const seenThresholdCounts = new Set<number>();
+  let previousCount = 0;
+
+  for (const threshold of trait.thresholds) {
+    if (seenThresholdCounts.has(threshold.count)) {
+      issues.push(`${trait.id} repeats trait threshold count ${threshold.count}`);
+    }
+    seenThresholdCounts.add(threshold.count);
+
+    if (threshold.count <= previousCount) {
+      issues.push(`${trait.id} trait thresholds must be sorted by count`);
+    }
+    previousCount = threshold.count;
+  }
+
+  const seenPartners = new Set<string>();
+  for (const partnerTraitId of trait.partnerTraitIds) {
+    if (partnerTraitId === trait.id) {
+      issues.push(`${trait.id} cannot list itself as a partner trait`);
+    }
+    if (seenPartners.has(partnerTraitId)) {
+      issues.push(`${trait.id} repeats partner trait '${partnerTraitId}'`);
+    }
+    seenPartners.add(partnerTraitId);
+    if (!traitsById.has(partnerTraitId)) {
+      issues.push(`${trait.id} references unknown partner trait '${partnerTraitId}'`);
+    }
+  }
+};
 
 const effectsForCard = (card: CardDefinition): readonly AbilityEffect[] => {
   const abilityEffects = card.abilities.map((ability) => ability.effect);
@@ -474,6 +514,7 @@ const validateStarterKit = (
 export const loadContentCatalog = (input: LoadContentInput): ContentCatalog => {
   const cards = parseCardDefinitions(input.cards);
   const packs = parsePackDefinitions(input.packs);
+  const traits = parseTraitDefinitions(input.traits ?? []);
   const encounters = parseEncounterDefinitions(input.encounters ?? []);
   const starterKits = parseStarterKitDefinitions(input.starterKits ?? []);
   const issues: string[] = [];
@@ -494,6 +535,19 @@ export const loadContentCatalog = (input: LoadContentInput): ContentCatalog => {
       continue;
     }
     packsById.set(pack.id, pack);
+  }
+
+  const traitsById = new Map<string, TraitDefinition>();
+  for (const trait of traits) {
+    if (traitsById.has(trait.id)) {
+      issues.push(`Duplicate trait definition id: ${trait.id}`);
+      continue;
+    }
+    traitsById.set(trait.id, trait);
+  }
+
+  for (const trait of traits) {
+    validateTraitDefinition(trait, traitsById, issues);
   }
 
   const encountersById = new Map<string, EncounterDefinition>();
@@ -558,6 +612,17 @@ export const loadContentCatalog = (input: LoadContentInput): ContentCatalog => {
   }
 
   for (const card of cards) {
+    const seenCardTraits = new Set<string>();
+    for (const traitId of card.traits ?? []) {
+      if (seenCardTraits.has(traitId)) {
+        issues.push(`${card.id} repeats trait '${traitId}'`);
+      }
+      seenCardTraits.add(traitId);
+      if (!traitsById.has(traitId)) {
+        issues.push(`${card.id} references unknown trait '${traitId}'`);
+      }
+    }
+
     for (const effect of effectsForCard(card)) {
       for (const validator of effectReferenceValidators) {
         validator(effect, { card, cardsById, issues });
@@ -589,10 +654,12 @@ export const loadContentCatalog = (input: LoadContentInput): ContentCatalog => {
   return {
     cards,
     packs,
+    traits,
     encounters,
     starterKits,
     cardsById,
     packsById,
+    traitsById,
     encountersById,
     starterKitsById
   };

@@ -4,6 +4,7 @@ import { sampleCatalog } from "@packbound/content";
 import {
   applyRunAction,
   buildLoadoutResourceSummary,
+  buildRunTraitSummary,
   buildCombatantSetupForEncounter,
   buildCombatantSetupForRun,
   canApplyReward,
@@ -22,7 +23,9 @@ import {
   type CardInspection,
   type CombatResultLike,
   type LoadoutAction,
-  type RunState
+  type RunState,
+  type TraitCount,
+  type TraitSummary
 } from "@packbound/rules";
 import { asPlayerId, type CardDefId, type CardInstanceId } from "@packbound/shared";
 import {
@@ -129,6 +132,10 @@ const CardInspectorView = ({
         <div>
           <dt>Tags</dt>
           <dd>{optionalList(inspection.tags)}</dd>
+        </div>
+        <div>
+          <dt>Traits</dt>
+          <dd>{optionalList(inspection.traitNames)}</dd>
         </div>
       </dl>
 
@@ -255,6 +262,62 @@ const RawDebugDetails = ({
   </details>
 );
 
+const traitProgressText = (trait: TraitCount): string => {
+  const target =
+    trait.nextThreshold?.count ?? trait.activeThreshold?.count ?? trait.count;
+  return `${trait.count} / ${target}`;
+};
+
+const traitCardNames = (trait: TraitCount): string =>
+  trait.cards.map((card) => card.cardName).join(", ");
+
+const TraitListView = ({
+  traits,
+  emptyText
+}: {
+  readonly traits: readonly TraitCount[];
+  readonly emptyText: string;
+}) => {
+  if (traits.length === 0) {
+    return <p className="muted">{emptyText}</p>;
+  }
+
+  return (
+    <ol className="trait-list">
+      {traits.map((trait) => (
+        <li key={trait.traitId}>
+          <div className="trait-row-heading">
+            <strong>{trait.name}</strong>
+            <span>{traitProgressText(trait)}</span>
+          </div>
+          {trait.activeThreshold ? (
+            <p>
+              {trait.activeThreshold.label}: {trait.activeThreshold.description}
+            </p>
+          ) : trait.nextThreshold ? (
+            <p>
+              Next {trait.nextThreshold.label}: {trait.nextThreshold.description}
+            </p>
+          ) : null}
+          <small>{traitCardNames(trait)}</small>
+        </li>
+      ))}
+    </ol>
+  );
+};
+
+const TraitSummaryView = ({ summary }: { readonly summary: TraitSummary }) => (
+  <div className="trait-summary">
+    <h3>Active</h3>
+    <TraitListView traits={summary.activeTraits} emptyText="No active traits yet." />
+    <h3>Near</h3>
+    <TraitListView
+      traits={summary.nearTraits}
+      emptyText="No near-active traits from the current loadout."
+    />
+  </div>
+);
+
 export function App() {
   const [selectedStarterKitId, setSelectedStarterKitId] = useState(firstStarterKitId);
   const [run, setRun] = useState(() => createDebugRun(firstStarterKitId));
@@ -278,6 +341,7 @@ export function App() {
     () => buildLoadoutResourceSummary(run, sampleCatalog),
     [run]
   );
+  const traitSummary = useMemo(() => buildRunTraitSummary(run, sampleCatalog), [run]);
   const nextActionMessage = useMemo(
     () => getRunNextActionMessage(run, validation, canApplyReward(run)),
     [run, validation]
@@ -675,6 +739,11 @@ export function App() {
               </li>
             ))}
           </ul>
+        </div>
+
+        <div className="panel">
+          <h2>Traits / Teamups</h2>
+          <TraitSummaryView summary={traitSummary} />
         </div>
 
         <div className="panel">

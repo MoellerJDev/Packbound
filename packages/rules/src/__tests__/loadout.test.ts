@@ -5,7 +5,8 @@ import {
   sampleCards,
   sampleCatalog,
   samplePacks,
-  sampleStarterKits
+  sampleStarterKits,
+  sampleTraitDefinitions
 } from "@packbound/content";
 import {
   asCardDefId,
@@ -102,6 +103,7 @@ const gearCard: CardDefinition = {
   aspects: ["Ember"],
   cost: { generic: 1 },
   tags: ["Gear"],
+  traits: ["ember"],
   keywords: [],
   abilities: [],
   attachment: { legalCardTypes: ["Unit", "Echo"] }
@@ -110,6 +112,7 @@ const gearCard: CardDefinition = {
 const catalogWithUnsupportedGear = loadContentCatalog({
   cards: [...sampleCards, gearCard],
   packs: samplePacks,
+  traits: sampleTraitDefinitions,
   starterKits: sampleStarterKits
 });
 

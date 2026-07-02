@@ -7,6 +7,7 @@ least one enabler, one payoff, and one interaction or defensive tool.
 ## `ember_scrappers`
 
 - Aspects: Ember, sometimes Shade.
+- Implemented trait IDs: `ember`, `scrapper`, `echo_fodder`, `relic_engine`.
 - Game plan: Pressure, Relics, death sparks, cheap tempo, and Echo fodder.
 - Enablers: `ember_scraprunner`, `cinder_scout`, `coal_wisp_echo`,
   `signal_wisp_echo`.
@@ -34,6 +35,7 @@ least one enabler, one payoff, and one interaction or defensive tool.
 ## `shade_ashes`
 
 - Aspects: Shade, sometimes Bloom.
+- Implemented trait IDs: `shade`, `ashes`, `offering`, `recall`, `husk`.
 - Game plan: Ashes, Recall, Offer, disposable Units/Echoes, and grind.
 - Enablers: `ash_debt_runner`, `memory_wisp_echo`, `coal_wisp_echo`,
   `ember_scraprunner`.
@@ -61,6 +63,7 @@ least one enabler, one payoff, and one interaction or defensive tool.
 ## `bloom_bodies`
 
 - Aspects: Bloom, sometimes Shade or Gleam.
+- Implemented trait IDs: `bloom`, `beast`, `guardian`, `barrier`.
 - Game plan: High-health Units, stat growth, Guard, healing, and stabilization.
 - Enablers: `wildbulk_grazer`, `sporeback_beast`.
 - Payoffs: `debt_bound_colossus`, `thicket_colossus`.
@@ -84,6 +87,8 @@ least one enabler, one payoff, and one interaction or defensive tool.
 ## `cloudspire_phase`
 
 - Aspects: Tide and Gleam.
+- Implemented trait IDs: `tide`, `gleam`, `phase`, `barrier`, `wisp`,
+  `warden`.
 - Game plan: Phase, Barrier, OnEntry value, Airborne tempo, and AntiAir answers.
 - Enablers: `cloudgate_adept`, `signal_wisp_echo`.
 - Payoffs: `vanishing_warden`.
@@ -109,6 +114,7 @@ least one enabler, one payoff, and one interaction or defensive tool.
 ## `source_greed`
 
 - Aspects: multi-aspect.
+- Implemented trait IDs: `source_greed`, plus the five Aspect trait IDs.
 - Game plan: Flexible Sources, splashes, higher board Charge, and slower starts.
 - Enablers: `cracked_prism`.
 - Payoffs: `debt_bound_colossus`, `thicket_colossus`, `vanishing_warden`,

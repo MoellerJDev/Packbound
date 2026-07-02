@@ -1038,6 +1038,9 @@ only through focused rules/content tasks with tests.
 
 ### Traits And Teamups
 
+- The first foundation is implemented as display-only trait summaries:
+  definitions live in `packages/content`, card metadata uses explicit `traits`,
+  and `packages/rules` computes active and near-active loadout summaries.
 - Define traits/teamups as content data, not hardcoded card behavior.
 - Compute active traits in `packages/rules` from active board permanents,
   Source Row rules where relevant, and future infrastructure objects.
@@ -1045,6 +1048,8 @@ only through focused rules/content tasks with tests.
   contributing card instances, and inactive near-misses.
 - Test trait coverage with content fixtures so each starter, pack family, and
   cross-archetype bridge has at least one visible path.
+- Trait thresholds do not apply combat modifiers yet; future trait effects
+  should convert definitions into explicit modifiers or combat-start triggers.
 
 ### Duplicate Upgrades
 

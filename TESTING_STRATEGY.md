@@ -146,6 +146,9 @@ cover:
 Traits/teamups should start with content coverage tests. Each starter, pack
 family, and intended cross-trait bridge should have at least one fixture that
 proves the teamup can be activated or nearly activated from real content.
+The first display-only trait layer covers trait definition validity, card trait
+references, starter trait summaries, active/near-active calculation, and Source
+Row contribution.
 
 Duplicate upgrades need property tests before broad content usage. Important
 invariants include preserving card identity where intended, consuming duplicate

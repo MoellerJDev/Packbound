@@ -24,6 +24,9 @@ implemented as a reusable rule first.
 - Cards should support cross-trait interactions whenever the rules text remains
   readable. A good common may teach one lane, but a good set should let that
   common matter in more than one board.
+- Use explicit `traits` for gameplay teamups. `aspects` remain resource identity,
+  `tags` remain descriptive content labels, and `design.archetypes` remain
+  internal design metadata.
 - Avoid single-archetype dead ends. If a card is narrow, make sure its pack,
   tags, or upgrade path explains why the player would chase it.
 - Commons teach, uncommons bridge, and rares create build-arounds or tempting

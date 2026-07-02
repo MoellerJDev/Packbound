@@ -297,6 +297,42 @@ h4 {
   padding: 6px 0;
 }
 
+.trait-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+}
+
+.trait-list li {
+  border-top: 1px solid #ebe2d3;
+  padding: 9px 0;
+}
+
+.trait-row-heading {
+  align-items: baseline;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.trait-row-heading span {
+  color: #8b4d2c;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.trait-list p {
+  color: #20242c;
+  font-size: 0.88rem;
+  margin-top: 4px;
+}
+
+.trait-list small {
+  color: #64616a;
+  display: block;
+  margin-top: 4px;
+}
+
 .card-inspector h3 {
   font-size: 1.08rem;
   margin: 0 0 2px;

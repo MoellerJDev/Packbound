@@ -60,6 +60,33 @@ export const CARD_DESIGN_ROLES = [
 ] as const;
 export type CardDesignRole = (typeof CARD_DESIGN_ROLES)[number];
 
+export const TRAIT_CATEGORIES = [
+  "aspect",
+  "lineage",
+  "engine",
+  "infrastructure",
+  "economy",
+  "resource",
+  "role"
+] as const;
+export type TraitCategory = (typeof TRAIT_CATEGORIES)[number];
+
+export type TraitThreshold = {
+  readonly count: number;
+  readonly label: string;
+  readonly description: string;
+};
+
+export type TraitDefinition = {
+  readonly id: string;
+  readonly name: string;
+  readonly category: TraitCategory;
+  readonly description: string;
+  readonly thresholds: readonly TraitThreshold[];
+  readonly partnerTraitIds: readonly string[];
+  readonly tags: readonly string[];
+};
+
 export type CardDesignMetadata = {
   readonly role: CardDesignRole;
   readonly archetypes: readonly string[];
@@ -124,6 +151,7 @@ export type BaseCardDefinition = {
   readonly aspects: readonly Aspect[];
   readonly cost?: ChargeCost;
   readonly tags: readonly string[];
+  readonly traits?: readonly string[];
   readonly keywords: readonly Keyword[];
   readonly abilities: readonly AbilityDefinition[];
   readonly rulesText?: string;

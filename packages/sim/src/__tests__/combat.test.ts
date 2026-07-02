@@ -4,7 +4,8 @@ import {
   loadContentCatalog,
   sampleCards,
   sampleCatalog,
-  samplePacks
+  samplePacks,
+  sampleTraitDefinitions
 } from "@packbound/content";
 import { createCardInstance } from "@packbound/rules";
 import {
@@ -242,7 +243,8 @@ const testCards: readonly CardDefinition[] = [
 
 const testCatalog = loadContentCatalog({
   cards: [...sampleCards, ...testCards],
-  packs: samplePacks
+  packs: samplePacks,
+  traits: sampleTraitDefinitions
 });
 
 const instance = (

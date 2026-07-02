@@ -51,6 +51,8 @@ export type CardInspection = {
   readonly design?: CardDesignMetadata;
   readonly designText?: string;
   readonly tags: readonly string[];
+  readonly traitIds: readonly string[];
+  readonly traitNames: readonly string[];
   readonly legalActions: readonly CardInspectionAction[];
   readonly blockedReasons: readonly string[];
 };
@@ -423,6 +425,10 @@ const inspectDefinition = (
   const sourceText = formatSource(def);
   const techniqueText = formatTechnique(def, catalog);
   const designText = formatDesign(def.design);
+  const traitIds = def.traits ?? [];
+  const traitNames = traitIds.map(
+    (traitId) => catalog.traitsById.get(traitId)?.name ?? traitId
+  );
 
   return {
     ...(options.card ? { cardInstanceId: options.card.instanceId } : {}),
@@ -442,6 +448,8 @@ const inspectDefinition = (
     ...(def.design ? { design: def.design } : {}),
     ...(designText ? { designText } : {}),
     tags: def.tags,
+    traitIds,
+    traitNames,
     legalActions: actionInfo.legalActions,
     blockedReasons: actionInfo.blockedReasons
   };

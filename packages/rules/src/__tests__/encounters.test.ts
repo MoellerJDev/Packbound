@@ -5,9 +5,12 @@ import type { CombatEvent } from "@packbound/shared";
 
 import {
   advanceRunAfterCombat,
+  applyPackReward,
   buildCombatantSetupForEncounter,
   createRun,
   getCurrentEncounter,
+  getCurrentRewardChoices,
+  markCombatReady,
   prepareEncounterForRound,
   recordCombatResult,
   selectEncounterForRound,
@@ -31,11 +34,34 @@ const combatResult = (overrides: Partial<CombatResultLike> = {}): CombatResultLi
 const preparedRun = (run: RunState): RunState =>
   prepareEncounterForRound(run, sampleCatalog);
 
+const readyRun = (run: RunState): RunState =>
+  markCombatReady(preparedRun(run), sampleCatalog);
+
 const requireCurrentEncounterId = (run: RunState): string => {
   if (!run.currentEncounterId) {
     throw new Error("Expected a current encounter");
   }
   return run.currentEncounterId;
+};
+
+const applyFirstReward = (run: RunState): RunState => {
+  const choice = getCurrentRewardChoices(run, sampleCatalog)[0];
+  if (!choice) {
+    throw new Error("Expected a reward choice");
+  }
+  return applyPackReward(run, sampleCatalog, choice.id);
+};
+
+const completeRound = (run: RunState): RunState => {
+  const encounterId = requireCurrentEncounterId(run);
+  return advanceRunAfterCombat(
+    applyFirstReward(
+      recordCombatResult(markCombatReady(run, sampleCatalog), combatResult(), {
+        encounterId
+      })
+    ),
+    sampleCatalog
+  );
 };
 
 describe("deterministic encounter selection", () => {
@@ -55,12 +81,7 @@ describe("deterministic encounter selection", () => {
   it("can select a different eligible encounter on a later round", () => {
     const roundOne = preparedRun(createRun({ seed: "round-shift-seed" }));
     const firstEncounterId = requireCurrentEncounterId(roundOne);
-    const roundTwo = advanceRunAfterCombat(
-      recordCombatResult(roundOne, combatResult(), {
-        encounterId: firstEncounterId
-      }),
-      sampleCatalog
-    );
+    const roundTwo = completeRound(roundOne);
 
     expect(roundTwo.currentRound).toBe(2);
     expect(roundTwo.currentEncounterId).toBeDefined();
@@ -87,7 +108,7 @@ describe("deterministic encounter selection", () => {
   });
 
   it("recording combat adds encounter history", () => {
-    const run = preparedRun(createRun({ seed: "history-seed" }));
+    const run = readyRun(createRun({ seed: "history-seed" }));
     const encounterId = requireCurrentEncounterId(run);
     const recorded = recordCombatResult(run, combatResult({ damageToPlayerA: 2 }), {
       encounterId
@@ -104,7 +125,7 @@ describe("deterministic encounter selection", () => {
   });
 
   it("refuses to record combat for the wrong encounter", () => {
-    const run = preparedRun(createRun({ seed: "wrong-encounter-seed" }));
+    const run = readyRun(createRun({ seed: "wrong-encounter-seed" }));
 
     expect(() =>
       recordCombatResult(run, combatResult(), {
@@ -116,12 +137,7 @@ describe("deterministic encounter selection", () => {
   it("advancing can prepare the next encounter deterministically", () => {
     const advancePreparedRun = (seed: string) => {
       const run = preparedRun(createRun({ seed }));
-      return advanceRunAfterCombat(
-        recordCombatResult(run, combatResult(), {
-          encounterId: requireCurrentEncounterId(run)
-        }),
-        sampleCatalog
-      );
+      return completeRound(run);
     };
 
     const first = advancePreparedRun("advance-encounter-seed");

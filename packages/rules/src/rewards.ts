@@ -9,7 +9,7 @@ export const getCurrentRewardChoices = (
   run: RunState,
   catalog: ContentCatalog
 ): readonly RewardChoice[] => {
-  if (run.status !== "active") {
+  if (run.status !== "active" || run.phase !== "reward") {
     return [];
   }
 

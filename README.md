@@ -17,7 +17,8 @@ resolves combat into an event log.
   and starter kit content.
 - `packages/rules`: Seeded RNG, deterministic pack opening, board/source
   validation, teamup counting helpers, and a minimal deterministic run-state /
-  reward / encounter / starter kit progression skeleton.
+  reward / encounter / starter kit progression skeleton with explicit lifecycle
+  phases.
 - `packages/sim`: Pure deterministic combat simulation and event log output.
 - `packages/sim/src/__fixtures__`: Deterministic combat fixtures used by tests to
   preserve representative event ordering and final-state summaries.
@@ -55,6 +56,15 @@ pnpm dev
 - Starter kits and loadout helpers let a run build player combat setup from
   `RunState`; the debug client now resolves combat from run-owned player state
   against content-driven encounters.
+- Runs carry an explicit lifecycle phase (`planning`, `combatReady`,
+  `combatResolved`, `reward`, `complete`) so combat, rewards, advancement, and
+  loadout edits have rules-level guardrails.
+- Loadout movement preserves full card instance data when cards move between
+  pool, board, Source Row, and Spellrail. Board positions remain separate from
+  the active card instance store.
+- The debug client now supports an ugly playable loop: pick a starter kit, edit
+  legal loadout moves, mark combat ready, record deterministic combat, open a
+  reward pack, and advance until the run is won or lost.
 - Core state uses plain objects so future server validation, async ghost PvP,
   and replay tooling can share the same rules engine.
 

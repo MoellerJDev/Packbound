@@ -2,19 +2,30 @@ import { useMemo, useState } from "react";
 
 import { sampleCatalog } from "@packbound/content";
 import {
+  addCardToSourceRow,
+  addCardToSpellrail,
   advanceRunAfterCombat,
   applyPackReward,
   buildCombatantSetupForEncounter,
   buildCombatantSetupForRun,
+  canApplyReward,
+  canEditLoadout,
+  canRecordCombat,
   createRunFromStarterKit,
   getCurrentEncounter,
   getCurrentRewardChoices,
+  getLegalLoadoutActions,
+  getRunPhase,
+  markCombatReady,
+  placeCardOnBoard,
   prepareEncounterForRound,
   recordCombatResult,
+  returnCardToPool,
   validateRunLoadout,
+  type LoadoutAction,
   type RunState
 } from "@packbound/rules";
-import { asPlayerId, type CardDefId } from "@packbound/shared";
+import { asPlayerId, type CardDefId, type CardInstanceId } from "@packbound/shared";
 import { resolveCombat } from "@packbound/sim";
 
 const playerId = asPlayerId("debug-player");
@@ -23,20 +34,24 @@ const runSeed = "client-debug-run";
 const cardName = (defId: CardDefId): string =>
   sampleCatalog.cardsById.get(defId)?.name ?? defId;
 
-const createDebugRun = (): RunState =>
+const createDebugRun = (starterKitId: string): RunState =>
   prepareEncounterForRound(
     createRunFromStarterKit({
-      seed: runSeed,
+      seed: `${runSeed}:${starterKitId}`,
       catalog: sampleCatalog,
-      starterKitId: "ember_scrappers",
+      starterKitId,
       playerId,
       maxRounds: 3
     }),
     sampleCatalog
   );
 
+const firstStarterKitId = sampleCatalog.starterKits[0]?.id ?? "ember_scrappers";
+
 export function App() {
-  const [run, setRun] = useState(createDebugRun);
+  const [selectedStarterKitId, setSelectedStarterKitId] = useState(firstStarterKitId);
+  const [run, setRun] = useState(() => createDebugRun(firstStarterKitId));
+  const phase = getRunPhase(run);
   const rewardChoices = useMemo(() => getCurrentRewardChoices(run, sampleCatalog), [run]);
   const currentEncounter = useMemo(() => getCurrentEncounter(run, sampleCatalog), [run]);
   const opponentSetup = useMemo(
@@ -47,11 +62,12 @@ export function App() {
   const playerSetup = useMemo(() => buildCombatantSetupForRun(run), [run]);
   const starterKitName =
     sampleCatalog.starterKitsById.get(run.starterKitId ?? "")?.name ?? "None";
-
   const validation = useMemo(() => validateRunLoadout(run, sampleCatalog), [run]);
+  const recordReady = canRecordCombat(run, sampleCatalog);
+  const editable = canEditLoadout(run);
 
   const combat = useMemo(() => {
-    if (!opponentSetup) {
+    if (!opponentSetup || !recordReady) {
       return undefined;
     }
 
@@ -61,12 +77,63 @@ export function App() {
       playerA: playerSetup,
       playerB: opponentSetup
     });
-  }, [currentEncounter?.id, opponentSetup, playerSetup, run.currentRound, run.seed]);
+  }, [
+    currentEncounter?.id,
+    opponentSetup,
+    playerSetup,
+    recordReady,
+    run.currentRound,
+    run.seed
+  ]);
   const latestCombatSummary = run.combatHistory.at(-1);
   const latestOpenedPack = run.openedPacks.at(-1);
 
-  const openReward = (choiceId: string) => {
-    setRun((currentRun) => applyPackReward(currentRun, sampleCatalog, choiceId));
+  const resetRun = (starterKitId = selectedStarterKitId) => {
+    setSelectedStarterKitId(starterKitId);
+    setRun(createDebugRun(starterKitId));
+  };
+
+  const performLoadoutAction = (
+    cardInstanceId: CardInstanceId,
+    action: LoadoutAction
+  ) => {
+    setRun((currentRun) => {
+      switch (action.type) {
+        case "placeOnBoard":
+          return placeCardOnBoard(currentRun, cardInstanceId, action.position);
+        case "addToSourceRow":
+          return addCardToSourceRow(currentRun, cardInstanceId);
+        case "addToSpellrail":
+          return addCardToSpellrail(currentRun, cardInstanceId);
+        case "returnToPool":
+          return returnCardToPool(currentRun, cardInstanceId);
+      }
+    });
+  };
+
+  const renderLoadoutActions = (cardInstanceId: CardInstanceId) => {
+    const actions = getLegalLoadoutActions(run, sampleCatalog, cardInstanceId);
+    if (actions.length === 0) {
+      return editable ? <small>No legal action</small> : null;
+    }
+
+    return (
+      <div className="mini-actions">
+        {actions.map((action) => (
+          <button
+            key={`${cardInstanceId}:${action.type}`}
+            type="button"
+            onClick={() => performLoadoutAction(cardInstanceId, action)}
+          >
+            {action.label}
+          </button>
+        ))}
+      </div>
+    );
+  };
+
+  const markReady = () => {
+    setRun((currentRun) => markCombatReady(currentRun, sampleCatalog));
   };
 
   const recordCombat = () => {
@@ -75,11 +142,16 @@ export function App() {
     }
 
     setRun((currentRun) =>
-      advanceRunAfterCombat(
-        recordCombatResult(currentRun, combat, { encounterId: currentEncounter.id }),
-        sampleCatalog
-      )
+      recordCombatResult(currentRun, combat, { encounterId: currentEncounter.id })
     );
+  };
+
+  const openReward = (choiceId: string) => {
+    setRun((currentRun) => applyPackReward(currentRun, sampleCatalog, choiceId));
+  };
+
+  const advanceRound = () => {
+    setRun((currentRun) => advanceRunAfterCombat(currentRun, sampleCatalog));
   };
 
   return (
@@ -87,33 +159,40 @@ export function App() {
       <section className="topbar">
         <div>
           <h1>Packbound</h1>
-          <p>Deterministic engine debug</p>
+          <p>Ugly playable deterministic run loop</p>
         </div>
         <div className="button-row">
+          <label className="starter-picker">
+            Starter
+            <select
+              value={selectedStarterKitId}
+              onChange={(event) => resetRun(event.target.value)}
+            >
+              {sampleCatalog.starterKits.map((starterKit) => (
+                <option key={starterKit.id} value={starterKit.id}>
+                  {starterKit.name}
+                </option>
+              ))}
+            </select>
+          </label>
           <button
             type="button"
-            onClick={() => {
-              const choice = rewardChoices[0];
-              if (choice) {
-                openReward(choice.id);
-              }
-            }}
-            disabled={rewardChoices.length === 0}
+            onClick={markReady}
+            disabled={!currentEncounter || !validation.ok || phase !== "planning"}
           >
-            Open Reward
+            Ready Combat
           </button>
-          <button
-            type="button"
-            onClick={recordCombat}
-            disabled={run.status !== "active" || !combat}
-          >
+          <button type="button" onClick={recordCombat} disabled={!combat}>
             Record Combat
           </button>
           <button
             type="button"
-            className="secondary"
-            onClick={() => setRun(createDebugRun())}
+            onClick={advanceRound}
+            disabled={run.status !== "active" || phase !== "combatResolved"}
           >
+            Advance
+          </button>
+          <button type="button" className="secondary" onClick={() => resetRun()}>
             Reset
           </button>
         </div>
@@ -140,6 +219,10 @@ export function App() {
             <div>
               <dt>Status</dt>
               <dd>{run.status}</dd>
+            </div>
+            <div>
+              <dt>Phase</dt>
+              <dd>{phase}</dd>
             </div>
             <div>
               <dt>Starter</dt>
@@ -177,60 +260,6 @@ export function App() {
         </div>
 
         <div className="panel">
-          <h2>Reward Choices</h2>
-          <ol className="card-list">
-            {rewardChoices.map((choice) => (
-              <li key={choice.id}>
-                <span>{choice.label}</span>
-                <button type="button" onClick={() => openReward(choice.id)}>
-                  Pick
-                </button>
-              </li>
-            ))}
-          </ol>
-        </div>
-
-        <div className="panel">
-          <h2>Player Loadout</h2>
-          <dl className="run-stats">
-            <div>
-              <dt>Board</dt>
-              <dd>
-                {run.board.placements.length > 0
-                  ? run.board.placements
-                      .map((placement) => cardName(placement.defId))
-                      .join(", ")
-                  : "-"}
-              </dd>
-            </div>
-            <div>
-              <dt>Source Row</dt>
-              <dd>
-                {run.sourceRow.cards.length > 0
-                  ? run.sourceRow.cards.map((card) => cardName(card.defId)).join(", ")
-                  : "-"}
-              </dd>
-            </div>
-            <div>
-              <dt>Spellrail</dt>
-              <dd>
-                {run.spellrail.cards.length > 0
-                  ? run.spellrail.cards.map((card) => cardName(card.defId)).join(", ")
-                  : "-"}
-              </dd>
-            </div>
-            <div>
-              <dt>Ashes</dt>
-              <dd>
-                {run.ashes.length > 0
-                  ? run.ashes.map((card) => cardName(card.defId)).join(", ")
-                  : "-"}
-              </dd>
-            </div>
-          </dl>
-        </div>
-
-        <div className="panel">
           <h2>Planning Check</h2>
           <div className={validation.ok ? "status ok" : "status error"}>
             {validation.ok ? "Legal" : "Illegal"}
@@ -245,15 +274,77 @@ export function App() {
         </div>
 
         <div className="panel">
+          <h2>Reward Choices</h2>
+          <p className="muted">
+            {canApplyReward(run)
+              ? "Pick one pack to add to the pool."
+              : "Rewards appear after combat is recorded."}
+          </p>
+          <ol className="card-list">
+            {rewardChoices.map((choice) => (
+              <li key={choice.id}>
+                <span>{choice.label}</span>
+                <button type="button" onClick={() => openReward(choice.id)}>
+                  Open
+                </button>
+              </li>
+            ))}
+          </ol>
+        </div>
+
+        <div className="panel">
+          <h2>Board</h2>
+          <ol className="card-list">
+            {run.board.placements.map((placement) => (
+              <li key={placement.cardInstanceId}>
+                <span>{cardName(placement.defId)}</span>
+                <small>
+                  r{placement.position.row} c{placement.position.col}{" "}
+                  {placement.position.layer}
+                </small>
+                {renderLoadoutActions(placement.cardInstanceId)}
+              </li>
+            ))}
+          </ol>
+        </div>
+
+        <div className="panel">
+          <h2>Source Row</h2>
+          <ol className="card-list">
+            {run.sourceRow.cards.map((card) => (
+              <li key={card.instanceId}>
+                <span>{cardName(card.defId)}</span>
+                <small>{card.zone}</small>
+                {renderLoadoutActions(card.instanceId)}
+              </li>
+            ))}
+          </ol>
+        </div>
+
+        <div className="panel">
+          <h2>Spellrail</h2>
+          <ol className="card-list">
+            {run.spellrail.cards.map((card) => (
+              <li key={card.instanceId}>
+                <span>{cardName(card.defId)}</span>
+                <small>{card.zone}</small>
+                {renderLoadoutActions(card.instanceId)}
+              </li>
+            ))}
+          </ol>
+        </div>
+
+        <div className="panel">
           <h2>Pool Cards</h2>
           <p className="muted">
-            {latestOpenedPack ? latestOpenedPack.seed : "No pack opened"}
+            {latestOpenedPack ? latestOpenedPack.seed : "Open rewards to grow the pool."}
           </p>
           <ol className="card-list">
             {run.pool.map((card) => (
               <li key={card.instanceId}>
                 <span>{cardName(card.defId)}</span>
                 <small>{card.zone}</small>
+                {renderLoadoutActions(card.instanceId)}
               </li>
             ))}
           </ol>
@@ -268,6 +359,7 @@ export function App() {
           <pre>
             {JSON.stringify(
               {
+                phase,
                 runSummary: latestCombatSummary ?? null,
                 previewEvents: combat?.events.slice(0, 28) ?? []
               },

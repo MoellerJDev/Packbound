@@ -110,7 +110,7 @@ export const prepareEncounterForRound = (
   run: RunState,
   catalog: ContentCatalog
 ): RunState => {
-  if (run.status !== "active" || run.currentEncounterId) {
+  if (run.status !== "active" || run.phase !== "planning" || run.currentEncounterId) {
     return run;
   }
 

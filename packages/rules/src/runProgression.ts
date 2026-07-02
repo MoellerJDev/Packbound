@@ -2,6 +2,7 @@ import type { ContentCatalog } from "@packbound/content";
 import type { CombatEvent, CombatWinner, SimulationWarning } from "@packbound/shared";
 
 import { prepareEncounterForRound } from "./encounters";
+import { validateRunLoadout } from "./loadout";
 import { openPack } from "./packOpening";
 import { getCurrentRewardChoices } from "./rewards";
 import type {
@@ -25,6 +26,41 @@ export type RecordCombatOptions = {
   readonly encounterId?: string;
 };
 
+export const canApplyReward = (run: RunState): boolean =>
+  run.status === "active" && run.phase === "reward";
+
+export const canRecordCombat = (run: RunState, catalog: ContentCatalog): boolean =>
+  run.status === "active" &&
+  run.phase === "combatReady" &&
+  Boolean(run.currentEncounterId) &&
+  validateRunLoadout(run, catalog).ok;
+
+export const markCombatReady = (run: RunState, catalog: ContentCatalog): RunState => {
+  if (run.status !== "active") {
+    return run;
+  }
+  if (run.phase !== "planning") {
+    throw new Error(`Cannot mark combat ready while run phase is ${run.phase}`);
+  }
+  if (!run.currentEncounterId) {
+    throw new Error("Cannot mark combat ready without a prepared encounter");
+  }
+
+  const validation = validateRunLoadout(run, catalog);
+  if (!validation.ok) {
+    throw new Error(
+      `Cannot mark combat ready with an illegal loadout: ${validation.errors
+        .map((error) => error.message)
+        .join("; ")}`
+    );
+  }
+
+  return {
+    ...run,
+    phase: "combatReady"
+  };
+};
+
 const clearCurrentEncounter = (run: RunState): RunState => {
   const next: Omit<RunState, "currentEncounterId"> & {
     currentEncounterId?: string;
@@ -40,6 +76,9 @@ export const applyPackReward = (
 ): RunState => {
   if (run.status !== "active") {
     return run;
+  }
+  if (!canApplyReward(run)) {
+    throw new Error(`Cannot apply a reward while run phase is ${run.phase}`);
   }
 
   const choice = getCurrentRewardChoices(run, catalog).find(
@@ -69,6 +108,7 @@ export const applyPackReward = (
 
   return {
     ...run,
+    phase: "combatResolved",
     pool: [...run.pool, ...openedPack.cards],
     currentRewardChoices: [],
     rewardHistory: [...run.rewardHistory, historyEntry],
@@ -83,6 +123,10 @@ export const recordCombatResult = (
 ): RunState => {
   if (run.status !== "active") {
     return run;
+  }
+
+  if (run.phase !== "combatReady") {
+    throw new Error(`Cannot record combat while run phase is ${run.phase}`);
   }
 
   if (!run.currentEncounterId) {
@@ -116,6 +160,7 @@ export const recordCombatResult = (
   return {
     ...run,
     status: nextHealth <= 0 ? "lost" : run.status,
+    phase: nextHealth <= 0 ? "complete" : "reward",
     playerHealth: nextHealth,
     combatHistory: [...run.combatHistory, summary],
     encounterHistory: [...run.encounterHistory, encounterHistoryEntry]
@@ -129,12 +174,16 @@ export const advanceRunAfterCombat = (
   if (run.status !== "active") {
     return run;
   }
+  if (run.phase !== "combatResolved") {
+    throw new Error(`Cannot advance after combat while run phase is ${run.phase}`);
+  }
 
   const nextRound = run.currentRound + 1;
   const advanced = clearCurrentEncounter({
     ...run,
     currentRound: nextRound,
     status: nextRound > run.maxRounds ? "won" : "active",
+    phase: nextRound > run.maxRounds ? "complete" : "planning",
     currentRewardChoices: []
   });
 

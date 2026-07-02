@@ -6,8 +6,11 @@ import type { CombatEvent } from "@packbound/shared";
 import {
   advanceRunAfterCombat,
   applyPackReward,
+  canApplyReward,
+  canRecordCombat,
   createRun,
   getCurrentRewardChoices,
+  markCombatReady,
   prepareEncounterForRound,
   recordCombatResult,
   type CombatResultLike,
@@ -41,6 +44,12 @@ const applyFirstReward = (run: RunState): RunState =>
 const prepareRun = (run: RunState): RunState =>
   prepareEncounterForRound(run, sampleCatalog);
 
+const readyRun = (run: RunState): RunState =>
+  markCombatReady(prepareRun(run), sampleCatalog);
+
+const rewardRun = (run: RunState): RunState =>
+  recordCombatResult(readyRun(run), combatResult());
+
 describe("run progression skeleton", () => {
   it("creates deterministic initial run state for the same seed", () => {
     const first = createRun({ seed: "run-seed" });
@@ -49,31 +58,34 @@ describe("run progression skeleton", () => {
     expect(second).toEqual(first);
     expect(first.currentRound).toBe(1);
     expect(first.playerHealth).toBe(20);
+    expect(first.phase).toBe("planning");
   });
 
-  it("creates deterministic pack reward choices", () => {
-    const first = createRun({ seed: "reward-seed" });
-    const second = createRun({ seed: "reward-seed" });
+  it("creates deterministic pack reward choices after combat is recorded", () => {
+    const first = rewardRun(createRun({ seed: "reward-seed" }));
+    const second = rewardRun(createRun({ seed: "reward-seed" }));
 
     const firstChoices = getCurrentRewardChoices(first, sampleCatalog);
     const secondChoices = getCurrentRewardChoices(second, sampleCatalog);
 
     expect(firstChoices).toHaveLength(3);
     expect(secondChoices).toEqual(firstChoices);
+    expect(canApplyReward(first)).toBe(true);
   });
 
   it("opens the same pack reward into the same cards for the same run seed", () => {
-    const first = applyFirstReward(createRun({ seed: "pack-seed" }));
-    const second = applyFirstReward(createRun({ seed: "pack-seed" }));
+    const first = applyFirstReward(rewardRun(createRun({ seed: "pack-seed" })));
+    const second = applyFirstReward(rewardRun(createRun({ seed: "pack-seed" })));
 
     expect(second.openedPacks).toEqual(first.openedPacks);
     expect(second.pool.map((card) => card.defId)).toEqual(
       first.pool.map((card) => card.defId)
     );
+    expect(first.phase).toBe("combatResolved");
   });
 
   it("applying a pack reward adds cards to pool and reward history", () => {
-    const run = applyFirstReward(createRun({ seed: "history-seed" }));
+    const run = applyFirstReward(rewardRun(createRun({ seed: "history-seed" })));
 
     expect(run.pool.length).toBeGreaterThan(0);
     expect(run.openedPacks).toHaveLength(1);
@@ -84,12 +96,13 @@ describe("run progression skeleton", () => {
 
   it("recording combat applies player damage and stores a summary", () => {
     const run = recordCombatResult(
-      prepareRun(createRun({ seed: "damage-seed" })),
+      readyRun(createRun({ seed: "damage-seed" })),
       combatResult({ damageToPlayerA: 7, damageToPlayerB: 2 })
     );
 
     expect(run.playerHealth).toBe(13);
     expect(run.status).toBe("active");
+    expect(run.phase).toBe("reward");
     expect(run.combatHistory).toEqual([
       {
         round: 1,
@@ -104,44 +117,72 @@ describe("run progression skeleton", () => {
     ]);
   });
 
-  it("advancing after combat increments the round", () => {
+  it("rejects combat and reward actions before lifecycle preconditions are ready", () => {
+    const run = createRun({ seed: "guard-seed" });
+
+    expect(() => recordCombatResult(run, combatResult())).toThrow(/phase is planning/);
+    expect(() => markCombatReady(run, sampleCatalog)).toThrow(/prepared encounter/);
+    expect(() => applyPackReward(run, sampleCatalog, "missing-choice")).toThrow(
+      /Cannot apply a reward/
+    );
+    expect(canRecordCombat(prepareRun(run), sampleCatalog)).toBe(false);
+  });
+
+  it("advancing after reward application increments the round", () => {
     const run = advanceRunAfterCombat(
-      recordCombatResult(prepareRun(createRun({ seed: "advance-seed" })), combatResult())
+      applyFirstReward(rewardRun(createRun({ seed: "advance-seed" })))
     );
 
     expect(run.currentRound).toBe(2);
     expect(run.status).toBe("active");
+    expect(run.phase).toBe("planning");
   });
 
   it("marks the run lost when health reaches zero", () => {
     const run = recordCombatResult(
-      prepareRun(createRun({ seed: "lost-seed", startingHealth: 4 })),
+      readyRun(createRun({ seed: "lost-seed", startingHealth: 4 })),
       combatResult({ damageToPlayerA: 4 })
     );
 
     expect(run.playerHealth).toBe(0);
     expect(run.status).toBe("lost");
+    expect(run.phase).toBe("complete");
     expect(advanceRunAfterCombat(run)).toBe(run);
   });
 
   it("marks the run won after advancing beyond max rounds", () => {
     const run = advanceRunAfterCombat(
-      recordCombatResult(
-        prepareRun(createRun({ seed: "won-seed", maxRounds: 1 })),
-        combatResult()
-      )
+      applyFirstReward(rewardRun(createRun({ seed: "won-seed", maxRounds: 1 })))
     );
 
     expect(run.currentRound).toBe(2);
     expect(run.status).toBe("won");
+    expect(run.phase).toBe("complete");
+  });
+
+  it("keeps record, reward, and advance transitions deterministic", () => {
+    const playRound = (seed: string) =>
+      advanceRunAfterCombat(
+        applyFirstReward(rewardRun(createRun({ seed, maxRounds: 2 }))),
+        sampleCatalog
+      );
+
+    const first = playRound("transition-seed");
+    const second = playRound("transition-seed");
+
+    expect(second).toEqual(first);
+    expect(first.phase).toBe("planning");
+    expect(first.currentEncounterId).toBeDefined();
   });
 
   it("keeps run state serializable", () => {
     const run = advanceRunAfterCombat(
-      recordCombatResult(prepareRun(applyFirstReward(createRun({ seed: "json-seed" }))), {
-        ...combatResult(),
-        warnings: [{ code: "TEST_WARNING", message: "Test warning" }]
-      })
+      applyFirstReward(
+        recordCombatResult(readyRun(createRun({ seed: "json-seed" })), {
+          ...combatResult(),
+          warnings: [{ code: "TEST_WARNING", message: "Test warning" }]
+        })
+      )
     );
 
     expect(JSON.parse(JSON.stringify(run))).toEqual(run);

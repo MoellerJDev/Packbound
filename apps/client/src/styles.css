@@ -35,6 +35,16 @@ button {
   padding: 0 16px;
 }
 
+select {
+  border: 1px solid #20242c;
+  border-radius: 6px;
+  background: #fffaf1;
+  color: #20242c;
+  font: inherit;
+  min-height: 42px;
+  padding: 0 10px;
+}
+
 button:hover {
   background: #343b49;
 }
@@ -72,6 +82,16 @@ button:disabled {
   flex-wrap: wrap;
   gap: 10px;
   justify-content: flex-end;
+}
+
+.starter-picker {
+  align-items: center;
+  color: #64616a;
+  display: flex;
+  font-size: 0.82rem;
+  font-weight: 800;
+  gap: 8px;
+  text-transform: uppercase;
 }
 
 h1,
@@ -128,6 +148,11 @@ h2 {
   justify-content: space-between;
   min-height: 38px;
   gap: 12px;
+  padding: 8px 0;
+}
+
+.card-list span {
+  min-width: 120px;
 }
 
 .card-list small {
@@ -135,10 +160,18 @@ h2 {
   font-weight: 700;
 }
 
-.card-list button {
+.card-list button,
+.mini-actions button {
   font-size: 0.84rem;
   min-height: 30px;
   padding: 0 10px;
+}
+
+.mini-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
 }
 
 .run-stats {
@@ -216,7 +249,21 @@ pre {
     width: 100%;
   }
 
+  .starter-picker,
+  select {
+    width: 100%;
+  }
+
   .card-list button {
     width: auto;
+  }
+
+  .card-list li {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .mini-actions {
+    justify-content: flex-start;
   }
 }

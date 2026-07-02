@@ -23,12 +23,15 @@ export const DEFAULT_SOURCE_ROW_SLOTS = 4;
 export const DEFAULT_SPELLRAIL_SLOTS = 4;
 
 export type RunStatus = "active" | "won" | "lost";
+export type RunPhase =
+  "planning" | "combatReady" | "combatResolved" | "reward" | "complete";
 
 export type StarterKit = {
   readonly id: string;
   readonly name: string;
   readonly pool?: readonly CardInstance[];
   readonly board?: BoardState;
+  readonly activeCards?: readonly CardInstance[];
   readonly sourceRow?: SourceRowState;
   readonly spellrail?: SpellrailState;
   readonly ashes?: readonly CardInstance[];
@@ -89,6 +92,7 @@ export type RunState = {
   readonly seed: string;
   readonly rulesVersion: string;
   readonly status: RunStatus;
+  readonly phase: RunPhase;
   readonly currentRound: number;
   readonly maxRounds: number;
   readonly starterKitId?: string;
@@ -98,6 +102,7 @@ export type RunState = {
   readonly playerId: PlayerId;
   readonly pool: readonly CardInstance[];
   readonly board: BoardState;
+  readonly activeCards: readonly CardInstance[];
   readonly sourceRow: SourceRowState;
   readonly spellrail: SpellrailState;
   readonly ashes: readonly CardInstance[];
@@ -148,6 +153,37 @@ const copySpellrail = (spellrail: SpellrailState): SpellrailState => ({
   cards: spellrail.cards.map(copyCard)
 });
 
+const placementToActiveCard = (placement: BoardPlacement): CardInstance => ({
+  instanceId: placement.cardInstanceId,
+  defId: placement.defId,
+  ownerId: placement.ownerId,
+  zone: "board",
+  modifiers: [],
+  upgradeLevel: 0
+});
+
+const activeCardsForStarterKit = (
+  starterKit: StarterKit | undefined
+): readonly CardInstance[] => {
+  if (!starterKit?.board) {
+    return [];
+  }
+
+  if (starterKit.activeCards) {
+    return starterKit.activeCards.map((card) => ({
+      ...copyCard(card),
+      zone: "board"
+    }));
+  }
+
+  return starterKit.board.placements.map(placementToActiveCard);
+};
+
+export const getRunPhase = (run: RunState): RunPhase =>
+  run.status === "active" ? run.phase : "complete";
+
+export const canEditLoadout = (run: RunState): boolean => getRunPhase(run) === "planning";
+
 export const createRun = (config: RunConfig): RunState => {
   const starterKit = config.starterKit;
 
@@ -156,6 +192,7 @@ export const createRun = (config: RunConfig): RunState => {
     seed: config.seed,
     rulesVersion: config.rulesVersion ?? DEFAULT_RUN_RULES_VERSION,
     status: "active",
+    phase: "planning",
     currentRound: 1,
     maxRounds: config.maxRounds ?? DEFAULT_MAX_ROUNDS,
     ...(starterKit ? { starterKitId: starterKit.id } : {}),
@@ -164,6 +201,7 @@ export const createRun = (config: RunConfig): RunState => {
     playerId: config.playerId ?? asPlayerId("player"),
     pool: (starterKit?.pool ?? []).map(copyCard),
     board: starterKit?.board ? copyBoard(starterKit.board) : emptyBoard(),
+    activeCards: activeCardsForStarterKit(starterKit),
     sourceRow: starterKit?.sourceRow
       ? copySourceRow(starterKit.sourceRow)
       : emptySourceRow(),

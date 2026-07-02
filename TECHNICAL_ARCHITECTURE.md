@@ -1031,6 +1031,62 @@ Teamup effects should be converted into modifiers or start-of-combat triggers.
 
 Do not hardcode teamups into individual cards.
 
+## Future System Architecture Implications
+
+These systems are design direction, not current implementation scope. Add them
+only through focused rules/content tasks with tests.
+
+### Traits And Teamups
+
+- Define traits/teamups as content data, not hardcoded card behavior.
+- Compute active traits in `packages/rules` from active board permanents,
+  Source Row rules where relevant, and future infrastructure objects.
+- Return enough structured data for the client to show counts, tiers,
+  contributing card instances, and inactive near-misses.
+- Test trait coverage with content fixtures so each starter, pack family, and
+  cross-archetype bridge has at least one visible path.
+
+### Duplicate Upgrades
+
+- Use `CardInstance.upgradeLevel` and `CardModifier` for combine results.
+- Keep combine rules deterministic and replayable through serializable
+  RunActions.
+- Preserve card instance identity where possible, and document when a combine
+  consumes or creates instances.
+- Prefer generic upgrade definitions over bespoke simulator code per card.
+- Add property tests for zone uniqueness, instance preservation, and replay
+  determinism before content depends on upgrades.
+
+### Economy And Pack Pricing
+
+- `RunState` already carries `playerGold`; future economy work should extend
+  run rules rather than client-only state.
+- Pack prices, reward choices, discounts, and rerolls should be generated from
+  seeded run state.
+- Economy choices should be represented as RunActions so saved runs, future
+  server validation, and debug replay share one path.
+- Balance reports should include broad economy signals such as gold earned,
+  pack affordability, discount frequency, and greed failure cases.
+
+### Board Resources
+
+- The board model should remain a discrete 2D grid with layers. Use the existing
+  terrain/resource-layer direction before considering any richer renderer.
+- Resource extraction and denial must be resolved by rules/sim code, not React
+  or future visual rendering.
+- Combat events should explain extraction, spending, denial, and resource-based
+  buffs so debug summaries remain useful.
+- Avoid real-time inputs, physics, or pathfinding dependencies for resource
+  collection.
+
+### User-Facing Text And Localization
+
+- Do not implement full localization yet.
+- New user-facing rules text should gradually move toward structured message
+  keys or stable codes with English fallback.
+- Core rules and simulator events should prefer structured metadata over
+  hardcoded English where practical.
+
 ## Modifiers
 
 Use a general modifier system for stats, keywords, costs, and continuous effects.

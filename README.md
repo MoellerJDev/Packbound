@@ -3,6 +3,11 @@
 Packbound is a browser-based, deterministic, pack-opening tactical autobattler
 roguelite prototype.
 
+Long term, Packbound is "MTG Limited meets TFT": packs are the shop, board
+construction is tactical and resource-limited, and finite roguelite runs reward
+adaptation through traits, duplicates, Sources, economy pressure, and
+positioning instead of prebuilt deck optimization.
+
 This repository is intentionally engine-first. Core rules live in pure
 TypeScript packages, while the React client is only a thin shell that imports
 validated content, opens deterministic packs, validates a planning state, and

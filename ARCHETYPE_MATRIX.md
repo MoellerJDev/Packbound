@@ -20,6 +20,15 @@ least one enabler, one payoff, and one interaction or defensive tool.
   pressure and death sparks.
 - Pack implications: Ember Foundry Pack biases Scrapper, Tinkerer, Relic, and
   Ember cards.
+- Cross-trait partners: Shade Ashes uses Echo deaths, Offering, and destroyed
+  triggers; Cloudspire Phase can protect fragile payoff Units or tempo bodies.
+- Duplicate-upgrade candidates: `ember_scraprunner`, `coal_wisp_echo`,
+  `signal_wisp_echo`, `sparkcatch_apprentice`, and simple death payoffs.
+- Economy relationship: Wants cheap Bulk or Ember packs to find duplicates, but
+  may buy Source/Fixing packs when Relic payoffs or off-aspect death engines
+  appear.
+- Potential board-resource relationship: Scrap piles and Ember forges reward
+  Scrappers, support Relics, and Units that can survive long enough to harvest.
 - Not implemented yet: Persistent Relic counters and movement-based tempo.
 
 ## `shade_ashes`
@@ -37,6 +46,16 @@ least one enabler, one payoff, and one interaction or defensive tool.
   payoffs are visible early.
 - Pack implications: Rotbloom Pack biases Shade, Bloom, Husk, Beast, and Recall
   cards.
+- Cross-trait partners: Ember Scrappers supplies disposable bodies and death
+  triggers; Bloom Bodies supplies durable frontline for longer Recall and Offer
+  loops.
+- Duplicate-upgrade candidates: `hollow_caller`, `ash_ledger_relic`,
+  `mournscale_keeper`, `memory_wisp_echo`, `due_marker_relic`, and Offer/Recall
+  payoffs.
+- Economy relationship: Can justify greed when Recall engines stabilize the
+  board, but overbuying economy packs should leave it short on early bodies.
+- Potential board-resource relationship: Ash vents reward deaths on or near key
+  tiles and could fuel Recall, discounts, or temporary Husk Echo creation.
 - Not implemented yet: MillToAshes and Void recursion.
 
 ## `bloom_bodies`
@@ -51,6 +70,14 @@ least one enabler, one payoff, and one interaction or defensive tool.
   Bloom bodies without changing the starter's simple opener.
 - Pack implications: Rotbloom Pack carries both Shade Ashes and Bloom Bodies so
   the pair can blend naturally.
+- Cross-trait partners: Shade Ashes turns big bodies and Guards into time for
+  recursion; Source Greed helps field heavy Bloom/Gleam payoffs earlier.
+- Duplicate-upgrade candidates: `rootbrace_guardian`, `sporeback_beast`,
+  `wildbulk_grazer`, `thicket_colossus`, and other large pets/frontliners.
+- Economy relationship: Likes Source/Fixing and economy rewards that increase
+  Board Charge, but must still buy enough bodies to avoid slow-start losses.
+- Potential board-resource relationship: Roots and growth nodes reward Units
+  that hold tiles over time, with Bloom Relics or Sources amplifying extraction.
 - Not implemented yet: Poison tick damage, full persistent growth engines, and
   battlefield Fields.
 
@@ -66,6 +93,16 @@ least one enabler, one payoff, and one interaction or defensive tool.
   Barrier and Phase are both visible without requiring a polished UI.
 - Pack implications: Cloudspire Pack biases Tide, Gleam, Wisp, Phase, and
   Barrier cards.
+- Cross-trait partners: Ember Scrappers appreciates Phase/Barrier protection
+  for fragile engines; Bloom Bodies and Gleam tools create sturdier formations
+  for OnEntry value.
+- Duplicate-upgrade candidates: `mistwing_scout`, `signal_wisp_echo`,
+  `cloudgate_adept`, `vanishing_warden`, and protective Phase or Barrier
+  payoffs.
+- Economy relationship: Can splash through Source Greed, but expensive
+  multi-aspect cards make early fixing and pack timing important.
+- Potential board-resource relationship: Tide currents and Gleam lenses reward
+  repositioning, Airborne/Wisp Units, and support Relics that project protection.
 - Not implemented yet: true repositioning, reactive interrupts, and richer
   Airborne/AntiAir combat events.
 
@@ -81,5 +118,14 @@ least one enabler, one payoff, and one interaction or defensive tool.
 - Starter kit implications: No starter kit begins as full Source Greed; it is a
   run-growth direction supported by pack rewards.
 - Pack implications: Source Pack biases Source, Fixing, and Relic cards.
+- Cross-trait partners: Partners with everything by turning off-aspect pulls
+  into playable splashes and making expensive payoffs easier to field.
+- Duplicate-upgrade candidates: `cracked_prism`, dual Sources, future economy
+  Sources, fixing cards, and high-value Relics that reward extra capacity.
+- Economy relationship: Natural home for pack-pricing decisions, discounts,
+  rerolls, and greed cards, but it should pay with weaker immediate combat.
+- Potential board-resource relationship: Multi-resource extraction can let
+  Sources define or convert tile resources without replacing normal pack
+  evaluation.
 - Not implemented yet: choose-one Sources, Source exhaustion, and dynamic Aspect
   conversion.

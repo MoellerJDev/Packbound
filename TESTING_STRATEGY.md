@@ -141,6 +141,43 @@ cover:
 - pacing between reward, planning, and combat feels clear
 - balance outliers are noted, not silently normalized by tests
 
+## Future Systems Test Guidance
+
+Traits/teamups should start with content coverage tests. Each starter, pack
+family, and intended cross-trait bridge should have at least one fixture that
+proves the teamup can be activated or nearly activated from real content.
+
+Duplicate upgrades need property tests before broad content usage. Important
+invariants include preserving card identity where intended, consuming duplicate
+instances deterministically, keeping card instances in only one zone, preserving
+serializability, and replaying the same combine actions to the same result.
+
+Economy and pack pricing should be modeled as replayable RunActions. Tests
+should cover deterministic pack prices, gold changes, discounts, rerolls later,
+reward generation, and failure cases such as trying to buy an unaffordable pack.
+
+Board resources need deterministic fixture tests before browser coverage.
+Fixtures should prove tile resource generation, extraction timing, denial,
+spending, and event-log summaries without relying on animation or wall-clock
+timing.
+
+Once implemented, browser smoke coverage can include one stable debug-loop
+interaction for each new pillar: one trait/teamup activation, one duplicate
+upgrade, one economy purchase or discount, and one board-resource extraction.
+Keep those checks role/text based, not screenshot based.
+
+## Future Implementation Sequence
+
+Recommended order for the next major gameplay systems:
+
+1. Trait/teamup data model and display.
+2. Duplicate upgrade rules for Units and pets/Echoes.
+3. Pack pricing and gold economy.
+4. Economy cards that trade immediate power for future value.
+5. Board resource prototype with deterministic tile extraction.
+6. Richer visual board/Pixi work only after those rules create interesting
+   planning and event-log behavior.
+
 ## Guidance For Future Codex Sessions
 
 - Add or update tests alongside every rules change.

@@ -32,6 +32,35 @@ The intended feel is:
 
 The game should be familiar to players who like trading card games and autobattlers, but it should have its own terminology, card frame, world, mechanics, and identity.
 
+## Current Gameplay Thesis
+
+Useful shorthand: **MTG Limited meets TFT**. That phrase is a design compass,
+not a license to copy either game.
+
+Packbound is not just:
+
+- TFT with card names
+- Slay the Spire with booster packs
+- automated trading-card-game combat
+
+Packbound should be a finite sealed-league autobattler where booster packs are
+the shop. Cards become Units, pets/Echoes, Relics, Sources, Techniques,
+infrastructure, and future board objects. The player builds from imperfect
+pulls rather than from a prebuilt optimized deck.
+
+The run should push the player through overlapping constraints:
+
+- Aspect access and Board Charge prevent pure best-card piles.
+- Pack prices and gold make every reward choice an economy decision.
+- Traits/teamups make mixed boards exciting instead of merely legal.
+- Duplicate upgrades reward staying in a lane without making pivots impossible.
+- Positioning and future board resources make the board more than front/back.
+
+The best runs should feel discovered. A player opens a strange pile, notices
+that a Source splash unlocks an off-aspect Technique, sees that a duplicate pet
+can upgrade, moves a Relic beside the right Unit, and suddenly has a machine
+that did not exist at run start.
+
 ## Design Pillars
 
 ### 1. Packs Are the Shop
@@ -467,6 +496,43 @@ Positioning should matter for:
 - Summon placement
 - Phase return placement
 
+### Future Board Resources
+
+Positioning should eventually matter more visibly than "frontline versus
+backline." Packbound can use digital-only board resources that a physical card
+game would struggle to represent cleanly.
+
+Possible resource tiles:
+
+- neutral scrap piles
+- Ember forges
+- Ash vents
+- Bloom roots
+- Tide currents
+- Gleam lenses
+- generic Charge wells
+- extraction points tied to pack rewards, Sources, or encounters
+
+Possible behaviors:
+
+- A Unit or pet standing on a resource extracts it over time.
+- A Relic on the support layer extracts, stores, or amplifies a nearby tile.
+- A Source modifies which resource tiles appear during planning.
+- Pets harvest different resources based on traits such as Wisp, Husk, Beast,
+  Scrapper, or Guardian.
+- Extracted resources fuel Techniques, duplicate upgrades, pack discounts, or
+  temporary combat buffs.
+- Enemies can contest, block, or deny important resource tiles.
+
+Constraints:
+
+- Resource extraction must be deterministic.
+- Combat still has no real-time player input.
+- No physics or complex pathfinding dependency.
+- Rules stay discrete, grid-based, and serializable.
+- Resources should deepen positioning decisions without overwhelming pack
+  evaluation or card readability.
+
 ## Charge System
 
 Packbound uses Charge instead of mana.
@@ -521,6 +587,32 @@ Combat Charge allows spell-like strategies to exist without manual casting.
 Packs define the run’s strategic direction.
 
 Packs should have identity.
+
+Pack choice should also be an economy decision. Gold should matter enough that
+the player notices the difference between opening a cheap duplicate-heavy pack,
+buying fixing, saving for a premium pack, or taking an economy card that is weak
+right now but improves future choices.
+
+Possible economy values:
+
+- gold or credits
+- pack cost
+- known-card or singles offers later
+- rerolls later
+- healing or repair later
+- bench or Source Row expansion later
+- duplicate upgrade costs later
+
+Reward money direction:
+
+- Wins give gold.
+- Clean wins or remaining Units may give bonus gold.
+- Losses can still give small catch-up gold.
+- Economy cards can generate gold, discounts, rerolls, or better reward choices.
+- Combat-performance rewards should be tuned so dedicated economy builds remain
+  meaningful.
+- Greed should create risk. A player who buys future value should often be
+  weaker in the next fight.
 
 ### Example Pack Types
 
@@ -588,6 +680,12 @@ Good for:
 - High-cost boards
 - Technique builds
 
+Economy role:
+
+- Low to moderate price.
+- Solves Aspect and Board Charge constraints.
+- Often correct when the player already has payoffs but cannot field them.
+
 #### Removal Pack
 
 Primary cards:
@@ -618,6 +716,13 @@ Good for:
 - stabilizing a build
 - finding glue cards
 
+Economy role:
+
+- Cheap.
+- Higher duplicate odds.
+- Lower rarity ceiling.
+- Rewards players who commit to a pack family or want upgrade material.
+
 #### Collector Pack
 
 Primary cards:
@@ -632,6 +737,34 @@ Good for:
 - Greedy pivots
 - rare-driven builds
 - high variance runs
+
+Economy role:
+
+- Expensive or risky.
+- Higher rare/mythic odds.
+- Less reliable synergy.
+- May later include debt, curses, or weaker fundamentals.
+
+#### Economy Pack
+
+Primary cards:
+
+- discount Sources
+- reward modifiers
+- gold generators
+- future upgrade currency cards
+- weak immediate bodies with future value
+
+Good for:
+
+- Greedy runs
+- long-run planning
+- smoothing future pack choices
+
+Economy role:
+
+- Should cost tempo or board strength now.
+- Should not become the automatic best pack for every run.
 
 ## Rarity Philosophy
 
@@ -667,15 +800,29 @@ A synergistic common should often beat an off-plan rare.
 ## Duplicate and Upgrade Philosophy
 
 Duplicates are central because the game is pack-based and autobattler-inspired.
+Opening the same pack family repeatedly should feel rewarding, especially for
+Units, pets/Echoes, and simple archetype payoffs.
 
 Possible upgrade model:
 
 - 1 copy: playable
-- 2 copies: improved stats or minor enhancement
-- 3 copies: choose an evolution branch
-- Extra copies: convert into dust, trade, or upgrade currency
+- 2 copies: the card can become upgraded or improved
+- 3 copies: the card can become a stronger tier or choose an evolution branch
+- Extra copies: convert into dust, trade, economy value, or future fusion
+  currency
 
-Branching upgrades are preferred over pure number scaling.
+Possible upgrade rewards:
+
+- stat upgrade
+- ability improvement
+- lower Board Charge cost
+- improved trigger timing or trigger cap
+- additional keyword
+- pet/Echo evolution
+
+Branching upgrades are preferred over pure number scaling once the base combine
+rules are stable. Upgrades should create a reason to stay in an archetype
+without making pivoting impossible.
 
 Example:
 
@@ -684,6 +831,15 @@ Example:
 - **Swarm Scrapling**: creates another Echo when destroyed
 - **Volatile Scrapling**: explodes on destruction
 - **Battery Scrapling**: generates Combat Charge while alive
+
+Constraints:
+
+- Preserve card identity where possible.
+- Store upgrade state on card instances through `upgradeLevel` and modifiers.
+- Keep upgrade rules deterministic, serializable, and replayable.
+- Prefer generic combine/evolution rules over card-specific one-off code.
+- Add property tests for instance preservation before expanding content around
+  upgrades.
 
 ## Run Structure
 
@@ -1001,16 +1157,72 @@ Implementation needs:
 
 ## Teamups
 
-Teamups are TFT-like synergies.
+Teamups are TFT-like synergies and should become one of Packbound's signature
+layers.
 
-They should be clear, countable, and visible in the UI.
+They should be clear, countable, and visible in the UI, but they should not be
+isolated lanes. Cards should often carry two or three meaningful Aspects, tags,
+classes, or engine labels so a player can discover accidental bridges.
 
-Teamups can be based on:
+Trait categories:
 
-- Aspects
-- Unit tags
-- Relic tags
-- playstyle tags
+1. Aspect traits
+
+- Ember
+- Shade
+- Bloom
+- Tide
+- Gleam
+
+2. Creature, pet, and faction traits
+
+- Scrapper
+- Wisp
+- Husk
+- Beast
+- Broker
+- Guardian
+- Warden
+- Adept
+- Tinkerer
+- Scout
+- Spore
+
+3. Role and engine traits
+
+- Offering
+- Ashes
+- Recall
+- Phase
+- Barrier
+- Source Greed
+- Relic Engine
+- Echo Fodder
+- Board Resource extraction later
+
+4. Infrastructure traits
+
+- Relics
+- Fields
+- Sources
+- future board resource extractors
+
+Desired interlocking behavior:
+
+- Ember Scrappers plus Shade Ashes: Echoes and fragile Units die, destroyed
+  triggers fire, Offering payoffs activate, and Ashes/Recall cards convert the
+  losses into value.
+- Bloom Bodies plus Shade Ashes: durable frontline buys time for Recall,
+  Offering loops, and heavy Shade/Bloom payoffs.
+- Cloudspire Phase plus Ember Scrappers: Phase and Barrier protect fragile
+  death-trigger payoffs or tempo Units long enough for their engines to matter.
+- Source Greed plus any archetype: flexible Sources let the player splash
+  powerful off-aspect Techniques or expensive multi-aspect payoffs.
+
+The goal is not only predesigned "set combos." The roguelite excitement comes
+from a board that feels discovered: a pull that looked like fixing becomes a
+splash, a duplicate turns into a carry, or a defensive tag unlocks an unexpected
+payoff.
 
 Initial Aspect teamups:
 
@@ -1192,6 +1404,30 @@ The first playable build does not need:
 - hundreds of cards
 - real 3D
 - complex draft bots
+
+## Next-Stage Implementation Sequence And Non-Goals
+
+After the current debug-loop prototype, the next design systems should land in
+this order unless playtesting shows a clearer blocker:
+
+1. Trait/teamup data model and debug display.
+2. Duplicate upgrade rules for Units and pets/Echoes.
+3. Pack pricing and gold economy.
+4. Economy cards that trade immediate board strength for future value.
+5. Board resource prototype with deterministic tile extraction.
+6. Richer visual board work only after the above systems produce interesting
+   event logs and planning decisions.
+
+Do not build these yet as side effects of unrelated tasks:
+
+- live multiplayer
+- backend accounts or persistence
+- Pixi or richer rendering
+- drag-and-drop
+- card art
+- large card expansion
+- new simulator mechanics without focused tests
+- deployment
 
 ## Future Multiplayer Direction
 

@@ -19,6 +19,24 @@ implemented as a reusable rule first.
 - Avoid copying MTG names, templating, and card concepts too directly. Familiar
   strategy is fine; Packbound cards should sound like Packbound.
 
+## Cross-Trait And Future-System Guidance
+
+- Cards should support cross-trait interactions whenever the rules text remains
+  readable. A good common may teach one lane, but a good set should let that
+  common matter in more than one board.
+- Avoid single-archetype dead ends. If a card is narrow, make sure its pack,
+  tags, or upgrade path explains why the player would chase it.
+- Commons teach, uncommons bridge, and rares create build-arounds or tempting
+  pivots.
+- Economy cards must trade immediate board power for future advantage such as
+  gold, discounts, rerolls, upgrade material, or better pack choices.
+- Duplicate-friendly cards should be obvious upgrade candidates. Cheap Units,
+  pets/Echoes, simple engines, and visible payoffs are better duplicate targets
+  than complex one-off answers.
+- Do not design playable board-resource cards until board resources exist in
+  rules, validation, event logs, and tests. It is fine to reserve future tags or
+  mention resource identity in design notes.
+
 ## Aspect Identities
 
 - `Ember`: pressure, cheap tempo, Relics, death sparks, direct damage, and fast

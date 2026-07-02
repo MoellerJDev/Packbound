@@ -1,0 +1,1588 @@
+# Packbound Technical Architecture
+
+## Purpose of This Document
+
+This document defines the initial code architecture for **Packbound**, a browser-based pack-opening tactical autobattler roguelite.
+
+It is meant to sit at the root of the repo and guide Codex or any other coding agent during development.
+
+For gameplay goals, mechanics, terminology, archetypes, and design direction, see `GAMEPLAY_DESIGN.md`.
+
+## Architecture Goal
+
+Build Packbound as a deterministic rules engine first and a visual game second.
+
+The game should initially ship as singleplayer, but the architecture should support future multiplayer without a rewrite.
+
+The core architectural requirements are:
+
+1. Deterministic simulation
+2. Data-driven cards and packs
+3. Pure rules packages independent of rendering
+4. Serializable run state
+5. Event-log-based combat replay
+6. Strong unit tests
+7. Browser-first client
+8. Multiplayer-capable server boundary later
+9. Original Packbound terminology in code and content
+
+## Recommended Tech Stack
+
+Use a TypeScript monorepo.
+
+Recommended tools:
+
+- TypeScript
+- pnpm workspaces
+- Vite
+- React
+- PixiJS
+- Vitest
+- Zod
+- Node.js server later
+- Colyseus later for multiplayer rooms
+- PostgreSQL later for accounts, run history, ghost boards, and leaderboards
+
+Do not start with live multiplayer.
+
+Do not start with real 3D.
+
+Do not put gameplay rules inside React or Pixi components.
+
+## Repository Structure
+
+Create this structure:
+
+```txt
+apps/
+  client/
+  server/
+  tools/
+
+packages/
+  shared/
+  content/
+  rules/
+  sim/
+```
+
+### `apps/client`
+
+Browser game client.
+
+Responsibilities:
+
+- Main menu
+- Run UI
+- Pack opening UI
+- Pool/binder UI
+- Board builder UI
+- Tooltips
+- Validation display
+- Combat replay display
+- Pixi battlefield renderer
+- Debug views
+
+The client may call `packages/rules` and `packages/sim`, but it must not duplicate gameplay logic.
+
+### `apps/server`
+
+Future authoritative game server.
+
+Initial implementation may be omitted or minimal.
+
+Future responsibilities:
+
+- Create runs
+- Store run snapshots
+- Validate submitted actions
+- Simulate combat authoritatively
+- Return combat event logs
+- Serve ghost boards
+- Support co-op or live rooms
+
+### `apps/tools`
+
+Developer tools.
+
+Possible future responsibilities:
+
+- Card database viewer
+- Pack simulator
+- Balance simulator
+- Combat replay viewer
+- Content validation CLI
+- Board test-case editor
+
+### `packages/shared`
+
+Shared types and helpers.
+
+Should contain:
+
+- ID types
+- enums
+- branded types
+- serialized state types
+- event log types
+- deterministic RNG types
+- constants shared across packages
+
+This package should not know about React, Pixi, or Node server details.
+
+### `packages/content`
+
+Raw game content and content validation.
+
+Should contain:
+
+- Card definitions
+- Pack definitions
+- Set definitions
+- Teamup definitions
+- Keyword definitions
+- Starter kit definitions
+- Enemy definitions
+- Boss definitions later
+- Zod schemas for content
+- Content loader
+
+All content should be validated at load/build/test time.
+
+### `packages/rules`
+
+Non-combat game rules.
+
+Responsibilities:
+
+- Pack generation
+- Pack collation
+- Run reward generation
+- Run progression
+- Board legality validation
+- Source Row validation
+- Spellrail validation
+- Teamup calculation
+- Upgrade/fusion rules
+- Starter kit creation
+- Enemy board generation later
+
+This package may depend on `shared` and `content`.
+
+It should not depend on React, Pixi, or browser APIs.
+
+### `packages/sim`
+
+Pure deterministic combat simulator.
+
+Responsibilities:
+
+- Combat state initialization
+- Unit attack and movement logic
+- Target selection
+- Technique trigger resolution
+- Relic trigger resolution
+- status ticking
+- damage and death processing
+- Ashes/Void zone changes during combat
+- teamup effects during combat
+- event log generation
+
+This package must be deterministic and heavily tested.
+
+No React.
+No Pixi.
+No DOM.
+No animation code.
+No unseeded randomness.
+
+## Core Rule: Simulation Does Not Render
+
+Combat should be resolved as a pure function:
+
+```ts
+const result = resolveCombat({
+  playerA,
+  playerB,
+  seed,
+  rulesVersion
+});
+```
+
+The result should include:
+
+```ts
+type CombatResult = {
+  winner: PlayerSide | "draw";
+  damageToPlayerA: number;
+  damageToPlayerB: number;
+  finalState: CombatState;
+  events: CombatEvent[];
+  warnings: SimulationWarning[];
+};
+```
+
+The client should replay `events` visually.
+
+The renderer may interpolate, animate, shake, glow, rotate, and add particles, but none of that changes rules.
+
+## Determinism Requirements
+
+The same input state and same seed must always produce the same output event log.
+
+Required practices:
+
+- Use a seeded RNG object.
+- Never call `Math.random()` in gameplay code.
+- Use stable sort order when resolving simultaneous events.
+- Give every entity a deterministic instance ID.
+- Avoid frame-rate-dependent logic.
+- Use fixed timestep simulation.
+- Keep floating point usage minimal and deterministic.
+- Store rules version in run/combat state.
+
+Example deterministic test:
+
+```ts
+it("resolves the same board the same way for the same seed", () => {
+  const a = resolveCombat(testCombatInput, "seed-1");
+  const b = resolveCombat(testCombatInput, "seed-1");
+  expect(b.events).toEqual(a.events);
+  expect(b.winner).toEqual(a.winner);
+});
+```
+
+## Naming and IP Safety in Code
+
+Use Packbound terminology in code and content.
+
+Prefer:
+
+- Charge
+- Aspect
+- Unit
+- Technique
+- Relic
+- Gear
+- Field
+- Source
+- Ashes
+- Void
+- Phase
+- Recall
+- Offer
+- Echo
+- Airborne
+- AntiAir
+- Pierce
+- Quickstart
+- Siphon
+- Bane
+- Aegis
+- Guard
+- Barrier
+
+Avoid naming core systems after any one existing trading card game.
+
+Do not add card names, ability names, keyword names, or rules text copied from existing games.
+
+If comments need analogy, use a short comment such as:
+
+```ts
+// Similar strategic role to graveyard recursion, but implemented as Packbound Ashes/Recall.
+```
+
+Do not put copied card text or protected names in fixtures or tests.
+
+## Domain Model
+
+### IDs
+
+Use explicit ID types.
+
+```ts
+type CardDefId = string;
+type CardInstanceId = string;
+type UnitInstanceId = string;
+type PlayerId = string;
+type RunId = string;
+type CombatId = string;
+```
+
+Optional later: use branded TypeScript types.
+
+### Aspects
+
+```ts
+type Aspect = "Ember" | "Shade" | "Bloom" | "Tide" | "Gleam";
+```
+
+### Rarity
+
+```ts
+type Rarity = "common" | "uncommon" | "rare" | "mythic";
+```
+
+### Card Types
+
+```ts
+type CardType =
+  "Unit" | "Technique" | "Relic" | "Gear" | "Field" | "Source" | "Formation" | "Echo";
+```
+
+### Zones
+
+```ts
+type Zone =
+  | "pack"
+  | "pool"
+  | "bench"
+  | "board"
+  | "spellrail"
+  | "sourceRow"
+  | "ashes"
+  | "void"
+  | "removed";
+```
+
+### Board Layers
+
+```ts
+type BoardLayer = "ground" | "air" | "support" | "terrain";
+```
+
+MVP should implement `ground` and `support`.
+
+Keep `air` and `terrain` in types so the architecture is ready for future mechanics.
+
+### Board Position
+
+```ts
+type BoardPosition = {
+  row: number;
+  col: number;
+  layer: BoardLayer;
+};
+```
+
+### Board Slot
+
+```ts
+type BoardSlot = {
+  ground?: UnitInstanceId;
+  air?: UnitInstanceId;
+  support?: PermanentInstanceId;
+  terrain?: TerrainInstanceId;
+};
+```
+
+Use a rectangular board for MVP.
+
+Recommended constants:
+
+```ts
+const BOARD_ROWS = 4;
+const BOARD_COLS = 7;
+```
+
+## Card Definition Schema
+
+Card definitions should be data-driven.
+
+Use JSON or YAML content validated by Zod.
+
+Example Unit:
+
+```json
+{
+  "id": "ember_scraprunner",
+  "name": "Ember Scraprunner",
+  "set": "ember_foundry",
+  "rarity": "common",
+  "cardType": "Unit",
+  "aspects": ["Ember"],
+  "cost": {
+    "generic": 1,
+    "aspect": {
+      "Ember": 1
+    }
+  },
+  "tags": ["Scrapper", "Tinkerer"],
+  "stats": {
+    "attack": 2,
+    "health": 1,
+    "attackSpeed": 1.2,
+    "range": 1
+  },
+  "keywords": ["Quickstart"],
+  "abilities": [
+    {
+      "trigger": { "type": "OnDestroyed" },
+      "condition": { "type": "Always" },
+      "target": { "type": "NearestEnemy" },
+      "effect": { "type": "DealDamage", "amount": 1 }
+    }
+  ]
+}
+```
+
+Example Technique:
+
+```json
+{
+  "id": "phase_step",
+  "name": "Phase Step",
+  "set": "cloudspire",
+  "rarity": "common",
+  "cardType": "Technique",
+  "aspects": ["Tide"],
+  "cost": {
+    "generic": 1,
+    "aspect": {
+      "Tide": 1
+    }
+  },
+  "technique": {
+    "combatChargeCost": 3,
+    "trigger": {
+      "type": "WhenFirstAllyBelowHealthPercent",
+      "percent": 40
+    },
+    "target": {
+      "type": "LowestHealthAlliedUnit"
+    },
+    "effect": {
+      "type": "Phase",
+      "returnTiming": "AfterDelay",
+      "delayMs": 1000,
+      "clearNegativeStatuses": true,
+      "retriggerEntryEffects": true
+    }
+  }
+}
+```
+
+Example Source:
+
+```json
+{
+  "id": "ember_source",
+  "name": "Ember Source",
+  "set": "core_sources",
+  "rarity": "common",
+  "cardType": "Source",
+  "source": {
+    "boardChargeCapacity": 1,
+    "aspectAccess": ["Ember"],
+    "combatChargePerSecond": 0.25
+  }
+}
+```
+
+## Card Instances
+
+Definitions are static. Instances represent actual cards in a run.
+
+```ts
+type CardInstance = {
+  instanceId: CardInstanceId;
+  defId: CardDefId;
+  ownerId: PlayerId;
+  zone: Zone;
+  modifiers: CardModifier[];
+  upgradeLevel: number;
+  createdBy?: CardInstanceId;
+  isEcho?: boolean;
+};
+```
+
+A card instance should preserve identity as it moves between zones unless a rule explicitly creates a new instance.
+
+## Runtime Unit Instances
+
+A Unit on the board should have runtime state.
+
+```ts
+type UnitInstance = {
+  unitId: UnitInstanceId;
+  cardInstanceId: CardInstanceId;
+  ownerId: PlayerId;
+  position: BoardPosition;
+  attack: number;
+  maxHealth: number;
+  currentHealth: number;
+  attackSpeed: number;
+  range: number;
+  keywords: Keyword[];
+  statuses: ActiveStatus[];
+  attachments: CardInstanceId[];
+  attackTimerMs: number;
+  summonedThisCombat: boolean;
+};
+```
+
+Do not mutate card definitions during combat. Runtime modifications apply to instances.
+
+## Run State
+
+Run state must be serializable.
+
+```ts
+type RunState = {
+  runId: RunId;
+  seed: string;
+  rulesVersion: string;
+  round: number;
+  playerHealth: number;
+  gold: number;
+  pool: CardInstance[];
+  bench: CardInstance[];
+  board: BoardState;
+  spellrail: SpellrailState;
+  sourceRow: SourceRowState;
+  ashes: CardInstance[];
+  void: CardInstance[];
+  relics: RelicInstance[];
+  seenCardDefIds: CardDefId[];
+  packHistory: PackOpenResult[];
+  combatHistory: CombatSummary[];
+};
+```
+
+Avoid non-serializable objects in run state.
+
+## Charge and Validation
+
+The validation system should answer whether the player’s planned board is legal.
+
+Validate:
+
+- Board Charge Capacity is not exceeded.
+- Aspect access requirements are satisfied.
+- Board slots are legal.
+- Spellrail slot limit is not exceeded.
+- Source Row slot limit is not exceeded.
+- Formation limit is not exceeded.
+- Gear has legal attachment target.
+- Field has legal placement/target.
+- Unique restrictions later, if any.
+
+Example validation result:
+
+```ts
+type ValidationResult = {
+  ok: boolean;
+  errors: ValidationError[];
+  warnings: ValidationWarning[];
+};
+
+type ValidationError = {
+  code: string;
+  message: string;
+  cardInstanceId?: CardInstanceId;
+  position?: BoardPosition;
+};
+```
+
+Validation should produce user-readable error messages.
+
+Example:
+
+```txt
+Ember Scraprunner requires Ember access, but your Source Row does not provide Ember.
+```
+
+## Ability Framework
+
+Do not implement every card as bespoke code.
+
+Use a composable ability model:
+
+```txt
+Trigger -> Condition -> Target -> Effect
+```
+
+### Triggers
+
+Initial trigger types:
+
+```ts
+type TriggerType =
+  | "OnCombatStart"
+  | "OnCombatEnd"
+  | "OnEntry"
+  | "OnLeaveBoard"
+  | "OnDestroyed"
+  | "OnOffered"
+  | "OnAllyDestroyed"
+  | "OnEnemyDestroyed"
+  | "OnSummoned"
+  | "OnTechniqueUsed"
+  | "OnTakeDamage"
+  | "OnDealDamage"
+  | "OnAttack"
+  | "OnKill"
+  | "OnCombatChargeGained"
+  | "WhenCombatChargeAtLeast"
+  | "WhenFirstAllyDestroyed"
+  | "WhenFirstEnemyDestroyed"
+  | "WhenFirstEnemyUsesTechnique"
+  | "WhenFirstAllyBelowHealthPercent"
+  | "AfterSeconds";
+```
+
+### Conditions
+
+Initial condition types:
+
+```ts
+type ConditionType =
+  | "Always"
+  | "HasTag"
+  | "HasKeyword"
+  | "IsDamaged"
+  | "IsAdjacent"
+  | "IsInRow"
+  | "IsInColumn"
+  | "HasStatus"
+  | "CombatChargeAvailable"
+  | "AshesHasCard"
+  | "AllyDestroyedThisCombat"
+  | "EnemyDestroyedThisCombat";
+```
+
+### Targets
+
+Initial target types:
+
+```ts
+type TargetType =
+  | "Self"
+  | "Source"
+  | "NearestEnemy"
+  | "LowestHealthEnemy"
+  | "HighestAttackEnemy"
+  | "RandomEnemy"
+  | "AdjacentAllied"
+  | "AdjacentEnemy"
+  | "SameRowEnemy"
+  | "SameColumnEnemy"
+  | "AllAllied"
+  | "AllEnemies"
+  | "AlliedUnitWithTag"
+  | "EnemyUnitWithTag"
+  | "EmptyAdjacentTile"
+  | "EmptyBacklineTile"
+  | "CardInAshes"
+  | "CardInVoid";
+```
+
+### Effects
+
+Initial effect types:
+
+```ts
+type EffectType =
+  | "DealDamage"
+  | "Heal"
+  | "ModifyStats"
+  | "ApplyStatus"
+  | "RemoveStatus"
+  | "GrantKeyword"
+  | "RemoveKeyword"
+  | "SummonEcho"
+  | "SummonUnit"
+  | "Offer"
+  | "Destroy"
+  | "SendToVoid"
+  | "ReturnFromVoid"
+  | "Phase"
+  | "Recall"
+  | "MoveUnit"
+  | "Attach"
+  | "Detach"
+  | "GainCombatCharge"
+  | "DrainCombatCharge"
+  | "CopyTechnique"
+  | "InterruptTechnique"
+  | "MillToAshes";
+```
+
+MVP priority effects:
+
+1. DealDamage
+2. Heal
+3. ModifyStats
+4. ApplyStatus
+5. SummonEcho
+6. Offer
+7. Destroy
+8. Phase
+9. Recall
+10. GainCombatCharge
+11. InterruptTechnique
+
+## Zone Change Rules
+
+Zone changes are central to Packbound and must be implemented carefully.
+
+### Destroyed Unit Flow
+
+When a Unit is destroyed:
+
+```txt
+1. Emit UnitDestroyed event.
+2. Remove Unit from board.
+3. If it is an Echo, remove it unless rules say Echoes enter Ashes.
+4. If it is not an Echo, move its CardInstance to Ashes.
+5. Fire OnDestroyed triggers from the destroyed Unit.
+6. Fire OnAllyDestroyed / OnEnemyDestroyed triggers.
+7. Resolve queued triggers deterministically.
+```
+
+Track destruction reason:
+
+```ts
+type DestructionReason =
+  | "combatDamage"
+  | "techniqueDamage"
+  | "offered"
+  | "effectDestroy"
+  | "poison"
+  | "burning"
+  | "unknown";
+```
+
+### Offer Flow
+
+When a card is Offered:
+
+```txt
+1. Validate the card can be Offered.
+2. Emit UnitOffered or PermanentOffered event.
+3. Remove it from board.
+4. Move it to Ashes unless it is an Echo.
+5. Fire OnOffered triggers.
+6. Fire destruction triggers if Offering counts as destruction for that effect.
+```
+
+Default rule: Offering counts as destruction.
+
+Effects may specifically care about `reason === "offered"`.
+
+### Phase Flow
+
+When a Unit Phases:
+
+```txt
+1. Emit UnitPhasedOut event.
+2. Remove Unit from board.
+3. Move its CardInstance/runtime state to Void.
+4. Optionally clear negative statuses.
+5. Schedule return event.
+6. On return, try original tile.
+7. If original tile is occupied, use fallback placement.
+8. Emit UnitPhasedIn event.
+9. Fire OnEntry triggers if the Phase effect allows entry retriggers.
+```
+
+Phase effects should carry options:
+
+```ts
+type PhaseOptions = {
+  delayMs: number;
+  clearNegativeStatuses: boolean;
+  retriggerEntryEffects: boolean;
+  returnPreference: "originalTile" | "nearestOpenTile" | "backline";
+};
+```
+
+### Recall Flow
+
+When a card is Recalled from Ashes:
+
+```txt
+1. Select a valid CardInstance in Ashes.
+2. Remove it from Ashes.
+3. Restore or create a UnitInstance.
+4. Apply Recall modifiers.
+5. Place it on a valid board tile.
+6. Emit UnitRecalled event.
+7. Fire OnEntry triggers.
+```
+
+Recall modifiers may include:
+
+- reduced health
+- reduced attack
+- temporary status
+- becomes Echo
+- cannot be Recalled again this combat
+
+## Combat Simulation
+
+Use fixed timestep simulation.
+
+Recommended timestep:
+
+```ts
+const COMBAT_TICK_MS = 100;
+```
+
+This can be tuned later.
+
+Combat loop outline:
+
+```txt
+1. Build CombatState from submitted board states.
+2. Apply start-of-combat teamups and Fields.
+3. Apply OnCombatStart triggers.
+4. Initialize attack timers and Technique triggers.
+5. Tick until combat ends or max duration is reached.
+6. Each tick:
+   a. Generate Combat Charge.
+   b. Update status timers.
+   c. Resolve scheduled events.
+   d. Check Technique triggers.
+   e. Process unit movement/targeting.
+   f. Process attacks.
+   g. Resolve deaths and triggered effects.
+   h. Append events.
+7. End combat when one side has no Units or time expires.
+8. Return CombatResult.
+```
+
+Recommended caps:
+
+```ts
+const MAX_TRIGGER_DEPTH = 20;
+const MAX_COMBAT_EVENTS = 5000;
+const MAX_COMBAT_DURATION_MS = 90000;
+```
+
+If a cap is reached, emit a warning and end or safely continue according to a deterministic rule.
+
+## Combat Events
+
+Events should be serializable and replayable.
+
+Initial event union:
+
+```ts
+type CombatEvent =
+  | { type: "CombatStarted"; timeMs: number }
+  | {
+      type: "TraitActivated";
+      timeMs: number;
+      playerId: PlayerId;
+      traitId: string;
+      tier: number;
+    }
+  | { type: "CombatChargeGained"; timeMs: number; playerId: PlayerId; amount: number }
+  | {
+      type: "UnitMoved";
+      timeMs: number;
+      unitId: UnitInstanceId;
+      from: BoardPosition;
+      to: BoardPosition;
+    }
+  | {
+      type: "UnitAttacked";
+      timeMs: number;
+      attackerId: UnitInstanceId;
+      targetId: UnitInstanceId;
+    }
+  | {
+      type: "DamageDealt";
+      timeMs: number;
+      sourceId?: string;
+      targetId: UnitInstanceId;
+      amount: number;
+      damageType: DamageType;
+    }
+  | {
+      type: "StatusApplied";
+      timeMs: number;
+      targetId: UnitInstanceId;
+      status: StatusEffectType;
+      durationMs?: number;
+    }
+  | {
+      type: "UnitDestroyed";
+      timeMs: number;
+      unitId: UnitInstanceId;
+      reason: DestructionReason;
+    }
+  | {
+      type: "UnitSummoned";
+      timeMs: number;
+      unitId: UnitInstanceId;
+      cardInstanceId: CardInstanceId;
+      position: BoardPosition;
+    }
+  | {
+      type: "UnitRecalled";
+      timeMs: number;
+      unitId: UnitInstanceId;
+      from: "ashes";
+      position: BoardPosition;
+    }
+  | { type: "UnitPhasedOut"; timeMs: number; unitId: UnitInstanceId }
+  | {
+      type: "UnitPhasedIn";
+      timeMs: number;
+      unitId: UnitInstanceId;
+      position: BoardPosition;
+    }
+  | { type: "TechniqueQueued"; timeMs: number; cardInstanceId: CardInstanceId }
+  | {
+      type: "TechniqueUsed";
+      timeMs: number;
+      cardInstanceId: CardInstanceId;
+      targets: string[];
+    }
+  | {
+      type: "TechniqueInterrupted";
+      timeMs: number;
+      cardInstanceId: CardInstanceId;
+      byCardInstanceId?: CardInstanceId;
+    }
+  | { type: "CombatEnded"; timeMs: number; winner: PlayerSide | "draw" };
+```
+
+Add events as needed, but keep them stable and documented.
+
+## Pack Generation
+
+Pack generation must be deterministic and data-driven.
+
+Pack definition example:
+
+```json
+{
+  "id": "ember_foundry_pack",
+  "name": "Ember Foundry Pack",
+  "setWeights": {
+    "ember_foundry": 8,
+    "core_sources": 2
+  },
+  "slots": [
+    { "rarity": "common", "count": 5 },
+    { "rarity": "uncommon", "count": 2 },
+    {
+      "rarity": "rare",
+      "count": 1,
+      "mythicUpgradeChance": 0.125
+    },
+    { "slotType": "sourceOrSupport", "count": 1 },
+    { "slotType": "foilWildcard", "count": 1 }
+  ],
+  "tagBias": {
+    "Scrapper": 4,
+    "Tinkerer": 2,
+    "Relic": 2,
+    "Ember": 3
+  }
+}
+```
+
+Pack open result:
+
+```ts
+type PackOpenResult = {
+  packId: string;
+  seed: string;
+  cards: CardInstance[];
+  slots: PackSlotResult[];
+};
+```
+
+Tests should verify:
+
+- Same seed produces same pack.
+- Rarity slots are respected.
+- Mythic upgrade chance is deterministic.
+- Tag bias affects eligible selection.
+- Invalid pack definitions fail validation.
+
+## Teamup Calculation
+
+Teamups should be calculated from the active board, not the entire pool.
+
+Inputs:
+
+- active Units
+- active Relics if relevant
+- active Fields if relevant
+- active Formations if relevant
+
+Output:
+
+```ts
+type ActiveTeamup = {
+  teamupId: string;
+  count: number;
+  tier: number;
+  sourceInstanceIds: CardInstanceId[];
+};
+```
+
+Teamup effects should be converted into modifiers or start-of-combat triggers.
+
+Do not hardcode teamups into individual cards.
+
+## Modifiers
+
+Use a general modifier system for stats, keywords, costs, and continuous effects.
+
+Possible modifier categories:
+
+```ts
+type ModifierType =
+  | "StatModifier"
+  | "KeywordGrant"
+  | "CostModifier"
+  | "ChargeGenerationModifier"
+  | "DamageModifier"
+  | "TargetingModifier"
+  | "TriggerModifier";
+```
+
+Modifiers should include:
+
+- source ID
+- duration
+- stacking rule
+- affected target
+
+Stacking rule examples:
+
+```ts
+type StackingRule = "stack" | "highestOnly" | "refreshDuration" | "uniqueBySource";
+```
+
+## Status Effects
+
+Initial statuses:
+
+```ts
+type StatusEffectType =
+  | "Stunned"
+  | "Rooted"
+  | "Slowed"
+  | "Poisoned"
+  | "Burning"
+  | "Silenced"
+  | "Frozen"
+  | "Marked"
+  | "Barrier";
+```
+
+MVP statuses:
+
+- Stunned
+- Slowed
+- Poisoned
+- Barrier
+
+Status effects should be data objects:
+
+```ts
+type ActiveStatus = {
+  type: StatusEffectType;
+  sourceId?: string;
+  remainingMs?: number;
+  stacks?: number;
+  metadata?: Record<string, unknown>;
+};
+```
+
+## Rendering Architecture
+
+Use React for UI and PixiJS for battlefield rendering.
+
+React owns:
+
+- screen routing
+- pack opening menus
+- card panels
+- pool/bench views
+- board builder controls
+- validation messages
+- trait panels
+- run rewards
+
+Pixi owns:
+
+- isometric board
+- Unit sprites/standees
+- support Relics
+- attacks
+- movement
+- effects
+- event-log replay
+
+The Pixi renderer receives a `CombatEvent[]` and visual state snapshots. It does not determine outcomes.
+
+Renderer positions are derived from board positions:
+
+```ts
+type RenderPosition = {
+  x: number;
+  y: number;
+  zIndex: number;
+  scale: number;
+  visualOffsetX?: number;
+  visualOffsetY?: number;
+};
+```
+
+Visual offsets never affect simulation.
+
+## Client Development Strategy
+
+The first client should be ugly and functional.
+
+Minimum client screens:
+
+1. Start run
+2. Choose starter kit
+3. Open pack
+4. View pool
+5. Place Units/Sources/Techniques
+6. Validate board
+7. Start combat
+8. View event log/combat result
+9. Choose next reward
+
+Do not block core engine work on visual polish.
+
+## Server Boundary for Future Multiplayer
+
+Even before multiplayer exists, design actions as if they could be sent to a server.
+
+Example actions:
+
+```ts
+type GameAction =
+  | { type: "ChooseStarterKit"; starterKitId: string }
+  | { type: "ChoosePackReward"; rewardId: string }
+  | { type: "MoveCardToBoard"; cardInstanceId: CardInstanceId; position: BoardPosition }
+  | { type: "MoveCardToSourceRow"; cardInstanceId: CardInstanceId }
+  | { type: "MoveCardToSpellrail"; cardInstanceId: CardInstanceId; slotIndex: number }
+  | {
+      type: "AttachGear";
+      gearInstanceId: CardInstanceId;
+      targetUnitCardInstanceId: CardInstanceId;
+    }
+  | { type: "LockBoard" }
+  | { type: "StartCombat" };
+```
+
+A future server can validate and apply these actions.
+
+The client should avoid directly mutating state in uncontrolled ways.
+
+## Multiplayer Readiness
+
+Future multiplayer modes:
+
+1. Async ghost PvP
+2. Co-op sealed runs
+3. Live lobby PvP
+
+### Async Ghost PvP
+
+Store serialized board snapshots from previous runs.
+
+A ghost opponent includes:
+
+```ts
+type GhostBoard = {
+  ghostId: string;
+  round: number;
+  approximatePower: number;
+  board: BoardState;
+  spellrail: SpellrailState;
+  sourceRow: SourceRowState;
+  activeTeamups: ActiveTeamup[];
+  rulesVersion: string;
+};
+```
+
+This is the best first multiplayer-like feature.
+
+### Co-op
+
+Future co-op may require:
+
+- shared pack choices
+- card trading
+- linked combat outcomes
+- two boards against a boss
+- shared or separate health
+
+Do not implement yet.
+
+### Live PvP
+
+Live PvP requires:
+
+- matchmaking
+- rooms
+- timers
+- reconnects
+- authoritative validation
+- anti-cheat assumptions
+- server simulation
+- patch/balance cadence
+
+Architect for it, but do not build it first.
+
+## Testing Strategy
+
+Testing should be extensive and started immediately.
+
+### Required Test Areas
+
+#### Content Validation
+
+- Invalid card definitions fail.
+- Invalid pack definitions fail.
+- Missing referenced IDs fail.
+- Invalid Aspect names fail.
+
+#### Pack Generation
+
+- Same seed produces same pack.
+- Slot counts are correct.
+- Rarity distribution logic works.
+- Tag bias is deterministic.
+
+#### Board Validation
+
+- Board Charge Capacity is enforced.
+- Aspect access is enforced.
+- illegal placements fail.
+- Spellrail slot limits work.
+- Source Row validation works.
+
+#### Combat Determinism
+
+- Same input/seed produces same result.
+- Different seed only matters when randomness is used.
+- Combat ends correctly.
+- Max duration cap works.
+
+#### Core Mechanics
+
+- damage
+- death
+- Ashes movement
+- Echo cleanup
+- Phase out/in
+- Recall from Ashes
+- Offer
+- Barrier
+- Guard
+- Airborne/Anti-Air
+- Pierce
+- Poison
+- Technique interruption
+
+#### Trigger System
+
+- OnEntry
+- OnDestroyed
+- OnAllyDestroyed
+- WhenCombatChargeAtLeast
+- AfterSeconds
+- trigger depth cap
+
+## Initial Development Milestones
+
+### Milestone 0: Repo Setup
+
+Create:
+
+- pnpm workspace
+- root package.json
+- TypeScript configs
+- Vitest configs
+- package folders
+- empty client app
+- lint/format scripts if desired
+
+Acceptance:
+
+- `pnpm install` works
+- `pnpm test` works
+- packages build or typecheck
+
+### Milestone 1: Shared Types and Content Schemas
+
+Implement:
+
+- Aspect enum/type
+- CardType enum/type
+- Rarity enum/type
+- Zone types
+- BoardPosition
+- card definition schemas
+- pack definition schemas
+- content loader
+
+Acceptance:
+
+- valid sample content loads
+- invalid sample content fails tests
+
+### Milestone 2: Seeded RNG and Pack Opening
+
+Implement:
+
+- seeded RNG utility
+- pack generator
+- rarity slot handling
+- tag bias support
+- mythic upgrade chance
+- PackOpenResult
+
+Acceptance:
+
+- deterministic pack tests pass
+- pack slot tests pass
+
+### Milestone 3: Run State and Board Validation
+
+Implement:
+
+- RunState
+- BoardState
+- SourceRowState
+- SpellrailState
+- card instance creation
+- Board Charge Capacity validation
+- Aspect access validation
+- placement validation
+
+Acceptance:
+
+- legal boards pass
+- illegal capacity boards fail
+- missing Aspect access fails
+- invalid layer placement fails
+
+### Milestone 4: Basic Combat Simulator
+
+Implement:
+
+- CombatState
+- Unit runtime state
+- fixed timestep loop
+- basic targeting
+- melee attacks
+- ranged attacks
+- damage
+- destruction
+- Ashes movement
+- CombatEnded event
+
+Acceptance:
+
+- simple fights resolve
+- event logs are stable
+- deterministic tests pass
+
+### Milestone 5: Core Ability System
+
+Implement:
+
+- Trigger -> Condition -> Target -> Effect pipeline
+- OnCombatStart
+- OnEntry
+- OnDestroyed
+- OnAllyDestroyed
+- AfterSeconds
+- DealDamage
+- Heal
+- ModifyStats
+- ApplyStatus
+- SummonEcho
+- Offer
+- Phase
+- Recall
+- GainCombatCharge
+
+Acceptance:
+
+- Echo summon card works
+- Offer payoff works
+- Recall card works
+- Phase card works
+- trigger loop cap works
+
+### Milestone 6: Minimal Client
+
+Implement:
+
+- React app shell
+- starter kit selection
+- pack opening UI
+- pool view
+- board placement UI
+- Source Row UI
+- Spellrail UI
+- validation messages
+- start combat button
+- event log display
+
+Acceptance:
+
+- player can start a run
+- open a pack
+- place cards
+- validate board
+- simulate combat
+- see result
+
+### Milestone 7: Pixi Board Replay
+
+Implement:
+
+- isometric board display
+- placeholder Unit sprites
+- support layer display
+- event-log replay
+- simple attack/death/summon animations
+
+Acceptance:
+
+- combat events are visible on board
+- animation does not affect result
+
+### Milestone 8: First Playable Run
+
+Implement:
+
+- finite run flow
+- 3 starter kits
+- 3 pack families
+- 40-60 cards
+- enemy board generation
+- round rewards
+- health loss
+- victory/defeat
+
+Acceptance:
+
+- full run can be completed or lost
+- no manual dev state editing required
+
+## Initial Content Targets
+
+Create 40-60 cards across three early sets.
+
+Initial sets:
+
+1. Ember Foundry
+2. Rotbloom
+3. Cloudspire
+
+Initial mechanics to cover:
+
+- Ember aggression
+- Shade Ashes/Recall
+- Bloom growth/poison
+- Tide Phase/Technique play
+- Gleam Barrier/formation
+- Relic support
+- Gear attachment
+- Sources
+- Echoes
+
+Example initial cards:
+
+### Ember Foundry
+
+- Ember Scraprunner: Quickstart, deals damage when destroyed.
+- Crackling Altar: Offer adjacent Echo to gain Combat Charge.
+- Rustline Cannon: support Relic, fires down row.
+- Junkwright: restores destroyed Relic.
+- Hookblade: Gear, grants Pierce.
+
+### Rotbloom
+
+- Hollow Caller: Recalls cheap Unit from Ashes.
+- Sporeback Beast: applies Poison.
+- Huskling Echo: basic token.
+- Debt-Bound Colossus: costs less based on Ashes.
+- Rot Soil: tile Field, creates Echo when Unit destroyed there.
+
+### Cloudspire
+
+- Phase Step: Phase lowest-health ally.
+- Cloudgate Adept: entry Barrier to adjacent allies.
+- Mistwing Scout: Airborne.
+- Skyhook Archer: Anti-Air.
+- Pattern Break: interrupts first enemy Technique.
+
+### Sources
+
+- Ember Source
+- Shade Source
+- Bloom Source
+- Tide Source
+- Gleam Source
+- Cracked Prism
+- Overgrown Source
+- Volatile Source
+- Charge Battery
+
+## Balance Simulation Later
+
+Once combat is stable, add headless simulation tools.
+
+Possible tools:
+
+- simulate board A vs board B 1000 times
+- test pack distribution over 10000 openings
+- estimate card pick rates
+- estimate trait win rates
+- identify overperforming cards
+- replay saved combat by seed
+
+These should live in `apps/tools`.
+
+## Coding Guidelines for Codex
+
+When implementing tasks:
+
+1. Write tests with every rules change.
+2. Keep gameplay logic outside React and Pixi.
+3. Prefer data-driven card definitions.
+4. Add generic effects instead of one-off card code.
+5. Use Packbound terminology.
+6. Preserve deterministic behavior.
+7. Keep state serializable.
+8. Do not introduce copied card names or rules text from existing games.
+9. Keep MVP scope small.
+10. Prefer boring, testable implementation over clever abstractions.
+
+## First Codex Task Recommendation
+
+Start with Milestone 0 and Milestone 1.
+
+Suggested first prompt:
+
+```txt
+Create the initial Packbound TypeScript monorepo using pnpm workspaces. Add packages/shared, packages/content, packages/rules, packages/sim, and apps/client. Implement shared domain types for Aspects, CardType, Rarity, Zones, BoardPosition, and BoardLayer. In packages/content, add Zod schemas for Unit, Technique, Relic, Gear, Field, Source, Formation, and Echo card definitions. Add a small sample content file with five valid cards and tests proving valid content loads and invalid content fails. Do not implement rendering or combat yet.
+```
+
+## Architectural Mantra
+
+Packbound should be built as:
+
+> A deterministic card-and-board rules engine that happens to have a flashy browser client.
+
+If the engine is clean, then solo roguelite, async ghost PvP, co-op, live PvP, replays, balance tools, and server validation all become possible later.

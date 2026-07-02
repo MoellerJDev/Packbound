@@ -14,6 +14,8 @@ that architecture before they try to prove that the game is fun.
 - Shared invariants need property-based tests with small generated cases.
 - Combat fixtures should preserve representative event ordering and final-state
   summaries.
+- Balance smoke tests should use broad ranges to catch content outliers without
+  pretending to solve balance.
 - Full-loop integration tests should prove run actions can be replayed from an
   initial run.
 - Manual playtesting is still required for fun, readability, pacing, balance,
@@ -28,6 +30,7 @@ Unit tests
 Property/invariant tests
 Integration/replay tests
 Combat fixtures
+Balance smoke tests
 UI smoke tests later
 Manual playtesting checklist
 ```
@@ -95,6 +98,22 @@ Combat fixture tests should cover representative boards and preserve stable
 event ordering, warnings, and final summaries. Add fixtures when a simulator
 change affects multiple systems or when a bug is easiest to prevent with a saved
 scenario.
+
+### Balance Smoke Tests
+
+Balance smoke tests sit between replay integration and manual playtesting. They
+should exercise starter kits, encounters, packs, and broad combat outcomes with
+deterministic seeds. They should assert categories and ranges such as allowed
+winners, maximum warnings, required event types, maximum duration, starter
+survivability, boss danger, and aggregate pack archetype coverage.
+
+Do not pin exact full event logs or exact event counts in balance smoke tests.
+If a content change makes a fixture fail because the new outcome is intentional
+and healthier, update the expectation range. If it fails because a starter,
+encounter, or pack became impossible or nonsensical, fix the content.
+
+See `BALANCE_SMOKE_GUIDE.md` for current fixture expectations and update
+guidance.
 
 ### UI Smoke Tests Later
 

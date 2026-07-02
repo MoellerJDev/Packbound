@@ -1472,7 +1472,7 @@ export const sampleEncounters: readonly EncounterDefinition[] = [
           encounterPlacement(
             "ledger_champion",
             finalBossPlayer,
-            "due_marker_relic",
+            "flare_foundry",
             1,
             2,
             "support",
@@ -1506,9 +1506,14 @@ export const sampleEncounters: readonly EncounterDefinition[] = [
           )
         ]
       },
-      spellrail: { maxSlots: 4, cards: [] }
+      spellrail: {
+        maxSlots: 4,
+        cards: [
+          encounterCard("ledger_champion", finalBossPlayer, "sparkfall", "spellrail", 0)
+        ]
+      }
     },
-    tags: ["boss", "guard", "offer"],
+    tags: ["boss", "guard", "charge"],
     aspects: ["Shade", "Bloom", "Ember"],
     rewardProfile: {
       bonusGold: 3,

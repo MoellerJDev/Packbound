@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { asCardDefId, asPackId } from "@packbound/shared";
+import { ASPECTS, CARD_DESIGN_ROLES, asCardDefId, asPackId } from "@packbound/shared";
 import type {
   AbilityEffect,
   CardDefinition,
@@ -9,6 +9,7 @@ import type {
 } from "@packbound/shared";
 
 import {
+  sampleCatalog,
   sampleCards,
   sampleEncounters,
   samplePacks,
@@ -24,6 +25,16 @@ const archetypes = [
   "cloudspire_phase",
   "source_greed"
 ] as const;
+const expectedStarterArchetypes: Readonly<Record<string, readonly string[]>> = {
+  ember_scrappers: ["ember_scrappers"],
+  rotbloom_recall: ["shade_ashes", "bloom_bodies"],
+  cloudspire_phase: ["cloudspire_phase"]
+};
+const expectedNonSourcePackArchetypes: Readonly<Record<string, readonly string[]>> = {
+  ember_foundry_pack: ["ember_scrappers"],
+  rotbloom_pack: ["shade_ashes", "bloom_bodies"],
+  cloudspire_pack: ["cloudspire_phase"]
+};
 
 const schemaReservedEffects = new Set<AbilityEffect["type"]>([
   "SendToVoid",
@@ -66,6 +77,51 @@ const triggersForCard = (card: CardDefinition): readonly Trigger[] => [
 
 const instanceIdsForCards = (cards: readonly CardInstance[]): readonly string[] =>
   cards.map((card) => card.instanceId);
+
+const cardDefsById = new Map(sampleCards.map((card) => [card.id, card]));
+
+const requireCardDef = (defId: CardDefinition["id"]): CardDefinition => {
+  const def = cardDefsById.get(defId);
+  if (!def) {
+    throw new Error(`Missing sample card ${defId}`);
+  }
+  return def;
+};
+
+const starterKitCardDefs = (
+  starterKit: (typeof sampleStarterKits)[number]
+): readonly CardDefinition[] => [
+  ...starterKit.pool.map((card) => requireCardDef(card.defId)),
+  ...starterKit.board.placements.map((placement) => requireCardDef(placement.defId)),
+  ...starterKit.sourceRow.cards.map((card) => requireCardDef(card.defId)),
+  ...starterKit.spellrail.cards.map((card) => requireCardDef(card.defId)),
+  ...(starterKit.ashes ?? []).map((card) => requireCardDef(card.defId)),
+  ...(starterKit.void ?? []).map((card) => requireCardDef(card.defId))
+];
+
+const encounterCardDefs = (
+  encounter: (typeof sampleEncounters)[number]
+): readonly CardDefinition[] => [
+  ...encounter.loadout.board.placements.map((placement) =>
+    requireCardDef(placement.defId)
+  ),
+  ...encounter.loadout.sourceRow.cards.map((card) => requireCardDef(card.defId)),
+  ...encounter.loadout.spellrail.cards.map((card) => requireCardDef(card.defId)),
+  ...(encounter.loadout.startingAshes ?? []).map((card) => requireCardDef(card.defId))
+];
+
+const normalized = (value: string): string => value.toLowerCase();
+
+const cardMatchesPackBias = (
+  card: CardDefinition,
+  tagBias: Readonly<Record<string, number>>
+): boolean =>
+  Object.keys(tagBias).some(
+    (bias) =>
+      card.tags.some((tag) => tag === bias) ||
+      card.aspects.some((aspect) => aspect === bias) ||
+      card.cardType === bias
+  );
 
 describe("content validation", () => {
   it("loads the starter Packbound content catalog", () => {
@@ -422,6 +478,24 @@ describe("content validation", () => {
     }
   });
 
+  it("every design role appears in the first micro-set", () => {
+    const roles = new Set(sampleCards.map((card) => card.design?.role));
+
+    for (const role of CARD_DESIGN_ROLES) {
+      expect(roles.has(role), role).toBe(true);
+    }
+  });
+
+  it("every Aspect has at least five non-Source playable cards", () => {
+    for (const aspect of ASPECTS) {
+      const matchingCards = sampleCards.filter(
+        (card) => card.cardType !== "Source" && card.aspects.includes(aspect)
+      );
+
+      expect(matchingCards.length, aspect).toBeGreaterThanOrEqual(5);
+    }
+  });
+
   it("playable sample cards use implemented effects and triggers only", () => {
     const reservedEffectUses = sampleCards.flatMap((card) =>
       effectsForCard(card)
@@ -477,6 +551,94 @@ describe("content validation", () => {
       ];
 
       expect(new Set(ids).size, encounter.id).toBe(ids.length);
+    }
+  });
+
+  it("starter kits contain cards from their intended archetypes", () => {
+    for (const starterKit of sampleStarterKits) {
+      const expectedArchetypes = expectedStarterArchetypes[starterKit.id];
+      if (!expectedArchetypes) {
+        throw new Error(`Missing starter archetype expectation for ${starterKit.id}`);
+      }
+
+      const nonSourceCards = starterKitCardDefs(starterKit).filter(
+        (card) => card.cardType !== "Source"
+      );
+
+      for (const archetype of expectedArchetypes) {
+        expect(
+          nonSourceCards.some((card) => card.design?.archetypes.includes(archetype)),
+          `${starterKit.id}:${archetype}`
+        ).toBe(true);
+      }
+    }
+  });
+
+  it("starter kit and encounter card references exist with design metadata", () => {
+    for (const starterKit of sampleStarterKits) {
+      for (const card of starterKitCardDefs(starterKit)) {
+        expect(
+          sampleCatalog.cardsById.get(card.id),
+          `${starterKit.id}:${card.id}`
+        ).toEqual(card);
+        expect(card.design, `${starterKit.id}:${card.id}`).toBeDefined();
+      }
+    }
+
+    for (const encounter of sampleEncounters) {
+      for (const card of encounterCardDefs(encounter)) {
+        expect(
+          sampleCatalog.cardsById.get(card.id),
+          `${encounter.id}:${card.id}`
+        ).toEqual(card);
+        expect(card.design, `${encounter.id}:${card.id}`).toBeDefined();
+      }
+    }
+  });
+
+  it("encounters include cards matching their listed tags or aspects", () => {
+    for (const encounter of sampleEncounters) {
+      const encounterTags = new Set((encounter.tags ?? []).map(normalized));
+      const encounterAspects = new Set(encounter.aspects ?? []);
+      const cards = encounterCardDefs(encounter).filter(
+        (card) => card.cardType !== "Source"
+      );
+
+      expect(
+        cards.some(
+          (card) =>
+            card.tags.some((tag) => encounterTags.has(normalized(tag))) ||
+            card.keywords.some((keyword) => encounterTags.has(normalized(keyword))) ||
+            card.design?.mechanicTags.some((tag) => encounterTags.has(normalized(tag))) ||
+            card.aspects.some((aspect) => encounterAspects.has(aspect))
+        ),
+        encounter.id
+      ).toBe(true);
+    }
+  });
+
+  it("non-Source packs represent their intended archetypes in biased pools", () => {
+    for (const pack of samplePacks) {
+      const expectedArchetypes = expectedNonSourcePackArchetypes[pack.id];
+      if (!expectedArchetypes) {
+        continue;
+      }
+
+      const biasedCards = sampleCards.filter(
+        (card) =>
+          card.cardType !== "Source" &&
+          Object.prototype.hasOwnProperty.call(pack.setWeights, card.set) &&
+          cardMatchesPackBias(card, pack.tagBias)
+      );
+
+      expect(
+        biasedCards.some((card) =>
+          expectedArchetypes.some((archetype) =>
+            card.design?.archetypes.includes(archetype)
+          )
+        ),
+        pack.id
+      ).toBe(true);
     }
   });
 

@@ -13,6 +13,14 @@ const expectedPackArchetypes: Readonly<Record<string, readonly string[]>> = {
   cloudspire_pack: ["cloudspire_phase"],
   source_pack: ["source_greed"]
 };
+const smokeSeeds = [
+  "smoke-a",
+  "smoke-b",
+  "smoke-c",
+  "smoke-d",
+  "smoke-e",
+  "smoke-f"
+] as const;
 
 const cardMatchesAnyPackSlot = (card: CardDefinition, pack: PackDefinition): boolean =>
   pack.slots.some((slot) => {
@@ -99,4 +107,51 @@ describe("pack opening", () => {
       opened.slots.filter((slot) => slot.slotType === "sourceOrSupport")
     ).toHaveLength(4);
   });
+
+  it.each(sampleCatalog.packs)(
+    "opens usable aggregate rewards for $id across fixed seeds",
+    (pack) => {
+      const openedCards = smokeSeeds.flatMap((seed) =>
+        openPack({
+          catalog: sampleCatalog,
+          packId: pack.id,
+          seed,
+          ownerId
+        }).cards.map((card) => {
+          const def = sampleCatalog.cardsById.get(card.defId);
+          if (!def) {
+            throw new Error(`Missing opened card definition ${card.defId}`);
+          }
+          return def;
+        })
+      );
+      const expectedArchetypes = expectedPackArchetypes[pack.id];
+      if (!expectedArchetypes) {
+        throw new Error(`Missing archetype expectation for pack ${pack.id}`);
+      }
+
+      expect(openedCards.length, pack.id).toBeGreaterThan(0);
+      expect(
+        openedCards.every((card) => card.design),
+        pack.id
+      ).toBe(true);
+      expect(
+        openedCards.some((card) =>
+          expectedArchetypes.some((archetype) =>
+            card.design?.archetypes.includes(archetype)
+          )
+        ),
+        pack.id
+      ).toBe(true);
+
+      if (pack.id === "source_pack") {
+        expect(openedCards.some((card) => card.cardType === "Source")).toBe(true);
+        expect(
+          openedCards.some(
+            (card) => card.design?.role === "fixing" || card.tags.includes("Fixing")
+          )
+        ).toBe(true);
+      }
+    }
+  );
 });

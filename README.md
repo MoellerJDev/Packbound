@@ -23,6 +23,8 @@ resolves combat into an event log.
 - `packages/sim`: Pure deterministic combat simulation and event log output.
 - `packages/sim/src/__fixtures__`: Deterministic combat fixtures used by tests to
   preserve representative event ordering and final-state summaries.
+- `packages/sim/src/outcomeSummary.ts`: Broad combat outcome summaries used by
+  balance smoke tests and future tooling.
 
 ## Continuous Integration
 
@@ -81,3 +83,5 @@ See `CARD_DESIGN_GUIDE.md` for Packbound card design principles, terminology,
 and current mechanic boundaries.
 See `ARCHETYPE_MATRIX.md` for the first micro-set archetypes, card roles,
 starter-kit implications, and pack implications.
+See `BALANCE_SMOKE_GUIDE.md` for broad content confidence fixtures, pack
+usability checks, and how to update expectations without overfitting exact logs.

@@ -38,3 +38,6 @@ pnpm dev
 - Combat resolves to serializable events that a future renderer can replay.
 - Core state uses plain objects so future server validation, async ghost PvP,
   and replay tooling can share the same rules engine.
+
+See `IMPLEMENTED_MECHANICS.md` for the current implemented versus
+schema-reserved simulator mechanics.

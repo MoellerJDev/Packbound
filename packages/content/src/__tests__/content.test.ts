@@ -35,4 +35,52 @@ describe("content validation", () => {
       loadContentCatalog({ cards: duplicateCards, packs: samplePacks })
     ).toThrow(ContentValidationError);
   });
+
+  it("rejects effect references to missing card definitions", () => {
+    const brokenCards = sampleCards.map((card) =>
+      card.id === asCardDefId("signal_nest")
+        ? {
+            ...card,
+            abilities: [
+              {
+                ...card.abilities[0],
+                effect: {
+                  type: "SummonEcho",
+                  cardDefId: asCardDefId("missing_echo"),
+                  placement: "Backline"
+                }
+              }
+            ]
+          }
+        : card
+    );
+
+    expect(() => loadContentCatalog({ cards: brokenCards, packs: samplePacks })).toThrow(
+      ContentValidationError
+    );
+  });
+
+  it("rejects summon effects that reference non-unit content", () => {
+    const brokenCards = sampleCards.map((card) =>
+      card.id === asCardDefId("signal_nest")
+        ? {
+            ...card,
+            abilities: [
+              {
+                ...card.abilities[0],
+                effect: {
+                  type: "SummonEcho",
+                  cardDefId: asCardDefId("ember_source"),
+                  placement: "Backline"
+                }
+              }
+            ]
+          }
+        : card
+    );
+
+    expect(() => loadContentCatalog({ cards: brokenCards, packs: samplePacks })).toThrow(
+      ContentValidationError
+    );
+  });
 });

@@ -1,5 +1,6 @@
 import {
   chargeCostTotal,
+  type AbilityEffect,
   type CardDefId,
   type CardDefinition,
   type PackDefinition,
@@ -28,6 +29,53 @@ export class ContentValidationError extends Error {
 export type LoadContentInput = {
   readonly cards: unknown;
   readonly packs: unknown;
+};
+
+type EffectReferenceValidator = (
+  effect: AbilityEffect,
+  context: {
+    readonly card: CardDefinition;
+    readonly cardsById: ReadonlyMap<CardDefId, CardDefinition>;
+    readonly issues: string[];
+  }
+) => void;
+
+const validateSummonReference =
+  (
+    effectType: "SummonEcho" | "SummonUnit",
+    legalCardTypes: readonly CardDefinition["cardType"][]
+  ): EffectReferenceValidator =>
+  (effect, context) => {
+    if (effect.type !== effectType) {
+      return;
+    }
+
+    const referenced = context.cardsById.get(effect.cardDefId);
+    if (!referenced) {
+      context.issues.push(
+        `${context.card.id} ${effect.type} references unknown card definition '${effect.cardDefId}'`
+      );
+      return;
+    }
+
+    if (!legalCardTypes.includes(referenced.cardType)) {
+      context.issues.push(
+        `${context.card.id} ${effect.type} references ${referenced.id}, but ${referenced.cardType} is not summonable by that effect`
+      );
+    }
+  };
+
+const effectReferenceValidators: readonly EffectReferenceValidator[] = [
+  validateSummonReference("SummonEcho", ["Echo", "Unit"]),
+  validateSummonReference("SummonUnit", ["Unit", "Echo"])
+];
+
+const effectsForCard = (card: CardDefinition): readonly AbilityEffect[] => {
+  const abilityEffects = card.abilities.map((ability) => ability.effect);
+  if (card.cardType !== "Technique") {
+    return abilityEffects;
+  }
+  return [...abilityEffects, card.technique.effect];
 };
 
 export const loadContentCatalog = (input: LoadContentInput): ContentCatalog => {
@@ -97,6 +145,12 @@ export const loadContentCatalog = (input: LoadContentInput): ContentCatalog => {
   }
 
   for (const card of cards) {
+    for (const effect of effectsForCard(card)) {
+      for (const validator of effectReferenceValidators) {
+        validator(effect, { card, cardsById, issues });
+      }
+    }
+
     if (card.cardType === "Source") {
       continue;
     }

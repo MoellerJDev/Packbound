@@ -119,6 +119,10 @@ export const summonUnit = (
     timeMs: state.timeMs,
     unitId: unit.unitId,
     cardInstanceId,
+    defId: def.id,
+    side: unit.side,
+    ownerId: unit.ownerId,
+    isEcho: unit.isEcho,
     position
   });
 
@@ -182,7 +186,10 @@ export const recallUnit = (
     ownerId: card.ownerId,
     position
   } satisfies BoardPlacement;
-  const unit = makeUnitFromPlacement(source.sideState.side, placement, def);
+  const unit = makeUnitFromPlacement(source.sideState.side, placement, def, {
+    ...card,
+    zone: "board"
+  });
   unit.currentHealth = Math.min(effect.healthOverride ?? unit.maxHealth, unit.maxHealth);
   unit.summonedThisCombat = true;
   unit.isEcho = effect.becomesEcho ?? unit.isEcho;
@@ -192,6 +199,11 @@ export const recallUnit = (
     type: "UnitRecalled",
     timeMs: state.timeMs,
     unitId: unit.unitId,
+    cardInstanceId: card.instanceId,
+    defId: def.id,
+    side: unit.side,
+    ownerId: unit.ownerId,
+    isEcho: unit.isEcho,
     from: "ashes",
     position
   });
@@ -228,7 +240,12 @@ export const phaseUnit = (
   emit(state, {
     type: "UnitPhasedOut",
     timeMs: state.timeMs,
-    unitId: unit.unitId
+    unitId: unit.unitId,
+    cardInstanceId: unit.cardInstanceId,
+    defId: unit.def.id,
+    side: unit.side,
+    ownerId: unit.ownerId,
+    isEcho: unit.isEcho
   });
 };
 
@@ -256,6 +273,11 @@ export const returnPhasedUnits = (
         type: "UnitPhasedIn",
         timeMs: state.timeMs,
         unitId: entry.unit.unitId,
+        cardInstanceId: entry.unit.cardInstanceId,
+        defId: entry.unit.def.id,
+        side: entry.unit.side,
+        ownerId: entry.unit.ownerId,
+        isEcho: entry.unit.isEcho,
         position
       });
 

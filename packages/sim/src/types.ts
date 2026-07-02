@@ -27,6 +27,7 @@ export type UnitLikeDefinition = UnitCardDefinition | EchoCardDefinition;
 export type CombatantSetup = {
   readonly playerId: PlayerId;
   readonly board: BoardState;
+  readonly activeCards?: readonly CardInstance[];
   readonly sourceRow: SourceRowState;
   readonly spellrail: SpellrailState;
   readonly startingAshes?: readonly CardInstance[];
@@ -77,6 +78,7 @@ export type MutableUnit = {
   attackTimerMs: number;
   summonedThisCombat: boolean;
   isEcho: boolean;
+  sourceCard?: CardInstance;
 };
 
 export type TechniqueRuntime = {

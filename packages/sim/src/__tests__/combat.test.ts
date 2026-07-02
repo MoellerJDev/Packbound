@@ -8,8 +8,8 @@ import {
 } from "@packbound/content";
 import { createCardInstance } from "@packbound/rules";
 import {
-  asCardDefId,
   asCardInstanceId,
+  asCardDefId,
   asPlayerId,
   asUnitInstanceId,
   type BoardPlacement,
@@ -23,7 +23,12 @@ import {
   type SpellrailState
 } from "@packbound/shared";
 
-import { resolveCombat, type CombatantSetup, type ResolveCombatInput } from "../index";
+import {
+  resolveCombat,
+  summarizeCombatOutcome,
+  type CombatantSetup,
+  type ResolveCombatInput
+} from "../index";
 
 const playerA = asPlayerId("player-a");
 const playerB = asPlayerId("player-b");
@@ -253,6 +258,29 @@ const instance = (
     instanceId: asCardInstanceId(`${playerId}:${defId}:${suffix}`)
   });
 
+const modifiedBoardInstance = (
+  playerId: PlayerId,
+  defId: string,
+  instanceId: CardInstanceId
+): CardInstance => ({
+  instanceId,
+  defId: asCardDefId(defId),
+  ownerId: playerId,
+  zone: "board",
+  modifiers: [
+    {
+      id: `test-modifier:${defId}`,
+      type: "StatModifier",
+      sourceId: "test-source",
+      stackingRule: "stack",
+      metadata: { attack: 1, note: "preserve-through-combat" }
+    }
+  ],
+  upgradeLevel: 3,
+  createdBy: asCardInstanceId(`${instanceId}:created-by`),
+  isEcho: false
+});
+
 const sourceRow = (playerId: PlayerId, ...defIds: string[]): SourceRowState => ({
   maxSlots: 4,
   cards: defIds.map((defId) => instance(playerId, defId, "sourceRow"))
@@ -337,10 +365,12 @@ const combatant = (
   combatBoard: BoardState,
   sources: SourceRowState = emptySourceRow(),
   rail: SpellrailState = emptySpellrail(),
-  startingAshes: readonly CardInstance[] = []
+  startingAshes: readonly CardInstance[] = [],
+  activeCards: readonly CardInstance[] = []
 ): CombatantSetup => ({
   playerId,
   board: combatBoard,
+  ...(activeCards.length > 0 ? { activeCards } : {}),
   sourceRow: sources,
   spellrail: rail,
   startingAshes
@@ -383,28 +413,86 @@ describe("deterministic combat", () => {
   });
 
   it("moves destroyed non-Echo units to Ashes", () => {
+    const doomed = placement(playerA, "a", "ember_scraprunner", 0, 0, "doomed");
     const result = resolve({
-      playerA: combatant(playerA, unitBoard(playerA, "a", "ember_scraprunner")),
+      playerA: combatant(playerA, board(doomed)),
       playerB: combatant(playerB, unitBoard(playerB, "b", "debt_bound_colossus"))
     });
+    const destroyed = result.events.find(
+      (event): event is Extract<CombatEvent, { readonly type: "UnitDestroyed" }> =>
+        event.type === "UnitDestroyed" && event.side === "playerA"
+    );
 
     expect(result.finalState.ashes.playerA.map((card) => card.defId)).toContain(
       asCardDefId("ember_scraprunner")
     );
-    expect(result.events.some((event) => event.type === "UnitDestroyed")).toBe(true);
+    expect(destroyed).toMatchObject({
+      unitId: unitId("playerA", doomed.cardInstanceId),
+      cardInstanceId: doomed.cardInstanceId,
+      defId: asCardDefId("ember_scraprunner"),
+      side: "playerA",
+      ownerId: playerA,
+      isEcho: false
+    });
+  });
+
+  it("preserves destroyed non-Echo card instance data when moved to Ashes", () => {
+    const doomed = placement(playerA, "a", "ember_scraprunner", 0, 0, "modified");
+    const original = modifiedBoardInstance(
+      playerA,
+      "ember_scraprunner",
+      doomed.cardInstanceId
+    );
+
+    const result = resolve({
+      playerA: combatant(
+        playerA,
+        board(doomed),
+        emptySourceRow(),
+        emptySpellrail(),
+        [],
+        [original]
+      ),
+      playerB: combatant(playerB, unitBoard(playerB, "b", "debt_bound_colossus"))
+    });
+
+    expect(result.finalState.ashes.playerA[0]).toEqual({
+      ...original,
+      zone: "ashes"
+    });
+    expect(original.zone).toBe("board");
   });
 
   it("destroyed Echoes do not enter Ashes", () => {
-    const result = resolve({
-      playerA: combatant(playerA, unitBoard(playerA, "a", "signal_wisp_echo")),
+    const echo = placement(playerA, "a", "signal_wisp_echo", 0, 0, "echo");
+    const input = {
+      playerA: combatant(playerA, board(echo)),
       playerB: combatant(playerB, unitBoard(playerB, "b", "test_quick_attacker")),
       maxDurationMs: 500
-    });
+    };
+    const result = resolve(input);
+    const summary = summarizeCombatOutcome(result);
+    const destroyed = result.events.find(
+      (event): event is Extract<CombatEvent, { readonly type: "UnitDestroyed" }> =>
+        event.type === "UnitDestroyed" && event.side === "playerA"
+    );
 
-    expect(result.events.some((event) => event.type === "UnitDestroyed")).toBe(true);
+    expect(destroyed).toMatchObject({
+      unitId: unitId("playerA", echo.cardInstanceId),
+      cardInstanceId: echo.cardInstanceId,
+      defId: asCardDefId("signal_wisp_echo"),
+      side: "playerA",
+      ownerId: playerA,
+      isEcho: true
+    });
     expect(result.finalState.ashes.playerA.map((card) => card.defId)).not.toContain(
       asCardDefId("signal_wisp_echo")
     );
+    expect(summary.destroyedUnitDefIdsBySide.playerA).toContain(
+      asCardDefId("signal_wisp_echo")
+    );
+    expect(JSON.parse(JSON.stringify(summary))).toEqual(summary);
+    expect(summarizeCombatOutcome(resolve(input))).toEqual(summary);
   });
 
   it("summons Echoes from generic OnCombatStart abilities", () => {
@@ -413,8 +501,17 @@ describe("deterministic combat", () => {
       playerB: combatant(playerB, unitBoard(playerB, "b", "ember_scraprunner")),
       maxDurationMs: 2000
     });
+    const summoned = result.events.find(
+      (event): event is Extract<CombatEvent, { readonly type: "UnitSummoned" }> =>
+        event.type === "UnitSummoned"
+    );
 
-    expect(result.events.some((event) => event.type === "UnitSummoned")).toBe(true);
+    expect(summoned).toMatchObject({
+      defId: asCardDefId("signal_wisp_echo"),
+      side: "playerA",
+      ownerId: playerA,
+      isEcho: true
+    });
     expect(result.finalState.ashes.playerA).toHaveLength(0);
   });
 
@@ -436,8 +533,31 @@ describe("deterministic combat", () => {
 
     const phaseOut = result.events.find((event) => event.type === "UnitPhasedOut");
     const phaseIn = result.events.find((event) => event.type === "UnitPhasedIn");
-    expect(phaseOut).toMatchObject({ unitId: phasedUnitId });
-    expect(phaseIn).toMatchObject({ unitId: phasedUnitId });
+    const techniqueUsed = result.events.find(
+      (event): event is Extract<CombatEvent, { readonly type: "TechniqueUsed" }> =>
+        event.type === "TechniqueUsed"
+    );
+    expect(phaseOut).toMatchObject({
+      unitId: phasedUnitId,
+      cardInstanceId: phaseTarget.cardInstanceId,
+      defId: asCardDefId("test_phase_probe"),
+      side: "playerA",
+      ownerId: playerA,
+      isEcho: false
+    });
+    expect(phaseIn).toMatchObject({
+      unitId: phasedUnitId,
+      cardInstanceId: phaseTarget.cardInstanceId,
+      defId: asCardDefId("test_phase_probe"),
+      side: "playerA",
+      ownerId: playerA,
+      isEcho: false
+    });
+    expect(techniqueUsed).toMatchObject({
+      defId: asCardDefId("test_phase_now"),
+      side: "playerA",
+      ownerId: playerA
+    });
 
     const damageWhilePhased = result.events.filter(
       (event) =>
@@ -500,9 +620,18 @@ describe("deterministic combat", () => {
       maxDurationMs: 0
     });
 
-    expect(result.events.filter((event) => event.type === "UnitRecalled")).toHaveLength(
-      1
+    const recalled = result.events.filter(
+      (event): event is Extract<CombatEvent, { readonly type: "UnitRecalled" }> =>
+        event.type === "UnitRecalled"
     );
+    expect(recalled).toHaveLength(1);
+    expect(recalled[0]).toMatchObject({
+      cardInstanceId: ashes[0]?.instanceId,
+      defId: asCardDefId("test_phase_probe"),
+      side: "playerA",
+      ownerId: playerA,
+      isEcho: false
+    });
     expect(result.finalState.ashes.playerA).toHaveLength(1);
   });
 
@@ -542,6 +671,13 @@ describe("deterministic combat", () => {
     );
 
     expect(damageToWall[0]).toMatchObject({ amount: 0 });
+    expect(damageToWall[0]).toMatchObject({
+      sourceDefId: asCardDefId("test_quick_attacker"),
+      sourceSide: "playerB",
+      targetCardInstanceId: wall.cardInstanceId,
+      targetDefId: asCardDefId("test_barrier_wall"),
+      targetSide: "playerA"
+    });
     expect(damageToWall.slice(1).some((event) => event.amount > 0)).toBe(true);
     expect(
       result.events.filter(

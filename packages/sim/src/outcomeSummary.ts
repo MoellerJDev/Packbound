@@ -1,10 +1,4 @@
-import type {
-  CardDefId,
-  CardInstance,
-  CardInstanceId,
-  CombatWinner,
-  PlayerSide
-} from "@packbound/shared";
+import type { CardDefId, CombatWinner, PlayerSide } from "@packbound/shared";
 
 import type { CombatResult } from "./types";
 
@@ -28,41 +22,6 @@ const emptyDefIdsBySide = (): Record<PlayerSide, CardDefId[]> => ({
   playerB: []
 });
 
-const cardInstanceIdFromUnitId = (
-  unitId: string
-): { readonly side: PlayerSide; readonly cardInstanceId: CardInstanceId } | undefined => {
-  for (const side of sides) {
-    const prefix = `${side}:`;
-    if (unitId.startsWith(prefix)) {
-      return {
-        side,
-        cardInstanceId: unitId.slice(prefix.length) as CardInstanceId
-      };
-    }
-  }
-  return undefined;
-};
-
-const cardBySideAndInstanceId = (
-  ashes: CombatResult["finalState"]["ashes"]
-): ReadonlyMap<
-  CardInstanceId,
-  { readonly side: PlayerSide; readonly card: CardInstance }
-> => {
-  const cards = new Map<
-    CardInstanceId,
-    { readonly side: PlayerSide; readonly card: CardInstance }
-  >();
-
-  for (const side of sides) {
-    for (const card of ashes[side]) {
-      cards.set(card.instanceId, { side, card });
-    }
-  }
-
-  return cards;
-};
-
 export const summarizeCombatOutcome = (result: CombatResult): CombatOutcomeSummary => {
   const finalUnitDefIdsBySide = emptyDefIdsBySide();
   for (const unit of result.finalState.units) {
@@ -76,27 +35,16 @@ export const summarizeCombatOutcome = (result: CombatResult): CombatOutcomeSumma
     );
   }
 
-  const ashesByInstanceId = cardBySideAndInstanceId(result.finalState.ashes);
   const usedTechniqueDefIdsBySide = emptyDefIdsBySide();
   const destroyedUnitDefIdsBySide = emptyDefIdsBySide();
 
   for (const event of result.events) {
     if (event.type === "TechniqueUsed") {
-      const usedCard = ashesByInstanceId.get(event.cardInstanceId);
-      if (usedCard) {
-        usedTechniqueDefIdsBySide[usedCard.side].push(usedCard.card.defId);
-      }
+      usedTechniqueDefIdsBySide[event.side].push(event.defId);
     }
 
     if (event.type === "UnitDestroyed") {
-      const destroyed = cardInstanceIdFromUnitId(event.unitId);
-      if (!destroyed) {
-        continue;
-      }
-      const destroyedCard = ashesByInstanceId.get(destroyed.cardInstanceId);
-      if (destroyedCard) {
-        destroyedUnitDefIdsBySide[destroyed.side].push(destroyedCard.card.defId);
-      }
+      destroyedUnitDefIdsBySide[event.side].push(event.defId);
     }
   }
 

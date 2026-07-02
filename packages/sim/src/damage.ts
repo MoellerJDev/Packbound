@@ -1,7 +1,11 @@
 import {
   COMBAT_TICK_MS,
+  type CardDefId,
   type CardInstance,
-  type DestructionReason
+  type CardInstanceId,
+  type CombatEvent,
+  type DestructionReason,
+  type PlayerSide
 } from "@packbound/shared";
 
 import { removeUnit } from "./placement";
@@ -10,13 +14,53 @@ import { hasStatus } from "./statuses";
 import { selectEnemyTarget } from "./targeting";
 import type { MutableCombatState, MutableUnit, ResolveAbilities } from "./types";
 
-const unitCardInstanceToAshes = (unit: MutableUnit): CardInstance => ({
-  instanceId: unit.cardInstanceId,
-  defId: unit.def.id,
-  ownerId: unit.ownerId,
+type DamageSource = {
+  readonly sourceId: string;
+  readonly sourceCardInstanceId?: CardInstanceId;
+  readonly sourceDefId?: CardDefId;
+  readonly sourceSide?: PlayerSide;
+};
+
+const copyCardToAshes = (card: CardInstance): CardInstance => ({
+  ...card,
   zone: "ashes",
-  modifiers: [],
-  upgradeLevel: 0
+  modifiers: card.modifiers.map((modifier) => ({
+    ...modifier,
+    ...(modifier.metadata ? { metadata: { ...modifier.metadata } } : {})
+  }))
+});
+
+const unitCardInstanceToAshes = (unit: MutableUnit): CardInstance =>
+  unit.sourceCard
+    ? copyCardToAshes(unit.sourceCard)
+    : {
+        instanceId: unit.cardInstanceId,
+        defId: unit.def.id,
+        ownerId: unit.ownerId,
+        zone: "ashes",
+        modifiers: [],
+        upgradeLevel: 0
+      };
+
+const damageSourceForUnit = (unit: MutableUnit): DamageSource => ({
+  sourceId: unit.unitId,
+  sourceCardInstanceId: unit.cardInstanceId,
+  sourceDefId: unit.def.id,
+  sourceSide: unit.side
+});
+
+const sourceEventMetadata = (
+  source: DamageSource
+): Pick<
+  Extract<CombatEvent, { readonly type: "DamageDealt" }>,
+  "sourceId" | "sourceCardInstanceId" | "sourceDefId" | "sourceSide"
+> => ({
+  sourceId: source.sourceId,
+  ...(source.sourceCardInstanceId !== undefined
+    ? { sourceCardInstanceId: source.sourceCardInstanceId }
+    : {}),
+  ...(source.sourceDefId !== undefined ? { sourceDefId: source.sourceDefId } : {}),
+  ...(source.sourceSide !== undefined ? { sourceSide: source.sourceSide } : {})
 });
 
 export const destroyUnit = (
@@ -36,6 +80,11 @@ export const destroyUnit = (
     type: "UnitDestroyed",
     timeMs: state.timeMs,
     unitId: unit.unitId,
+    cardInstanceId: unit.cardInstanceId,
+    defId: unit.def.id,
+    side: unit.side,
+    ownerId: unit.ownerId,
+    isEcho: unit.isEcho,
     reason
   });
 
@@ -58,7 +107,7 @@ export const destroyUnit = (
 
 export const applyDamage = (
   state: MutableCombatState,
-  sourceId: string,
+  source: DamageSource,
   target: MutableUnit,
   amount: number,
   reason: DestructionReason,
@@ -81,8 +130,11 @@ export const applyDamage = (
     emit(state, {
       type: "DamageDealt",
       timeMs: state.timeMs,
-      sourceId,
+      ...sourceEventMetadata(source),
       targetId: target.unitId,
+      targetCardInstanceId: target.cardInstanceId,
+      targetDefId: target.def.id,
+      targetSide: target.side,
       amount: 0,
       damageType: reason === "combatDamage" ? "attack" : "trigger"
     });
@@ -93,8 +145,11 @@ export const applyDamage = (
   emit(state, {
     type: "DamageDealt",
     timeMs: state.timeMs,
-    sourceId,
+    ...sourceEventMetadata(source),
     targetId: target.unitId,
+    targetCardInstanceId: target.cardInstanceId,
+    targetDefId: target.def.id,
+    targetSide: target.side,
     amount,
     damageType: reason === "combatDamage" ? "attack" : "trigger"
   });
@@ -136,11 +191,17 @@ export const processAttacks = (
       type: "UnitAttacked",
       timeMs: state.timeMs,
       attackerId: unit.unitId,
-      targetId: target.unitId
+      attackerCardInstanceId: unit.cardInstanceId,
+      attackerDefId: unit.def.id,
+      attackerSide: unit.side,
+      targetId: target.unitId,
+      targetCardInstanceId: target.cardInstanceId,
+      targetDefId: target.def.id,
+      targetSide: target.side
     });
     applyDamage(
       state,
-      unit.unitId,
+      damageSourceForUnit(unit),
       target,
       unit.attack,
       "combatDamage",

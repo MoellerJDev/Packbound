@@ -21,6 +21,7 @@ import { validatePlanningState } from "./validation";
 export type RunCombatantSetup = {
   readonly playerId: PlayerId;
   readonly board: BoardState;
+  readonly activeCards?: readonly CardInstance[];
   readonly sourceRow: SourceRowState;
   readonly spellrail: SpellrailState;
   readonly startingAshes?: readonly CardInstance[];
@@ -317,6 +318,7 @@ export const validateRunLoadout = (
 export const buildCombatantSetupForRun = (run: RunState): RunCombatantSetup => ({
   playerId: run.playerId,
   board: { placements: run.board.placements.map(copyPlacement) },
+  ...(run.activeCards.length > 0 ? { activeCards: run.activeCards.map(copyCard) } : {}),
   sourceRow: {
     maxSlots: run.sourceRow.maxSlots,
     cards: run.sourceRow.cards.map(copyCard)

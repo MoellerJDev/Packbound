@@ -17,7 +17,10 @@ export const queueTechniques = (state: MutableCombatState): void => {
       emit(state, {
         type: "TechniqueQueued",
         timeMs: 0,
-        cardInstanceId: technique.card.instanceId
+        cardInstanceId: technique.card.instanceId,
+        defId: technique.def.id,
+        side: side.side,
+        ownerId: technique.card.ownerId
       });
     }
   }
@@ -110,6 +113,9 @@ export const resolveTechniques = (
         type: "TechniqueUsed",
         timeMs: state.timeMs,
         cardInstanceId: technique.card.instanceId,
+        defId: technique.def.id,
+        side: side.side,
+        ownerId: technique.card.ownerId,
         targets: targets.map((target) => target.unitId)
       });
 

@@ -50,7 +50,8 @@ pnpm dev
 - Game logic must stay outside React and renderer code.
 - Randomness in rules and simulation flows through a seeded RNG.
 - Content is declarative and validated through Zod before use.
-- Combat resolves to serializable events that a future renderer can replay.
+- Combat resolves to serializable events with card instance, definition, owner,
+  and side metadata that a future renderer can replay or inspect.
 - Run progression is deterministic and serializable: seeds produce reward
   choices, pack openings, combat summaries, round advancement, and terminal
   won/lost states without renderer involvement.

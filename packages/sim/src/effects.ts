@@ -22,7 +22,12 @@ export const applyEffect = (
       for (const target of targets) {
         applyDamage(
           state,
-          source.cardInstanceId,
+          {
+            sourceId: source.cardInstanceId,
+            sourceCardInstanceId: source.cardInstanceId,
+            sourceDefId: source.def.id,
+            sourceSide: source.sideState.side
+          },
           target,
           effect.amount,
           "techniqueDamage",

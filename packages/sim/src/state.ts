@@ -6,6 +6,7 @@ import {
   type BoardPlacement,
   type BoardPosition,
   type CardDefinition,
+  type CardInstance,
   type CombatEvent,
   type CombatWinner,
   type PlayerSide,
@@ -82,10 +83,19 @@ export const hasKeyword = (unit: MutableUnit, keyword: string): boolean =>
 export const aliveUnits = (side: MutableSideState): readonly MutableUnit[] =>
   side.units.filter((unit) => unit.currentHealth > 0);
 
+const copyCard = (card: CardInstance): CardInstance => ({
+  ...card,
+  modifiers: card.modifiers.map((modifier) => ({
+    ...modifier,
+    ...(modifier.metadata ? { metadata: { ...modifier.metadata } } : {})
+  }))
+});
+
 export const makeUnitFromPlacement = (
   side: PlayerSide,
   placement: BoardPlacement,
-  def: UnitLikeDefinition
+  def: UnitLikeDefinition,
+  sourceCard?: CardInstance
 ): MutableUnit => ({
   unitId: asUnitInstanceId(`${side}:${placement.cardInstanceId}`),
   cardInstanceId: placement.cardInstanceId,
@@ -104,7 +114,8 @@ export const makeUnitFromPlacement = (
     ? 0
     : Math.round(1000 / def.stats.attackSpeed),
   summonedThisCombat: false,
-  isEcho: def.cardType === "Echo"
+  isEcho: def.cardType === "Echo",
+  ...(sourceCard ? { sourceCard: copyCard({ ...sourceCard, zone: "board" }) } : {})
 });
 
 const buildSideState = (
@@ -114,6 +125,9 @@ const buildSideState = (
 ): MutableSideState => {
   const units: MutableUnit[] = [];
   const permanents: MutableSideState["permanents"] = [];
+  const activeCardsById = new Map(
+    (setup.activeCards ?? []).map((card) => [card.instanceId, copyCard(card)] as const)
+  );
 
   for (const placement of setup.board.placements) {
     const def = inputCatalog.cardsById.get(placement.defId);
@@ -122,7 +136,14 @@ const buildSideState = (
     }
 
     if (isUnitDefinition(def)) {
-      units.push(makeUnitFromPlacement(side, placement, def));
+      units.push(
+        makeUnitFromPlacement(
+          side,
+          placement,
+          def,
+          activeCardsById.get(placement.cardInstanceId)
+        )
+      );
     } else if (def.cardType === "Relic" || def.cardType === "Field") {
       permanents.push({
         cardInstanceId: placement.cardInstanceId,

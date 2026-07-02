@@ -60,13 +60,25 @@ export type CombatEvent =
       readonly type: "UnitAttacked";
       readonly timeMs: number;
       readonly attackerId: UnitInstanceId;
+      readonly attackerCardInstanceId: CardInstanceId;
+      readonly attackerDefId: CardDefId;
+      readonly attackerSide: PlayerSide;
       readonly targetId: UnitInstanceId;
+      readonly targetCardInstanceId: CardInstanceId;
+      readonly targetDefId: CardDefId;
+      readonly targetSide: PlayerSide;
     }
   | {
       readonly type: "DamageDealt";
       readonly timeMs: number;
       readonly sourceId?: string;
+      readonly sourceCardInstanceId?: CardInstanceId;
+      readonly sourceDefId?: CardDefId;
+      readonly sourceSide?: PlayerSide;
       readonly targetId: UnitInstanceId;
+      readonly targetCardInstanceId: CardInstanceId;
+      readonly targetDefId: CardDefId;
+      readonly targetSide: PlayerSide;
       readonly amount: number;
       readonly damageType: DamageType;
     }
@@ -88,6 +100,11 @@ export type CombatEvent =
       readonly type: "UnitDestroyed";
       readonly timeMs: number;
       readonly unitId: UnitInstanceId;
+      readonly cardInstanceId: CardInstanceId;
+      readonly defId: CardDefId;
+      readonly side: PlayerSide;
+      readonly ownerId: PlayerId;
+      readonly isEcho: boolean;
       readonly reason: DestructionReason;
     }
   | {
@@ -95,12 +112,21 @@ export type CombatEvent =
       readonly timeMs: number;
       readonly unitId: UnitInstanceId;
       readonly cardInstanceId: CardInstanceId;
+      readonly defId: CardDefId;
+      readonly side: PlayerSide;
+      readonly ownerId: PlayerId;
+      readonly isEcho: boolean;
       readonly position: BoardPosition;
     }
   | {
       readonly type: "UnitRecalled";
       readonly timeMs: number;
       readonly unitId: UnitInstanceId;
+      readonly cardInstanceId: CardInstanceId;
+      readonly defId: CardDefId;
+      readonly side: PlayerSide;
+      readonly ownerId: PlayerId;
+      readonly isEcho: boolean;
       readonly from: "ashes";
       readonly position: BoardPosition;
     }
@@ -108,22 +134,38 @@ export type CombatEvent =
       readonly type: "UnitPhasedOut";
       readonly timeMs: number;
       readonly unitId: UnitInstanceId;
+      readonly cardInstanceId: CardInstanceId;
+      readonly defId: CardDefId;
+      readonly side: PlayerSide;
+      readonly ownerId: PlayerId;
+      readonly isEcho: boolean;
     }
   | {
       readonly type: "UnitPhasedIn";
       readonly timeMs: number;
       readonly unitId: UnitInstanceId;
+      readonly cardInstanceId: CardInstanceId;
+      readonly defId: CardDefId;
+      readonly side: PlayerSide;
+      readonly ownerId: PlayerId;
+      readonly isEcho: boolean;
       readonly position: BoardPosition;
     }
   | {
       readonly type: "TechniqueQueued";
       readonly timeMs: number;
       readonly cardInstanceId: CardInstanceId;
+      readonly defId: CardDefId;
+      readonly side: PlayerSide;
+      readonly ownerId: PlayerId;
     }
   | {
       readonly type: "TechniqueUsed";
       readonly timeMs: number;
       readonly cardInstanceId: CardInstanceId;
+      readonly defId: CardDefId;
+      readonly side: PlayerSide;
+      readonly ownerId: PlayerId;
       readonly targets: readonly string[];
     }
   | {

@@ -95,9 +95,10 @@ can be persisted or replayed by future tooling without bloating core run state.
 ### Combat Fixtures
 
 Combat fixture tests should cover representative boards and preserve stable
-event ordering, warnings, and final summaries. Add fixtures when a simulator
-change affects multiple systems or when a bug is easiest to prevent with a saved
-scenario.
+event ordering, warning codes, event metadata, and final summaries. Combat event
+metadata is part of replay, report, and debugging confidence. Add fixtures when
+a simulator change affects multiple systems or when a bug is easiest to prevent
+with a saved scenario.
 
 ### Balance Smoke Tests
 

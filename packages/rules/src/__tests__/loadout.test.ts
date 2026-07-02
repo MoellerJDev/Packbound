@@ -148,6 +148,7 @@ describe("starter kit run creation", () => {
     expect(setup).toEqual({
       playerId: run.playerId,
       board: run.board,
+      activeCards: run.activeCards,
       sourceRow: run.sourceRow,
       spellrail: run.spellrail
     });

@@ -61,6 +61,8 @@ Destroyed-unit trigger behavior:
   destroyed-this-combat conditions, but Echoes still do not enter Ashes.
 - `AllyDestroyedThisCombat` and `EnemyDestroyedThisCombat` use real
   destroyed-unit tracking from the source side's perspective.
+- Destroyed-trigger ability resolutions emit `AbilityTriggered` combat events
+  with source card metadata and the destroyed Unit/Echo that caused the trigger.
 
 Technique triggers currently resolved by the simulator:
 
@@ -95,4 +97,6 @@ loop:
 - Technique interruption and copying are schema-reserved only.
 - Relics and Fields can provide triggered abilities, but persistent modifier
   systems are still minimal.
+- Position-based ability targeting can use either a Unit source position or a
+  Relic/Field permanent placement position.
 - Combat warnings are intentionally emitted for schema-valid unsupported effects.

@@ -1,6 +1,7 @@
 import type { BoardPosition } from "./board";
 import type { ActiveStatus, Keyword, StatusEffectType } from "./cards";
 import type { CardDefId, CardInstanceId, PlayerId, UnitInstanceId } from "./ids";
+import type { Trigger } from "./abilities";
 
 export type PlayerSide = "playerA" | "playerB";
 export type CombatWinner = PlayerSide | "draw";
@@ -13,6 +14,17 @@ export type DestructionReason =
   | "poison"
   | "burning"
   | "unknown";
+
+export type DestroyedUnitTriggerCause = {
+  readonly type: "unitDestroyed";
+  readonly unitId: UnitInstanceId;
+  readonly cardInstanceId: CardInstanceId;
+  readonly defId: CardDefId;
+  readonly side: PlayerSide;
+  readonly ownerId: PlayerId;
+  readonly isEcho: boolean;
+  readonly reason: DestructionReason;
+};
 
 export type UnitInstance = {
   readonly unitId: UnitInstanceId;
@@ -48,6 +60,17 @@ export type CombatEvent =
       readonly timeMs: number;
       readonly playerId: PlayerId;
       readonly amount: number;
+    }
+  | {
+      readonly type: "AbilityTriggered";
+      readonly timeMs: number;
+      readonly abilityId: string;
+      readonly trigger: Trigger["type"];
+      readonly sourceCardInstanceId: CardInstanceId;
+      readonly sourceDefId: CardDefId;
+      readonly sourceSide: PlayerSide;
+      readonly ownerId: PlayerId;
+      readonly causedBy?: DestroyedUnitTriggerCause;
     }
   | {
       readonly type: "UnitMoved";

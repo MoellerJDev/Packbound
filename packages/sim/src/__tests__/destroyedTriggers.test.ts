@@ -325,6 +325,16 @@ const destroyedEvents = (events: readonly CombatEvent[]) =>
       event.type === "UnitDestroyed"
   );
 
+const abilityTriggeredEvents = (
+  events: readonly CombatEvent[],
+  trigger?: Extract<CombatEvent, { readonly type: "AbilityTriggered" }>["trigger"]
+) =>
+  events.filter(
+    (event): event is Extract<CombatEvent, { readonly type: "AbilityTriggered" }> =>
+      event.type === "AbilityTriggered" &&
+      (trigger === undefined || event.trigger === trigger)
+  );
+
 describe("destroyed-unit triggers", () => {
   it("fires OnAllyDestroyed when another allied Unit is destroyed", () => {
     const result = resolve({
@@ -350,6 +360,24 @@ describe("destroyed-unit triggers", () => {
       })
     );
     expect(combatChargeGains(result.events, playerA, 2)).toHaveLength(1);
+    expect(abilityTriggeredEvents(result.events, "OnAllyDestroyed")).toContainEqual(
+      expect.objectContaining({
+        abilityId: "ally-destroyed-charge",
+        sourceCardInstanceId: asCardInstanceId("a:test_destroy_listener:listener"),
+        sourceDefId: asCardDefId("test_destroy_listener"),
+        sourceSide: "playerA",
+        ownerId: playerA,
+        causedBy: expect.objectContaining({
+          cardInstanceId: asCardInstanceId("a:test_fragile_ally:doomed"),
+          defId: asCardDefId("test_fragile_ally"),
+          side: "playerA",
+          ownerId: playerA,
+          isEcho: false,
+          reason: "combatDamage"
+        })
+      })
+    );
+    expect(JSON.parse(JSON.stringify(result.events))).toEqual(result.events);
   });
 
   it("does not fire OnAllyDestroyed for the destroyed source itself", () => {
@@ -398,6 +426,23 @@ describe("destroyed-unit triggers", () => {
       })
     );
     expect(combatChargeGains(result.events, playerA, 3)).toHaveLength(1);
+    expect(abilityTriggeredEvents(result.events, "OnEnemyDestroyed")).toContainEqual(
+      expect.objectContaining({
+        abilityId: "enemy-destroyed-charge",
+        sourceCardInstanceId: asCardInstanceId("a:test_destroy_listener:listener"),
+        sourceDefId: asCardDefId("test_destroy_listener"),
+        sourceSide: "playerA",
+        ownerId: playerA,
+        causedBy: expect.objectContaining({
+          cardInstanceId: asCardInstanceId("b:test_fragile_enemy:doomed"),
+          defId: asCardDefId("test_fragile_enemy"),
+          side: "playerB",
+          ownerId: playerB,
+          isEcho: false,
+          reason: "combatDamage"
+        })
+      })
+    );
   });
 
   it("uses Relic permanents as destroyed-trigger sources", () => {
@@ -442,6 +487,9 @@ describe("destroyed-unit triggers", () => {
     ).toHaveLength(2);
     expect(combatChargeGains(result.events, playerA, 2)).toHaveLength(4);
     expect(combatChargeGains(result.events, playerA, 5)).toHaveLength(2);
+    expect(abilityTriggeredEvents(result.events, "WhenFirstAllyDestroyed")).toHaveLength(
+      2
+    );
   });
 
   it("fires WhenFirstEnemyDestroyed only once per source per combat", () => {
@@ -537,6 +585,16 @@ describe("destroyed-unit triggers", () => {
     expect(result.finalState.ashes.playerA).toHaveLength(0);
     expect(combatChargeGains(result.events, playerA, 2)).toHaveLength(1);
     expect(combatChargeGains(result.events, playerB, 3)).toHaveLength(1);
+    expect(abilityTriggeredEvents(result.events)).toContainEqual(
+      expect.objectContaining({
+        trigger: "OnAllyDestroyed",
+        causedBy: expect.objectContaining({
+          defId: asCardDefId("test_fragile_echo"),
+          isEcho: true,
+          reason: "combatDamage"
+        })
+      })
+    );
   });
 
   it("resolves nested destruction deterministically", () => {

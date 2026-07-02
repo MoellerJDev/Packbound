@@ -5,6 +5,7 @@ import {
   type CardInstanceId,
   type CombatEvent,
   type DestructionReason,
+  type DestroyedUnitTriggerCause,
   type PlayerSide
 } from "@packbound/shared";
 
@@ -96,13 +97,14 @@ const resolveSourcesForTrigger = (
     | "WhenFirstAllyDestroyed"
     | "WhenFirstEnemyDestroyed",
   depth: number,
-  resolveAbilities: ResolveAbilities
+  resolveAbilities: ResolveAbilities,
+  causedBy: DestroyedUnitTriggerCause
 ): void => {
   for (const source of sources) {
     if (!sourceIsPresent(state, source)) {
       continue;
     }
-    resolveAbilities(state, source, triggerType, depth);
+    resolveAbilities(state, source, triggerType, depth, { causedBy });
   }
 };
 
@@ -111,7 +113,8 @@ const resolveFirstDestroyedTriggers = (
   sources: readonly AbilitySource[],
   triggerType: "WhenFirstAllyDestroyed" | "WhenFirstEnemyDestroyed",
   depth: number,
-  resolveAbilities: ResolveAbilities
+  resolveAbilities: ResolveAbilities,
+  causedBy: DestroyedUnitTriggerCause
 ): void => {
   for (const source of sources) {
     if (!sourceIsPresent(state, source)) {
@@ -127,7 +130,7 @@ const resolveFirstDestroyedTriggers = (
     }
 
     firedSources.add(source.cardInstanceId);
-    resolveAbilities(state, source, triggerType, depth);
+    resolveAbilities(state, source, triggerType, depth, { causedBy });
   }
 };
 
@@ -144,9 +147,8 @@ export const destroyUnit = (
   }
 
   removeUnit(side, unit.unitId);
-  emit(state, {
-    type: "UnitDestroyed",
-    timeMs: state.timeMs,
+  const destroyedCause = {
+    type: "unitDestroyed",
     unitId: unit.unitId,
     cardInstanceId: unit.cardInstanceId,
     defId: unit.def.id,
@@ -154,6 +156,18 @@ export const destroyUnit = (
     ownerId: unit.ownerId,
     isEcho: unit.isEcho,
     reason
+  } satisfies DestroyedUnitTriggerCause;
+
+  emit(state, {
+    type: "UnitDestroyed",
+    timeMs: state.timeMs,
+    unitId: destroyedCause.unitId,
+    cardInstanceId: destroyedCause.cardInstanceId,
+    defId: destroyedCause.defId,
+    side: destroyedCause.side,
+    ownerId: destroyedCause.ownerId,
+    isEcho: destroyedCause.isEcho,
+    reason: destroyedCause.reason
   });
 
   if (!unit.isEcho) {
@@ -185,28 +199,32 @@ export const destroyUnit = (
     alliedSources,
     "OnAllyDestroyed",
     depth,
-    resolveAbilities
+    resolveAbilities,
+    destroyedCause
   );
   resolveSourcesForTrigger(
     state,
     enemySources,
     "OnEnemyDestroyed",
     depth,
-    resolveAbilities
+    resolveAbilities,
+    destroyedCause
   );
   resolveFirstDestroyedTriggers(
     state,
     alliedSources,
     "WhenFirstAllyDestroyed",
     depth,
-    resolveAbilities
+    resolveAbilities,
+    destroyedCause
   );
   resolveFirstDestroyedTriggers(
     state,
     enemySources,
     "WhenFirstEnemyDestroyed",
     depth,
-    resolveAbilities
+    resolveAbilities,
+    destroyedCause
   );
 };
 

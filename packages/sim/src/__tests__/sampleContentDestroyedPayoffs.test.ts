@@ -85,6 +85,12 @@ const recalled = (events: readonly CombatEvent[], defId: CardDefId) =>
       event.type === "UnitRecalled" && event.defId === defId
   );
 
+const abilityTriggered = (events: readonly CombatEvent[], defId: CardDefId) =>
+  events.filter(
+    (event): event is Extract<CombatEvent, { readonly type: "AbilityTriggered" }> =>
+      event.type === "AbilityTriggered" && event.sourceDefId === defId
+  );
+
 const summaryText = (
   result: ReturnType<typeof resolveCombat>,
   perspectiveSide: "playerA" | "playerB" = "playerA"
@@ -127,7 +133,47 @@ describe("sample destroyed-trigger payoffs", () => {
       })
     );
     expect(text).toContain("Coal Wisp Echo vanished");
+    expect(text).toContain("Sparkcatch Apprentice reacted when Coal Wisp Echo vanished.");
     expect(text).toContain("Sparkcatch Apprentice dealt 1 trigger damage");
+  });
+
+  it("explains Cinder Tally reacting to the first ally destroyed", () => {
+    const result = resolveSample({
+      playerA: combatant(
+        playerA,
+        board(
+          placement(playerA, "a", "coal_wisp_echo", 0, 0, "fodder"),
+          placement(playerA, "a", "cinder_tally_relic", 1, 0, "tally", "support")
+        )
+      ),
+      playerB: combatant(
+        playerB,
+        board(placement(playerB, "b", "ember_scraprunner", 0, 1, "attacker"))
+      ),
+      maxDurationMs: 500
+    });
+    const triggerEvents = abilityTriggered(
+      result.events,
+      asCardDefId("cinder_tally_relic")
+    );
+    const text = summaryText(result);
+
+    expect(triggerEvents).toHaveLength(1);
+    expect(triggerEvents[0]).toMatchObject({
+      trigger: "WhenFirstAllyDestroyed",
+      causedBy: {
+        defId: asCardDefId("coal_wisp_echo"),
+        isEcho: true,
+        reason: "combatDamage"
+      }
+    });
+    expect(damageFrom(result.events, asCardDefId("cinder_tally_relic"))).toContainEqual(
+      expect.objectContaining({ amount: 1, damageType: "trigger" })
+    );
+    expect(text).toContain(
+      "Cinder Tally triggered after Coal Wisp Echo vanished as the first ally destroyed."
+    );
+    expect(text).toContain("Cinder Tally dealt 1 trigger damage");
   });
 
   it("lets Last-Word Broker trigger from the first enemy destroyed", () => {
@@ -158,6 +204,9 @@ describe("sample destroyed-trigger payoffs", () => {
         targetSide: "playerB"
       })
     );
+    expect(abilityTriggered(result.events, asCardDefId("last_word_broker"))).toHaveLength(
+      1
+    );
     expect(summaryText(result)).toContain("Last-Word Broker dealt 1 trigger damage");
   });
 
@@ -180,7 +229,50 @@ describe("sample destroyed-trigger payoffs", () => {
     expect(recalled(result.events, asCardDefId("slag_sparkler"))).toContainEqual(
       expect.objectContaining({ side: "playerA" })
     );
+    expect(
+      abilityTriggered(result.events, asCardDefId("ash_ledger_relic"))
+    ).toContainEqual(
+      expect.objectContaining({
+        trigger: "OnAllyDestroyed",
+        causedBy: expect.objectContaining({
+          defId: asCardDefId("slag_sparkler"),
+          isEcho: false,
+          reason: "combatDamage"
+        })
+      })
+    );
+    expect(summaryText(result)).toContain(
+      "Ash Ledger reacted when Slag Sparkler was destroyed."
+    );
     expect(summaryText(result)).toContain("recalled Slag Sparkler from Ashes");
+    expect(result.warnings).toEqual([]);
+  });
+
+  it("lets Due Marker offer an adjacent ally from its Relic placement", () => {
+    const result = resolveSample({
+      playerA: combatant(
+        playerA,
+        board(
+          placement(playerA, "a", "due_marker_relic", 0, 1, "marker", "support"),
+          placement(playerA, "a", "contract_husk", 0, 2, "adjacent")
+        )
+      ),
+      playerB: combatant(
+        playerB,
+        board(placement(playerB, "b", "rootbrace_guardian", 0, 5, "guardian"))
+      ),
+      maxDurationMs: 500
+    });
+    const offered = destroyed(result.events, asCardDefId("contract_husk"));
+    const text = summaryText(result);
+
+    expect(offered).toContainEqual(
+      expect.objectContaining({
+        side: "playerA",
+        reason: "offered"
+      })
+    );
+    expect(text).toContain("Your Contract Husk was destroyed by Offering.");
     expect(result.warnings).toEqual([]);
   });
 });

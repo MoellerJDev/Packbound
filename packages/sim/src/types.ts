@@ -10,6 +10,7 @@ import type {
   CardInstanceId,
   CombatEvent,
   CombatWinner,
+  DestroyedUnitTriggerCause,
   EchoCardDefinition,
   PlayerId,
   PlayerSide,
@@ -135,9 +136,14 @@ export type AbilitySource = {
   readonly placement?: BoardPlacement;
 };
 
+export type TriggerContext = {
+  readonly causedBy?: DestroyedUnitTriggerCause;
+};
+
 export type ResolveAbilities = (
   state: MutableCombatState,
   source: AbilitySource,
   triggerType: AbilityDefinition["trigger"]["type"],
-  depth: number
+  depth: number,
+  context?: TriggerContext
 ) => void;

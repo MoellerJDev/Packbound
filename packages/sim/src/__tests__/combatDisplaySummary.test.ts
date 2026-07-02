@@ -140,6 +140,26 @@ const sampleEvents: readonly CombatEvent[] = [
     reason: "combatDamage"
   },
   {
+    type: "AbilityTriggered",
+    timeMs: 1700,
+    abilityId: "sparkcatch-ally-destroyed",
+    trigger: "OnAllyDestroyed",
+    sourceCardInstanceId: card("sparkcatch"),
+    sourceDefId: def("sparkcatch_apprentice"),
+    sourceSide: "playerA",
+    ownerId: playerA,
+    causedBy: {
+      type: "unitDestroyed",
+      unitId: unit("signal-wisp"),
+      cardInstanceId: card("signal-wisp"),
+      defId: def("signal_wisp_echo"),
+      side: "playerA",
+      ownerId: playerA,
+      isEcho: true,
+      reason: "combatDamage"
+    }
+  },
+  {
     type: "UnitDestroyed",
     timeMs: 1800,
     unitId: unit("enemy-scrapper"),
@@ -221,6 +241,14 @@ describe("combat display summary", () => {
     expect(text).toContain("Ember Scraprunner was destroyed");
     expect(text).toContain("Signal Wisp Echo");
     expect(text).toContain("vanished");
+  });
+
+  it("includes readable trigger source and cause lines", () => {
+    const text = allText();
+
+    expect(text).toContain(
+      "Sparkcatch Apprentice reacted when Signal Wisp Echo vanished."
+    );
   });
 
   it("includes Barrier block, summon, phase, recall, and warning lines", () => {

@@ -3,6 +3,9 @@ import type { AbilityDefinition } from "@packbound/shared";
 import { aliveUnits, distance, hasKeyword, opponentOf } from "./state";
 import type { AbilitySource, MutableCombatState, MutableUnit } from "./types";
 
+const sourcePosition = (source: AbilitySource) =>
+  source.unit?.position ?? source.placement?.position;
+
 export const selectEnemyTarget = (
   attacker: MutableUnit,
   state: MutableCombatState
@@ -54,18 +57,18 @@ export const targetsForAbility = (
   const allied = aliveUnits(source.sideState);
   const enemy = aliveUnits(state.sides[opponentOf(source.sideState.side)]);
   const sourceUnit = source.unit;
+  const origin = sourcePosition(source);
 
   switch (ability.target.type) {
     case "Self":
     case "Source":
       return sourceUnit ? [sourceUnit] : [];
     case "NearestEnemy":
-      return sourceUnit
+      return origin
         ? [...enemy]
             .sort(
               (a, b) =>
-                distance(sourceUnit.position, a.position) -
-                  distance(sourceUnit.position, b.position) ||
+                distance(origin, a.position) - distance(origin, b.position) ||
                 a.unitId.localeCompare(b.unitId)
             )
             .slice(0, 1)
@@ -89,23 +92,19 @@ export const targetsForAbility = (
     case "RandomEnemy":
       return enemy.length > 0 ? [state.rng.pick(enemy)] : [];
     case "AdjacentAllied":
-      if (!sourceUnit) {
+      if (!origin) {
         return [];
       }
-      return allied.filter((unit) => distance(sourceUnit.position, unit.position) === 1);
+      return allied.filter((unit) => distance(origin, unit.position) === 1);
     case "AdjacentEnemy":
-      if (!sourceUnit) {
+      if (!origin) {
         return [];
       }
-      return enemy.filter((unit) => distance(sourceUnit.position, unit.position) === 1);
+      return enemy.filter((unit) => distance(origin, unit.position) === 1);
     case "SameRowEnemy":
-      return sourceUnit
-        ? enemy.filter((unit) => unit.position.row === sourceUnit.position.row)
-        : [];
+      return origin ? enemy.filter((unit) => unit.position.row === origin.row) : [];
     case "SameColumnEnemy":
-      return sourceUnit
-        ? enemy.filter((unit) => unit.position.col === sourceUnit.position.col)
-        : [];
+      return origin ? enemy.filter((unit) => unit.position.col === origin.col) : [];
     case "AllAllied":
       return allied;
     case "AllEnemies":

@@ -1,9 +1,19 @@
 import { MAX_TRIGGER_DEPTH, type AbilityDefinition } from "@packbound/shared";
 
 import { applyEffect } from "./effects";
-import { addWarning, collectAbilitySources, opponentOf } from "./state";
+import { addWarning, collectAbilitySources, emit, opponentOf } from "./state";
 import { hasStatus } from "./statuses";
-import type { AbilitySource, MutableCombatState } from "./types";
+import type { AbilitySource, MutableCombatState, TriggerContext } from "./types";
+
+const abilityTriggeredEventTypes = new Set<AbilityDefinition["trigger"]["type"]>([
+  "OnAllyDestroyed",
+  "OnEnemyDestroyed",
+  "WhenFirstAllyDestroyed",
+  "WhenFirstEnemyDestroyed"
+]);
+
+const sourcePosition = (source: AbilitySource) =>
+  source.unit?.position ?? source.placement?.position;
 
 const conditionPasses = (
   state: MutableCombatState,
@@ -22,9 +32,9 @@ const conditionPasses = (
     case "IsAdjacent":
       return true;
     case "IsInRow":
-      return source.unit?.position.row === ability.condition.row;
+      return sourcePosition(source)?.row === ability.condition.row;
     case "IsInColumn":
-      return source.unit?.position.col === ability.condition.col;
+      return sourcePosition(source)?.col === ability.condition.col;
     case "HasStatus":
       return source.unit ? hasStatus(source.unit, ability.condition.status) : false;
     case "CombatChargeAvailable":
@@ -42,7 +52,8 @@ export const resolveAbilities = (
   state: MutableCombatState,
   source: AbilitySource,
   triggerType: AbilityDefinition["trigger"]["type"],
-  depth: number
+  depth: number,
+  context?: TriggerContext
 ): void => {
   if (depth > MAX_TRIGGER_DEPTH) {
     addWarning(
@@ -59,6 +70,19 @@ export const resolveAbilities = (
       !conditionPasses(state, source, ability)
     ) {
       continue;
+    }
+    if (abilityTriggeredEventTypes.has(triggerType)) {
+      emit(state, {
+        type: "AbilityTriggered",
+        timeMs: state.timeMs,
+        abilityId: ability.id,
+        trigger: triggerType,
+        sourceCardInstanceId: source.cardInstanceId,
+        sourceDefId: source.def.id,
+        sourceSide: source.sideState.side,
+        ownerId: source.sideState.playerId,
+        ...(context?.causedBy ? { causedBy: context.causedBy } : {})
+      });
     }
     applyEffect(state, source, ability, ability.effect, depth + 1, resolveAbilities);
   }

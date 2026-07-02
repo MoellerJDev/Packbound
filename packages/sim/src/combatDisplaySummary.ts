@@ -13,6 +13,7 @@ export type CombatDisplayLine = {
     | "start"
     | "technique"
     | "attack"
+    | "trigger"
     | "damage"
     | "destroyed"
     | "status"
@@ -122,6 +123,39 @@ const statusRemovalText = (
   }
 };
 
+const destroyedCauseText = (
+  catalog: ContentCatalog,
+  causedBy: NonNullable<
+    Extract<CombatEvent, { readonly type: "AbilityTriggered" }>["causedBy"]
+  >
+): string => {
+  const name = cardName(catalog, causedBy.defId);
+  return causedBy.isEcho ? `${name} vanished` : `${name} was destroyed`;
+};
+
+const abilityTriggerText = (
+  catalog: ContentCatalog,
+  event: Extract<CombatEvent, { readonly type: "AbilityTriggered" }>
+): string => {
+  const sourceName = cardName(catalog, event.sourceDefId);
+  if (!event.causedBy) {
+    return `${sourceName} triggered ${event.trigger}.`;
+  }
+
+  const causeText = destroyedCauseText(catalog, event.causedBy);
+  switch (event.trigger) {
+    case "WhenFirstAllyDestroyed":
+      return `${sourceName} triggered after ${causeText} as the first ally destroyed.`;
+    case "WhenFirstEnemyDestroyed":
+      return `${sourceName} triggered after ${causeText} as the first enemy destroyed.`;
+    case "OnAllyDestroyed":
+    case "OnEnemyDestroyed":
+      return `${sourceName} reacted when ${causeText}.`;
+    default:
+      return `${sourceName} triggered when ${causeText}.`;
+  }
+};
+
 const barrierKey = (timeMs: number, targetId: string): string => `${timeMs}:${targetId}`;
 
 const buildEventLine = (
@@ -137,6 +171,13 @@ const buildEventLine = (
         kind: "start",
         text: "Combat started.",
         severity: "info"
+      };
+    case "AbilityTriggered":
+      return {
+        timeMs: event.timeMs,
+        kind: "trigger",
+        text: abilityTriggerText(catalog, event),
+        severity: severityForSide(event.sourceSide, perspectiveSide, true)
       };
     case "TechniqueQueued":
       return {

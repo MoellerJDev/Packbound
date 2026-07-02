@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { sampleCatalog } from "@packbound/content";
 import {
   applyRunAction,
+  buildLoadoutResourceSummary,
   buildCombatantSetupForEncounter,
   buildCombatantSetupForRun,
   canApplyReward,
@@ -11,8 +12,10 @@ import {
   createRunFromStarterKit,
   getCurrentEncounter,
   getCurrentRewardChoices,
+  getLatestOpenedPackCardInstanceIds,
   getLegalLoadoutActions,
   getRunPhase,
+  getRunNextActionMessage,
   inspectEncounterCard,
   inspectRunCard,
   validateRunLoadout,
@@ -271,6 +274,14 @@ export function App() {
   const starterKitName =
     sampleCatalog.starterKitsById.get(run.starterKitId ?? "")?.name ?? "None";
   const validation = useMemo(() => validateRunLoadout(run, sampleCatalog), [run]);
+  const resourceSummary = useMemo(
+    () => buildLoadoutResourceSummary(run, sampleCatalog),
+    [run]
+  );
+  const nextActionMessage = useMemo(
+    () => getRunNextActionMessage(run, validation, canApplyReward(run)),
+    [run, validation]
+  );
   const recordReady = canRecordCombat(run, sampleCatalog);
   const editable = canEditLoadout(run);
 
@@ -360,6 +371,10 @@ export function App() {
     : undefined;
   const latestOpenedCardNames =
     latestOpenedPack?.slots.map((slot) => cardName(slot.cardDefId)) ?? [];
+  const latestRewardCardIds = useMemo(
+    () => new Set(getLatestOpenedPackCardInstanceIds(run)),
+    [run]
+  );
 
   const resetRun = (starterKitId = selectedStarterKitId) => {
     setSelectedStarterKitId(starterKitId);
@@ -534,6 +549,7 @@ export function App() {
       <section className="debug-grid">
         <div className="panel">
           <h2>Run State</h2>
+          <p className="next-action">{nextActionMessage}</p>
           <dl className="run-stats">
             <div>
               <dt>Seed</dt>
@@ -703,6 +719,24 @@ export function App() {
 
         <div className="panel">
           <h2>Source Row</h2>
+          <dl className="source-summary">
+            <div>
+              <dt>Board Charge</dt>
+              <dd>{resourceSummary.boardChargeText}</dd>
+            </div>
+            <div>
+              <dt>Aspect Access</dt>
+              <dd>{resourceSummary.aspectAccessText}</dd>
+            </div>
+            <div>
+              <dt>Combat Charge/sec</dt>
+              <dd>{resourceSummary.combatChargePerSecondText}</dd>
+            </div>
+            <div>
+              <dt>Slots</dt>
+              <dd>{resourceSummary.sourceSlotsText}</dd>
+            </div>
+          </dl>
           <ol className="card-list">
             {run.sourceRow.cards.map((card) => (
               <li key={card.instanceId}>
@@ -741,13 +775,22 @@ export function App() {
             <p className="muted">Open rewards to grow the pool.</p>
           )}
           <ol className="card-list">
-            {run.pool.map((card) => (
-              <li key={card.instanceId}>
-                <span>{cardName(card.defId)}</span>
-                <small>{card.zone}</small>
-                {renderLoadoutActions(card.instanceId)}
-              </li>
-            ))}
+            {run.pool.map((card) => {
+              const isLatestReward = latestRewardCardIds.has(card.instanceId);
+              return (
+                <li
+                  key={card.instanceId}
+                  className={isLatestReward ? "latest-reward-card" : undefined}
+                >
+                  <div className="card-name-cell">
+                    <span>{cardName(card.defId)}</span>
+                    {isLatestReward ? <span className="new-badge">new</span> : null}
+                  </div>
+                  <small>{card.zone}</small>
+                  {renderLoadoutActions(card.instanceId)}
+                </li>
+              );
+            })}
           </ol>
         </div>
 

@@ -100,9 +100,59 @@ describe("card inspection helpers", () => {
 
     expect(inspection.cardType).toBe("Technique");
     expect(inspection.techniqueText).toContain("1 combat Charge");
-    expect(inspection.techniqueText).toContain("after 1s");
-    expect(inspection.techniqueText).toContain("deal 2 damage");
-    expect(inspection.techniqueText).toContain("nearest enemy");
+    expect(inspection.techniqueText).toBe(
+      "1 combat Charge, After 1s: Deal 2 damage to the nearest enemy."
+    );
+  });
+
+  it("formats Recall ability and Technique text cleanly", () => {
+    const run = createStarterRun("rotbloom_recall");
+    const ledger = requirePoolCard(run, "ash_ledger_relic");
+    const ledgerInspection = requireInspection(run, ledger);
+    const shadeBinderRun = withPoolCard(run, "shade_binder", "shade-binder");
+    const shadeBinder = requirePoolCard(shadeBinderRun, "shade_binder");
+    const shadeBinderInspection = requireInspection(shadeBinderRun, shadeBinder);
+
+    expect(ledgerInspection.abilityText).toContain(
+      "When another ally is destroyed: Recall a Unit from Ashes costing 2 or less."
+    );
+    expect(shadeBinderInspection.techniqueText).toBe(
+      "1 combat Charge, After 1.5s: Recall a Unit from Ashes costing 2 or less."
+    );
+  });
+
+  it("formats Offer ability text cleanly", () => {
+    const run = withPoolCard(createStarterRun("rotbloom_recall"), "due_marker_relic");
+    const dueMarker = requirePoolCard(run, "due_marker_relic");
+    const inspection = requireInspection(run, dueMarker);
+
+    expect(inspection.abilityText).toContain("At combat start: Offer an adjacent ally.");
+  });
+
+  it("formats destroyed-trigger ability text cleanly", () => {
+    const emberRun = createStarterRun("ember_scrappers");
+    const sparkcatch = requirePoolCard(emberRun, "sparkcatch_apprentice");
+    const sparkcatchInspection = requireInspection(emberRun, sparkcatch);
+    const cinderRun = withPoolCard(emberRun, "cinder_tally_relic", "cinder-tally");
+    const cinderTally = requirePoolCard(cinderRun, "cinder_tally_relic");
+    const cinderInspection = requireInspection(cinderRun, cinderTally);
+    const brokerRun = withPoolCard(
+      createStarterRun("rotbloom_recall"),
+      "last_word_broker",
+      "last-word"
+    );
+    const broker = requirePoolCard(brokerRun, "last_word_broker");
+    const brokerInspection = requireInspection(brokerRun, broker);
+
+    expect(sparkcatchInspection.abilityText).toContain(
+      "When another ally is destroyed: Deal 1 damage to the nearest enemy."
+    );
+    expect(cinderInspection.abilityText).toContain(
+      "When your first ally is destroyed each combat: Deal 1 damage to the nearest enemy."
+    );
+    expect(brokerInspection.abilityText).toContain(
+      "When the first enemy is destroyed each combat: Deal 1 damage to the lowest-health enemy."
+    );
   });
 
   it("includes legal actions for usable pool cards", () => {

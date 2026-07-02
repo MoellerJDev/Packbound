@@ -137,104 +137,130 @@ const formatSource = (def: CardDefinition): string | undefined =>
       )} access, ${def.source.combatChargePerSecond} combat Charge/sec`
     : undefined;
 
+const formatNumber = (value: number): string => `${Number(value.toFixed(4))}`;
+
 const formatTrigger = (trigger: Trigger): string => {
   switch (trigger.type) {
     case "AfterSeconds":
-      return `after ${trigger.seconds}s`;
+      return `After ${formatNumber(trigger.seconds)}s`;
     case "WhenCombatChargeAtLeast":
-      return `when combat Charge reaches ${trigger.amount}`;
+      return `When combat Charge reaches ${trigger.amount}`;
     case "WhenFirstAllyBelowHealthPercent":
-      return `when first ally drops below ${trigger.percent}% health`;
+      return `When the first ally drops below ${trigger.percent}% health`;
     case "OnCombatStart":
-      return "at combat start";
+      return "At combat start";
     case "OnCombatEnd":
-      return "at combat end";
+      return "At combat end";
     case "OnEntry":
-      return "on entry";
+      return "On entry";
     case "OnLeaveBoard":
-      return "on leaving board";
+      return "When leaving board";
     case "OnDestroyed":
-      return "when destroyed";
+      return "When destroyed";
     case "OnOffered":
-      return "when Offered";
+      return "When Offered";
     case "OnAllyDestroyed":
-      return "when an ally is destroyed";
+      return "When another ally is destroyed";
     case "OnEnemyDestroyed":
-      return "when an enemy is destroyed";
+      return "When an enemy is destroyed";
     case "OnSummoned":
-      return "when summoned";
+      return "When summoned";
     case "OnTechniqueUsed":
-      return "when a Technique is used";
+      return "When a Technique is used";
     case "OnTakeDamage":
-      return "when taking damage";
+      return "When taking damage";
     case "OnDealDamage":
-      return "when dealing damage";
+      return "When dealing damage";
     case "OnAttack":
-      return "on attack";
+      return "On attack";
     case "OnKill":
-      return "on kill";
+      return "On kill";
     case "OnCombatChargeGained":
-      return "when combat Charge is gained";
+      return "When combat Charge is gained";
     case "WhenFirstAllyDestroyed":
-      return "when the first ally is destroyed";
+      return "When your first ally is destroyed each combat";
     case "WhenFirstEnemyDestroyed":
-      return "when the first enemy is destroyed";
+      return "When the first enemy is destroyed each combat";
     case "WhenFirstEnemyUsesTechnique":
-      return "when the first enemy uses a Technique";
+      return "When the first enemy uses a Technique";
   }
 };
 
 const formatTarget = (target: TargetSelector): string => {
   switch (target.type) {
     case "Self":
-      return "self";
+      return "itself";
     case "Source":
-      return "source";
+      return "the source";
     case "NearestEnemy":
-      return "nearest enemy";
+      return "the nearest enemy";
     case "LowestHealthAlliedUnit":
-      return "lowest-health ally";
+      return "the lowest-health ally";
     case "LowestHealthEnemy":
-      return "lowest-health enemy";
+      return "the lowest-health enemy";
     case "HighestAttackEnemy":
-      return "highest-attack enemy";
+      return "the highest-attack enemy";
     case "RandomEnemy":
-      return "random enemy";
+      return "a random enemy";
     case "AdjacentAllied":
-      return "adjacent allies";
+      return "an adjacent ally";
     case "AdjacentEnemy":
-      return "adjacent enemy";
+      return "an adjacent enemy";
     case "SameRowEnemy":
-      return "same-row enemy";
+      return "same-row enemies";
     case "SameColumnEnemy":
-      return "same-column enemy";
+      return "same-column enemies";
     case "AllAllied":
       return "all allies";
     case "AllEnemies":
       return "all enemies";
     case "AlliedUnitWithTag":
-      return `allied ${target.tag}`;
+      return `an allied ${target.tag}`;
     case "EnemyUnitWithTag":
-      return `enemy ${target.tag}`;
+      return `an enemy ${target.tag}`;
     case "EmptyAdjacentTile":
-      return "empty adjacent tile";
+      return "an empty adjacent tile";
     case "EmptyBacklineTile":
-      return "empty backline tile";
+      return "an empty backline tile";
     case "CardInAshes":
       return target.maxChargeCost
-        ? `card in Ashes costing ${target.maxChargeCost} or less`
-        : "card in Ashes";
+        ? `a card in Ashes costing ${target.maxChargeCost} or less`
+        : "a card in Ashes";
     case "CardInVoid":
-      return "card in Void";
+      return "a card in Void";
   }
 };
 
-const formatEffect = (effect: AbilityEffect, catalog: ContentCatalog): string => {
+const formatPlacement = (
+  placement: Extract<
+    AbilityEffect,
+    { readonly type: "SummonEcho" | "SummonUnit" }
+  >["placement"]
+): string => {
+  switch (placement) {
+    case "AdjacentToSource":
+      return "an open adjacent tile";
+    case "Backline":
+      return "the backline";
+    case "FirstOpen":
+      return "the first open tile";
+  }
+};
+
+const costLimitText = (maxChargeCost: number | undefined): string =>
+  maxChargeCost === undefined ? "" : ` costing ${maxChargeCost} or less`;
+
+const formatEffect = (
+  effect: AbilityEffect,
+  target: TargetSelector,
+  catalog: ContentCatalog
+): string => {
+  const targetText = formatTarget(target);
   switch (effect.type) {
     case "DealDamage":
-      return `deal ${effect.amount} damage`;
+      return `Deal ${effect.amount} damage to ${targetText}.`;
     case "Heal":
-      return `heal ${effect.amount}`;
+      return `Heal ${targetText} for ${effect.amount}.`;
     case "ModifyStats": {
       const stats = [
         effect.attack ? `${effect.attack > 0 ? "+" : ""}${effect.attack} attack` : "",
@@ -243,31 +269,33 @@ const formatEffect = (effect: AbilityEffect, catalog: ContentCatalog): string =>
           ? `${effect.attackSpeed > 0 ? "+" : ""}${effect.attackSpeed} attack speed`
           : ""
       ].filter((part) => part.length > 0);
-      return stats.length > 0 ? `modify stats: ${stats.join(", ")}` : "modify stats";
+      return stats.length > 0
+        ? `Give ${targetText} ${stats.join(", ")}.`
+        : `Modify ${targetText}.`;
     }
     case "ApplyStatus":
-      return `apply ${effect.status}`;
+      return `Apply ${effect.status} to ${targetText}.`;
     case "RemoveStatus":
-      return `remove ${effect.status}`;
+      return `Remove ${effect.status} from ${targetText}.`;
     case "GrantKeyword":
-      return `grant ${effect.keyword}`;
+      return `Grant ${effect.keyword} to ${targetText}.`;
     case "RemoveKeyword":
-      return `remove ${effect.keyword}`;
+      return `Remove ${effect.keyword} from ${targetText}.`;
     case "SummonEcho":
     case "SummonUnit":
-      return `summon ${catalog.cardsById.get(effect.cardDefId)?.name ?? effect.cardDefId} (${effect.placement})`;
+      return `Summon ${catalog.cardsById.get(effect.cardDefId)?.name ?? effect.cardDefId} to ${formatPlacement(effect.placement)}.`;
     case "Offer":
-      return "Offer the target";
+      return `Offer ${targetText}.`;
     case "Destroy":
-      return "destroy the target";
+      return `Destroy ${targetText}.`;
     case "Phase":
-      return `Phase for ${effect.delayMs}ms`;
+      return `Phase ${targetText} for ${effect.delayMs}ms.`;
     case "Recall":
-      return `Recall a card${effect.maxChargeCost ? ` costing ${effect.maxChargeCost} or less` : ""}`;
+      return `Recall a Unit from Ashes${costLimitText(effect.maxChargeCost)}.`;
     case "GainCombatCharge":
-      return `gain ${effect.amount} combat Charge`;
+      return `Gain ${effect.amount} combat Charge.`;
     case "DrainCombatCharge":
-      return `drain ${effect.amount} combat Charge`;
+      return `Drain ${effect.amount} combat Charge.`;
     case "SendToVoid":
     case "ReturnFromVoid":
     case "MoveUnit":
@@ -276,13 +304,15 @@ const formatEffect = (effect: AbilityEffect, catalog: ContentCatalog): string =>
     case "CopyTechnique":
     case "InterruptTechnique":
     case "MillToAshes":
-      return effect.type;
+      return `${effect.type}.`;
   }
 };
 
 const formatAbility = (ability: AbilityDefinition, catalog: ContentCatalog): string =>
-  `${formatTrigger(ability.trigger)}: ${formatEffect(ability.effect, catalog)} on ${formatTarget(
-    ability.target
+  `${formatTrigger(ability.trigger)}: ${formatEffect(
+    ability.effect,
+    ability.target,
+    catalog
   )}`;
 
 const formatTechnique = (
@@ -292,9 +322,7 @@ const formatTechnique = (
   def.cardType === "Technique"
     ? `${def.technique.combatChargeCost} combat Charge, ${formatTrigger(
         def.technique.trigger
-      )}: ${formatEffect(def.technique.effect, catalog)} on ${formatTarget(
-        def.technique.target
-      )}`
+      )}: ${formatEffect(def.technique.effect, def.technique.target, catalog)}`
     : undefined;
 
 const formatDesign = (design: CardDesignMetadata | undefined): string | undefined =>

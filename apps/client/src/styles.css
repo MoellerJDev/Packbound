@@ -180,6 +180,16 @@ h4 {
   min-width: 0;
 }
 
+.reward-choice-cell {
+  display: grid;
+  gap: 3px;
+  min-width: 160px;
+}
+
+.reward-choice-cell span {
+  min-width: 0;
+}
+
 .card-list small {
   color: #8b4d2c;
   font-weight: 700;

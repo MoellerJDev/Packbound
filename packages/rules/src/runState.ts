@@ -55,6 +55,9 @@ export type PackRewardChoice = {
   readonly round: number;
   readonly packId: PackId;
   readonly label: string;
+  readonly cost: number;
+  readonly affordable: boolean;
+  readonly goldAfterPurchase: number;
 };
 
 export type RewardChoice = PackRewardChoice;
@@ -65,6 +68,9 @@ export type RewardHistoryEntry = {
   readonly round: number;
   readonly choiceId: string;
   readonly packId: PackId;
+  readonly cost: number;
+  readonly goldBefore: number;
+  readonly goldAfter: number;
   readonly openedPackSeed: string;
   readonly cardDefIds: readonly CardDefId[];
   readonly cardInstanceIds: readonly CardInstanceId[];
@@ -77,6 +83,7 @@ export type CombatSummary = {
   readonly damageToOpponent: number;
   readonly eventCount: number;
   readonly warningCodes: readonly string[];
+  readonly goldEarned: number;
   readonly seed?: string;
   readonly rulesVersion?: string;
 };

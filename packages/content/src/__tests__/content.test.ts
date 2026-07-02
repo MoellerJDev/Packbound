@@ -16,7 +16,7 @@ import {
   sampleStarterKits
 } from "../sampleContent";
 import { ContentValidationError, loadContentCatalog } from "../catalog";
-import { parseCardDefinitions } from "../schemas";
+import { parseCardDefinitions, parsePackDefinitions } from "../schemas";
 import { sampleTraitDefinitions } from "../traits";
 
 const archetypes = [
@@ -481,6 +481,19 @@ describe("content validation", () => {
     const ids = sampleCards.map((card) => card.id);
 
     expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it("sample packs declare non-negative integer costs", () => {
+    for (const pack of samplePacks) {
+      expect(Number.isInteger(pack.cost), pack.id).toBe(true);
+      expect(pack.cost, pack.id).toBeGreaterThanOrEqual(0);
+      expect(JSON.parse(JSON.stringify(pack)).cost).toBe(pack.cost);
+    }
+  });
+
+  it("rejects invalid pack costs", () => {
+    expect(() => parsePackDefinitions([{ ...samplePacks[0], cost: -1 }])).toThrow();
+    expect(() => parsePackDefinitions([{ ...samplePacks[0], cost: 1.5 }])).toThrow();
   });
 
   it("playable sample cards declare valid serializable design metadata", () => {

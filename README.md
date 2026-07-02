@@ -20,9 +20,10 @@ resolves combat into an event log.
   costs, events, and validation types.
 - `packages/content`: Zod schemas plus starter Packbound card, pack, encounter,
   and starter kit content, now expanded into a first archetype micro-set with
-  design metadata and display-only trait/teamup definitions.
+  design metadata, display-only trait/teamup definitions, and pack costs.
 - `packages/rules`: Seeded RNG, deterministic pack opening, board/source
-  validation, trait/teamup summary helpers, pool-based duplicate upgrades, and a
+  validation, trait/teamup summary helpers, pool-based duplicate upgrades,
+  combat gold rewards, priced reward purchases, and a
   minimal deterministic run-state / reward / encounter / starter kit progression
   skeleton with explicit lifecycle phases and replayable run actions.
 - `packages/sim`: Pure deterministic combat simulation and event log output.
@@ -72,6 +73,8 @@ pnpm dev
 - Runs carry an explicit lifecycle phase (`planning`, `combatReady`,
   `combatResolved`, `reward`, `complete`) so combat, rewards, advancement, and
   loadout edits have rules-level guardrails.
+- The debug loop now awards deterministic combat gold, shows current gold, and
+  makes reward pack choices spend their content-defined costs.
 - Loadout movement preserves full card instance data when cards move between
   pool, board, Source Row, and Spellrail. Board positions remain separate from
   the active card instance store.

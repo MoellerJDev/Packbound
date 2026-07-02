@@ -227,6 +227,7 @@ export type PackSlotDefinition =
 export type PackDefinition = {
   readonly id: PackId;
   readonly name: string;
+  readonly cost: number;
   readonly setWeights: Readonly<Record<string, number>>;
   readonly slots: readonly PackSlotDefinition[];
   readonly tagBias: Readonly<Record<string, number>>;

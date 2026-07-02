@@ -614,6 +614,14 @@ Reward money direction:
 - Greed should create risk. A player who buys future value should often be
   weaker in the next fight.
 
+Current implementation note: the first economy MVP gives deterministic combat
+gold from the rules layer. Combat grants 3 base gold, +2 for a player win, +1
+for a draw, +1 for a loss, and +1 when the player takes no damage. Pack
+definitions now carry a simple integer cost, and the reward phase lets the
+player buy one offered pack if they can afford it. The debug client shows gold,
+pack costs, affordability, and purchase history, but there are no rerolls,
+interest, debt, healing purchases, or shop inventory systems yet.
+
 ### Example Pack Types
 
 #### Ember Foundry Pack

@@ -132,7 +132,13 @@ describe("run action reducer", () => {
         encounterId: requireEncounterId(run),
         combatResult: combatResult("round-1")
       });
+      expect(run.combatHistory.at(-1)?.goldEarned).toBe(6);
       dispatch({ type: "applyPackReward", choiceId: firstRewardChoiceId(run) });
+      const firstPurchase = run.rewardHistory.at(-1);
+      if (!firstPurchase) {
+        throw new Error("Expected first reward purchase history");
+      }
+      expect(firstPurchase.goldBefore).toBeGreaterThan(firstPurchase.goldAfter);
       dispatch({ type: "advanceRunAfterCombat" });
 
       const loadoutAction = firstLegalPoolAction(run);

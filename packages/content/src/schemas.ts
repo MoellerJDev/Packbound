@@ -370,6 +370,7 @@ export const packSlotDefinitionSchema = z.union([
 export const packDefinitionSchema = z.object({
   id: packIdSchema,
   name: z.string().min(1),
+  cost: z.number().int().min(0),
   setWeights: z.record(z.number().min(0)),
   slots: z.array(packSlotDefinitionSchema).min(1),
   tagBias: z.record(z.number().min(0))

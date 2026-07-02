@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { sampleCatalog } from "@packbound/content";
-import type { CombatEvent } from "@packbound/shared";
+import { asPackId, type CombatEvent } from "@packbound/shared";
 
 import {
   advanceRunAfterCombat,
@@ -70,6 +70,12 @@ describe("run progression skeleton", () => {
 
     expect(firstChoices).toHaveLength(3);
     expect(secondChoices).toEqual(firstChoices);
+    expect(first.playerGold).toBe(6);
+    expect(firstChoices.every((choice) => choice.cost > 0)).toBe(true);
+    expect(firstChoices.every((choice) => choice.affordable)).toBe(true);
+    expect(firstChoices.map((choice) => choice.goldAfterPurchase)).toEqual(
+      firstChoices.map((choice) => first.playerGold - choice.cost)
+    );
     expect(canApplyReward(first)).toBe(true);
   });
 
@@ -85,22 +91,37 @@ describe("run progression skeleton", () => {
   });
 
   it("applying a pack reward adds cards to pool and reward history", () => {
-    const run = applyFirstReward(rewardRun(createRun({ seed: "history-seed" })));
+    const rewarded = rewardRun(createRun({ seed: "history-seed" }));
+    const choice = getCurrentRewardChoices(rewarded, sampleCatalog)[0];
+    if (!choice) {
+      throw new Error("Expected a reward choice");
+    }
+    const rewardedSnapshot = JSON.parse(JSON.stringify(rewarded)) as typeof rewarded;
 
+    const run = applyPackReward(rewarded, sampleCatalog, choice.id);
+
+    expect(rewarded).toEqual(rewardedSnapshot);
     expect(run.pool.length).toBeGreaterThan(0);
     expect(run.openedPacks).toHaveLength(1);
     expect(run.rewardHistory).toHaveLength(1);
     expect(run.rewardHistory[0]?.cardInstanceIds).toHaveLength(run.pool.length);
+    expect(run.rewardHistory[0]).toMatchObject({
+      cost: choice.cost,
+      goldBefore: rewarded.playerGold,
+      goldAfter: rewarded.playerGold - choice.cost
+    });
+    expect(run.playerGold).toBe(rewarded.playerGold - choice.cost);
     expect(run.currentRewardChoices).toHaveLength(0);
   });
 
-  it("recording combat applies player damage and stores a summary", () => {
+  it("recording combat applies player damage, adds gold, and stores a summary", () => {
     const run = recordCombatResult(
       readyRun(createRun({ seed: "damage-seed" })),
       combatResult({ damageToPlayerA: 7, damageToPlayerB: 2 })
     );
 
     expect(run.playerHealth).toBe(13);
+    expect(run.playerGold).toBe(5);
     expect(run.status).toBe("active");
     expect(run.phase).toBe("reward");
     expect(run.combatHistory).toEqual([
@@ -111,10 +132,63 @@ describe("run progression skeleton", () => {
         damageToOpponent: 2,
         eventCount: 1,
         warningCodes: [],
+        goldEarned: 5,
         seed: "rules-combat-seed",
         rulesVersion: "sim-test"
       }
     ]);
+  });
+
+  it("rejects unaffordable pack rewards without mutating the previous run", () => {
+    const run = {
+      ...rewardRun(createRun({ seed: "unaffordable-seed" })),
+      playerGold: 0
+    };
+    const snapshot = JSON.parse(JSON.stringify(run)) as typeof run;
+    const choice = getCurrentRewardChoices(run, sampleCatalog)[0];
+    if (!choice) {
+      throw new Error("Expected a reward choice");
+    }
+
+    expect(choice.affordable).toBe(false);
+    expect(() => applyPackReward(run, sampleCatalog, choice.id)).toThrow(/Cannot afford/);
+    expect(run).toEqual(snapshot);
+  });
+
+  it("keeps at least one reward choice affordable in default reward flows", () => {
+    const run = rewardRun(createRun({ seed: "affordable-seed" }));
+    const choices = getCurrentRewardChoices(run, sampleCatalog);
+
+    expect(choices.some((choice) => choice.affordable)).toBe(true);
+  });
+
+  it("includes the cheapest affordable pack when stored choices are too expensive", () => {
+    const run = {
+      ...rewardRun(createRun({ seed: "fallback-seed" })),
+      playerGold: 3,
+      currentRewardChoices: sampleCatalog.packs
+        .filter((pack) => pack.id !== asPackId("source_pack"))
+        .map((pack, index) => ({
+          id: `stored-expensive-choice:${index}:${pack.id}`,
+          type: "pack" as const,
+          round: 1,
+          packId: pack.id,
+          label: pack.name,
+          cost: pack.cost,
+          affordable: false,
+          goldAfterPurchase: 3 - pack.cost
+        }))
+    };
+    const choices = getCurrentRewardChoices(run, sampleCatalog);
+    const sourceChoice = choices.find(
+      (choice) => choice.packId === asPackId("source_pack")
+    );
+
+    expect(sourceChoice).toMatchObject({
+      cost: 3,
+      affordable: true,
+      goldAfterPurchase: 0
+    });
   });
 
   it("rejects combat and reward actions before lifecycle preconditions are ready", () => {

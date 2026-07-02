@@ -1068,12 +1068,16 @@ only through focused rules/content tasks with tests.
 
 ### Economy And Pack Pricing
 
-- `RunState` already carries `playerGold`; future economy work should extend
-  run rules rather than client-only state.
-- Pack prices, reward choices, discounts, and rerolls should be generated from
-  seeded run state.
-- Economy choices should be represented as RunActions so saved runs, future
-  server validation, and debug replay share one path.
+- `RunState` carries `playerGold`; economy work extends run rules rather than
+  client-only state.
+- Pack prices live in content as serializable pack definition costs.
+- Combat gold is awarded deterministically when `recordCombatResult` is applied
+  and stored on the combat summary.
+- Pack reward choices derive affordability from current run gold.
+- Pack purchases are replayable RunActions through `applyPackReward`; successful
+  purchases spend gold and record cost, gold before, and gold after in reward
+  history.
+- Future discounts and rerolls should remain generated from seeded run state.
 - Balance reports should include broad economy signals such as gold earned,
   pack affordability, discount frequency, and greed failure cases.
 

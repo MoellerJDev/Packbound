@@ -1,6 +1,7 @@
 import type { ContentCatalog } from "@packbound/content";
 import type { CombatEvent, CombatWinner, SimulationWarning } from "@packbound/shared";
 
+import { calculateCombatGoldReward } from "./economy";
 import { prepareEncounterForRound } from "./encounters";
 import { validateRunLoadout } from "./loadout";
 import { openPack } from "./packOpening";
@@ -87,7 +88,14 @@ export const applyPackReward = (
   if (!choice) {
     throw new Error(`Unknown reward choice id: ${choiceId}`);
   }
+  if (!choice.affordable) {
+    throw new Error(
+      `Cannot afford ${choice.label}: need ${choice.cost} gold, have ${run.playerGold}.`
+    );
+  }
 
+  const goldBefore = run.playerGold;
+  const goldAfter = goldBefore - choice.cost;
   const openedPackSeed = `${run.seed}:round:${run.currentRound}:choice:${choice.id}`;
   const openedPack = openPack({
     catalog,
@@ -101,6 +109,9 @@ export const applyPackReward = (
     round: run.currentRound,
     choiceId: choice.id,
     packId: choice.packId,
+    cost: choice.cost,
+    goldBefore,
+    goldAfter,
     openedPackSeed,
     cardDefIds: openedPack.slots.map((slot) => slot.cardDefId),
     cardInstanceIds: openedPack.slots.map((slot) => slot.cardInstanceId)
@@ -109,6 +120,7 @@ export const applyPackReward = (
   return {
     ...run,
     phase: "combatResolved",
+    playerGold: goldAfter,
     pool: [...run.pool, ...openedPack.cards],
     currentRewardChoices: [],
     rewardHistory: [...run.rewardHistory, historyEntry],
@@ -141,6 +153,7 @@ export const recordCombatResult = (
 
   const nextHealth = Math.max(0, run.playerHealth - combatResult.damageToPlayerA);
   const combatSummaryIndex = run.combatHistory.length;
+  const goldEarned = calculateCombatGoldReward(combatResult);
   const summary: CombatSummary = {
     round: run.currentRound,
     winner: combatResult.winner,
@@ -148,6 +161,7 @@ export const recordCombatResult = (
     damageToOpponent: combatResult.damageToPlayerB,
     eventCount: combatResult.events.length,
     warningCodes: combatResult.warnings.map((warning) => warning.code),
+    goldEarned,
     ...(combatResult.seed ? { seed: combatResult.seed } : {}),
     ...(combatResult.rulesVersion ? { rulesVersion: combatResult.rulesVersion } : {})
   };
@@ -162,6 +176,7 @@ export const recordCombatResult = (
     status: nextHealth <= 0 ? "lost" : run.status,
     phase: nextHealth <= 0 ? "complete" : "reward",
     playerHealth: nextHealth,
+    playerGold: run.playerGold + goldEarned,
     combatHistory: [...run.combatHistory, summary],
     encounterHistory: [...run.encounterHistory, encounterHistoryEntry]
   };

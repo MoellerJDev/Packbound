@@ -1141,6 +1141,7 @@ export const samplePacks: readonly PackDefinition[] = [
   {
     id: asPackId("ember_foundry_pack"),
     name: "Ember Foundry Pack",
+    cost: 4,
     setWeights: {
       ember_foundry: 8,
       core_sources: 2
@@ -1164,6 +1165,7 @@ export const samplePacks: readonly PackDefinition[] = [
   {
     id: asPackId("rotbloom_pack"),
     name: "Rotbloom Pack",
+    cost: 4,
     setWeights: {
       rotbloom: 8,
       core_sources: 2
@@ -1188,6 +1190,7 @@ export const samplePacks: readonly PackDefinition[] = [
   {
     id: asPackId("cloudspire_pack"),
     name: "Cloudspire Pack",
+    cost: 4,
     setWeights: {
       cloudspire: 8,
       core_sources: 2
@@ -1210,6 +1213,7 @@ export const samplePacks: readonly PackDefinition[] = [
   {
     id: asPackId("source_pack"),
     name: "Source Pack",
+    cost: 3,
     setWeights: {
       core_sources: 10,
       ember_foundry: 1,

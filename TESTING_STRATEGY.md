@@ -160,6 +160,10 @@ serializability, and replaying the same combine actions to the same result.
 Economy and pack pricing should be modeled as replayable RunActions. Tests
 should cover deterministic pack prices, gold changes, discounts, rerolls later,
 reward generation, and failure cases such as trying to buy an unaffordable pack.
+The first economy MVP specifically needs coverage for combat gold formulas,
+pack-cost content validation, reward affordability, purchase spending,
+reward-history gold bookkeeping, no-mutation guarantees, replay determinism, and
+normal-flow no-softlock affordability.
 
 Board resources need deterministic fixture tests before browser coverage.
 Fixtures should prove tile resource generation, extraction timing, denial,

@@ -67,16 +67,20 @@ test("debug loop can inspect, preview, record, reward, and advance", async ({ pa
   await expect(recordedPanel.getByText(/Winner:/)).toBeVisible();
   await expect(recordedPanel.getByText(/Damage:/)).toBeVisible();
   await expect(recordedPanel.getByText(/Events:/)).toBeVisible();
+  await expect(recordedPanel.getByText(/Gold: \+/)).toBeVisible();
   await expect(recordedPanel.getByText("Damage to you", { exact: true })).toBeVisible();
   await expect(recordedPanel.getByText("Damage to enemy", { exact: true })).toBeVisible();
   await expect(recordedPanel.getByText("Warnings", { exact: true })).toBeVisible();
 
   const rewardPanel = panel(page, "Reward Choices");
+  await expect(rewardPanel.getByText(/Cost \d+ gold/).first()).toBeVisible();
+  await expect(rewardPanel.getByText(/After purchase: \d+ gold/).first()).toBeVisible();
   await expect(rewardPanel.getByRole("button", { name: "Open" }).first()).toBeVisible();
   await rewardPanel.getByRole("button", { name: "Open" }).first().click();
 
   const poolPanel = panel(page, "Pool Cards");
   await expect(poolPanel.getByText(/Latest pack:/)).toBeVisible();
+  await expect(poolPanel.getByText(/Paid \d+ gold/)).toBeVisible();
   await expect(poolPanel.getByText("new").first()).toBeVisible();
 
   await page.getByRole("button", { name: "Advance" }).click();

@@ -398,6 +398,7 @@ export function App() {
   ]);
   const latestCombatSummary = run.combatHistory.at(-1);
   const latestOpenedPack = run.openedPacks.at(-1);
+  const latestRewardHistoryEntry = run.rewardHistory.at(-1);
   const upcomingCombatDisplaySummary = useMemo(
     () =>
       combat
@@ -671,6 +672,10 @@ export function App() {
               <dd>{run.playerHealth}</dd>
             </div>
             <div>
+              <dt>Gold</dt>
+              <dd>{run.playerGold}</dd>
+            </div>
+            <div>
               <dt>Status</dt>
               <dd>{run.status}</dd>
             </div>
@@ -796,14 +801,28 @@ export function App() {
           <h2>Reward Choices</h2>
           <p className="muted">
             {canApplyReward(run)
-              ? "Pick one pack to add to the pool."
+              ? "Buy one pack to add to the pool."
               : "Rewards appear after combat is recorded."}
           </p>
           <ol className="card-list">
             {rewardChoices.map((choice) => (
               <li key={choice.id}>
-                <span>{choice.label}</span>
-                <button type="button" onClick={() => openReward(choice.id)}>
+                <div className="reward-choice-cell">
+                  <span>{choice.label}</span>
+                  <small>Cost {choice.cost} gold</small>
+                  {!choice.affordable ? (
+                    <small>
+                      Need {choice.cost} gold, have {run.playerGold}
+                    </small>
+                  ) : (
+                    <small>After purchase: {choice.goldAfterPurchase} gold</small>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => openReward(choice.id)}
+                  disabled={!choice.affordable}
+                >
                   Open
                 </button>
               </li>
@@ -913,6 +932,14 @@ export function App() {
               <p className="muted">
                 Latest pack: {latestPackName} | New cards are in Pool Cards below.
               </p>
+              {latestRewardHistoryEntry ? (
+                <p className="muted">
+                  Paid {latestRewardHistoryEntry.cost} gold | Gold{" "}
+                  {latestRewardHistoryEntry.goldBefore}
+                  {" -> "}
+                  {latestRewardHistoryEntry.goldAfter}
+                </p>
+              ) : null}
               <p>{latestOpenedCardNames.join(", ")}</p>
               <small>{latestOpenedPack.seed}</small>
             </div>
@@ -948,7 +975,7 @@ export function App() {
                 Round {latestCombatSummary.round} | Winner: {latestCombatSummary.winner} |
                 Damage: {latestCombatSummary.damageToPlayer}/
                 {latestCombatSummary.damageToOpponent} | Events:{" "}
-                {latestCombatSummary.eventCount}
+                {latestCombatSummary.eventCount} | Gold: +{latestCombatSummary.goldEarned}
               </p>
               {lastRecordedCombatDisplaySummary ? (
                 <>

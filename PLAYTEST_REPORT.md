@@ -3,243 +3,248 @@
 ## 1. Executive Summary
 
 Packbound remains demoable as an internal systems demo at commit
-`bec7dc0b4296a4e722d2ef6990cefdd6940ccfeb`. The debug client supports the full
-current loop: starter selection, starter-card inspection, trait/teamup scanning,
-Source Row review, legal planning actions, combat preview, recorded combat,
-reward opening, latest reward markers, reward-card inspection, round advance,
-reward use, and a second recorded combat. No browser console warnings or errors
-were captured during the manual pass.
+`840b1969adaeb8cbfbf476c5c67ea4eb48e92f4a`. The current debug client supports
+the full engine-first loop: starter selection, card inspection, trait/teamup
+scanning, Source Row review, legal loadout edits, combat preview, recorded
+combat, gold rewards, priced pack purchases, latest reward markers, reward-card
+inspection, round advancement, duplicate upgrades in the lab, and readable
+combat summaries.
 
-Duplicate upgrades are understandable when the upgrade lab forces the exact
-3-copy case. The Available Upgrades row clearly says what will happen, the button
-collapses three Cinder Scout copies into one Lv 1 copy, the row badge makes the
-surviving card identifiable, the inspector shows `2 ATK / 3 HP` and
-`Current bonus: +1 ATK / +1 HP.`, and combat reflects the upgraded attack value.
+Priced packs improve reward decisions. The player now sees current gold, combat
+gold earned, each pack cost, affordability, gold after purchase, and latest
+purchase history. The Source Pack being cheaper creates the clearest early
+economy decision when it appears beside 4-gold archetype packs.
 
-Normal rewards feel more meaningful than before because duplicates and traits now
-create visible build direction. Ember Foundry produced two Ember Scraprunner
-copies, Rotbloom produced two Due Marker copies, and Cloudspire produced two
-Mistwing Scout copies plus another Cloudgate/Vanishing Warden line. The missing
-piece is progress visibility: normal runs do not explain "2 of 3" upgrade chases,
-and non-upgradeable duplicate Relics can look like upgrade material until
-inspected.
+Gold flow is understandable, but early income is generous. Every manually tested
+reward offer was affordable after combat, so the playtest did not reach a true
+unaffordable pack state. Price still created mild tension between archetype
+packs, cheaper Source/fixing, duplicate chasing, and preserving gold, but it did
+not yet create a hard tradeoff.
 
-Traits/teamups help decision-making. They made the Ember run become a clear
-Ember/Scrapper/Echo Fodder lane, the Rotbloom run become a Shade/Bloom/Offering
-Relic lane, and the Cloudspire run become a Tide/Gleam/Phase/Barrier lane. The
-panel is useful for internal iteration, though repeated active traits in the
-Near section make it dense.
+The next task should be upgrade visibility in normal runs. Economy clarity is
+good enough for the next iteration, and board readability remains rough but
+tolerable for internal testing. The biggest planning blocker is that duplicate
+progress is exciting only when the player already knows the pool-only 3-copy
+upgrade rule.
 
 Top 3 remaining blockers:
 
-1. Pack choice still lacks stakes because reward packs are free and show little
-   cost or expected-value information.
-2. Normal runs do not surface partial duplicate progress, so upgrade chasing is
-   exciting only after the player already knows the rules.
-3. Board positioning is still abstract list text; row/column/layer labels are
-   serviceable for engineers but not intuitive for a player-facing demo.
+1. Normal runs do not surface partial duplicate progress such as `2 / 3 copies`.
+2. Reward offers show price but not pack bias, expected contents, duplicate
+   relevance, or Source/fixing reasons.
+3. Board positioning is still a list of row/column/layer text instead of a
+   compact spatial board.
 
-Recommended next task: `feat(rules): add priced pack rewards and gold economy`.
+Recommended next task: `feat(client): improve upgrade visibility in normal runs`.
 
 ## 2. Environment And Commands
 
-- Commit hash tested: `bec7dc0b4296a4e722d2ef6990cefdd6940ccfeb`
+- Commit hash tested: `840b1969adaeb8cbfbf476c5c67ea4eb48e92f4a`
 - OS/environment: `Microsoft Windows NT 10.0.26200.0`, PowerShell
 - Node version: `v24.14.0`
 - pnpm version: `11.7.0`
-- Browser/tool used: Codex in-app Browser against local Vite; Playwright
+- Browser/tool used: Codex in-app Browser for manual playtest; Playwright
   Chromium for `pnpm test:browser`
 - Dev server URL: `http://127.0.0.1:5173/`
 - Browser console warnings/errors during manual pass: none captured
 - Stale dev servers before testing: none found on ports `4173`, `5173`-`5180`
-- Stale listeners after `pnpm test:browser`: none found
-- Dev server cleanup after manual playtest: stopped the managed Vite listener on
-  PID `4284`
+- Dev server cleanup after manual playtest: stopped managed Vite listener on PID
+  `36580`
 - Common dev ports after cleanup: clear
+- Temp Vite logs: removed after the wrapper released file handles
 
-| Command               | Status | Notes                                                                 |
-| --------------------- | ------ | --------------------------------------------------------------------- |
-| `pnpm format:check`   | Pass   | All matched files used Prettier style.                                |
-| `pnpm lint`           | Pass   | ESLint completed.                                                     |
-| `pnpm typecheck`      | Pass   | All workspace typechecks completed.                                   |
-| `pnpm test`           | Pass   | 21 test files, 212 tests.                                             |
-| `pnpm build`          | Pass   | Workspace build and Vite client bundle completed.                     |
-| `pnpm balance:report` | Pass   | Deterministic starter and pack-usability report printed; no warnings. |
-| `pnpm test:browser`   | Pass   | 2 Chromium tests passed, including the upgrade lab smoke path.        |
+| Command               | Status | Notes                                                              |
+| --------------------- | ------ | ------------------------------------------------------------------ |
+| `pnpm format:check`   | Pass   | All matched files used Prettier style.                             |
+| `pnpm lint`           | Pass   | ESLint completed.                                                  |
+| `pnpm typecheck`      | Pass   | All workspace typechecks completed.                                |
+| `pnpm test`           | Pass   | 22 test files, 219 tests.                                          |
+| `pnpm build`          | Pass   | Workspace build and Vite client bundle completed.                  |
+| `pnpm balance:report` | Pass   | Deterministic report printed; no warnings in reported combat rows. |
+| `pnpm test:browser`   | Pass   | 2 Chromium smoke tests passed.                                     |
+| `pnpm dev`            | Pass   | Clean managed start succeeded on `127.0.0.1:5173`.                 |
+
+Note: an initial managed dev-server attempt passed duplicate `--host` arguments
+to a script that already sets the host and exited before opening a listener. The
+clean `pnpm dev` start was used for all manual browser coverage.
 
 ## 3. Coverage Summary
 
-| Scenario         | Rounds reached | Combat recorded | Reward opened      | Upgrade tested | Notes                                                                |
-| ---------------- | -------------- | --------------- | ------------------ | -------------- | -------------------------------------------------------------------- |
-| Ember Scrappers  | Round 2 reward | Yes, rounds 1-2 | Ember Foundry Pack | No             | Two Ember Scraprunner reward copies; Cinder Tally trigger was clear. |
-| Rotbloom Recall  | Round 2 reward | Yes, rounds 1-2 | Rotbloom Pack      | No             | Two Due Marker reward copies; Offering/Recall lane became readable.  |
-| Cloudspire Phase | Round 2 reward | Yes, rounds 1-2 | Cloudspire Pack    | No             | Two Mistwing Scout copies; Phase/Barrier/Warden direction was clear. |
-| Upgrade Lab      | Round 1 reward | Yes, round 1    | Not needed         | Yes            | Three Cinder Scout copies upgraded into one Lv 1 combat-ready Unit.  |
+| Scenario         | Rounds reached        | Combat recorded | Rewards opened                  | Gold clarity | Notes                                                                                                        |
+| ---------------- | --------------------- | --------------- | ------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------ |
+| Ember Scrappers  | Round 2 reward opened | Yes, rounds 1-2 | Ember Foundry Pack, Source Pack | Clear        | First reward all 4-gold packs; second reward made Source Pack's cheaper 3-gold price meaningful.             |
+| Rotbloom Recall  | Round 2 reward opened | Yes, rounds 1-2 | Rotbloom Pack twice             | Clear        | Due Marker duplicates created a visible lane but are Relics, so they are not upgradeable.                    |
+| Cloudspire Phase | Round 2 reward opened | Yes, rounds 1-2 | Cloudspire Pack twice           | Clear        | Mistwing duplicates appeared in pool while one copy was active on board; upgrade progress remained implicit. |
+| Upgrade Lab      | Round 1 reward phase  | Yes, round 1    | None                            | Clear        | Three Cinder Scout copies upgraded into one Lv 1 Unit; gold/rewards still appeared normally after combat.    |
 
-## 4. Upgrade Lab Evaluation
+## 4. Economy / Gold Evaluation
 
-The scenario loaded clearly at `/?scenario=upgrade-lab`. It used the Ember
-starter and added three Cinder Scout pool rows. The Available Upgrades panel
-appeared immediately and read:
-`Cinder Scout: 3 / 3 copies at level 0 -> upgrade to level 1`.
+Current gold is visible enough. The Run State panel shows Gold alongside health,
+round, status, and phase, and it updated immediately after combat and purchases.
 
-The duplicate cards were visible in Pool Cards before upgrading. Inspecting one
-copy showed level 0, `1 ATK / 2 HP / 1.1 speed / 1 range`, and the upgrade rule:
-combine 3 matching pool copies at this level. That was enough context to trust
-the Upgrade button.
+Gold earned after combat is visible enough. The Last Recorded Combat line shows
+`Gold: +N`, and the combat summary makes the win/loss/damage context visible.
+Observed combat gold:
 
-The upgrade button did what was expected. After clicking it, the pool had one
-Cinder Scout row with a Lv 1 badge, and the Available Upgrades panel returned to
-the empty state. The upgraded card was easy to identify because it was the only
-Cinder Scout row and showed `LV 1` in the row text.
+- Ember round 1 win with no damage: `+6`, gold `0 -> 6`.
+- Ember round 2 loss with 2 damage taken: `+4`, gold `2 -> 6`.
+- Rotbloom rounds 1-2 wins with no damage: `+6` each.
+- Cloudspire rounds 1-2 wins with no damage: `+6` each.
+- Upgrade lab round 1 win with no damage: `+6`.
 
-The inspector showed the upgrade level and bonus clearly:
-`2 ATK / 3 HP / 1.1 speed / 1 range`, `Level 1. Combine 3 matching pool copies at this level to upgrade.`,
-and `Current bonus: +1 ATK / +1 HP.` The upgraded card could be placed legally,
-used 1 of the remaining board Charge, and made sense in combat. Its recorded
-attack dealt 2 damage, so the power increase was understandable in both the
-inspector and combat summary.
+The player can understand why gold changed at the level the debug UI currently
+supports: combat says `Gold: +N`, reward rows say cost and after-purchase gold,
+and latest pack history says paid cost plus before/after gold. The UI does not
+break down base/win/clean bonuses, but that is acceptable for this internal
+prototype.
 
-Before upgrades appear naturally in normal runs, the UI should show partial
-progress such as `Mistwing Scout: 2 / 3 pool copies` and should clarify that only
-Unit and Echo cards count. The lab proves the mechanic; normal runs still need a
-breadcrumb that teaches players to chase the third copy.
+Reward purchases clearly subtract gold. Observed purchase history:
 
-## 5. Normal Run Upgrade / Duplicate Observations
+- Ember Foundry Pack: paid 4, gold `6 -> 2`.
+- Ember Source Pack: paid 3, gold `6 -> 3`.
+- Rotbloom Pack: paid 4, gold `6 -> 2`, then `8 -> 4`.
+- Cloudspire Pack: paid 4, gold `6 -> 2`, then `8 -> 4`.
+
+No pack became unaffordable during this manual pass. Because each round 1 win
+paid 6 gold and all current packs cost 3 or 4 gold, every offer was buyable.
+The economy still created some tension when Source Pack appeared because it
+left 1 more gold than the archetype packs, but it did not create a hard
+"cannot buy this yet" moment.
+
+Early gold is about right for demo flow but too generous to stress
+affordability. It keeps the debug loop smooth and avoids softlocks, but economy
+tuning should eventually create at least occasional save-versus-buy pressure.
+
+## 5. Pack Choice Evaluation
 
 Ember Scrappers:
 
-- Duplicate opportunities appeared naturally. Ember Foundry Pack produced two
-  new Ember Scraprunner rows, and the starter already had an active Ember
-  Scraprunner.
-- The pack suggested a future upgrade chase, but only implicitly. Available
-  Upgrades stayed empty because there were not three matching pool copies.
-- Duplicates were easy to notice because duplicate names sat near each other and
-  had `new` markers, but they were not summarized as upgrade progress.
-- Traits helped evaluate the pack. After adding Ember Source and Cinder Tally,
-  Ember reached `6 / 6`, Scrapper reached `3 / 5`, and Echo Fodder reached
-  `3 / 3`, making the Ember/Scrapper direction obvious.
-- Upgrade mechanics improved the feel of reward decisions, but the run still
-  needed the upgrade lab knowledge to understand why two Ember Scraprunner rows
-  might matter later.
+- Offered round 1: Cloudspire Pack 4, Rotbloom Pack 4, Ember Foundry Pack 4.
+- Chosen round 1: Ember Foundry Pack.
+- Reason: active Ember/Scrapper/Echo Fodder traits made the archetype pack the
+  obvious lane.
+- Cost mattered only weakly because all offers cost 4 and left 2 gold.
+- Traits influenced the choice strongly: Ember reached `4 / 6`, Echo Fodder and
+  Scrapper reached `2 / 3` before the purchase.
+- Duplicate progress influenced the choice after opening: two Ember
+  Scraprunner copies appeared, but Available Upgrades stayed empty.
+- Source/fixing mattered in round 2: Source Pack cost 3 beside 4-gold packs and
+  was chosen because it preserved 1 extra gold and opened Source Greed/fixing.
+- Decision quality: real but mild. Round 2 had the best price-based tradeoff.
 
 Rotbloom Recall:
 
-- Duplicate opportunities appeared as two Due Marker rows from Rotbloom Pack.
-- The duplicate looked like a chase hook at first glance, but Due Marker is a
-  Relic and is not upgradeable in the current prototype. The inspector explains
-  that, but the row itself does not.
-- Duplicates were easy to scan because the names were adjacent and marked new.
-  The meaning was less clear because duplicate Relics are not upgrade material.
-- Traits were very helpful. Due Marker, Ash Ledger, Hollow Caller, Sporeback
-  Beast, and an extra Bloom Source produced a readable Shade/Bloom/Offering/
-  Recall/Relic Engine board.
-- Upgrade mechanics did not directly affect this run, but the existence of the
-  mechanic made duplicate pack outputs feel more worth noticing.
+- Offered round 1: Rotbloom Pack 4, Source Pack 3, Cloudspire Pack 4.
+- Chosen round 1: Rotbloom Pack.
+- Reason: Shade/Ashes/Recall/Offering traits were already active or near, and
+  Rotbloom promised more of that lane.
+- Cost mattered but did not override archetype direction; Source Pack was
+  cheaper but the run had 6 gold.
+- Traits influenced the choice strongly: Shade, Ashes, Recall, Offering, Relic
+  Engine, and Source Greed were all readable.
+- Duplicate progress was mixed: two Due Marker copies were visible, but Due
+  Marker is a Relic and not upgradeable.
+- Source/fixing mattered as a cheaper alternative but felt less urgent because
+  Shade/Bloom access was already strong.
+- Decision quality: strategic by archetype, not forced by budget.
 
 Cloudspire Phase:
 
-- Duplicate opportunities appeared naturally. Cloudspire Pack produced two
-  Mistwing Scout pool copies, plus another Cloudgate Adept and Vanishing Warden.
-- The pack strongly suggested a future Phase/Wisp/Warden chase. Because one
-  Mistwing Scout was already active on the board, the player sees three total
-  copies in the run but not three matching pool copies.
-- Duplicates were easy to notice in the Pool Cards list, but the Available
-  Upgrades panel only says no pool card has 3 copies. It does not explain that
-  active board copies do not count.
-- Traits helped decide the pack was valuable. After adding Ember Source, Shade
-  Source, and Vanishing Warden, the run showed Tide `5 / 6`, Source Greed
-  `4 / 5`, Barrier `2 / 3`, Phase `4 / 3`, and Warden `2 / 3`.
-- Upgrade mechanics made Mistwing duplicates feel more promising, but the UI
-  needs partial-progress wording before the promise is fully legible.
+- Offered round 1: Rotbloom Pack 4, Cloudspire Pack 4, Source Pack 3.
+- Chosen round 1: Cloudspire Pack.
+- Reason: Cloudspire directly supported Tide/Gleam/Phase/Barrier/Warden.
+- Cost mattered but did not override duplicate/trait direction; the cheaper
+  Source Pack was tempting but not necessary with 6 gold.
+- Traits influenced the choice strongly: Tide, Gleam, Phase, Wisp, Barrier, and
+  Warden were visible.
+- Duplicate progress influenced the choice conceptually: the pack produced two
+  Mistwing Scout copies while the starter Mistwing was active on board.
+- Source/fixing became useful after the pack opened Ember Source and Shade
+  Source, pushing Source Greed to `4 / 5`.
+- Decision quality: good archetype decision, but the upgrade chase was not
+  explained by the UI.
 
-## 6. Traits And Pack Direction
+## 6. Upgrade / Duplicate Visibility
 
-Active and near traits are understandable enough for internal iteration. The
-labels and threshold text create a useful read of the current board without
-requiring raw card inspection. They also create reasons to chase pack families:
-Ember wanted more Scrapper/Echo Fodder, Rotbloom wanted more Offering/Recall/
-Relic Engine, and Cloudspire wanted more Phase/Barrier/Warden pieces.
+Normal runs do not surface partial duplicate progress. Ember produced two pool
+Ember Scraprunner copies, Rotbloom produced two Due Marker copies, and
+Cloudspire produced two pool Mistwing Scout copies while one Mistwing was active
+on board. In all cases, Available Upgrades only showed the empty state until an
+exact eligible 3-copy pool group existed.
 
-The trait panel helps archetype identity more than any other current planning
-panel. It answers "what am I becoming?" after each reward use. It also made
-off-aspect Source choices understandable: adding extra Sources to Cloudspire
-made Source Greed visible as a real direction instead of just more capacity.
+Duplicate Unit and Echo cards feel like upgrade opportunities once the player
+knows the rule. Mistwing Scout and Ember Scraprunner duplicates were exciting
+pulls, but the UI did not say how close they were to upgrading or that active
+board copies do not count while they are not in the pool.
 
-Interlocking traits are visible, but the panel is dense. Active traits can also
-appear in Near when they are close to their next tier, which is mechanically
-useful but visually repetitive. The biggest trait-display improvements would be
-to label near rows as "next tier", compact contributor lists, and distinguish
-active-but-near-next-tier from inactive-near-first-tier.
+Non-upgradeable duplicate Relics still create confusion. Rotbloom's duplicate
+Due Markers looked like upgrade material at first glance, and only the inspector
+explained that Relics are not upgradeable in the current prototype.
 
-## 7. Reward And Economy Readiness
+The Available Upgrades panel is enough for the exact 3-copy case. In the
+upgrade lab it clearly said `Cinder Scout: 3 / 3 copies at level 0 -> upgrade to
+level 1`, and the Upgrade button produced one Lv 1 Cinder Scout. The inspector
+then showed `2 ATK / 3 HP` and `Current bonus: +1 ATK / +1 HP.`
 
-Rewards still feel somewhat free and flat because packs have no price, no gold
-budget, and no opportunity cost beyond choosing one of the offered packs. The
-cards inside packs now matter more because duplicates and traits can point toward
-a build, but the reward choice itself is not yet an economy decision.
+The UI needs a `2 / 3 copies` progress line for normal runs. It should also say
+which card types count, whether active board copies are excluded, and when a
+duplicate is non-upgradeable.
 
-Priced packs would improve decision-making now. The current UI already gives
-enough downstream information to make a player care about cheap duplicate-heavy
-packs, Source/fixing packs, and archetype packs. What is missing is a reason not
-to always take the most exciting-looking pack.
+Yes, the next task should improve normal-run upgrade visibility.
 
-Pack/economy information that should be shown:
+## 7. Traits And Pack Direction
 
-- current gold
-- pack cost
-- pack family or archetype bias
-- rough duplicate/Unit/Echo relevance
-- Source/fixing likelihood
-- whether the player can afford one premium pack or multiple cheaper packs
+Active and near traits are understandable enough for internal playtesting. They
+made each pack choice easier: Ember leaned toward Scrapper/Echo Fodder,
+Rotbloom leaned toward Ashes/Recall/Offering/Relic Engine, and Cloudspire leaned
+toward Phase/Barrier/Warden.
 
-The project is ready for a small economy/priced-pack pass. Keep it narrow:
-starting gold, pack costs, deterministic reward affordability, and enough UI
-text to make the tradeoff readable.
+Traits create reasons to buy specific packs. The strongest choices were
+archetype-reinforcing packs, while Source Pack became attractive when its lower
+cost and fixing pushed Source Greed.
 
-## 8. Positioning / Board Readability
+Source Greed helps explain Source/fixing choices. It made the Ember Source Pack
+choice and Cloudspire off-aspect Sources feel like a real direction instead of
+generic capacity.
 
-The board is still too abstract for a polished player demo. Row, column, and
-layer labels explain positioning to an engineer, and support versus ground is
-internally understandable after inspecting Relics like Cinder Tally, Ash Ledger,
-and Due Marker. It is still hard to build spatial intuition from a list.
+Trait thresholds are useful for pack choice, especially when a trait sits one
+away from the next tier. The panel is dense, though. Active traits can also
+appear under Near when they are near the next tier, which is mechanically useful
+but visually repetitive.
 
-A simple React/HTML board grid would help more than the current list for
-positioning, adjacency, and support-layer understanding. However, economy is the
-bigger blocker to pack choice right now. The board grid should be a near-term UI
-task after the pack-pricing pass, not a Pixi or visual-combat task.
+## 8. Reward Display
 
-Support and ground layers are understandable through text once inspected. They
-would become much clearer if a compact grid stacked or annotated support cards
-on the same coordinate as ground Units.
+Pack cost display is clear. Each reward row shows `Cost N gold`.
 
-## 9. Combat And Card Readability
+Affordability display is clear for affordable packs because each row shows
+`After purchase: N gold`. The playtest did not produce an unaffordable offer, so
+the disabled Open state and `Need N gold, have M` copy were not observed
+manually.
 
-Combat summaries remain readable. Winner, damage, event count, warnings,
-attacks, damage, destroyed events, recalls, Offering, and Barrier lines all
-worked during this pass.
+Gold after purchase is one of the strongest clarity improvements. It made
+Source Pack's 3-gold price immediately legible beside 4-gold archetype packs.
 
-Destroyed-trigger summaries are clear. Cinder Tally's line,
-`triggered after Sparkcatch Apprentice was destroyed as the first ally destroyed`,
-made its source and cause readable. Ash Ledger's lines,
-`reacted when Hollow Caller was destroyed` and
-`reacted when Sporeback Beast was destroyed`, were also easy to follow.
+Latest pack summary is clear. It shows the pack name, `Paid N gold`, and
+`Gold before -> after`, followed by the opened card names and new-card markers.
 
-Upgraded stats are reflected clearly enough. Cinder Scout's inspector showed the
-stat increase, and combat showed Cinder Scout dealing 2 attack damage. That is
-strong enough for internal upgrade iteration.
+New-card markers work. Newly opened cards were easy to find and inspect, though
+duplicate names still rely on repeated rows rather than grouped counts.
 
-The card inspector is sufficient for the current prototype. It shows type, zone,
-aspects, cost, stats, upgrade text, upgrade bonus, source output, technique
-timing, tags, traits, rules text, normalized ability text, design metadata,
-legal actions, and blocked reasons.
+Pack bias and expected contents are not clear enough yet. Reward rows explain
+price but not why Ember, Rotbloom, Cloudspire, or Source is strategically
+different. That should be a near-term UI task after upgrade visibility.
 
-Remaining confusing wording is minor:
+## 9. Board / Positioning Readability
 
-- Some trigger lines still do not explicitly say when a trigger had no valid
-  target or no visible effect.
-- `as the first ally destroyed` is understandable but slightly stiff.
-- Duplicate rows rely on repeated names rather than grouped counts.
+Board positioning is still a UI blocker for player-facing comprehension, but it
+is not the biggest blocker for the next engine-first task. The list-based board
+is tolerable for internal playtesting because row, column, and layer are
+visible and legal actions work.
+
+A compact board grid should happen after normal-run upgrade visibility and pack
+offer explanations. It would make support-layer Relics, adjacency, and board
+capacity easier to reason about, but it is not more urgent than making duplicate
+chases readable.
 
 ## 10. Bugs Or Suspected Bugs
 
@@ -250,55 +255,65 @@ UX confusion, not confirmed bugs:
 - Title: Partial upgrade progress is hidden in normal runs.
   Steps to reproduce: start Cloudspire Phase, place Mistwing Scout, record
   combat, open Cloudspire Pack, advance to round 2.
-  Observed behavior: Pool Cards shows two new Mistwing Scout rows and the board
+  Observed behavior: Pool Cards shows two Mistwing Scout copies and the board
   has one active Mistwing Scout, but Available Upgrades only says no pool card
   has 3 matching Unit or Echo copies.
-  Expected behavior: The UI should show partial pool progress and explain that
-  active board copies do not count until returned to the pool.
+  Expected behavior: The UI should show partial progress and explain that only
+  matching pool copies count.
   Reproducibility: deterministic with this seed.
   Severity: medium UX.
 
 - Title: Non-upgradeable duplicates can look like upgrade material.
-  Steps to reproduce: start Rotbloom Recall, open Rotbloom Pack.
-  Observed behavior: two Due Marker rows appear, but Relics are not upgradeable.
-  The inspector explains this after selection.
-  Expected behavior: Rows or the upgrade panel should make Unit/Echo eligibility
-  more obvious.
+  Steps to reproduce: start Rotbloom Recall, record combat, open Rotbloom Pack.
+  Observed behavior: two Due Marker rows appear, but Due Marker is a Relic and
+  cannot upgrade. The inspector explains this only after selection.
+  Expected behavior: Duplicate rows or the upgrade panel should clarify
+  Unit/Echo eligibility.
   Reproducibility: deterministic with this seed.
   Severity: low-medium UX.
 
+- Title: Reward offers do not explain pack contents or strategic bias.
+  Steps to reproduce: reach any reward phase.
+  Observed behavior: each offer shows name, cost, affordability, and
+  after-purchase gold, but not expected archetype, Source/fixing role, duplicate
+  relevance, or pack bias.
+  Expected behavior: Reward rows should briefly explain why a player might buy
+  that pack.
+  Reproducibility: always.
+  Severity: medium UX.
+
+- Title: Early economy rarely reaches unaffordable decisions.
+  Steps to reproduce: play the three starters through rounds 1-2 with the
+  tested legal actions.
+  Observed behavior: every offered pack was affordable; no disabled Open button
+  appeared.
+  Expected behavior: Later tuning should create occasional buy/save pressure or
+  unaffordable premium offers without softlocking the run.
+  Reproducibility: observed across this deterministic manual pass.
+  Severity: low tuning/UX.
+
 - Title: Near traits repeat active traits densely.
-  Steps to reproduce: inspect Traits / Teamups after any tested starter uses
-  reward cards.
-  Observed behavior: traits can appear in both Active and Near because they are
-  active and one away from the next tier.
+  Steps to reproduce: inspect Traits / Teamups after adding reward cards.
+  Observed behavior: traits can appear in Active and Near because they are
+  active and close to the next tier.
   Expected behavior: A "near next tier" label or compact grouping would make the
   repetition feel intentional.
   Reproducibility: frequent.
   Severity: low UX.
 
-- Title: Board position remains list-based and abstract.
-  Steps to reproduce: inspect Board after placing support and ground cards.
-  Observed behavior: row/column/layer text is accurate but hard to visualize.
-  Expected behavior: a compact board grid would make adjacency and layers
-  easier to understand.
-  Reproducibility: always.
-  Severity: low UX for internal testing, higher for external demos.
-
 ## 11. Recommended Next Tasks
 
 Do Next:
 
-- `feat(rules): add priced pack rewards and gold economy`
+- `feat(client): improve upgrade visibility in normal runs`
 
 Do Soon:
 
-- `feat(client): improve upgrade visibility in normal runs`
+- `feat(client): improve pack offer explanations`
+- `test(client): add a stable browser check for partial duplicate visibility`
 - `feat(client): add compact board grid layer view`
-- `test(client): expand upgrade browser smoke coverage`
-- Add partial duplicate-count copy for Unit/Echo pool cards.
-- Add pack-choice UI text for archetype bias, duplicate likelihood, and Source
-  likelihood.
+- Tune early economy only after upgrade and pack-offer clarity make decisions
+  easier to read.
 
 Still Wait:
 
@@ -314,26 +329,33 @@ Still Wait:
 ## 12. Raw Notes
 
 - Ember path: inspected Ember Scraprunner, Ember Source, Sparkfall, Signal Nest,
-  and Sparkcatch Apprentice; placed Sparkcatch Apprentice; opened Ember Foundry
-  Pack; inspected six new reward cards; advanced; added Ember Source; placed
-  Cinder Tally; recorded round 2.
+  and Sparkcatch Apprentice; placed Sparkcatch Apprentice; won round 1 for
+  `+6` gold; opened Ember Foundry Pack for 4 gold; advanced; added Ember
+  Source; placed Cinder Tally; lost round 2 for `+4` gold; opened Source Pack
+  for 3 gold.
 - Ember notable rewards: Ember Scraprunner, Ember Source, Ember Scraprunner,
-  Cinder Tally, Rustline Cannon, Cracked Prism.
-- Rotbloom path: inspected Hollow Caller, Shade Source, Bloom Source, Sporeback
-  Beast, and Ash Ledger; placed Ash Ledger; opened Rotbloom Pack; inspected six
-  new reward cards; advanced; placed Due Marker, added Bloom Source, placed
-  Sporeback Beast; recorded round 2.
+  Cinder Tally, Rustline Cannon, Cracked Prism, then Shade Source,
+  Ember-Shade Conduit, Tide-Gleam Conduit, Overgrowth Spring, Mossback Tender.
+- Rotbloom path: inspected Hollow Caller, Shade Source, Bloom Source,
+  Sporeback Beast, and Ash Ledger; placed Ash Ledger; won round 1 for `+6`
+  gold; opened Rotbloom Pack for 4 gold; advanced; added Bloom Source; placed
+  Due Marker; won round 2 for `+6` gold; opened another Rotbloom Pack for 4
+  gold.
 - Rotbloom notable rewards: Shade Binder, Bloom Source, Cracked Prism, Due
-  Marker, Thicket Colossus, Due Marker.
+  Marker, Thicket Colossus, Due Marker, then Ash Debt Runner, Sporeback Beast,
+  Rootbrace Guardian, Ash Ledger, Debt-Bound Colossus, Bloom Source.
 - Cloudspire path: inspected Cloudgate Adept, Tide Source, Gleam Source, Phase
-  Step, Vanishing Warden, and Mistwing Scout; placed Mistwing Scout; opened
-  Cloudspire Pack; inspected six new reward cards; advanced; added Ember Source,
-  added Shade Source, placed Vanishing Warden; recorded round 2.
+  Step, Vanishing Warden, and Mistwing Scout; placed Mistwing Scout; won round
+  1 for `+6` gold; opened Cloudspire Pack for 4 gold; advanced; added Ember
+  Source and Shade Source; placed Vanishing Warden; won round 2 for `+6` gold;
+  opened another Cloudspire Pack for 4 gold.
 - Cloudspire notable rewards: Ember Source, Mistwing Scout, Mistwing Scout,
-  Cloudgate Adept, Vanishing Warden, Shade Source.
-- Upgrade lab path: loaded `/?scenario=upgrade-lab`, inspected Cinder Scout
-  before upgrade, clicked Upgrade, inspected Lv 1 Cinder Scout, placed it, and
-  recorded combat.
+  Cloudgate Adept, Vanishing Warden, Shade Source, then Cracked Prism, Signal
+  Wisp Echo, Skyhook Lookout, Gleam Lantern, Vanishing Warden,
+  Tide-Gleam Conduit.
+- Upgrade lab path: loaded `/?scenario=upgrade-lab`, inspected Cinder Scout,
+  upgraded three copies into one Lv 1 Cinder Scout, inspected the upgraded card,
+  placed it, and recorded combat. Reward choices appeared normally afterward.
 - Browser logs: no warnings or errors captured.
 - Dev server lifecycle: no stale listeners before testing; Vite listener on
   `5173` stopped after manual playtest; common dev ports clear afterward.

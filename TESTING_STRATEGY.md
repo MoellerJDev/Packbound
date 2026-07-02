@@ -127,10 +127,12 @@ and the duplicate-upgrade path. They start the Vite client, load the app,
 inspect a card, ready and record combat, open a reward, verify latest reward
 markers, advance the run, and use a debug-only upgrade lab scenario to click an
 actual Unit upgrade, inspect the upgraded stats, and verify the Upgrade Progress
-panel/inspector wording for that stable duplicate scenario. CI installs
-Playwright Chromium and runs the same smoke tests with `pnpm test:browser`.
-Keep this layer focused on stable text and roles. Avoid screenshots, broad
-brittle snapshots, animation timing, and visual assertions.
+panel/inspector wording for that stable duplicate scenario. The debug-loop smoke
+also checks that compact player and enemy board grids can inspect board cards
+without asserting exact visual layout. CI installs Playwright Chromium and runs
+the same smoke tests with `pnpm test:browser`. Keep this layer focused on stable
+text and roles. Avoid screenshots, broad brittle snapshots, animation timing,
+and visual assertions.
 
 ### Manual Playtesting
 

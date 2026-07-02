@@ -382,6 +382,116 @@ h4 {
   margin-top: 14px;
 }
 
+.board-grid-wrap {
+  margin-top: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.board-grid {
+  display: grid;
+  gap: 6px;
+  min-width: max-content;
+}
+
+.board-grid-cell {
+  background: #fffdf8;
+  border: 1px solid #d8d0c3;
+  border-radius: 6px;
+  display: grid;
+  gap: 6px;
+  min-height: 104px;
+  min-width: 112px;
+  padding: 7px;
+}
+
+.board-grid-cell.empty {
+  background: #f8f3ea;
+  color: #8e877f;
+}
+
+.board-grid-coordinate {
+  color: #64616a;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.board-grid-layer {
+  align-items: center;
+  background: #f5f8ee;
+  border: 1px solid #dbe5d5;
+  border-left: 4px solid #5d7a55;
+  border-radius: 5px;
+  display: grid;
+  gap: 4px;
+  grid-template-columns: minmax(0, 1fr);
+  padding: 6px;
+}
+
+.board-grid-layer.support {
+  background: #eef3f8;
+  border-color: #cfdde8;
+  border-left-color: #436f91;
+}
+
+.board-grid-layer.air {
+  background: #f5f0fb;
+  border-color: #ddd0ec;
+  border-left-color: #72599d;
+}
+
+.board-grid-layer.terrain {
+  background: #f3eee5;
+  border-color: #dfd3c1;
+  border-left-color: #7d6845;
+}
+
+.board-grid-layer-label {
+  color: #64616a;
+  font-size: 0.66rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.board-grid-card-name {
+  font-size: 0.82rem;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.board-grid-layer button {
+  font-size: 0.72rem;
+  min-height: 28px;
+  padding: 0 8px;
+  width: fit-content;
+}
+
+.board-grid-empty {
+  color: #aaa198;
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.board-grid-note {
+  margin-top: 8px;
+}
+
+.missing-def-badge {
+  background: #f6d2cf;
+  border: 1px solid #e6aaa5;
+  border-radius: 999px;
+  color: #88342f;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  padding: 2px 7px;
+  text-transform: uppercase;
+  width: fit-content;
+}
+
 .pool-reward-summary {
   border-top: 1px solid #ebe2d3;
   margin-top: 12px;
@@ -571,6 +681,10 @@ pre {
 
   .card-list button {
     width: auto;
+  }
+
+  .board-grid-layer button {
+    width: fit-content;
   }
 
   .card-list li {

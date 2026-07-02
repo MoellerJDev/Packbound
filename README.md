@@ -87,8 +87,8 @@ pnpm dev
   clearer normalized ability text, legal loadout actions, and blocked-action
   reasons, including upgrade progress and why duplicates may be blocked.
 - The debug client shows Source Row resource totals, phase-aware next-action
-  guidance, display-only trait/teamup summaries, and latest reward markers for
-  newly opened pool cards.
+  guidance, compact player/enemy board grids with layer rows, display-only
+  trait/teamup summaries, and latest reward markers for newly opened pool cards.
 - Duplicate upgrades currently combine 3 matching Unit or Echo instances in the
   pool at the same level, preserve one deterministic card identity, and add +1
   ATK/+1 HP per upgrade level in combat up to level 2. The debug client also

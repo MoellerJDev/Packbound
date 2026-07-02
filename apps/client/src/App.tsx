@@ -1,8 +1,9 @@
-import { useMemo, useState } from "react";
+import { type CSSProperties, type ReactNode, useMemo, useState } from "react";
 
 import { sampleCatalog } from "@packbound/content";
 import {
   applyRunAction,
+  buildBoardGridSummary,
   buildLoadoutResourceSummary,
   buildRunTraitSummary,
   buildCombatantSetupForEncounter,
@@ -22,6 +23,8 @@ import {
   inspectEncounterCard,
   inspectRunCard,
   validateRunLoadout,
+  type BoardGridCardSummary,
+  type BoardGridSummary,
   type CardInspection,
   type CombatResultLike,
   type LoadoutAction,
@@ -395,6 +398,67 @@ const TraitSummaryView = ({ summary }: { readonly summary: TraitSummary }) => (
   </div>
 );
 
+const boardGridStyle = (cols: number): CSSProperties => ({
+  gridTemplateColumns: `repeat(${cols}, minmax(112px, 1fr))`
+});
+
+const BoardGridView = ({
+  summary,
+  emptyText,
+  onInspect,
+  renderCardMeta
+}: {
+  readonly summary: BoardGridSummary;
+  readonly emptyText: string;
+  readonly onInspect: (card: BoardGridCardSummary) => void;
+  readonly renderCardMeta?: (card: BoardGridCardSummary) => ReactNode;
+}) => {
+  const occupiedCount = summary.cells.reduce(
+    (count, cell) => count + cell.cards.length,
+    0
+  );
+
+  return (
+    <div className="board-grid-wrap">
+      <div className="board-grid" style={boardGridStyle(summary.cols)}>
+        {summary.cells.map((cell) => (
+          <div
+            key={`${cell.row}:${cell.col}`}
+            className={`board-grid-cell ${cell.cards.length === 0 ? "empty" : ""}`}
+          >
+            <div className="board-grid-coordinate">
+              r{cell.row} c{cell.col}
+            </div>
+            {cell.cards.length > 0 ? (
+              cell.cards.map((card) => (
+                <div
+                  key={card.cardInstanceId}
+                  className={`board-grid-layer ${card.layer}`}
+                >
+                  <span className="board-grid-layer-label">{card.layer}</span>
+                  <span className="board-grid-card-name">{card.name}</span>
+                  {renderCardMeta ? renderCardMeta(card) : null}
+                  <button
+                    type="button"
+                    className="secondary"
+                    aria-label={`Inspect ${card.name} ${card.layer} r${cell.row} c${cell.col}`}
+                    onClick={() => onInspect(card)}
+                  >
+                    Inspect
+                  </button>
+                </div>
+              ))
+            ) : (
+              <span className="board-grid-empty">Empty</span>
+            )}
+          </div>
+        ))}
+      </div>
+      {occupiedCount === 0 ? <p className="muted board-grid-note">{emptyText}</p> : null}
+    </div>
+  );
+};
+
 export function App() {
   const [selectedStarterKitId, setSelectedStarterKitId] = useState(firstStarterKitId);
   const [run, setRun] = useState(() => createDebugRun(firstStarterKitId));
@@ -411,6 +475,17 @@ export function App() {
     [currentEncounter]
   );
   const playerSetup = useMemo(() => buildCombatantSetupForRun(run), [run]);
+  const playerBoardGrid = useMemo(
+    () => buildBoardGridSummary(run.board, sampleCatalog, run.activeCards),
+    [run]
+  );
+  const encounterBoardGrid = useMemo(
+    () =>
+      currentEncounter
+        ? buildBoardGridSummary(currentEncounter.loadout.board, sampleCatalog)
+        : undefined,
+    [currentEncounter]
+  );
   const starterKitName =
     sampleCatalog.starterKitsById.get(run.starterKitId ?? "")?.name ?? "None";
   const validation = useMemo(() => validateRunLoadout(run, sampleCatalog), [run]);
@@ -634,6 +709,25 @@ export function App() {
     setSelectedCardRef({ type: "encounterSpellrail", cardInstanceId });
   };
 
+  const renderPlayerGridCardMeta = (card: BoardGridCardSummary): ReactNode => (
+    <>
+      <UpgradeBadge level={card.upgradeLevel ?? 0} />
+      <UpgradeProgressBadge
+        group={upgradeProgressByCardId.get(card.cardInstanceId)}
+        cardInstanceId={card.cardInstanceId}
+        zone="active"
+      />
+      {card.definitionMissing ? (
+        <span className="missing-def-badge">missing def</span>
+      ) : null}
+    </>
+  );
+
+  const renderEncounterGridCardMeta = (card: BoardGridCardSummary): ReactNode =>
+    card.definitionMissing ? (
+      <span className="missing-def-badge">missing def</span>
+    ) : null;
+
   const markReady = () => {
     setRun((currentRun) =>
       applyRunAction(currentRun, sampleCatalog, { type: "markCombatReady" })
@@ -839,6 +933,20 @@ export function App() {
           ) : null}
         </div>
 
+        <div className="panel wide">
+          <h2>Enemy Board Grid</h2>
+          {encounterBoardGrid ? (
+            <BoardGridView
+              summary={encounterBoardGrid}
+              emptyText="No enemy board cards are placed."
+              onInspect={(card) => inspectEncounterBoard(card.cardInstanceId)}
+              renderCardMeta={renderEncounterGridCardMeta}
+            />
+          ) : (
+            <p className="muted">No current encounter board to show.</p>
+          )}
+        </div>
+
         <div className="panel">
           <h2>Planning Check</h2>
           <div className={validation.ok ? "status ok" : "status error"}>
@@ -894,6 +1002,21 @@ export function App() {
               </li>
             ))}
           </ol>
+        </div>
+
+        <div className="panel wide">
+          <h2>Player Board Grid</h2>
+          <BoardGridView
+            summary={playerBoardGrid}
+            emptyText="No player board cards are placed."
+            onInspect={(card) =>
+              setSelectedCardRef({
+                type: "run",
+                cardInstanceId: card.cardInstanceId
+              })
+            }
+            renderCardMeta={renderPlayerGridCardMeta}
+          />
         </div>
 
         <div className="panel">

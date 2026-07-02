@@ -40,6 +40,12 @@ test("debug loop can inspect, preview, record, reward, and advance", async ({ pa
     page.getByRole("heading", { name: "Card Inspector", exact: true })
   ).toBeVisible();
   await expect(
+    page.getByRole("heading", { name: "Enemy Board Grid", exact: true })
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Player Board Grid", exact: true })
+  ).toBeVisible();
+  await expect(
     page.getByRole("heading", { name: "Source Row", exact: true })
   ).toBeVisible();
   await expect(
@@ -47,16 +53,28 @@ test("debug loop can inspect, preview, record, reward, and advance", async ({ pa
   ).toBeVisible();
 
   const boardPanel = panel(page, "Board");
+  const playerGridPanel = panel(page, "Player Board Grid");
+  const enemyGridPanel = panel(page, "Enemy Board Grid");
   const inspectorPanel = panel(page, "Card Inspector");
 
-  await boardPanel.getByRole("button", { name: "Inspect" }).first().click();
-
+  await expect(boardPanel.getByRole("button", { name: "Inspect" }).first()).toBeVisible();
+  await expect(playerGridPanel.getByText("r0 c2")).toBeVisible();
+  await expect(playerGridPanel.getByText("ground").first()).toBeVisible();
+  await playerGridPanel
+    .getByRole("button", { name: /Inspect Ember Scraprunner ground r0 c2/ })
+    .click();
   await expect(inspectorPanel.getByText(/Unit \| board \| Ember/)).toBeVisible();
   await expect(inspectorPanel.getByText("Cost")).toBeVisible();
   await expect(inspectorPanel.getByText(/Charge/)).toBeVisible();
   await expect(
     inspectorPanel.getByRole("heading", { name: "Legal Actions" })
   ).toBeVisible();
+
+  await enemyGridPanel
+    .getByRole("button", { name: /Inspect .+/ })
+    .first()
+    .click();
+  await expect(inspectorPanel.getByText(/\| encounter \|/)).toBeVisible();
 
   await page.getByRole("button", { name: "Ready Combat" }).click();
 

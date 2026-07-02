@@ -84,6 +84,8 @@ Responsibilities:
 - Debug views
 
 The client may call `packages/rules` and `packages/sim`, but it must not duplicate gameplay logic.
+The current compact React board grid is a debug visualization of discrete board
+positions and layers, not the final Pixi battlefield renderer.
 
 ### `apps/server`
 

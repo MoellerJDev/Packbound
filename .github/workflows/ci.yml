@@ -40,3 +40,12 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+      - name: Balance report
+        run: pnpm balance:report
+
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Browser smoke test
+        run: pnpm test:browser

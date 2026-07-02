@@ -30,7 +30,9 @@ resolves combat into an event log.
 
 GitHub Actions runs the same verification stack expected locally on push and
 pull request: install with a frozen pnpm lockfile, then `pnpm format:check`,
-`pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build`.
+`pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`,
+`pnpm balance:report`, and `pnpm test:browser`. CI installs Playwright
+Chromium before the browser smoke step.
 
 ## Commands
 
@@ -80,8 +82,9 @@ pnpm dev
   guidance, and latest reward markers for newly opened pool cards.
 - Run actions provide a serializable reducer/replay layer for the current loop,
   allowing the debug client and integration tests to share the same action path.
-- `pnpm test:browser` runs a minimal Playwright smoke test for the debug loop
-  without screenshots, traces, videos, or broad UI snapshots.
+- `pnpm test:browser` runs a minimal Playwright smoke test for debug-loop
+  regressions, not visual polish or full end-to-end coverage. It runs without
+  screenshots, traces, videos, or broad UI snapshots.
 - Property-based invariant tests cover generated seeds, legal loadout action
   sequences, card instance preservation, replay determinism, and mutation safety.
 - Core state uses plain objects so future server validation, async ghost PvP,

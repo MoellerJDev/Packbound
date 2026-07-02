@@ -125,8 +125,9 @@ remain the automated pass/fail guardrails.
 The debug client has a small Playwright smoke test for the current browser loop.
 It starts the Vite client, loads the app, inspects a card, readies and records
 combat, opens a reward, verifies latest reward markers, and advances the run.
-Keep this layer focused on stable text and roles. Avoid screenshots, broad
-brittle snapshots, animation timing, and visual assertions.
+CI installs Playwright Chromium and runs the same smoke test with
+`pnpm test:browser`. Keep this layer focused on stable text and roles. Avoid
+screenshots, broad brittle snapshots, animation timing, and visual assertions.
 
 ### Manual Playtesting
 

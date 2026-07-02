@@ -49,6 +49,24 @@ export const STATUS_EFFECTS = [
 ] as const;
 export type StatusEffectType = (typeof STATUS_EFFECTS)[number];
 
+export const CARD_DESIGN_ROLES = [
+  "enabler",
+  "payoff",
+  "interaction",
+  "defense",
+  "engine",
+  "fixing",
+  "curve"
+] as const;
+export type CardDesignRole = (typeof CARD_DESIGN_ROLES)[number];
+
+export type CardDesignMetadata = {
+  readonly role: CardDesignRole;
+  readonly archetypes: readonly string[];
+  readonly complexity: 1 | 2 | 3;
+  readonly mechanicTags: readonly string[];
+};
+
 export type ChargeCost = {
   readonly generic: number;
   readonly aspect?: AspectCountMap;
@@ -109,6 +127,7 @@ export type BaseCardDefinition = {
   readonly keywords: readonly Keyword[];
   readonly abilities: readonly AbilityDefinition[];
   readonly rulesText?: string;
+  readonly design?: CardDesignMetadata;
 };
 
 export type UnitCardDefinition = BaseCardDefinition & {

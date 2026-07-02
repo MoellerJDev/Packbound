@@ -30,11 +30,13 @@ const combatResult = (seed: string): CombatResultLike => ({
   rulesVersion: "run-action-test"
 });
 
-const createReplayRun = (): RunState =>
+const starterKitIds = ["ember_scrappers", "rotbloom_recall", "cloudspire_phase"] as const;
+
+const createReplayRun = (starterKitId: (typeof starterKitIds)[number]): RunState =>
   createRunFromStarterKit({
-    seed: "run-action-replay-seed",
+    seed: `run-action-replay-seed:${starterKitId}`,
     catalog: sampleCatalog,
-    starterKitId: "ember_scrappers",
+    starterKitId,
     playerId: asPlayerId("test-player"),
     maxRounds: 2
   });
@@ -85,52 +87,55 @@ const firstLegalPoolAction = (run: RunState): RunAction | undefined => {
 };
 
 describe("run action reducer", () => {
-  it("applies and replays a full tiny run loop deterministically", () => {
-    const initialRun = createReplayRun();
-    const actions: RunAction[] = [];
-    let run = initialRun;
-    const dispatch = (action: RunAction): void => {
-      actions.push(action);
-      run = applyRunAction(run, sampleCatalog, action);
-    };
+  it.each(starterKitIds)(
+    "applies and replays a full tiny run loop deterministically for %s",
+    (starterKitId) => {
+      const initialRun = createReplayRun(starterKitId);
+      const actions: RunAction[] = [];
+      let run = initialRun;
+      const dispatch = (action: RunAction): void => {
+        actions.push(action);
+        run = applyRunAction(run, sampleCatalog, action);
+      };
 
-    dispatch({ type: "prepareEncounter" });
-    expect(validateRunLoadout(run, sampleCatalog).ok).toBe(true);
-    dispatch({ type: "markCombatReady" });
-    dispatch({
-      type: "recordCombatResult",
-      encounterId: requireEncounterId(run),
-      combatResult: combatResult("round-1")
-    });
-    dispatch({ type: "applyPackReward", choiceId: firstRewardChoiceId(run) });
-    dispatch({ type: "advanceRunAfterCombat" });
+      dispatch({ type: "prepareEncounter" });
+      expect(validateRunLoadout(run, sampleCatalog).ok).toBe(true);
+      dispatch({ type: "markCombatReady" });
+      dispatch({
+        type: "recordCombatResult",
+        encounterId: requireEncounterId(run),
+        combatResult: combatResult("round-1")
+      });
+      dispatch({ type: "applyPackReward", choiceId: firstRewardChoiceId(run) });
+      dispatch({ type: "advanceRunAfterCombat" });
 
-    const loadoutAction = firstLegalPoolAction(run);
-    if (loadoutAction) {
-      dispatch(loadoutAction);
+      const loadoutAction = firstLegalPoolAction(run);
+      if (loadoutAction) {
+        dispatch(loadoutAction);
+      }
+
+      dispatch({ type: "markCombatReady" });
+      dispatch({
+        type: "recordCombatResult",
+        encounterId: requireEncounterId(run),
+        combatResult: combatResult("round-2")
+      });
+      dispatch({ type: "applyPackReward", choiceId: firstRewardChoiceId(run) });
+      dispatch({ type: "advanceRunAfterCombat" });
+
+      expect(run.status).toBe("won");
+      expect(run.phase).toBe("complete");
+      expect(replayRunActions(initialRun, sampleCatalog, actions)).toEqual(run);
+      expect(applyRunActions(initialRun, sampleCatalog, actions)).toEqual(run);
+      expect(JSON.parse(JSON.stringify(toRunActionLog(actions)))).toEqual(
+        toRunActionLog(actions)
+      );
+      expect(JSON.parse(JSON.stringify(run))).toEqual(run);
     }
-
-    dispatch({ type: "markCombatReady" });
-    dispatch({
-      type: "recordCombatResult",
-      encounterId: requireEncounterId(run),
-      combatResult: combatResult("round-2")
-    });
-    dispatch({ type: "applyPackReward", choiceId: firstRewardChoiceId(run) });
-    dispatch({ type: "advanceRunAfterCombat" });
-
-    expect(run.status).toBe("won");
-    expect(run.phase).toBe("complete");
-    expect(replayRunActions(initialRun, sampleCatalog, actions)).toEqual(run);
-    expect(applyRunActions(initialRun, sampleCatalog, actions)).toEqual(run);
-    expect(JSON.parse(JSON.stringify(toRunActionLog(actions)))).toEqual(
-      toRunActionLog(actions)
-    );
-    expect(JSON.parse(JSON.stringify(run))).toEqual(run);
-  });
+  );
 
   it("keeps action history external to RunState", () => {
-    const initialRun = createReplayRun();
+    const initialRun = createReplayRun("ember_scrappers");
     const actions: RunAction[] = [{ type: "prepareEncounter" }];
     const replayed = replayRunActions(initialRun, sampleCatalog, actions);
 
@@ -145,7 +150,7 @@ describe("run action reducer", () => {
   });
 
   it("rejects wrong-phase actions predictably through the reducer", () => {
-    const initialRun = createReplayRun();
+    const initialRun = createReplayRun("ember_scrappers");
 
     expect(() =>
       applyRunAction(initialRun, sampleCatalog, { type: "markCombatReady" })

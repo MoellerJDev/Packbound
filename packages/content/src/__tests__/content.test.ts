@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import { asCardDefId, asPackId } from "@packbound/shared";
+import type {
+  AbilityEffect,
+  CardDefinition,
+  CardInstance,
+  Trigger
+} from "@packbound/shared";
 
 import {
   sampleCards,
@@ -10,6 +16,56 @@ import {
 } from "../sampleContent";
 import { ContentValidationError, loadContentCatalog } from "../catalog";
 import { parseCardDefinitions } from "../schemas";
+
+const archetypes = [
+  "ember_scrappers",
+  "shade_ashes",
+  "bloom_bodies",
+  "cloudspire_phase",
+  "source_greed"
+] as const;
+
+const schemaReservedEffects = new Set<AbilityEffect["type"]>([
+  "SendToVoid",
+  "ReturnFromVoid",
+  "MoveUnit",
+  "Attach",
+  "Detach",
+  "CopyTechnique",
+  "InterruptTechnique",
+  "MillToAshes"
+]);
+
+const schemaReservedTriggers = new Set<Trigger["type"]>([
+  "OnCombatEnd",
+  "OnLeaveBoard",
+  "OnOffered",
+  "OnAllyDestroyed",
+  "OnEnemyDestroyed",
+  "OnSummoned",
+  "OnTechniqueUsed",
+  "OnTakeDamage",
+  "OnDealDamage",
+  "OnAttack",
+  "OnKill",
+  "OnCombatChargeGained",
+  "WhenFirstAllyDestroyed",
+  "WhenFirstEnemyDestroyed",
+  "WhenFirstEnemyUsesTechnique"
+]);
+
+const effectsForCard = (card: CardDefinition): readonly AbilityEffect[] => [
+  ...card.abilities.map((ability) => ability.effect),
+  ...(card.cardType === "Technique" ? [card.technique.effect] : [])
+];
+
+const triggersForCard = (card: CardDefinition): readonly Trigger[] => [
+  ...card.abilities.map((ability) => ability.trigger),
+  ...(card.cardType === "Technique" ? [card.technique.trigger] : [])
+];
+
+const instanceIdsForCards = (cards: readonly CardInstance[]): readonly string[] =>
+  cards.map((card) => card.instanceId);
 
 describe("content validation", () => {
   it("loads the starter Packbound content catalog", () => {
@@ -342,6 +398,109 @@ describe("content validation", () => {
                   cardInstanceId: poolCard.instanceId
                 }
               ]
+            }
+          }
+        ]
+      })
+    ).toThrow(ContentValidationError);
+  });
+
+  it("sample cards have unique card ids", () => {
+    const ids = sampleCards.map((card) => card.id);
+
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it("playable sample cards declare valid serializable design metadata", () => {
+    for (const card of sampleCards) {
+      expect(card.design, card.id).toBeDefined();
+      expect(card.design?.archetypes.length, card.id).toBeGreaterThan(0);
+      expect(card.design?.mechanicTags.length, card.id).toBeGreaterThan(0);
+      expect(card.design?.complexity, card.id).toBeGreaterThanOrEqual(1);
+      expect(card.design?.complexity, card.id).toBeLessThanOrEqual(3);
+      expect(JSON.parse(JSON.stringify(card.design))).toEqual(card.design);
+    }
+  });
+
+  it("playable sample cards use implemented effects and triggers only", () => {
+    const reservedEffectUses = sampleCards.flatMap((card) =>
+      effectsForCard(card)
+        .filter((effect) => schemaReservedEffects.has(effect.type))
+        .map((effect) => `${card.id}:${effect.type}`)
+    );
+    const reservedTriggerUses = sampleCards.flatMap((card) =>
+      triggersForCard(card)
+        .filter((trigger) => schemaReservedTriggers.has(trigger.type))
+        .map((trigger) => `${card.id}:${trigger.type}`)
+    );
+
+    expect(reservedEffectUses).toEqual([]);
+    expect(reservedTriggerUses).toEqual([]);
+  });
+
+  it("each first-set archetype has an enabler, payoff, and interaction or defense", () => {
+    for (const archetype of archetypes) {
+      const cards = sampleCards.filter((card) =>
+        card.design?.archetypes.includes(archetype)
+      );
+      const roles = new Set(cards.map((card) => card.design?.role));
+
+      expect(cards.length, archetype).toBeGreaterThan(0);
+      expect(roles.has("enabler"), archetype).toBe(true);
+      expect(roles.has("payoff"), archetype).toBe(true);
+      expect(roles.has("interaction") || roles.has("defense"), archetype).toBe(true);
+    }
+  });
+
+  it("sample starter kits and encounters do not reuse instance ids", () => {
+    for (const starterKit of sampleStarterKits) {
+      const ids = [
+        ...instanceIdsForCards(starterKit.pool),
+        ...starterKit.board.placements.map((placement) => placement.cardInstanceId),
+        ...instanceIdsForCards(starterKit.sourceRow.cards),
+        ...instanceIdsForCards(starterKit.spellrail.cards),
+        ...instanceIdsForCards(starterKit.ashes ?? []),
+        ...instanceIdsForCards(starterKit.void ?? [])
+      ];
+
+      expect(new Set(ids).size, starterKit.id).toBe(ids.length);
+    }
+
+    for (const encounter of sampleEncounters) {
+      const ids = [
+        ...encounter.loadout.board.placements.map(
+          (placement) => placement.cardInstanceId
+        ),
+        ...instanceIdsForCards(encounter.loadout.sourceRow.cards),
+        ...instanceIdsForCards(encounter.loadout.spellrail.cards),
+        ...instanceIdsForCards(encounter.loadout.startingAshes ?? [])
+      ];
+
+      expect(new Set(ids).size, encounter.id).toBe(ids.length);
+    }
+  });
+
+  it("rejects encounters that reuse an instance id across zones", () => {
+    const encounter = sampleEncounters[0];
+    const placement = encounter?.loadout.board.placements[0];
+    const source = encounter?.loadout.sourceRow.cards[0];
+    if (!encounter || !placement || !source) {
+      throw new Error("Expected a sample encounter board and source card");
+    }
+
+    expect(() =>
+      loadContentCatalog({
+        cards: sampleCards,
+        packs: samplePacks,
+        encounters: [
+          {
+            ...encounter,
+            loadout: {
+              ...encounter.loadout,
+              sourceRow: {
+                ...encounter.loadout.sourceRow,
+                cards: [{ ...source, instanceId: placement.cardInstanceId }]
+              }
             }
           }
         ]

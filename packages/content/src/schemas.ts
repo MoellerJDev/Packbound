@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   ASPECTS,
   BOARD_LAYERS,
+  CARD_DESIGN_ROLES,
   CARD_TYPES,
   KEYWORDS,
   RARITIES,
@@ -25,6 +26,7 @@ export const cardTypeSchema = z.enum(CARD_TYPES);
 export const boardLayerSchema = z.enum(BOARD_LAYERS);
 export const keywordSchema = z.enum(KEYWORDS);
 export const statusEffectSchema = z.enum(STATUS_EFFECTS);
+export const cardDesignRoleSchema = z.enum(CARD_DESIGN_ROLES);
 
 export const cardDefIdSchema = z.string().min(1).transform(asCardDefId);
 export const cardInstanceIdSchema = z.string().min(1).transform(asCardInstanceId);
@@ -243,6 +245,13 @@ export const abilitySchema = z.object({
   effect: abilityEffectSchema
 });
 
+export const cardDesignMetadataSchema = z.object({
+  role: cardDesignRoleSchema,
+  archetypes: z.array(z.string().min(1)),
+  complexity: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+  mechanicTags: z.array(z.string().min(1))
+});
+
 const baseCardSchema = {
   id: cardDefIdSchema,
   name: z.string().min(1),
@@ -253,7 +262,8 @@ const baseCardSchema = {
   tags: z.array(z.string().min(1)),
   keywords: z.array(keywordSchema),
   abilities: z.array(abilitySchema),
-  rulesText: z.string().min(1).optional()
+  rulesText: z.string().min(1).optional(),
+  design: cardDesignMetadataSchema.optional()
 };
 
 const unitStatsSchema = z.object({

@@ -14,7 +14,8 @@ resolves combat into an event log.
 - `packages/shared`: Serializable domain types, IDs, board positions, zones,
   costs, events, and validation types.
 - `packages/content`: Zod schemas plus starter Packbound card, pack, encounter,
-  and starter kit content.
+  and starter kit content, now expanded into a first archetype micro-set with
+  design metadata.
 - `packages/rules`: Seeded RNG, deterministic pack opening, board/source
   validation, teamup counting helpers, and a minimal deterministic run-state /
   reward / encounter / starter kit progression skeleton with explicit lifecycle
@@ -76,3 +77,7 @@ See `IMPLEMENTED_MECHANICS.md` for the current implemented versus
 schema-reserved simulator mechanics.
 See `TESTING_STRATEGY.md` for the testing pyramid, invariant-test guidance, and
 future Codex testing expectations.
+See `CARD_DESIGN_GUIDE.md` for Packbound card design principles, terminology,
+and current mechanic boundaries.
+See `ARCHETYPE_MATRIX.md` for the first micro-set archetypes, card roles,
+starter-kit implications, and pack implications.

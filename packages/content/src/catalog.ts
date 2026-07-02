@@ -147,6 +147,21 @@ const validateEncounterCardInstance = (
   return def;
 };
 
+const trackEncounterInstanceId = (
+  encounter: EncounterDefinition,
+  cardInstanceId: string,
+  seenInstanceIds: Set<string>,
+  issues: string[]
+): void => {
+  if (seenInstanceIds.has(cardInstanceId)) {
+    issues.push(
+      `${encounter.id} encounter reuses card instance id '${cardInstanceId}' across zones`
+    );
+    return;
+  }
+  seenInstanceIds.add(cardInstanceId);
+};
+
 const validateEncounterBoardPlacement = (
   encounter: EncounterDefinition,
   placement: BoardPlacement,
@@ -193,7 +208,15 @@ const validateEncounter = (
   cardsById: ReadonlyMap<CardDefId, CardDefinition>,
   issues: string[]
 ): void => {
+  const seenInstanceIds = new Set<string>();
+
   for (const placement of encounter.loadout.board.placements) {
+    trackEncounterInstanceId(
+      encounter,
+      placement.cardInstanceId,
+      seenInstanceIds,
+      issues
+    );
     validateEncounterBoardPlacement(encounter, placement, cardsById, issues);
   }
 
@@ -202,6 +225,7 @@ const validateEncounter = (
   }
 
   for (const card of encounter.loadout.sourceRow.cards) {
+    trackEncounterInstanceId(encounter, card.instanceId, seenInstanceIds, issues);
     validateEncounterCardInstance(
       encounter,
       card,
@@ -217,6 +241,7 @@ const validateEncounter = (
   }
 
   for (const card of encounter.loadout.spellrail.cards) {
+    trackEncounterInstanceId(encounter, card.instanceId, seenInstanceIds, issues);
     validateEncounterCardInstance(
       encounter,
       card,
@@ -228,6 +253,7 @@ const validateEncounter = (
   }
 
   for (const card of encounter.loadout.startingAshes ?? []) {
+    trackEncounterInstanceId(encounter, card.instanceId, seenInstanceIds, issues);
     const def = cardsById.get(card.defId);
     if (!def) {
       issues.push(

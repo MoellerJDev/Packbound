@@ -154,6 +154,20 @@ describe("starter kit run creation", () => {
     expect(JSON.parse(JSON.stringify(setup))).toEqual(setup);
   });
 
+  it.each(sampleStarterKits)("creates a legal combat setup for $id", (starterKit) => {
+    const run = createRunFromStarterKit({
+      seed: `legal-${starterKit.id}`,
+      catalog: sampleCatalog,
+      starterKitId: starterKit.id,
+      playerId: asPlayerId("test-player")
+    });
+    const setup = buildCombatantSetupForRun(run);
+
+    expect(validateRunLoadout(run, sampleCatalog).ok).toBe(true);
+    expect(setup.board.placements.length, starterKit.id).toBeGreaterThan(0);
+    expect(JSON.parse(JSON.stringify(setup))).toEqual(setup);
+  });
+
   it("throws for unknown starter kit ids", () => {
     expect(() =>
       createRunFromStarterKit({

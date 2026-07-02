@@ -14,6 +14,7 @@ import {
   prepareEncounterForRound,
   recordCombatResult,
   selectEncounterForRound,
+  validatePlanningState,
   type CombatResultLike,
   type RunState
 } from "../index";
@@ -164,5 +165,18 @@ describe("deterministic encounter selection", () => {
     ]);
     expect(first.sourceRow.cards.map((card) => card.zone)).toEqual(["sourceRow"]);
     expect(first.spellrail.cards.map((card) => card.zone)).toEqual(["spellrail"]);
+  });
+
+  it.each(sampleCatalog.encounters)("builds a legal setup for $id", (encounter) => {
+    const setup = buildCombatantSetupForEncounter(encounter);
+    const validation = validatePlanningState({
+      catalog: sampleCatalog,
+      board: setup.board,
+      sourceRow: setup.sourceRow,
+      spellrail: setup.spellrail
+    });
+
+    expect(validation.ok, encounter.id).toBe(true);
+    expect(JSON.parse(JSON.stringify(setup))).toEqual(setup);
   });
 });

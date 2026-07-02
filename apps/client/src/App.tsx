@@ -2,10 +2,7 @@ import { useMemo, useState } from "react";
 
 import { sampleCatalog } from "@packbound/content";
 import {
-  addCardToSourceRow,
-  addCardToSpellrail,
-  advanceRunAfterCombat,
-  applyPackReward,
+  applyRunAction,
   buildCombatantSetupForEncounter,
   buildCombatantSetupForRun,
   canApplyReward,
@@ -16,12 +13,8 @@ import {
   getCurrentRewardChoices,
   getLegalLoadoutActions,
   getRunPhase,
-  markCombatReady,
-  placeCardOnBoard,
-  prepareEncounterForRound,
-  recordCombatResult,
-  returnCardToPool,
   validateRunLoadout,
+  type CombatResultLike,
   type LoadoutAction,
   type RunState
 } from "@packbound/rules";
@@ -34,8 +27,18 @@ const runSeed = "client-debug-run";
 const cardName = (defId: CardDefId): string =>
   sampleCatalog.cardsById.get(defId)?.name ?? defId;
 
+const combatResultForAction = (result: CombatResultLike): CombatResultLike => ({
+  winner: result.winner,
+  damageToPlayerA: result.damageToPlayerA,
+  damageToPlayerB: result.damageToPlayerB,
+  events: result.events,
+  warnings: result.warnings,
+  ...(result.seed ? { seed: result.seed } : {}),
+  ...(result.rulesVersion ? { rulesVersion: result.rulesVersion } : {})
+});
+
 const createDebugRun = (starterKitId: string): RunState =>
-  prepareEncounterForRound(
+  applyRunAction(
     createRunFromStarterKit({
       seed: `${runSeed}:${starterKitId}`,
       catalog: sampleCatalog,
@@ -43,7 +46,8 @@ const createDebugRun = (starterKitId: string): RunState =>
       playerId,
       maxRounds: 3
     }),
-    sampleCatalog
+    sampleCatalog,
+    { type: "prepareEncounter" }
   );
 
 const firstStarterKitId = sampleCatalog.starterKits[0]?.id ?? "ember_scrappers";
@@ -100,13 +104,26 @@ export function App() {
     setRun((currentRun) => {
       switch (action.type) {
         case "placeOnBoard":
-          return placeCardOnBoard(currentRun, cardInstanceId, action.position);
+          return applyRunAction(currentRun, sampleCatalog, {
+            type: "placeCardOnBoard",
+            cardInstanceId,
+            position: action.position
+          });
         case "addToSourceRow":
-          return addCardToSourceRow(currentRun, cardInstanceId);
+          return applyRunAction(currentRun, sampleCatalog, {
+            type: "addCardToSourceRow",
+            cardInstanceId
+          });
         case "addToSpellrail":
-          return addCardToSpellrail(currentRun, cardInstanceId);
+          return applyRunAction(currentRun, sampleCatalog, {
+            type: "addCardToSpellrail",
+            cardInstanceId
+          });
         case "returnToPool":
-          return returnCardToPool(currentRun, cardInstanceId);
+          return applyRunAction(currentRun, sampleCatalog, {
+            type: "returnCardToPool",
+            cardInstanceId
+          });
       }
     });
   };
@@ -133,7 +150,9 @@ export function App() {
   };
 
   const markReady = () => {
-    setRun((currentRun) => markCombatReady(currentRun, sampleCatalog));
+    setRun((currentRun) =>
+      applyRunAction(currentRun, sampleCatalog, { type: "markCombatReady" })
+    );
   };
 
   const recordCombat = () => {
@@ -142,16 +161,27 @@ export function App() {
     }
 
     setRun((currentRun) =>
-      recordCombatResult(currentRun, combat, { encounterId: currentEncounter.id })
+      applyRunAction(currentRun, sampleCatalog, {
+        type: "recordCombatResult",
+        combatResult: combatResultForAction(combat),
+        encounterId: currentEncounter.id
+      })
     );
   };
 
   const openReward = (choiceId: string) => {
-    setRun((currentRun) => applyPackReward(currentRun, sampleCatalog, choiceId));
+    setRun((currentRun) =>
+      applyRunAction(currentRun, sampleCatalog, {
+        type: "applyPackReward",
+        choiceId
+      })
+    );
   };
 
   const advanceRound = () => {
-    setRun((currentRun) => advanceRunAfterCombat(currentRun, sampleCatalog));
+    setRun((currentRun) =>
+      applyRunAction(currentRun, sampleCatalog, { type: "advanceRunAfterCombat" })
+    );
   };
 
   return (

@@ -18,7 +18,7 @@ resolves combat into an event log.
 - `packages/rules`: Seeded RNG, deterministic pack opening, board/source
   validation, teamup counting helpers, and a minimal deterministic run-state /
   reward / encounter / starter kit progression skeleton with explicit lifecycle
-  phases.
+  phases and replayable run actions.
 - `packages/sim`: Pure deterministic combat simulation and event log output.
 - `packages/sim/src/__fixtures__`: Deterministic combat fixtures used by tests to
   preserve representative event ordering and final-state summaries.
@@ -65,8 +65,14 @@ pnpm dev
 - The debug client now supports an ugly playable loop: pick a starter kit, edit
   legal loadout moves, mark combat ready, record deterministic combat, open a
   reward pack, and advance until the run is won or lost.
+- Run actions provide a serializable reducer/replay layer for the current loop,
+  allowing the debug client and integration tests to share the same action path.
+- Property-based invariant tests cover generated seeds, legal loadout action
+  sequences, card instance preservation, replay determinism, and mutation safety.
 - Core state uses plain objects so future server validation, async ghost PvP,
   and replay tooling can share the same rules engine.
 
 See `IMPLEMENTED_MECHANICS.md` for the current implemented versus
 schema-reserved simulator mechanics.
+See `TESTING_STRATEGY.md` for the testing pyramid, invariant-test guidance, and
+future Codex testing expectations.

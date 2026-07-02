@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { sampleCatalog } from "@packbound/content";
-import { asPackId, asPlayerId } from "@packbound/shared";
+import { asCardDefId, asPackId, asPlayerId } from "@packbound/shared";
 import type { CardDefinition, PackDefinition } from "@packbound/shared";
 
 import { openPack } from "../packOpening";
@@ -21,6 +21,10 @@ const smokeSeeds = [
   "smoke-e",
   "smoke-f"
 ] as const;
+const destroyedTriggerPackCards: Readonly<Record<string, readonly string[]>> = {
+  ember_foundry_pack: ["sparkcatch_apprentice", "coal_wisp_echo", "cinder_tally_relic"],
+  rotbloom_pack: ["mournscale_keeper", "ash_ledger_relic", "last_word_broker"]
+};
 
 const cardMatchesAnyPackSlot = (card: CardDefinition, pack: PackDefinition): boolean =>
   pack.slots.some((slot) => {
@@ -154,4 +158,25 @@ describe("pack opening", () => {
       }
     }
   );
+
+  it("keeps destroyed-trigger payoffs eligible in their archetype packs", () => {
+    for (const [packId, cardIds] of Object.entries(destroyedTriggerPackCards)) {
+      const pack = sampleCatalog.packsById.get(asPackId(packId));
+      if (!pack) {
+        throw new Error(`Missing pack ${packId}`);
+      }
+
+      for (const cardId of cardIds) {
+        const card = sampleCatalog.cardsById.get(asCardDefId(cardId));
+        if (!card) {
+          throw new Error(`Missing destroyed-trigger card ${cardId}`);
+        }
+
+        expect(pack.setWeights[card.set] ?? 0, `${packId}:${cardId}:set`).toBeGreaterThan(
+          0
+        );
+        expect(cardMatchesAnyPackSlot(card, pack), `${packId}:${cardId}:slot`).toBe(true);
+      }
+    }
+  });
 });

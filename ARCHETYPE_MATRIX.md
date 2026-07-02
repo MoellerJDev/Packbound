@@ -8,13 +8,16 @@ least one enabler, one payoff, and one interaction or defensive tool.
 
 - Aspects: Ember, sometimes Shade.
 - Game plan: Pressure, Relics, death sparks, cheap tempo, and Echo fodder.
-- Enablers: `ember_scraprunner`, `cinder_scout`, `signal_wisp_echo`.
-- Payoffs: `rustline_cannon`, `foundry_foreman`.
+- Enablers: `ember_scraprunner`, `cinder_scout`, `coal_wisp_echo`,
+  `signal_wisp_echo`.
+- Payoffs: `sparkcatch_apprentice`, `cinder_tally_relic`, `rustline_cannon`,
+  `foundry_foreman`.
 - Interaction: `sparkfall`, `slag_sparkler`.
 - Defensive tools: Mostly tempo through Quickstart and damage; true defense is
   intentionally light.
-- Starter kit implications: Starts with `ember_scraprunner`, `sparkfall`, and a
-  spare `signal_nest` to teach board capacity pressure.
+- Starter kit implications: Starts with `ember_scraprunner`, `sparkfall`, and
+  spare `signal_nest` / `sparkcatch_apprentice` choices to teach board capacity
+  pressure and death sparks.
 - Pack implications: Ember Foundry Pack biases Scrapper, Tinkerer, Relic, and
   Ember cards.
 - Not implemented yet: Persistent Relic counters and movement-based tempo.
@@ -23,12 +26,15 @@ least one enabler, one payoff, and one interaction or defensive tool.
 
 - Aspects: Shade, sometimes Bloom.
 - Game plan: Ashes, Recall, Offer, disposable Units/Echoes, and grind.
-- Enablers: `ash_debt_runner`, `memory_wisp_echo`, `ember_scraprunner`.
-- Payoffs: `hollow_caller`, `debt_bound_colossus`.
+- Enablers: `ash_debt_runner`, `memory_wisp_echo`, `coal_wisp_echo`,
+  `ember_scraprunner`.
+- Payoffs: `hollow_caller`, `ash_ledger_relic`, `last_word_broker`,
+  `debt_bound_colossus`.
 - Interaction: `debt_siphon`.
-- Defensive tools: `contract_husk`.
+- Defensive tools: `contract_husk`, `mournscale_keeper`.
 - Starter kit implications: Starts with `hollow_caller`, Shade/Bloom Sources,
-  and a small Unit in Ashes so Recall is visible immediately.
+  a small Unit in Ashes, and a spare `ash_ledger_relic` so Recall and ally-death
+  payoffs are visible early.
 - Pack implications: Rotbloom Pack biases Shade, Bloom, Husk, Beast, and Recall
   cards.
 - Not implemented yet: MillToAshes and Void recursion.

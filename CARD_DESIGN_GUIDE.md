@@ -80,6 +80,8 @@ Implemented ability triggers are `OnEntry`, `OnCombatStart`, `OnDestroyed`,
 `WhenFirstEnemyDestroyed`. `OnAllyDestroyed` excludes the destroyed source's own
 destruction; first-destroyed triggers are once per source card instance per
 combat. Destroyed Echoes count for these triggers but still do not enter Ashes.
+For playable destroyed-trigger cards, prefer consequences that the combat
+summary can already show, such as damage, summoning, Recall, or destroyed units.
 
 Implemented Technique triggers are `AfterSeconds`, `WhenCombatChargeAtLeast`,
 and `WhenFirstAllyBelowHealthPercent`.

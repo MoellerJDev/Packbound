@@ -137,6 +137,48 @@ export const sampleCards: readonly CardDefinition[] = [
     design: design("curve", ["ember_scrappers"], 1, ["quickstart", "curve"])
   },
   {
+    id: asCardDefId("sparkcatch_apprentice"),
+    name: "Sparkcatch Apprentice",
+    set: "ember_foundry",
+    rarity: "common",
+    cardType: "Unit",
+    aspects: ["Ember"],
+    cost: { generic: 1 },
+    tags: ["Scrapper", "Spark"],
+    keywords: [],
+    abilities: [
+      {
+        id: "sparkcatch-ally-destroyed",
+        trigger: { type: "OnAllyDestroyed" },
+        condition: { type: "Always" },
+        target: { type: "NearestEnemy" },
+        effect: { type: "DealDamage", amount: 1 }
+      }
+    ],
+    stats: { attack: 1, health: 2, attackSpeed: 1, range: 2 },
+    rulesText: "Whenever another ally is destroyed, sparks the nearest enemy.",
+    design: design("payoff", ["ember_scrappers"], 2, [
+      "ally-destroyed",
+      "damage",
+      "scrapper"
+    ])
+  },
+  {
+    id: asCardDefId("coal_wisp_echo"),
+    name: "Coal Wisp Echo",
+    set: "ember_foundry",
+    rarity: "common",
+    cardType: "Echo",
+    aspects: ["Ember"],
+    cost: { generic: 1 },
+    tags: ["Wisp", "Spark"],
+    keywords: [],
+    abilities: [],
+    stats: { attack: 1, health: 1, attackSpeed: 1.2, range: 1 },
+    rulesText: "Echoes vanish instead of entering Ashes.",
+    design: design("enabler", ["ember_scrappers", "shade_ashes"], 1, ["echo", "fodder"])
+  },
+  {
     id: asCardDefId("slag_sparkler"),
     name: "Slag Sparkler",
     set: "ember_foundry",
@@ -191,6 +233,33 @@ export const sampleCards: readonly CardDefinition[] = [
       "relic",
       "summon-echo",
       "combat-start"
+    ])
+  },
+  {
+    id: asCardDefId("cinder_tally_relic"),
+    name: "Cinder Tally",
+    set: "ember_foundry",
+    rarity: "uncommon",
+    cardType: "Relic",
+    aspects: ["Ember"],
+    cost: { generic: 1, aspect: { Ember: 1 } },
+    tags: ["Relic", "Scrapper", "Spark"],
+    keywords: [],
+    abilities: [
+      {
+        id: "cinder-tally-first-ally",
+        trigger: { type: "WhenFirstAllyDestroyed" },
+        condition: { type: "Always" },
+        target: { type: "NearestEnemy" },
+        effect: { type: "DealDamage", amount: 1 }
+      }
+    ],
+    supportSlots: 1,
+    rulesText: "When your first ally is destroyed each combat, sparks the nearest enemy.",
+    design: design("payoff", ["ember_scrappers", "source_greed"], 2, [
+      "relic",
+      "first-ally-destroyed",
+      "damage"
     ])
   },
   {
@@ -360,6 +429,33 @@ export const sampleCards: readonly CardDefinition[] = [
     design: design("defense", ["shade_ashes"], 1, ["guard", "body"])
   },
   {
+    id: asCardDefId("mournscale_keeper"),
+    name: "Mournscale Keeper",
+    set: "rotbloom",
+    rarity: "common",
+    cardType: "Unit",
+    aspects: ["Shade"],
+    cost: { generic: 1, aspect: { Shade: 1 } },
+    tags: ["Husk", "Keeper"],
+    keywords: ["Guard"],
+    abilities: [
+      {
+        id: "mournscale-ally-destroyed",
+        trigger: { type: "OnAllyDestroyed" },
+        condition: { type: "Always" },
+        target: { type: "Self" },
+        effect: { type: "Heal", amount: 1 }
+      }
+    ],
+    stats: { attack: 1, health: 3, attackSpeed: 0.75, range: 1 },
+    rulesText: "Guard. Whenever another ally is destroyed, heals itself.",
+    design: design("defense", ["shade_ashes", "bloom_bodies"], 2, [
+      "ally-destroyed",
+      "heal",
+      "guard"
+    ])
+  },
+  {
     id: asCardDefId("memory_wisp_echo"),
     name: "Memory Wisp Echo",
     set: "rotbloom",
@@ -420,6 +516,34 @@ export const sampleCards: readonly CardDefinition[] = [
     design: design("interaction", ["shade_ashes"], 1, ["technique", "damage"])
   },
   {
+    id: asCardDefId("last_word_broker"),
+    name: "Last-Word Broker",
+    set: "rotbloom",
+    rarity: "uncommon",
+    cardType: "Unit",
+    aspects: ["Shade"],
+    cost: { generic: 2, aspect: { Shade: 1 } },
+    tags: ["Husk", "Debt"],
+    keywords: [],
+    abilities: [
+      {
+        id: "last-word-first-enemy",
+        trigger: { type: "WhenFirstEnemyDestroyed" },
+        condition: { type: "EnemyDestroyedThisCombat" },
+        target: { type: "LowestHealthEnemy" },
+        effect: { type: "DealDamage", amount: 1 }
+      }
+    ],
+    stats: { attack: 2, health: 3, attackSpeed: 0.8, range: 2 },
+    rulesText:
+      "When your first enemy is destroyed each combat, damages the lowest-health enemy.",
+    design: design("payoff", ["shade_ashes"], 2, [
+      "first-enemy-destroyed",
+      "damage",
+      "grind"
+    ])
+  },
+  {
     id: asCardDefId("due_marker_relic"),
     name: "Due Marker",
     set: "rotbloom",
@@ -441,6 +565,35 @@ export const sampleCards: readonly CardDefinition[] = [
     supportSlots: 1,
     rulesText: "At combat start, offers an adjacent ally.",
     design: design("engine", ["shade_ashes"], 3, ["relic", "offer", "combat-start"])
+  },
+  {
+    id: asCardDefId("ash_ledger_relic"),
+    name: "Ash Ledger",
+    set: "rotbloom",
+    rarity: "uncommon",
+    cardType: "Relic",
+    aspects: ["Shade"],
+    cost: { generic: 1, aspect: { Shade: 1 } },
+    tags: ["Relic", "Offer", "Recall"],
+    keywords: [],
+    abilities: [
+      {
+        id: "ash-ledger-recall",
+        trigger: { type: "OnAllyDestroyed" },
+        condition: { type: "AllyDestroyedThisCombat" },
+        target: { type: "CardInAshes", maxChargeCost: 2 },
+        effect: {
+          type: "Recall",
+          maxChargeCost: 2,
+          healthOverride: 1,
+          placement: "Backline"
+        }
+      }
+    ],
+    supportSlots: 1,
+    rulesText:
+      "Whenever another ally is destroyed, recalls a small Unit from Ashes with 1 health.",
+    design: design("engine", ["shade_ashes"], 3, ["relic", "ally-destroyed", "recall"])
   },
   {
     id: asCardDefId("sporeback_beast"),
@@ -953,8 +1106,10 @@ export const samplePacks: readonly PackDefinition[] = [
     ],
     tagBias: {
       Scrapper: 4,
+      Spark: 2,
       Tinkerer: 2,
       Relic: 2,
+      Wisp: 1,
       Ember: 3,
       Source: 1
     }
@@ -977,7 +1132,9 @@ export const samplePacks: readonly PackDefinition[] = [
       Bloom: 3,
       Husk: 3,
       Beast: 2,
+      Offer: 2,
       Recall: 2,
+      Relic: 1,
       Source: 1
     }
   },
@@ -1032,11 +1189,17 @@ export const sampleStarterKits: readonly StarterKitDefinition[] = [
   {
     id: "ember_scrappers",
     name: "Ember Scrappers",
-    description: "A fast Ember opener with early pressure and a spare Relic.",
+    description: "A fast Ember opener with early pressure and death sparks.",
     aspects: ["Ember"],
     pool: [
       starterKitCard("ember_scrappers", emberScrappersPlayer, "signal_nest", "pool", 0),
-      starterKitCard("ember_scrappers", emberScrappersPlayer, "cinder_scout", "pool", 1)
+      starterKitCard(
+        "ember_scrappers",
+        emberScrappersPlayer,
+        "sparkcatch_apprentice",
+        "pool",
+        1
+      )
     ],
     board: {
       placements: [
@@ -1078,7 +1241,7 @@ export const sampleStarterKits: readonly StarterKitDefinition[] = [
   {
     id: "rotbloom_recall",
     name: "Rotbloom Recall",
-    description: "Shade/Bloom sources with a small Ashes setup for Recall.",
+    description: "Shade/Bloom sources with a small Ashes setup and Recall relic.",
     aspects: ["Shade", "Bloom"],
     pool: [
       starterKitCard(
@@ -1088,7 +1251,13 @@ export const sampleStarterKits: readonly StarterKitDefinition[] = [
         "pool",
         0
       ),
-      starterKitCard("rotbloom_recall", rotbloomRecallPlayer, "contract_husk", "pool", 1)
+      starterKitCard(
+        "rotbloom_recall",
+        rotbloomRecallPlayer,
+        "ash_ledger_relic",
+        "pool",
+        1
+      )
     ],
     board: {
       placements: [

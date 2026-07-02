@@ -35,6 +35,20 @@ const expectedNonSourcePackArchetypes: Readonly<Record<string, readonly string[]
   rotbloom_pack: ["shade_ashes", "bloom_bodies"],
   cloudspire_pack: ["cloudspire_phase"]
 };
+const destroyedContentCardIds = [
+  asCardDefId("sparkcatch_apprentice"),
+  asCardDefId("coal_wisp_echo"),
+  asCardDefId("cinder_tally_relic"),
+  asCardDefId("mournscale_keeper"),
+  asCardDefId("ash_ledger_relic"),
+  asCardDefId("last_word_broker")
+] as const;
+const destroyedMechanicTriggers = new Set<Trigger["type"]>([
+  "OnAllyDestroyed",
+  "OnEnemyDestroyed",
+  "WhenFirstAllyDestroyed",
+  "WhenFirstEnemyDestroyed"
+]);
 
 const schemaReservedEffects = new Set<AbilityEffect["type"]>([
   "SendToVoid",
@@ -472,6 +486,25 @@ describe("content validation", () => {
       expect(card.design?.complexity, card.id).toBeLessThanOrEqual(3);
       expect(JSON.parse(JSON.stringify(card.design))).toEqual(card.design);
     }
+  });
+
+  it("destroyed-trigger content pass stays tiny and archetype-scoped", () => {
+    const cards = destroyedContentCardIds.map(requireCardDef);
+    const triggerCards = cards.filter((card) =>
+      triggersForCard(card).some((trigger) => destroyedMechanicTriggers.has(trigger.type))
+    );
+
+    expect(cards).toHaveLength(6);
+    expect(triggerCards).toHaveLength(5);
+    expect(
+      cards.filter((card) => card.design?.archetypes.includes("ember_scrappers")).length
+    ).toBeGreaterThanOrEqual(3);
+    expect(
+      cards.filter((card) => card.design?.archetypes.includes("shade_ashes")).length
+    ).toBeGreaterThanOrEqual(3);
+    expect(requireCardDef(asCardDefId("coal_wisp_echo")).design?.mechanicTags).toContain(
+      "fodder"
+    );
   });
 
   it("every design role appears in the first micro-set", () => {

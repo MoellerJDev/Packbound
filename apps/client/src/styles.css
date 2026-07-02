@@ -96,6 +96,8 @@ button:disabled {
 
 h1,
 h2,
+h3,
+h4,
 p {
   margin: 0;
 }
@@ -108,6 +110,17 @@ h1 {
 h2 {
   font-size: 1rem;
   margin-bottom: 12px;
+}
+
+h3 {
+  font-size: 0.92rem;
+  margin: 14px 0 6px;
+}
+
+h4 {
+  font-size: 0.82rem;
+  margin: 0 0 6px;
+  text-transform: uppercase;
 }
 
 .topbar p,
@@ -167,7 +180,17 @@ h2 {
   padding: 0 10px;
 }
 
+.card-list.compact {
+  margin-top: 6px;
+}
+
+.card-list.compact li {
+  min-height: 32px;
+  padding: 6px 0;
+}
+
 .mini-actions {
+  align-items: center;
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
@@ -218,6 +241,70 @@ h2 {
 .message-list li {
   border-top: 1px solid #ebe2d3;
   padding: 10px 0;
+}
+
+.message-list.compact {
+  margin-top: 0;
+}
+
+.message-list.compact li {
+  padding: 6px 0;
+}
+
+.card-inspector h3 {
+  font-size: 1.08rem;
+  margin: 0 0 2px;
+}
+
+.inspector-stats {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 12px 0 0;
+}
+
+.inspector-stats div {
+  border-top: 1px solid #ebe2d3;
+  padding-top: 8px;
+}
+
+.inspector-stats dt {
+  color: #64616a;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.inspector-stats dd {
+  margin: 2px 0 0;
+  overflow-wrap: anywhere;
+}
+
+.inspector-block {
+  border-top: 1px solid #ebe2d3;
+  margin-top: 12px;
+  padding-top: 10px;
+}
+
+.encounter-loadout {
+  margin-top: 14px;
+}
+
+.pool-reward-summary {
+  border-top: 1px solid #ebe2d3;
+  margin-top: 12px;
+  padding-top: 10px;
+}
+
+.pool-reward-summary p + p {
+  margin-top: 4px;
+}
+
+.pool-reward-summary small {
+  color: #8b4d2c;
+  display: block;
+  margin-top: 4px;
+  overflow-wrap: anywhere;
 }
 
 .combat-summary {

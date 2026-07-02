@@ -72,6 +72,8 @@ pnpm dev
   reward pack, and advance until the run is won or lost.
 - The debug client renders a readable combat summary panel from existing combat
   event data while keeping raw events available behind debug details.
+- The debug client includes a card inspection panel for readable card details,
+  legal loadout actions, and blocked-action reasons.
 - Run actions provide a serializable reducer/replay layer for the current loop,
   allowing the debug client and integration tests to share the same action path.
 - Property-based invariant tests cover generated seeds, legal loadout action

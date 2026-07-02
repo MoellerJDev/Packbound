@@ -1,3 +1,4 @@
+export * from "./cardInspection";
 export * from "./encounters";
 export * from "./instances";
 export * from "./loadout";

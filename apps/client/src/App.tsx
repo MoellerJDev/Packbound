@@ -13,7 +13,10 @@ import {
   getCurrentRewardChoices,
   getLegalLoadoutActions,
   getRunPhase,
+  inspectEncounterCard,
+  inspectRunCard,
   validateRunLoadout,
+  type CardInspection,
   type CombatResultLike,
   type LoadoutAction,
   type RunState
@@ -63,8 +66,140 @@ type RecordedCombatDebug = {
   readonly result: CombatResult;
 };
 
+type SelectedCardRef =
+  | { readonly type: "run"; readonly cardInstanceId: CardInstanceId }
+  | { readonly type: "encounterBoard"; readonly cardInstanceId: CardInstanceId }
+  | { readonly type: "encounterSource"; readonly cardInstanceId: CardInstanceId }
+  | { readonly type: "encounterSpellrail"; readonly cardInstanceId: CardInstanceId };
+
 const timeLabel = (timeMs?: number): string =>
   timeMs === undefined ? "--" : `${(timeMs / 1000).toFixed(1)}s`;
+
+const optionalList = (values: readonly string[]): string =>
+  values.length > 0 ? values.join(", ") : "None";
+
+const CardInspectorView = ({
+  inspection
+}: {
+  readonly inspection: CardInspection | undefined;
+}) => {
+  if (!inspection) {
+    return <p className="muted">Select a card to inspect its details.</p>;
+  }
+
+  return (
+    <div className="card-inspector">
+      <div>
+        <h3>{inspection.name}</h3>
+        <p className="muted">
+          {inspection.cardType} | {inspection.zone ?? "definition"} |{" "}
+          {inspection.aspectText}
+        </p>
+      </div>
+      <dl className="inspector-stats">
+        <div>
+          <dt>Cost</dt>
+          <dd>{inspection.costText}</dd>
+        </div>
+        {inspection.statsText ? (
+          <div>
+            <dt>Stats</dt>
+            <dd>{inspection.statsText}</dd>
+          </div>
+        ) : null}
+        {inspection.sourceText ? (
+          <div>
+            <dt>Source</dt>
+            <dd>{inspection.sourceText}</dd>
+          </div>
+        ) : null}
+        {inspection.techniqueText ? (
+          <div>
+            <dt>Technique</dt>
+            <dd>{inspection.techniqueText}</dd>
+          </div>
+        ) : null}
+        <div>
+          <dt>Keywords</dt>
+          <dd>{optionalList(inspection.keywords)}</dd>
+        </div>
+        <div>
+          <dt>Tags</dt>
+          <dd>{optionalList(inspection.tags)}</dd>
+        </div>
+      </dl>
+
+      {inspection.rulesText ? (
+        <div className="inspector-block">
+          <h4>Rules Text</h4>
+          <p>{inspection.rulesText}</p>
+        </div>
+      ) : null}
+
+      {inspection.abilityText.length > 0 ? (
+        <div className="inspector-block">
+          <h4>Abilities</h4>
+          <ul className="message-list compact">
+            {inspection.abilityText.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {inspection.design ? (
+        <div className="inspector-block">
+          <h4>Design</h4>
+          <dl className="inspector-stats">
+            <div>
+              <dt>Role</dt>
+              <dd>{inspection.design.role}</dd>
+            </div>
+            <div>
+              <dt>Archetypes</dt>
+              <dd>{optionalList(inspection.design.archetypes)}</dd>
+            </div>
+            <div>
+              <dt>Complexity</dt>
+              <dd>{inspection.design.complexity}</dd>
+            </div>
+            <div>
+              <dt>Mechanics</dt>
+              <dd>{optionalList(inspection.design.mechanicTags)}</dd>
+            </div>
+          </dl>
+        </div>
+      ) : null}
+
+      <div className="inspector-block">
+        <h4>Legal Actions</h4>
+        {inspection.legalActions.length > 0 ? (
+          <ul className="message-list compact">
+            {inspection.legalActions.map((action) => (
+              <li key={action.type}>
+                <strong>{action.label}</strong>
+                {action.reason ? <span className="muted"> - {action.reason}</span> : null}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="muted">No legal action from the current state.</p>
+        )}
+      </div>
+
+      {inspection.blockedReasons.length > 0 ? (
+        <div className="inspector-block">
+          <h4>Blocked Reasons</h4>
+          <ul className="message-list compact">
+            {inspection.blockedReasons.map((reason) => (
+              <li key={reason}>{reason}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </div>
+  );
+};
 
 const CombatSummaryView = ({ summary }: { readonly summary: CombatDisplaySummary }) => (
   <div className="combat-summary">
@@ -123,6 +258,7 @@ export function App() {
   const [lastRecordedCombat, setLastRecordedCombat] = useState<
     RecordedCombatDebug | undefined
   >();
+  const [selectedCardRef, setSelectedCardRef] = useState<SelectedCardRef | undefined>();
   const phase = getRunPhase(run);
   const rewardChoices = useMemo(() => getCurrentRewardChoices(run, sampleCatalog), [run]);
   const currentEncounter = useMemo(() => getCurrentEncounter(run, sampleCatalog), [run]);
@@ -181,11 +317,55 @@ export function App() {
         : undefined,
     [lastRecordedCombat]
   );
+  const selectedCardInspection = useMemo(() => {
+    if (!selectedCardRef) {
+      return undefined;
+    }
+
+    if (selectedCardRef.type === "run") {
+      return inspectRunCard({
+        catalog: sampleCatalog,
+        run,
+        cardInstanceId: selectedCardRef.cardInstanceId
+      });
+    }
+
+    if (!currentEncounter) {
+      return undefined;
+    }
+
+    if (selectedCardRef.type === "encounterBoard") {
+      const placement = currentEncounter.loadout.board.placements.find(
+        (candidate) => candidate.cardInstanceId === selectedCardRef.cardInstanceId
+      );
+      return placement
+        ? inspectEncounterCard({ catalog: sampleCatalog, placement })
+        : undefined;
+    }
+
+    const card =
+      selectedCardRef.type === "encounterSource"
+        ? currentEncounter.loadout.sourceRow.cards.find(
+            (candidate) => candidate.instanceId === selectedCardRef.cardInstanceId
+          )
+        : currentEncounter.loadout.spellrail.cards.find(
+            (candidate) => candidate.instanceId === selectedCardRef.cardInstanceId
+          );
+
+    return card ? inspectEncounterCard({ catalog: sampleCatalog, card }) : undefined;
+  }, [currentEncounter, run, selectedCardRef]);
+  const latestPackName = latestOpenedPack
+    ? (sampleCatalog.packsById.get(latestOpenedPack.packId)?.name ??
+      latestOpenedPack.packId)
+    : undefined;
+  const latestOpenedCardNames =
+    latestOpenedPack?.slots.map((slot) => cardName(slot.cardDefId)) ?? [];
 
   const resetRun = (starterKitId = selectedStarterKitId) => {
     setSelectedStarterKitId(starterKitId);
     setRun(createDebugRun(starterKitId));
     setLastRecordedCombat(undefined);
+    setSelectedCardRef(undefined);
   };
 
   const performLoadoutAction = (
@@ -221,12 +401,27 @@ export function App() {
 
   const renderLoadoutActions = (cardInstanceId: CardInstanceId) => {
     const actions = getLegalLoadoutActions(run, sampleCatalog, cardInstanceId);
+    const inspectButton = (
+      <button
+        type="button"
+        className="secondary"
+        onClick={() => setSelectedCardRef({ type: "run", cardInstanceId })}
+      >
+        Inspect
+      </button>
+    );
     if (actions.length === 0) {
-      return editable ? <small>No legal action</small> : null;
+      return (
+        <div className="mini-actions">
+          {inspectButton}
+          {editable ? <small>No legal action</small> : null}
+        </div>
+      );
     }
 
     return (
       <div className="mini-actions">
+        {inspectButton}
         {actions.map((action) => (
           <button
             key={`${cardInstanceId}:${action.type}`}
@@ -238,6 +433,18 @@ export function App() {
         ))}
       </div>
     );
+  };
+
+  const inspectEncounterBoard = (cardInstanceId: CardInstanceId) => {
+    setSelectedCardRef({ type: "encounterBoard", cardInstanceId });
+  };
+
+  const inspectEncounterSource = (cardInstanceId: CardInstanceId) => {
+    setSelectedCardRef({ type: "encounterSource", cardInstanceId });
+  };
+
+  const inspectEncounterSpellrail = (cardInstanceId: CardInstanceId) => {
+    setSelectedCardRef({ type: "encounterSpellrail", cardInstanceId });
   };
 
   const markReady = () => {
@@ -374,15 +581,70 @@ export function App() {
             </div>
             <div>
               <dt>Opponent Board</dt>
-              <dd>
-                {currentEncounter
-                  ? currentEncounter.loadout.board.placements
-                      .map((placement) => cardName(placement.defId))
-                      .join(", ")
-                  : "-"}
-              </dd>
+              <dd>{currentEncounter ? "Inspect below" : "-"}</dd>
             </div>
           </dl>
+          {currentEncounter ? (
+            <div className="encounter-loadout">
+              <h3>Opponent Board</h3>
+              <ol className="card-list compact">
+                {currentEncounter.loadout.board.placements.map((placement) => (
+                  <li key={placement.cardInstanceId}>
+                    <span>{cardName(placement.defId)}</span>
+                    <small>
+                      r{placement.position.row} c{placement.position.col}{" "}
+                      {placement.position.layer}
+                    </small>
+                    <button
+                      type="button"
+                      className="secondary"
+                      onClick={() => inspectEncounterBoard(placement.cardInstanceId)}
+                    >
+                      Inspect
+                    </button>
+                  </li>
+                ))}
+              </ol>
+              <h3>Opponent Source Row</h3>
+              <ol className="card-list compact">
+                {currentEncounter.loadout.sourceRow.cards.map((card) => (
+                  <li key={card.instanceId}>
+                    <span>{cardName(card.defId)}</span>
+                    <small>{card.zone}</small>
+                    <button
+                      type="button"
+                      className="secondary"
+                      onClick={() => inspectEncounterSource(card.instanceId)}
+                    >
+                      Inspect
+                    </button>
+                  </li>
+                ))}
+              </ol>
+              <h3>Opponent Spellrail</h3>
+              <ol className="card-list compact">
+                {currentEncounter.loadout.spellrail.cards.length > 0 ? (
+                  currentEncounter.loadout.spellrail.cards.map((card) => (
+                    <li key={card.instanceId}>
+                      <span>{cardName(card.defId)}</span>
+                      <small>{card.zone}</small>
+                      <button
+                        type="button"
+                        className="secondary"
+                        onClick={() => inspectEncounterSpellrail(card.instanceId)}
+                      >
+                        Inspect
+                      </button>
+                    </li>
+                  ))
+                ) : (
+                  <li>
+                    <span>None</span>
+                  </li>
+                )}
+              </ol>
+            </div>
+          ) : null}
         </div>
 
         <div className="panel">
@@ -397,6 +659,11 @@ export function App() {
               </li>
             ))}
           </ul>
+        </div>
+
+        <div className="panel">
+          <h2>Card Inspector</h2>
+          <CardInspectorView inspection={selectedCardInspection} />
         </div>
 
         <div className="panel">
@@ -462,9 +729,17 @@ export function App() {
 
         <div className="panel">
           <h2>Pool Cards</h2>
-          <p className="muted">
-            {latestOpenedPack ? latestOpenedPack.seed : "Open rewards to grow the pool."}
-          </p>
+          {latestOpenedPack ? (
+            <div className="pool-reward-summary">
+              <p className="muted">
+                Latest pack: {latestPackName} | New cards are in Pool Cards below.
+              </p>
+              <p>{latestOpenedCardNames.join(", ")}</p>
+              <small>{latestOpenedPack.seed}</small>
+            </div>
+          ) : (
+            <p className="muted">Open rewards to grow the pool.</p>
+          )}
           <ol className="card-list">
             {run.pool.map((card) => (
               <li key={card.instanceId}>

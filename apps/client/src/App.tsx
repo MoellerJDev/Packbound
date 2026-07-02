@@ -19,7 +19,12 @@ import {
   type RunState
 } from "@packbound/rules";
 import { asPlayerId, type CardDefId, type CardInstanceId } from "@packbound/shared";
-import { resolveCombat } from "@packbound/sim";
+import {
+  buildCombatDisplaySummary,
+  resolveCombat,
+  type CombatDisplaySummary,
+  type CombatResult
+} from "@packbound/sim";
 
 const playerId = asPlayerId("debug-player");
 const runSeed = "client-debug-run";
@@ -52,9 +57,72 @@ const createDebugRun = (starterKitId: string): RunState =>
 
 const firstStarterKitId = sampleCatalog.starterKits[0]?.id ?? "ember_scrappers";
 
+type RecordedCombatDebug = {
+  readonly round: number;
+  readonly encounterId: string;
+  readonly result: CombatResult;
+};
+
+const timeLabel = (timeMs?: number): string =>
+  timeMs === undefined ? "--" : `${(timeMs / 1000).toFixed(1)}s`;
+
+const CombatSummaryView = ({ summary }: { readonly summary: CombatDisplaySummary }) => (
+  <div className="combat-summary">
+    <div className="combat-summary-title">{summary.title}</div>
+    <dl className="combat-summary-stats">
+      <div>
+        <dt>Damage to you</dt>
+        <dd>{summary.damageToPlayerA}</dd>
+      </div>
+      <div>
+        <dt>Damage to enemy</dt>
+        <dd>{summary.damageToPlayerB}</dd>
+      </div>
+      <div>
+        <dt>Events</dt>
+        <dd>{summary.eventCount}</dd>
+      </div>
+      <div>
+        <dt>Warnings</dt>
+        <dd>
+          {summary.warningCodes.length > 0 ? summary.warningCodes.join(", ") : "None"}
+        </dd>
+      </div>
+    </dl>
+    <ol className="combat-lines">
+      {summary.lines.map((line, index) => (
+        <li
+          key={`${line.timeMs ?? "na"}:${line.kind}:${index}`}
+          className={`combat-line ${line.severity ?? "info"}`}
+        >
+          <span className="combat-time">{timeLabel(line.timeMs)}</span>
+          <span className="combat-kind">{line.kind}</span>
+          <span>{line.text}</span>
+        </li>
+      ))}
+    </ol>
+  </div>
+);
+
+const RawDebugDetails = ({
+  label,
+  value
+}: {
+  readonly label: string;
+  readonly value: unknown;
+}) => (
+  <details className="raw-debug">
+    <summary>{label}</summary>
+    <pre>{JSON.stringify(value, null, 2)}</pre>
+  </details>
+);
+
 export function App() {
   const [selectedStarterKitId, setSelectedStarterKitId] = useState(firstStarterKitId);
   const [run, setRun] = useState(() => createDebugRun(firstStarterKitId));
+  const [lastRecordedCombat, setLastRecordedCombat] = useState<
+    RecordedCombatDebug | undefined
+  >();
   const phase = getRunPhase(run);
   const rewardChoices = useMemo(() => getCurrentRewardChoices(run, sampleCatalog), [run]);
   const currentEncounter = useMemo(() => getCurrentEncounter(run, sampleCatalog), [run]);
@@ -91,10 +159,33 @@ export function App() {
   ]);
   const latestCombatSummary = run.combatHistory.at(-1);
   const latestOpenedPack = run.openedPacks.at(-1);
+  const upcomingCombatDisplaySummary = useMemo(
+    () =>
+      combat
+        ? buildCombatDisplaySummary({
+            catalog: sampleCatalog,
+            combatResult: combat,
+            perspectiveSide: "playerA"
+          })
+        : undefined,
+    [combat]
+  );
+  const lastRecordedCombatDisplaySummary = useMemo(
+    () =>
+      lastRecordedCombat
+        ? buildCombatDisplaySummary({
+            catalog: sampleCatalog,
+            combatResult: lastRecordedCombat.result,
+            perspectiveSide: "playerA"
+          })
+        : undefined,
+    [lastRecordedCombat]
+  );
 
   const resetRun = (starterKitId = selectedStarterKitId) => {
     setSelectedStarterKitId(starterKitId);
     setRun(createDebugRun(starterKitId));
+    setLastRecordedCombat(undefined);
   };
 
   const performLoadoutAction = (
@@ -160,6 +251,11 @@ export function App() {
       return;
     }
 
+    setLastRecordedCombat({
+      round: run.currentRound,
+      encounterId: currentEncounter.id,
+      result: combat
+    });
     setRun((currentRun) =>
       applyRunAction(currentRun, sampleCatalog, {
         type: "recordCombatResult",
@@ -381,23 +477,60 @@ export function App() {
         </div>
 
         <div className="panel wide">
-          <h2>Latest Combat</h2>
-          <p className="muted">
-            Winner: {latestCombatSummary?.winner ?? combat?.winner ?? "none"} | Events:{" "}
-            {latestCombatSummary?.eventCount ?? combat?.events.length ?? 0}
-          </p>
-          <pre>
-            {JSON.stringify(
-              {
-                phase,
-                runSummary: latestCombatSummary ?? null,
-                previewEvents: combat?.events.slice(0, 28) ?? []
-              },
-              null,
-              2
-            )}
-          </pre>
+          <h2>Last Recorded Combat</h2>
+          {latestCombatSummary ? (
+            <>
+              <p className="muted">
+                Round {latestCombatSummary.round} | Winner: {latestCombatSummary.winner} |
+                Damage: {latestCombatSummary.damageToPlayer}/
+                {latestCombatSummary.damageToOpponent} | Events:{" "}
+                {latestCombatSummary.eventCount}
+              </p>
+              {lastRecordedCombatDisplaySummary ? (
+                <>
+                  <CombatSummaryView summary={lastRecordedCombatDisplaySummary} />
+                  <RawDebugDetails
+                    label="Raw debug events"
+                    value={{
+                      round: lastRecordedCombat?.round,
+                      encounterId: lastRecordedCombat?.encounterId,
+                      runSummary: latestCombatSummary,
+                      events: lastRecordedCombat?.result.events ?? [],
+                      warnings: lastRecordedCombat?.result.warnings ?? []
+                    }}
+                  />
+                </>
+              ) : (
+                <p className="muted combat-empty">
+                  Compact run summary is available; full event details are not stored in
+                  run state.
+                </p>
+              )}
+            </>
+          ) : (
+            <p className="muted">No combat has been recorded for this run.</p>
+          )}
         </div>
+
+        {combat && upcomingCombatDisplaySummary ? (
+          <div className="panel wide">
+            <h2>Upcoming Combat Preview</h2>
+            <p className="muted">
+              Preview only, not yet recorded. Winner: {combat.winner} | Events:{" "}
+              {combat.events.length}
+            </p>
+            <CombatSummaryView summary={upcomingCombatDisplaySummary} />
+            <RawDebugDetails
+              label="Raw debug events"
+              value={{
+                phase,
+                currentEncounterId: currentEncounter?.id ?? null,
+                events: combat.events,
+                warnings: combat.warnings
+              }}
+            />
+          </div>
+        ) : null}
       </section>
     </main>
   );

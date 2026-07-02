@@ -70,6 +70,8 @@ pnpm dev
 - The debug client now supports an ugly playable loop: pick a starter kit, edit
   legal loadout moves, mark combat ready, record deterministic combat, open a
   reward pack, and advance until the run is won or lost.
+- The debug client renders a readable combat summary panel from existing combat
+  event data while keeping raw events available behind debug details.
 - Run actions provide a serializable reducer/replay layer for the current loop,
   allowing the debug client and integration tests to share the same action path.
 - Property-based invariant tests cover generated seeds, legal loadout action

@@ -220,6 +220,94 @@ h2 {
   padding: 10px 0;
 }
 
+.combat-summary {
+  margin-top: 14px;
+}
+
+.combat-summary-title {
+  font-size: 1.1rem;
+  font-weight: 800;
+  margin-bottom: 10px;
+}
+
+.combat-summary-stats {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0 0 12px;
+}
+
+.combat-summary-stats div {
+  border-top: 1px solid #ebe2d3;
+  padding-top: 8px;
+}
+
+.combat-summary-stats dt {
+  color: #64616a;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.combat-summary-stats dd {
+  margin: 2px 0 0;
+  overflow-wrap: anywhere;
+}
+
+.combat-lines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.combat-line {
+  align-items: baseline;
+  border-top: 1px solid #ebe2d3;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 52px 86px minmax(0, 1fr);
+  padding: 9px 0;
+}
+
+.combat-line.good {
+  color: #1f5d30;
+}
+
+.combat-line.bad {
+  color: #88342f;
+}
+
+.combat-line.warning {
+  color: #8b4d2c;
+}
+
+.combat-time,
+.combat-kind {
+  color: #64616a;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.combat-kind {
+  overflow-wrap: anywhere;
+}
+
+.combat-empty {
+  margin-top: 12px;
+}
+
+.raw-debug {
+  margin-top: 12px;
+}
+
+.raw-debug summary {
+  color: #64616a;
+  cursor: pointer;
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
 pre {
   background: #20242c;
   border-radius: 6px;
@@ -265,5 +353,17 @@ pre {
 
   .mini-actions {
     justify-content: flex-start;
+  }
+
+  .combat-summary-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .combat-line {
+    grid-template-columns: 46px minmax(0, 1fr);
+  }
+
+  .combat-kind {
+    display: none;
   }
 }

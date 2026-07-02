@@ -220,4 +220,4 @@ export const upgradeCardGroup = (
 };
 
 export const describeUpgradeGroup = (group: UpgradeCardGroup): string =>
-  `${group.name}: ${group.availableCopies} copies at level ${group.upgradeLevel} -> upgrade to level ${group.nextUpgradeLevel}`;
+  `${group.name}: ${group.availableCopies} / ${group.requiredCopies} copies at level ${group.upgradeLevel} -> upgrade to level ${group.nextUpgradeLevel}`;

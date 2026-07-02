@@ -122,12 +122,14 @@ remain the automated pass/fail guardrails.
 
 ### UI Smoke Tests
 
-The debug client has a small Playwright smoke test for the current browser loop.
-It starts the Vite client, loads the app, inspects a card, readies and records
-combat, opens a reward, verifies latest reward markers, and advances the run.
-CI installs Playwright Chromium and runs the same smoke test with
-`pnpm test:browser`. Keep this layer focused on stable text and roles. Avoid
-screenshots, broad brittle snapshots, animation timing, and visual assertions.
+The debug client has small Playwright smoke tests for the current browser loop
+and the duplicate-upgrade path. They start the Vite client, load the app,
+inspect a card, ready and record combat, open a reward, verify latest reward
+markers, advance the run, and use a debug-only upgrade lab scenario to click an
+actual Unit upgrade and inspect the upgraded stats. CI installs Playwright
+Chromium and runs the same smoke tests with `pnpm test:browser`. Keep this layer
+focused on stable text and roles. Avoid screenshots, broad brittle snapshots,
+animation timing, and visual assertions.
 
 ### Manual Playtesting
 

@@ -38,8 +38,11 @@ import {
   type CombatResult
 } from "@packbound/sim";
 
+import { applyDebugScenario, debugScenarioFromSearch } from "./debugScenarios";
+
 const playerId = asPlayerId("debug-player");
 const runSeed = "client-debug-run";
+const activeDebugScenarioId = debugScenarioFromSearch(window.location.search);
 
 const cardName = (defId: CardDefId): string =>
   sampleCatalog.cardsById.get(defId)?.name ?? defId;
@@ -55,16 +58,19 @@ const combatResultForAction = (result: CombatResultLike): CombatResultLike => ({
 });
 
 const createDebugRun = (starterKitId: string): RunState =>
-  applyRunAction(
-    createRunFromStarterKit({
-      seed: `${runSeed}:${starterKitId}`,
-      catalog: sampleCatalog,
-      starterKitId,
-      playerId,
-      maxRounds: 3
-    }),
-    sampleCatalog,
-    { type: "prepareEncounter" }
+  applyDebugScenario(
+    applyRunAction(
+      createRunFromStarterKit({
+        seed: `${runSeed}:${starterKitId}`,
+        catalog: sampleCatalog,
+        starterKitId,
+        playerId,
+        maxRounds: 3
+      }),
+      sampleCatalog,
+      { type: "prepareEncounter" }
+    ),
+    activeDebugScenarioId
   );
 
 const firstStarterKitId = sampleCatalog.starterKits[0]?.id ?? "ember_scrappers";

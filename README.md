@@ -91,9 +91,11 @@ pnpm dev
   ATK/+1 HP per upgrade level in combat up to level 2.
 - Run actions provide a serializable reducer/replay layer for the current loop,
   allowing the debug client and integration tests to share the same action path.
-- `pnpm test:browser` runs a minimal Playwright smoke test for debug-loop
-  regressions, not visual polish or full end-to-end coverage. It runs without
-  screenshots, traces, videos, or broad UI snapshots.
+- `pnpm test:browser` runs minimal Playwright smoke tests for debug-loop and
+  duplicate-upgrade regressions, not visual polish or full end-to-end coverage.
+  It runs without screenshots, traces, videos, or broad UI snapshots. The
+  debug-only `?scenario=upgrade-lab` URL seeds 3 deterministic Cinder Scout pool
+  copies for that browser smoke path.
 - Property-based invariant tests cover generated seeds, legal loadout action
   sequences, card instance preservation, replay determinism, and mutation safety.
 - Core state uses plain objects so future server validation, async ghost PvP,

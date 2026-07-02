@@ -5,7 +5,7 @@ const panel = (page: Page, heading: string): Locator =>
     has: page.getByRole("heading", { name: heading, exact: true })
   });
 
-test("debug loop can inspect, preview, record, reward, and advance", async ({ page }) => {
+const captureBrowserErrors = (page: Page) => {
   const consoleErrors: string[] = [];
   const pageErrors: string[] = [];
 
@@ -17,6 +17,12 @@ test("debug loop can inspect, preview, record, reward, and advance", async ({ pa
   page.on("pageerror", (error) => {
     pageErrors.push(error.message);
   });
+
+  return { consoleErrors, pageErrors };
+};
+
+test("debug loop can inspect, preview, record, reward, and advance", async ({ page }) => {
+  const errors = captureBrowserErrors(page);
 
   await page.goto("/");
 
@@ -79,6 +85,52 @@ test("debug loop can inspect, preview, record, reward, and advance", async ({ pa
   await expect(runStatePanel.getByText("2 / 3")).toBeVisible();
   await expect(runStatePanel.getByText(/Next:/)).toBeVisible();
 
-  expect(pageErrors).toEqual([]);
-  expect(consoleErrors).toEqual([]);
+  expect(errors.pageErrors).toEqual([]);
+  expect(errors.consoleErrors).toEqual([]);
+});
+
+test("upgrade lab can perform and inspect a duplicate upgrade", async ({ page }) => {
+  const errors = captureBrowserErrors(page);
+
+  await page.goto("/?scenario=upgrade-lab");
+
+  await expect(page.getByRole("heading", { name: "Packbound" })).toBeVisible();
+
+  const upgradePanel = panel(page, "Available Upgrades");
+  await expect(upgradePanel).toBeVisible();
+  await expect(
+    upgradePanel.getByText(/Cinder Scout: 3 \/ 3 copies at level 0 -> upgrade to level 1/)
+  ).toBeVisible();
+
+  await upgradePanel.getByRole("button", { name: "Upgrade" }).click();
+
+  await expect(
+    upgradePanel.getByText(/No pool card has 3 matching Unit or Echo copies/)
+  ).toBeVisible();
+
+  const poolPanel = panel(page, "Pool Cards");
+  const cinderRows = poolPanel.getByRole("listitem").filter({ hasText: "Cinder Scout" });
+  const upgradedCinderRow = cinderRows.filter({ hasText: "Lv 1" });
+  await expect(cinderRows).toHaveCount(1);
+  await expect(upgradedCinderRow).toBeVisible();
+
+  await upgradedCinderRow.getByRole("button", { name: "Inspect" }).click();
+
+  const inspectorPanel = panel(page, "Card Inspector");
+  await expect(
+    inspectorPanel.getByRole("heading", { name: "Cinder Scout" })
+  ).toBeVisible();
+  await expect(inspectorPanel.getByText(/Unit \| pool \| Ember/)).toBeVisible();
+  await expect(
+    inspectorPanel.getByText("2 ATK / 3 HP / 1.1 speed / 1 range")
+  ).toBeVisible();
+  await expect(
+    inspectorPanel.getByText(
+      "Level 1. Combine 3 matching pool copies at this level to upgrade."
+    )
+  ).toBeVisible();
+  await expect(inspectorPanel.getByText("Current bonus: +1 ATK / +1 HP.")).toBeVisible();
+
+  expect(errors.pageErrors).toEqual([]);
+  expect(errors.consoleErrors).toEqual([]);
 });

@@ -1,11 +1,50 @@
 import {
   asCardDefId,
+  asCardInstanceId,
   asPackId,
+  asPlayerId,
+  type BoardPlacement,
+  type CardInstance,
   type CardDefinition,
+  type PlayerId,
   type PackDefinition
 } from "@packbound/shared";
 
+import type { EncounterDefinition } from "./encounters";
 import { loadContentCatalog } from "./catalog";
+
+const encounterPlayer = (encounterId: string): PlayerId =>
+  asPlayerId(`encounter:${encounterId}`);
+
+const encounterCard = (
+  encounterId: string,
+  ownerId: PlayerId,
+  defId: string,
+  zone: CardInstance["zone"],
+  index: number
+): CardInstance => ({
+  instanceId: asCardInstanceId(`${encounterId}:${defId}:${zone}:${index}`),
+  defId: asCardDefId(defId),
+  ownerId,
+  zone,
+  modifiers: [],
+  upgradeLevel: 0
+});
+
+const encounterPlacement = (
+  encounterId: string,
+  ownerId: PlayerId,
+  defId: string,
+  row: number,
+  col: number,
+  layer: BoardPlacement["position"]["layer"] = "ground",
+  index: number = 0
+): BoardPlacement => ({
+  cardInstanceId: asCardInstanceId(`${encounterId}:${defId}:board:${index}`),
+  defId: asCardDefId(defId),
+  ownerId,
+  position: { row, col, layer }
+});
 
 export const sampleCards: readonly CardDefinition[] = [
   {
@@ -390,7 +429,278 @@ export const samplePacks: readonly PackDefinition[] = [
   }
 ];
 
+const earlyEmberPressurePlayer = encounterPlayer("early_ember_pressure");
+const earlyBloomBodyPlayer = encounterPlayer("early_bloom_body");
+const shadeAshesPlayer = encounterPlayer("shade_ashes_recall");
+const cloudspirePhasePlayer = encounterPlayer("cloudspire_phase_patrol");
+const finalBossPlayer = encounterPlayer("ledger_champion");
+
+export const sampleEncounters: readonly EncounterDefinition[] = [
+  {
+    id: "early_ember_pressure",
+    name: "Ember Pressure Crew",
+    kind: "normal",
+    tier: "early",
+    minRound: 1,
+    maxRound: 2,
+    difficulty: 1,
+    loadout: {
+      playerId: earlyEmberPressurePlayer,
+      board: {
+        placements: [
+          encounterPlacement(
+            "early_ember_pressure",
+            earlyEmberPressurePlayer,
+            "ember_scraprunner",
+            0,
+            3
+          )
+        ]
+      },
+      sourceRow: {
+        maxSlots: 4,
+        cards: [
+          encounterCard(
+            "early_ember_pressure",
+            earlyEmberPressurePlayer,
+            "ember_source",
+            "sourceRow",
+            0
+          )
+        ]
+      },
+      spellrail: {
+        maxSlots: 4,
+        cards: [
+          encounterCard(
+            "early_ember_pressure",
+            earlyEmberPressurePlayer,
+            "sparkfall",
+            "spellrail",
+            0
+          )
+        ]
+      }
+    },
+    tags: ["pressure", "scrapper"],
+    aspects: ["Ember"]
+  },
+  {
+    id: "early_bloom_body",
+    name: "Bloomhide Stomper",
+    kind: "normal",
+    tier: "early",
+    minRound: 1,
+    maxRound: 3,
+    difficulty: 2,
+    loadout: {
+      playerId: earlyBloomBodyPlayer,
+      board: {
+        placements: [
+          encounterPlacement(
+            "early_bloom_body",
+            earlyBloomBodyPlayer,
+            "sporeback_beast",
+            0,
+            3
+          )
+        ]
+      },
+      sourceRow: {
+        maxSlots: 4,
+        cards: [
+          encounterCard(
+            "early_bloom_body",
+            earlyBloomBodyPlayer,
+            "bloom_source",
+            "sourceRow",
+            0
+          )
+        ]
+      },
+      spellrail: { maxSlots: 4, cards: [] }
+    },
+    tags: ["body", "beast"],
+    aspects: ["Bloom"]
+  },
+  {
+    id: "shade_ashes_recall",
+    name: "Ash Debt Collector",
+    kind: "elite",
+    tier: "early",
+    minRound: 2,
+    maxRound: 4,
+    difficulty: 3,
+    loadout: {
+      playerId: shadeAshesPlayer,
+      board: {
+        placements: [
+          encounterPlacement(
+            "shade_ashes_recall",
+            shadeAshesPlayer,
+            "hollow_caller",
+            0,
+            2
+          )
+        ]
+      },
+      sourceRow: {
+        maxSlots: 4,
+        cards: [
+          encounterCard(
+            "shade_ashes_recall",
+            shadeAshesPlayer,
+            "shade_source",
+            "sourceRow",
+            0
+          )
+        ]
+      },
+      spellrail: { maxSlots: 4, cards: [] },
+      startingAshes: [
+        encounterCard(
+          "shade_ashes_recall",
+          shadeAshesPlayer,
+          "ember_scraprunner",
+          "ashes",
+          0
+        )
+      ]
+    },
+    tags: ["ashes", "recall"],
+    aspects: ["Shade"]
+  },
+  {
+    id: "cloudspire_phase_patrol",
+    name: "Cloudspire Phase Patrol",
+    kind: "normal",
+    tier: "mid",
+    minRound: 2,
+    maxRound: 4,
+    difficulty: 3,
+    loadout: {
+      playerId: cloudspirePhasePlayer,
+      board: {
+        placements: [
+          encounterPlacement(
+            "cloudspire_phase_patrol",
+            cloudspirePhasePlayer,
+            "cloudgate_adept",
+            0,
+            2,
+            "ground",
+            0
+          ),
+          encounterPlacement(
+            "cloudspire_phase_patrol",
+            cloudspirePhasePlayer,
+            "vanishing_warden",
+            0,
+            3,
+            "ground",
+            1
+          )
+        ]
+      },
+      sourceRow: {
+        maxSlots: 4,
+        cards: [
+          encounterCard(
+            "cloudspire_phase_patrol",
+            cloudspirePhasePlayer,
+            "tide_source",
+            "sourceRow",
+            0
+          ),
+          encounterCard(
+            "cloudspire_phase_patrol",
+            cloudspirePhasePlayer,
+            "gleam_source",
+            "sourceRow",
+            1
+          )
+        ]
+      },
+      spellrail: {
+        maxSlots: 4,
+        cards: [
+          encounterCard(
+            "cloudspire_phase_patrol",
+            cloudspirePhasePlayer,
+            "phase_step",
+            "spellrail",
+            0
+          )
+        ]
+      }
+    },
+    tags: ["phase", "warden"],
+    aspects: ["Tide", "Gleam"]
+  },
+  {
+    id: "ledger_champion",
+    name: "Ledger Champion",
+    kind: "boss",
+    tier: "final",
+    minRound: 3,
+    maxRound: 99,
+    difficulty: 5,
+    loadout: {
+      playerId: finalBossPlayer,
+      board: {
+        placements: [
+          encounterPlacement(
+            "ledger_champion",
+            finalBossPlayer,
+            "debt_bound_colossus",
+            0,
+            3,
+            "ground",
+            0
+          ),
+          encounterPlacement(
+            "ledger_champion",
+            finalBossPlayer,
+            "rustline_cannon",
+            1,
+            3,
+            "support",
+            1
+          )
+        ]
+      },
+      sourceRow: {
+        maxSlots: 4,
+        cards: [
+          encounterCard(
+            "ledger_champion",
+            finalBossPlayer,
+            "shade_source",
+            "sourceRow",
+            0
+          ),
+          encounterCard(
+            "ledger_champion",
+            finalBossPlayer,
+            "bloom_source",
+            "sourceRow",
+            1
+          )
+        ]
+      },
+      spellrail: { maxSlots: 4, cards: [] }
+    },
+    tags: ["boss", "guard"],
+    aspects: ["Shade", "Bloom"],
+    rewardProfile: {
+      bonusGold: 3,
+      packBias: [asPackId("rotbloom_pack")]
+    }
+  }
+];
+
 export const sampleCatalog = loadContentCatalog({
   cards: sampleCards,
-  packs: samplePacks
+  packs: samplePacks,
+  encounters: sampleEncounters
 });

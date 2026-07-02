@@ -4,9 +4,12 @@ import { sampleCatalog } from "@packbound/content";
 import {
   advanceRunAfterCombat,
   applyPackReward,
+  buildCombatantSetupForEncounter,
   createCardInstance,
   createRun,
+  getCurrentEncounter,
   getCurrentRewardChoices,
+  prepareEncounterForRound,
   recordCombatResult,
   validatePlanningState,
   type RunState
@@ -23,7 +26,6 @@ import {
 import { resolveCombat } from "@packbound/sim";
 
 const playerId = asPlayerId("debug-player");
-const opponentId = asPlayerId("debug-opponent");
 const runSeed = "client-debug-run";
 
 const cardName = (defId: CardDefId): string =>
@@ -81,27 +83,25 @@ const playerBoard: BoardState = {
   ]
 };
 
-const opponentBoard: BoardState = {
-  placements: [
-    {
-      cardInstanceId: asCardInstanceId("debug-opponent:sporeback_beast:board"),
-      defId: asCardDefId("sporeback_beast"),
-      ownerId: opponentId,
-      position: { row: 0, col: 3, layer: "ground" }
-    }
-  ]
-};
-
 const createDebugRun = (): RunState =>
-  createRun({
-    seed: runSeed,
-    playerId,
-    maxRounds: 3
-  });
+  prepareEncounterForRound(
+    createRun({
+      seed: runSeed,
+      playerId,
+      maxRounds: 3
+    }),
+    sampleCatalog
+  );
 
 export function App() {
   const [run, setRun] = useState(createDebugRun);
   const rewardChoices = useMemo(() => getCurrentRewardChoices(run, sampleCatalog), [run]);
+  const currentEncounter = useMemo(() => getCurrentEncounter(run, sampleCatalog), [run]);
+  const opponentSetup = useMemo(
+    () =>
+      currentEncounter ? buildCombatantSetupForEncounter(currentEncounter) : undefined,
+    [currentEncounter]
+  );
 
   const sourceRow = useMemo(
     () => debugSourceRow(playerId, "ember_source", "ember_source"),
@@ -120,26 +120,30 @@ export function App() {
     [sourceRow, spellrail]
   );
 
-  const combat = useMemo(
-    () =>
-      resolveCombat({
-        catalog: sampleCatalog,
-        seed: "client-debug-combat",
-        playerA: {
-          playerId,
-          board: playerBoard,
-          sourceRow,
-          spellrail
-        },
-        playerB: {
-          playerId: opponentId,
-          board: opponentBoard,
-          sourceRow: debugSourceRow(opponentId, "bloom_source"),
-          spellrail: debugSpellrail(opponentId)
-        }
-      }),
-    [sourceRow, spellrail]
-  );
+  const combat = useMemo(() => {
+    if (!opponentSetup) {
+      return undefined;
+    }
+
+    return resolveCombat({
+      catalog: sampleCatalog,
+      seed: `client-debug-combat:${run.seed}:${run.currentRound}:${currentEncounter?.id}`,
+      playerA: {
+        playerId,
+        board: playerBoard,
+        sourceRow,
+        spellrail
+      },
+      playerB: opponentSetup
+    });
+  }, [
+    currentEncounter?.id,
+    opponentSetup,
+    run.currentRound,
+    run.seed,
+    sourceRow,
+    spellrail
+  ]);
   const latestCombatSummary = run.combatHistory.at(-1);
   const latestOpenedPack = run.openedPacks.at(-1);
 
@@ -148,7 +152,16 @@ export function App() {
   };
 
   const recordCombat = () => {
-    setRun((currentRun) => advanceRunAfterCombat(recordCombatResult(currentRun, combat)));
+    if (!combat || !currentEncounter) {
+      return;
+    }
+
+    setRun((currentRun) =>
+      advanceRunAfterCombat(
+        recordCombatResult(currentRun, combat, { encounterId: currentEncounter.id }),
+        sampleCatalog
+      )
+    );
   };
 
   return (
@@ -171,7 +184,11 @@ export function App() {
           >
             Open Reward
           </button>
-          <button type="button" onClick={recordCombat} disabled={run.status !== "active"}>
+          <button
+            type="button"
+            onClick={recordCombat}
+            disabled={run.status !== "active" || !combat}
+          >
             Record Combat
           </button>
           <button
@@ -205,6 +222,34 @@ export function App() {
             <div>
               <dt>Status</dt>
               <dd>{run.status}</dd>
+            </div>
+          </dl>
+        </div>
+
+        <div className="panel">
+          <h2>Current Encounter</h2>
+          <dl className="run-stats">
+            <div>
+              <dt>Name</dt>
+              <dd>{currentEncounter?.name ?? "None"}</dd>
+            </div>
+            <div>
+              <dt>Kind</dt>
+              <dd>{currentEncounter?.kind ?? "none"}</dd>
+            </div>
+            <div>
+              <dt>Difficulty</dt>
+              <dd>{currentEncounter?.difficulty ?? "-"}</dd>
+            </div>
+            <div>
+              <dt>Opponent Board</dt>
+              <dd>
+                {currentEncounter
+                  ? currentEncounter.loadout.board.placements
+                      .map((placement) => cardName(placement.defId))
+                      .join(", ")
+                  : "-"}
+              </dd>
             </div>
           </dl>
         </div>
@@ -255,14 +300,14 @@ export function App() {
         <div className="panel wide">
           <h2>Latest Combat</h2>
           <p className="muted">
-            Winner: {latestCombatSummary?.winner ?? combat.winner} | Events:{" "}
-            {latestCombatSummary?.eventCount ?? combat.events.length}
+            Winner: {latestCombatSummary?.winner ?? combat?.winner ?? "none"} | Events:{" "}
+            {latestCombatSummary?.eventCount ?? combat?.events.length ?? 0}
           </p>
           <pre>
             {JSON.stringify(
               {
                 runSummary: latestCombatSummary ?? null,
-                previewEvents: combat.events.slice(0, 28)
+                previewEvents: combat?.events.slice(0, 28) ?? []
               },
               null,
               2

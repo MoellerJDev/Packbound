@@ -1,19 +1,31 @@
 import {
+  BOARD_COLS,
+  BOARD_ROWS,
   chargeCostTotal,
   type AbilityEffect,
+  type BoardLayer,
+  type BoardPlacement,
   type CardDefId,
   type CardDefinition,
+  type CardInstance,
   type PackDefinition,
   type PackId
 } from "@packbound/shared";
 
-import { parseCardDefinitions, parsePackDefinitions } from "./schemas";
+import type { EncounterDefinition } from "./encounters";
+import {
+  parseCardDefinitions,
+  parseEncounterDefinitions,
+  parsePackDefinitions
+} from "./schemas";
 
 export type ContentCatalog = {
   readonly cards: readonly CardDefinition[];
   readonly packs: readonly PackDefinition[];
+  readonly encounters: readonly EncounterDefinition[];
   readonly cardsById: ReadonlyMap<CardDefId, CardDefinition>;
   readonly packsById: ReadonlyMap<PackId, PackDefinition>;
+  readonly encountersById: ReadonlyMap<string, EncounterDefinition>;
 };
 
 export class ContentValidationError extends Error {
@@ -29,6 +41,7 @@ export class ContentValidationError extends Error {
 export type LoadContentInput = {
   readonly cards: unknown;
   readonly packs: unknown;
+  readonly encounters?: unknown;
 };
 
 type EffectReferenceValidator = (
@@ -78,9 +91,165 @@ const effectsForCard = (card: CardDefinition): readonly AbilityEffect[] => {
   return [...abilityEffects, card.technique.effect];
 };
 
+const boardLayersForCard = (card: CardDefinition): readonly BoardLayer[] | undefined => {
+  switch (card.cardType) {
+    case "Unit":
+    case "Echo":
+      return ["ground", "air"];
+    case "Relic":
+      return ["support"];
+    case "Field":
+      return ["support", "terrain"];
+    default:
+      return undefined;
+  }
+};
+
+const validateEncounterCardInstance = (
+  encounter: EncounterDefinition,
+  card: CardInstance,
+  expectedZone: CardInstance["zone"],
+  expectedCardType: CardDefinition["cardType"],
+  cardsById: ReadonlyMap<CardDefId, CardDefinition>,
+  issues: string[]
+): CardDefinition | undefined => {
+  const def = cardsById.get(card.defId);
+  if (!def) {
+    issues.push(`${encounter.id} references unknown card definition '${card.defId}'`);
+    return undefined;
+  }
+
+  if (card.ownerId !== encounter.loadout.playerId) {
+    issues.push(
+      `${encounter.id} card ${card.instanceId} owner does not match encounter playerId`
+    );
+  }
+
+  if (card.zone !== expectedZone) {
+    issues.push(
+      `${encounter.id} card ${card.instanceId} must be in ${expectedZone}, not ${card.zone}`
+    );
+  }
+
+  if (def.cardType !== expectedCardType) {
+    issues.push(
+      `${encounter.id} card ${card.instanceId} references ${def.id}, but ${def.cardType} is not valid for ${expectedZone}`
+    );
+  }
+
+  return def;
+};
+
+const validateEncounterBoardPlacement = (
+  encounter: EncounterDefinition,
+  placement: BoardPlacement,
+  cardsById: ReadonlyMap<CardDefId, CardDefinition>,
+  issues: string[]
+): void => {
+  const def = cardsById.get(placement.defId);
+  if (!def) {
+    issues.push(
+      `${encounter.id} board references unknown card definition '${placement.defId}'`
+    );
+    return;
+  }
+
+  if (placement.ownerId !== encounter.loadout.playerId) {
+    issues.push(
+      `${encounter.id} board placement ${placement.cardInstanceId} owner does not match encounter playerId`
+    );
+  }
+
+  if (placement.position.row >= BOARD_ROWS || placement.position.col >= BOARD_COLS) {
+    issues.push(
+      `${encounter.id} board placement ${placement.cardInstanceId} is outside the board`
+    );
+  }
+
+  const legalLayers = boardLayersForCard(def);
+  if (!legalLayers) {
+    issues.push(
+      `${encounter.id} board placement ${placement.cardInstanceId} references ${def.cardType}, which cannot be placed on the encounter board`
+    );
+    return;
+  }
+
+  if (!legalLayers.includes(placement.position.layer)) {
+    issues.push(
+      `${encounter.id} board placement ${placement.cardInstanceId} puts ${def.cardType} on invalid ${placement.position.layer} layer`
+    );
+  }
+};
+
+const validateEncounter = (
+  encounter: EncounterDefinition,
+  cardsById: ReadonlyMap<CardDefId, CardDefinition>,
+  issues: string[]
+): void => {
+  for (const placement of encounter.loadout.board.placements) {
+    validateEncounterBoardPlacement(encounter, placement, cardsById, issues);
+  }
+
+  if (encounter.loadout.sourceRow.cards.length > encounter.loadout.sourceRow.maxSlots) {
+    issues.push(`${encounter.id} source row exceeds its max slot count`);
+  }
+
+  for (const card of encounter.loadout.sourceRow.cards) {
+    validateEncounterCardInstance(
+      encounter,
+      card,
+      "sourceRow",
+      "Source",
+      cardsById,
+      issues
+    );
+  }
+
+  if (encounter.loadout.spellrail.cards.length > encounter.loadout.spellrail.maxSlots) {
+    issues.push(`${encounter.id} spellrail exceeds its max slot count`);
+  }
+
+  for (const card of encounter.loadout.spellrail.cards) {
+    validateEncounterCardInstance(
+      encounter,
+      card,
+      "spellrail",
+      "Technique",
+      cardsById,
+      issues
+    );
+  }
+
+  for (const card of encounter.loadout.startingAshes ?? []) {
+    const def = cardsById.get(card.defId);
+    if (!def) {
+      issues.push(
+        `${encounter.id} starting Ashes references unknown card definition '${card.defId}'`
+      );
+      continue;
+    }
+    if (card.ownerId !== encounter.loadout.playerId) {
+      issues.push(
+        `${encounter.id} Ashes card ${card.instanceId} owner does not match encounter playerId`
+      );
+    }
+    if (card.zone !== "ashes") {
+      issues.push(
+        `${encounter.id} Ashes card ${card.instanceId} must be in ashes, not ${card.zone}`
+      );
+    }
+    if (def.cardType !== "Unit" && def.cardType !== "Echo") {
+      issues.push(
+        `${encounter.id} Ashes card ${card.instanceId} references ${def.cardType}, which cannot start in encounter Ashes`
+      );
+    }
+  }
+};
+
 export const loadContentCatalog = (input: LoadContentInput): ContentCatalog => {
   const cards = parseCardDefinitions(input.cards);
   const packs = parsePackDefinitions(input.packs);
+  const encounters = parseEncounterDefinitions(input.encounters ?? []);
   const issues: string[] = [];
 
   const cardsById = new Map<CardDefId, CardDefinition>();
@@ -99,6 +268,15 @@ export const loadContentCatalog = (input: LoadContentInput): ContentCatalog => {
       continue;
     }
     packsById.set(pack.id, pack);
+  }
+
+  const encountersById = new Map<string, EncounterDefinition>();
+  for (const encounter of encounters) {
+    if (encountersById.has(encounter.id)) {
+      issues.push(`Duplicate encounter definition id: ${encounter.id}`);
+      continue;
+    }
+    encountersById.set(encounter.id, encounter);
   }
 
   const knownSets = new Set(cards.map((card) => card.set));
@@ -161,6 +339,10 @@ export const loadContentCatalog = (input: LoadContentInput): ContentCatalog => {
     }
   }
 
+  for (const encounter of encounters) {
+    validateEncounter(encounter, cardsById, issues);
+  }
+
   if (issues.length > 0) {
     throw new ContentValidationError(issues);
   }
@@ -168,7 +350,9 @@ export const loadContentCatalog = (input: LoadContentInput): ContentCatalog => {
   return {
     cards,
     packs,
+    encounters,
     cardsById,
-    packsById
+    packsById,
+    encountersById
   };
 };

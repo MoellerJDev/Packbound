@@ -78,6 +78,12 @@ export type CombatSummary = {
   readonly rulesVersion?: string;
 };
 
+export type EncounterHistoryEntry = {
+  readonly round: number;
+  readonly encounterId: string;
+  readonly combatSummaryIndex: number;
+};
+
 export type RunState = {
   readonly runId: RunId;
   readonly seed: string;
@@ -85,6 +91,7 @@ export type RunState = {
   readonly status: RunStatus;
   readonly currentRound: number;
   readonly maxRounds: number;
+  readonly currentEncounterId?: string;
   readonly playerHealth: number;
   readonly playerGold: number;
   readonly playerId: PlayerId;
@@ -98,6 +105,7 @@ export type RunState = {
   readonly rewardHistory: readonly RewardHistoryEntry[];
   readonly openedPacks: readonly PackOpenResult[];
   readonly combatHistory: readonly CombatSummary[];
+  readonly encounterHistory: readonly EncounterHistoryEntry[];
 };
 
 const emptyBoard = (): BoardState => ({ placements: [] });
@@ -165,6 +173,7 @@ export const createRun = (config: RunConfig): RunState => {
     currentRewardChoices: [],
     rewardHistory: [],
     openedPacks: [],
-    combatHistory: []
+    combatHistory: [],
+    encounterHistory: []
   };
 };

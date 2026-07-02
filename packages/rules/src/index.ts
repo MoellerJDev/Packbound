@@ -1,3 +1,4 @@
+export * from "./encounters";
 export * from "./instances";
 export * from "./packOpening";
 export * from "./rng";

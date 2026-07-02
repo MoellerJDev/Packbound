@@ -8,6 +8,7 @@ import {
   applyPackReward,
   createRun,
   getCurrentRewardChoices,
+  prepareEncounterForRound,
   recordCombatResult,
   type CombatResultLike,
   type RunState
@@ -36,6 +37,9 @@ const firstRewardChoiceId = (run: RunState): string => {
 
 const applyFirstReward = (run: RunState): RunState =>
   applyPackReward(run, sampleCatalog, firstRewardChoiceId(run));
+
+const prepareRun = (run: RunState): RunState =>
+  prepareEncounterForRound(run, sampleCatalog);
 
 describe("run progression skeleton", () => {
   it("creates deterministic initial run state for the same seed", () => {
@@ -80,7 +84,7 @@ describe("run progression skeleton", () => {
 
   it("recording combat applies player damage and stores a summary", () => {
     const run = recordCombatResult(
-      createRun({ seed: "damage-seed" }),
+      prepareRun(createRun({ seed: "damage-seed" })),
       combatResult({ damageToPlayerA: 7, damageToPlayerB: 2 })
     );
 
@@ -102,7 +106,7 @@ describe("run progression skeleton", () => {
 
   it("advancing after combat increments the round", () => {
     const run = advanceRunAfterCombat(
-      recordCombatResult(createRun({ seed: "advance-seed" }), combatResult())
+      recordCombatResult(prepareRun(createRun({ seed: "advance-seed" })), combatResult())
     );
 
     expect(run.currentRound).toBe(2);
@@ -111,7 +115,7 @@ describe("run progression skeleton", () => {
 
   it("marks the run lost when health reaches zero", () => {
     const run = recordCombatResult(
-      createRun({ seed: "lost-seed", startingHealth: 4 }),
+      prepareRun(createRun({ seed: "lost-seed", startingHealth: 4 })),
       combatResult({ damageToPlayerA: 4 })
     );
 
@@ -122,7 +126,10 @@ describe("run progression skeleton", () => {
 
   it("marks the run won after advancing beyond max rounds", () => {
     const run = advanceRunAfterCombat(
-      recordCombatResult(createRun({ seed: "won-seed", maxRounds: 1 }), combatResult())
+      recordCombatResult(
+        prepareRun(createRun({ seed: "won-seed", maxRounds: 1 })),
+        combatResult()
+      )
     );
 
     expect(run.currentRound).toBe(2);
@@ -131,7 +138,7 @@ describe("run progression skeleton", () => {
 
   it("keeps run state serializable", () => {
     const run = advanceRunAfterCombat(
-      recordCombatResult(applyFirstReward(createRun({ seed: "json-seed" })), {
+      recordCombatResult(prepareRun(applyFirstReward(createRun({ seed: "json-seed" }))), {
         ...combatResult(),
         warnings: [{ code: "TEST_WARNING", message: "Test warning" }]
       })

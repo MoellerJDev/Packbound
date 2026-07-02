@@ -6,12 +6,17 @@ import {
   CARD_TYPES,
   KEYWORDS,
   RARITIES,
+  ZONES,
   STATUS_EFFECTS,
   asCardDefId,
+  asCardInstanceId,
   asPackId,
+  asPlayerId,
   type CardDefinition,
   type PackDefinition
 } from "@packbound/shared";
+
+import { ENCOUNTER_KINDS, ENCOUNTER_TIERS, type EncounterDefinition } from "./encounters";
 
 export const aspectSchema = z.enum(ASPECTS);
 export const raritySchema = z.enum(RARITIES);
@@ -21,7 +26,9 @@ export const keywordSchema = z.enum(KEYWORDS);
 export const statusEffectSchema = z.enum(STATUS_EFFECTS);
 
 export const cardDefIdSchema = z.string().min(1).transform(asCardDefId);
+export const cardInstanceIdSchema = z.string().min(1).transform(asCardInstanceId);
 export const packIdSchema = z.string().min(1).transform(asPackId);
+export const playerIdSchema = z.string().min(1).transform(asPlayerId);
 
 export const chargeCostSchema = z.object({
   generic: z.number().int().min(0),
@@ -32,6 +39,54 @@ export const boardPositionSchema = z.object({
   row: z.number().int().min(0),
   col: z.number().int().min(0),
   layer: boardLayerSchema
+});
+
+export const cardModifierSchema = z.object({
+  id: z.string().min(1),
+  type: z.enum([
+    "StatModifier",
+    "KeywordGrant",
+    "CostModifier",
+    "ChargeGenerationModifier",
+    "DamageModifier",
+    "TargetingModifier",
+    "TriggerModifier"
+  ]),
+  sourceId: z.string().min(1),
+  stackingRule: z.enum(["stack", "highestOnly", "refreshDuration", "uniqueBySource"]),
+  metadata: z.record(z.unknown()).optional()
+});
+
+export const cardInstanceSchema = z.object({
+  instanceId: cardInstanceIdSchema,
+  defId: cardDefIdSchema,
+  ownerId: playerIdSchema,
+  zone: z.enum(ZONES),
+  modifiers: z.array(cardModifierSchema),
+  upgradeLevel: z.number().int().min(0),
+  createdBy: cardInstanceIdSchema.optional(),
+  isEcho: z.boolean().optional()
+});
+
+export const boardPlacementSchema = z.object({
+  cardInstanceId: cardInstanceIdSchema,
+  defId: cardDefIdSchema,
+  ownerId: playerIdSchema,
+  position: boardPositionSchema
+});
+
+export const boardStateSchema = z.object({
+  placements: z.array(boardPlacementSchema)
+});
+
+export const sourceRowStateSchema = z.object({
+  cards: z.array(cardInstanceSchema),
+  maxSlots: z.number().int().min(0)
+});
+
+export const spellrailStateSchema = z.object({
+  cards: z.array(cardInstanceSchema),
+  maxSlots: z.number().int().min(0)
 });
 
 const noPayloadTriggers = [
@@ -288,8 +343,46 @@ export const packDefinitionSchema = z.object({
   tagBias: z.record(z.number().min(0))
 });
 
+export const encounterKindSchema = z.enum(ENCOUNTER_KINDS);
+export const encounterTierSchema = z.enum(ENCOUNTER_TIERS);
+
+export const encounterLoadoutSchema = z.object({
+  playerId: playerIdSchema,
+  board: boardStateSchema,
+  sourceRow: sourceRowStateSchema,
+  spellrail: spellrailStateSchema,
+  startingAshes: z.array(cardInstanceSchema).optional()
+});
+
+export const encounterRewardProfileSchema = z.object({
+  packBias: z.array(packIdSchema).optional(),
+  bonusGold: z.number().int().min(0).optional()
+});
+
+export const encounterDefinitionSchema = z
+  .object({
+    id: z.string().min(1),
+    name: z.string().min(1),
+    kind: encounterKindSchema,
+    tier: encounterTierSchema,
+    minRound: z.number().int().min(1),
+    maxRound: z.number().int().min(1),
+    difficulty: z.number().int().min(1),
+    loadout: encounterLoadoutSchema,
+    tags: z.array(z.string().min(1)).optional(),
+    aspects: z.array(aspectSchema).optional(),
+    rewardProfile: encounterRewardProfileSchema.optional()
+  })
+  .refine((encounter) => encounter.maxRound >= encounter.minRound, {
+    message: "Encounter maxRound must be greater than or equal to minRound",
+    path: ["maxRound"]
+  });
+
 export const parseCardDefinitions = (raw: unknown): readonly CardDefinition[] =>
   z.array(cardDefinitionSchema).parse(raw) as readonly CardDefinition[];
 
 export const parsePackDefinitions = (raw: unknown): readonly PackDefinition[] =>
   z.array(packDefinitionSchema).parse(raw) as readonly PackDefinition[];
+
+export const parseEncounterDefinitions = (raw: unknown): readonly EncounterDefinition[] =>
+  z.array(encounterDefinitionSchema).parse(raw) as readonly EncounterDefinition[];

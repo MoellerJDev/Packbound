@@ -14,8 +14,10 @@ import {
   canApplyReward,
   canEditLoadout,
   canRecordCombat,
+  createEncounterMatch,
   createRunFromStarterKit,
   describeUpgradeProgressGroup,
+  passEncounterPriority,
   getCurrentEncounter,
   getCurrentRewardChoices,
   getLatestOpenedPackCardInstanceIds,
@@ -25,6 +27,8 @@ import {
   getRunNextActionMessage,
   inspectEncounterCard,
   inspectRunCard,
+  recordEncounterCombatSkirmish,
+  submitEncounterAction,
   validateRunLoadout,
   type BoardGridCardSummary,
   type BoardGridSummary,
@@ -32,6 +36,8 @@ import {
   type CombatResultLike,
   type EngagementPreview,
   type EngagementPreviewSide,
+  type EncounterActor,
+  type EncounterMatchState,
   type LoadoutAction,
   type RunState,
   type TraitCount,
@@ -51,7 +57,11 @@ import {
   type CombatResult
 } from "@packbound/sim";
 
-import { applyDebugScenario, debugScenarioFromSearch } from "./debugScenarios";
+import {
+  DEBUG_PRIORITY_SCENARIO_ID,
+  applyDebugScenario,
+  debugScenarioFromSearch
+} from "./debugScenarios";
 
 const playerId = asPlayerId("debug-player");
 const runSeed = "client-debug-run";
@@ -87,6 +97,11 @@ const createDebugRun = (starterKitId: string): RunState =>
   );
 
 const firstStarterKitId = sampleCatalog.starterKits[0]?.id ?? "ember_scrappers";
+const createPriorityLabMatch = (): EncounterMatchState =>
+  createEncounterMatch({
+    matchId: "debug-priority-lab",
+    seed: "client-debug-priority-lab"
+  });
 
 type RecordedCombatDebug = {
   readonly round: number;
@@ -784,9 +799,206 @@ const BoardGridView = ({
   );
 };
 
+type PriorityLabPanelProps = {
+  readonly match: EncounterMatchState;
+  readonly canRunCombat: boolean;
+  readonly onSubmitDebugAction: () => void;
+  readonly onPassPlayer: () => void;
+  readonly onPassEnemy: () => void;
+  readonly onRunSkirmish: () => void;
+  readonly onReset: () => void;
+};
+
+const encounterActorLabel = (actor: EncounterActor | null): string => {
+  switch (actor) {
+    case "player":
+      return "Player";
+    case "enemy":
+      return "Enemy";
+    case null:
+      return "None";
+  }
+};
+
+const encounterPhaseLabel = (phase: EncounterMatchState["phase"]): string => {
+  switch (phase) {
+    case "start":
+      return "Start";
+    case "firstMain":
+      return "First main";
+    case "combat":
+      return "Combat skirmish";
+    case "secondMain":
+      return "Second main";
+    case "end":
+      return "End";
+    case "complete":
+      return "Complete";
+  }
+};
+
+const encounterOutcomeLabel = (outcome: EncounterMatchState["outcome"]): string => {
+  if (outcome.kind === "inProgress") {
+    return "In progress";
+  }
+
+  return outcome.reason ? `${outcome.kind} (${outcome.reason})` : outcome.kind;
+};
+
+const PriorityLabPanel = ({
+  match,
+  canRunCombat,
+  onSubmitDebugAction,
+  onPassPlayer,
+  onPassEnemy,
+  onRunSkirmish,
+  onReset
+}: PriorityLabPanelProps) => {
+  const complete = match.outcome.kind !== "inProgress";
+  const playerHasPriority = match.priorityHolder === "player";
+  const enemyHasPriority = match.priorityHolder === "enemy";
+  const priorityPhase = match.phase !== "combat" && !complete;
+  const visibleStack = [...match.stack].reverse();
+  const visibleLog = match.actionLog.slice(-10);
+
+  return (
+    <section className="debug-grid" aria-labelledby="priority-lab-heading">
+      <div className="panel wide">
+        <h2 id="priority-lab-heading">Priority Lab</h2>
+        <dl className="run-stats">
+          <div>
+            <dt>Encounter / Match</dt>
+            <dd>{match.matchId}</dd>
+          </div>
+          <div>
+            <dt>Turn</dt>
+            <dd>{match.turnNumber}</dd>
+          </div>
+          <div>
+            <dt>Phase</dt>
+            <dd>{encounterPhaseLabel(match.phase)}</dd>
+          </div>
+          <div>
+            <dt>Active actor</dt>
+            <dd>{encounterActorLabel(match.activeActor)}</dd>
+          </div>
+          <div>
+            <dt>Priority holder</dt>
+            <dd>{encounterActorLabel(match.priorityHolder)}</dd>
+          </div>
+          <div>
+            <dt>Consecutive passes</dt>
+            <dd>{match.consecutivePasses}</dd>
+          </div>
+          <div>
+            <dt>Player stability</dt>
+            <dd>{match.playerStability}</dd>
+          </div>
+          <div>
+            <dt>Enemy stability</dt>
+            <dd>{match.enemyStability}</dd>
+          </div>
+          <div>
+            <dt>Outcome</dt>
+            <dd>{encounterOutcomeLabel(match.outcome)}</dd>
+          </div>
+        </dl>
+        <div className="button-row">
+          <button
+            type="button"
+            onClick={onSubmitDebugAction}
+            disabled={!priorityPhase || !playerHasPriority}
+          >
+            Submit Debug Action
+          </button>
+          <button
+            type="button"
+            className="secondary"
+            onClick={onPassPlayer}
+            disabled={!priorityPhase || !playerHasPriority}
+          >
+            Pass Priority
+          </button>
+          <button
+            type="button"
+            className="secondary"
+            onClick={onPassEnemy}
+            disabled={!priorityPhase || !enemyHasPriority}
+          >
+            Enemy Pass
+          </button>
+          <button
+            type="button"
+            onClick={onRunSkirmish}
+            disabled={!canRunCombat || complete}
+          >
+            Run Combat Skirmish
+          </button>
+          <button type="button" className="secondary" onClick={onReset}>
+            Reset Encounter Lab
+          </button>
+        </div>
+
+        <div className="encounter-loadout">
+          <h3>Action Stack</h3>
+          {visibleStack.length > 0 ? (
+            <ol className="card-list compact">
+              {visibleStack.map((item) => (
+                <li key={item.id}>
+                  <span>{item.action.label}</span>
+                  <small>
+                    #{item.index} | {encounterActorLabel(item.action.actor)} |{" "}
+                    {item.action.kind}
+                  </small>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p className="muted">Empty</p>
+          )}
+
+          <h3>Skirmish Records</h3>
+          {match.skirmishes.length > 0 ? (
+            <ol className="card-list compact">
+              {match.skirmishes.map((skirmish, index) => (
+                <li key={skirmish.id}>
+                  <span>
+                    Skirmish {index + 1}: {skirmish.winner}
+                  </span>
+                  <small>
+                    Turn {skirmish.turnNumber} | Stability{" "}
+                    {skirmish.stabilityDelta.player}/{skirmish.stabilityDelta.enemy} |
+                    Events {skirmish.eventCount}
+                  </small>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p className="muted">None</p>
+          )}
+
+          <h3>Action Log</h3>
+          <ol className="message-list">
+            {visibleLog.map((entry) => (
+              <li key={entry.id}>
+                {entry.text}
+                <small>
+                  Turn {entry.turnNumber} | {encounterPhaseLabel(entry.phase)} | Stack{" "}
+                  {entry.stackDepth}
+                </small>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </div>
+    </section>
+  );
+};
+
 export function App() {
   const [selectedStarterKitId, setSelectedStarterKitId] = useState(firstStarterKitId);
   const [run, setRun] = useState(() => createDebugRun(firstStarterKitId));
+  const [priorityMatch, setPriorityMatch] = useState(createPriorityLabMatch);
   const [lastRecordedCombat, setLastRecordedCombat] = useState<
     RecordedCombatDebug | undefined
   >();
@@ -880,6 +1092,25 @@ export function App() {
     recordReady,
     run.currentRound,
     run.seed
+  ]);
+  const priorityLabCombat = useMemo(() => {
+    if (!opponentSetup || !currentEncounter) {
+      return undefined;
+    }
+
+    return resolveCombat({
+      catalog: sampleCatalog,
+      seed: `client-debug-priority-combat:${priorityMatch.seed}:${priorityMatch.turnNumber}:${priorityMatch.skirmishes.length}:${currentEncounter.id}`,
+      playerA: playerSetup,
+      playerB: opponentSetup
+    });
+  }, [
+    currentEncounter,
+    opponentSetup,
+    playerSetup,
+    priorityMatch.seed,
+    priorityMatch.skirmishes.length,
+    priorityMatch.turnNumber
   ]);
   const latestCombatSummary = run.combatHistory.at(-1);
   const latestOpenedPack = run.openedPacks.at(-1);
@@ -990,6 +1221,7 @@ export function App() {
   const resetRun = (starterKitId = selectedStarterKitId) => {
     setSelectedStarterKitId(starterKitId);
     setRun(createDebugRun(starterKitId));
+    setPriorityMatch(createPriorityLabMatch());
     setLastRecordedCombat(undefined);
     setSelectedAllyCardRef(undefined);
     setSelectedEnemyCardRef(undefined);
@@ -1150,6 +1382,37 @@ export function App() {
     setRun((currentRun) =>
       applyRunAction(currentRun, sampleCatalog, { type: "advanceRunAfterCombat" })
     );
+  };
+
+  const submitPriorityDebugAction = () => {
+    setPriorityMatch((currentMatch) =>
+      submitEncounterAction(currentMatch, {
+        actor: "player",
+        kind: "debug_pressure"
+      })
+    );
+  };
+
+  const passPriorityAsPlayer = () => {
+    setPriorityMatch((currentMatch) => passEncounterPriority(currentMatch, "player"));
+  };
+
+  const passPriorityAsEnemy = () => {
+    setPriorityMatch((currentMatch) => passEncounterPriority(currentMatch, "enemy"));
+  };
+
+  const runPrioritySkirmish = () => {
+    if (!priorityLabCombat) {
+      return;
+    }
+
+    setPriorityMatch((currentMatch) =>
+      recordEncounterCombatSkirmish(currentMatch, priorityLabCombat)
+    );
+  };
+
+  const resetPriorityLab = () => {
+    setPriorityMatch(createPriorityLabMatch());
   };
 
   return (
@@ -1328,6 +1591,20 @@ export function App() {
 
         <CombatModelFactsView />
       </section>
+
+      {activeDebugScenarioId === DEBUG_PRIORITY_SCENARIO_ID ? (
+        <PriorityLabPanel
+          match={priorityMatch}
+          canRunCombat={
+            priorityMatch.phase === "combat" && priorityLabCombat !== undefined
+          }
+          onSubmitDebugAction={submitPriorityDebugAction}
+          onPassPlayer={passPriorityAsPlayer}
+          onPassEnemy={passPriorityAsEnemy}
+          onRunSkirmish={runPrioritySkirmish}
+          onReset={resetPriorityLab}
+        />
+      ) : null}
 
       <section className="debug-grid">
         <div className="panel">

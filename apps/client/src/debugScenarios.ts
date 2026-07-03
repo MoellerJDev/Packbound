@@ -9,9 +9,12 @@ import {
 
 export const DEBUG_UPGRADE_SCENARIO_ID = "upgrade-lab";
 export const DEBUG_ENGAGEMENT_SCENARIO_ID = "engagement-lab";
+export const DEBUG_PRIORITY_SCENARIO_ID = "priority-lab";
 
 export type DebugScenarioId =
-  typeof DEBUG_UPGRADE_SCENARIO_ID | typeof DEBUG_ENGAGEMENT_SCENARIO_ID;
+  | typeof DEBUG_UPGRADE_SCENARIO_ID
+  | typeof DEBUG_ENGAGEMENT_SCENARIO_ID
+  | typeof DEBUG_PRIORITY_SCENARIO_ID;
 
 export const DEBUG_UPGRADE_CARD_DEF_ID = asCardDefId("cinder_scout");
 export const DEBUG_ENGAGEMENT_MELEE_CARD_DEF_ID = asCardDefId("cinder_scout");
@@ -23,7 +26,9 @@ const DEBUG_ENGAGEMENT_ENCOUNTER_ID = "early_ember_pressure";
 export const isDebugScenarioId = (
   value: string | null | undefined
 ): value is DebugScenarioId =>
-  value === DEBUG_UPGRADE_SCENARIO_ID || value === DEBUG_ENGAGEMENT_SCENARIO_ID;
+  value === DEBUG_UPGRADE_SCENARIO_ID ||
+  value === DEBUG_ENGAGEMENT_SCENARIO_ID ||
+  value === DEBUG_PRIORITY_SCENARIO_ID;
 
 const debugScenarioInstanceId = (
   run: RunState,
@@ -106,6 +111,8 @@ export const applyDebugScenario = (
       return applyUpgradeLabScenario(run);
     case DEBUG_ENGAGEMENT_SCENARIO_ID:
       return applyEngagementLabScenario(run);
+    case DEBUG_PRIORITY_SCENARIO_ID:
+      return run;
     case undefined:
       return run;
   }

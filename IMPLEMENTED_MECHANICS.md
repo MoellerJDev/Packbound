@@ -1,7 +1,34 @@
 # Implemented Mechanics
 
 This document tracks the current engine surface. It is not a design wishlist; it
-is a snapshot of what the simulator actually resolves today.
+is a snapshot of what the rules and simulator layers actually expose today.
+
+## Implemented Encounter Shell
+
+The rules package now includes a minimal serializable encounter match reducer:
+
+- Encounters start in `firstMain` with the active actor holding priority.
+- Empty-stack double passes advance `firstMain` to `combat`, `secondMain` to
+  `end`, and `end` into the next turn.
+- The active actor alternates on each new turn.
+- Submitted debug actions enter a LIFO action stack and pass priority to the
+  opponent.
+- Two consecutive passes with a non-empty stack resolve the top action and
+  return priority to the active actor.
+- The combat phase records one deterministic skirmish from a combat-result-like
+  payload, stores a compact skirmish record, applies stability pressure, and
+  advances to `secondMain` unless stability reaches zero.
+- Encounter state, stack items, action logs, skirmish records, and outcomes are
+  plain JSON-serializable data.
+
+Current encounter shell limitations:
+
+- The only submitted actions are debug placeholders.
+- There are no real card timing windows, counterspells, manual blockers, hidden
+  intent choices, deck/hand/mill zones, multiplayer networking, backend
+  persistence, or new cards attached to this shell yet.
+- Combat skirmishes still use the existing deterministic simulator and do not
+  add randomness or real-time player input.
 
 ## Implemented Effects
 

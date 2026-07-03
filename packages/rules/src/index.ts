@@ -3,6 +3,7 @@ export * from "./boardGrid";
 export * from "./combatStats";
 export * from "./economy";
 export * from "./engagementPreview";
+export * from "./encounterMatch";
 export * from "./encounters";
 export * from "./instances";
 export * from "./loadout";

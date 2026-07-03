@@ -172,6 +172,7 @@ Responsibilities:
 - Spellrail validation
 - Teamup calculation
 - Upgrade/fusion rules
+- Encounter match phase, priority, stack, and stability rules
 - Starter kit creation
 - Enemy board generation later
 
@@ -190,6 +191,15 @@ target, next step, blocked movement, and explanation data without changing
 simulation behavior. Debug scenarios may seed showcase boards such as
 `?scenario=engagement-lab`, but they still use existing cards and normal combat
 resolution.
+
+Current encounter match rules also live in this package. `createEncounterMatch`,
+`submitEncounterAction`, `passEncounterPriority`, `advanceEncounterPhase`, and
+`recordEncounterCombatSkirmish` are pure reducers over serializable state. The
+match shell owns first main, combat, second main, end, next-turn advancement,
+alternating active actors, alternating priority, a LIFO action stack, action log,
+skirmish records, and stability-based outcomes. It accepts a combat-result-like
+object for combat skirmishes instead of importing `packages/sim`, preserving the
+one-way package boundary.
 
 ### `packages/sim`
 

@@ -112,8 +112,9 @@ Packbound should preserve the satisfying parts of card games:
 
 But it should avoid unnecessary complexity:
 
-- No stack/priority system
-- No manual instant-speed timing
+- No full trading-card-game stack or broad instant-speed timing outside the
+  explicit encounter priority shell
+- No manual blocker assignment or real-time combat inputs
 - No land draw or mana screw
 - No 60-card deck requirement
 - No hidden layer rules
@@ -128,6 +129,34 @@ The combat result should be calculated by a deterministic simulation.
 The renderer should replay the result visually.
 
 Combat can look dynamic, flashy, and dimensional, but the rules are discrete and deterministic.
+
+### 4A. Multi-Turn Encounters: Option A
+
+The current direction is an encounter shell wrapped around automatic combat
+skirmishes.
+
+Option A is:
+
+- first main
+- combat skirmish
+- second main
+- end
+- next turn with the active actor alternating
+
+Priority is real and alternating inside the non-combat encounter phases. When an
+actor submits an encounter action, that action goes onto a LIFO stack and
+priority passes to the opponent. Two consecutive passes with a non-empty stack
+resolve the top action and return priority to the active actor. Two consecutive
+passes with an empty stack advance the phase.
+
+Combat itself remains automatic. The combat phase records one deterministic
+skirmish from the simulator, applies stability pressure, and advances to second
+main unless stability has ended the encounter.
+
+This is still deferred intent, not manual blocking or reaction timing. The
+player expresses intent through loadout, board position, future encounter
+actions, and pre-skirmish choices. The simulator continues to choose targets,
+movement, attacks, and destruction outcomes deterministically.
 
 ### 5. Legally Distinct, Not a Clone
 
@@ -542,7 +571,7 @@ Possible behaviors:
 Constraints:
 
 - Resource extraction must be deterministic.
-- Combat still has no real-time player input.
+- Combat skirmishes still have no real-time player input.
 - No physics or complex pathfinding dependency.
 - Rules stay discrete, grid-based, and serializable.
 - Resources should deepen positioning decisions without overwhelming pack

@@ -73,6 +73,11 @@ pnpm dev
 - Runs carry an explicit lifecycle phase (`planning`, `combatReady`,
   `combatResolved`, `reward`, `complete`) so combat, rewards, advancement, and
   loadout edits have rules-level guardrails.
+- Encounters now have a minimal serializable match shell for future multi-turn
+  play: first main, combat skirmish, second main, end, alternating active actors,
+  true alternating priority, a LIFO action stack, and stability-based outcomes.
+  The current actions are debug placeholders only; combat skirmishes still use
+  the deterministic simulator result.
 - The debug loop now awards deterministic combat gold, shows current gold, and
   makes reward pack choices spend their content-defined costs. Reward choices
   now show deterministic pack-cost and run-relevance explanations for traits,
@@ -108,12 +113,13 @@ pnpm dev
   debug loop and duplicate-upgrade regressions, not visual polish or full
   end-to-end coverage. It checks the visible Battlefield, compact Hex Arena,
   engagement preview markers, Ally Inspector, Enemy Inspector, starter token
-  visibility, stat text, reward flow, upgrade-lab path, and no horizontal arena
-  scroll without screenshots, traces, videos, or broad UI snapshots. The
-  debug-only
+  visibility, stat text, reward flow, priority-lab path, upgrade-lab path, and
+  no horizontal arena scroll without screenshots, traces, videos, or broad UI
+  snapshots. The debug-only
   `?scenario=upgrade-lab` URL seeds 3 deterministic Cinder Scout pool copies
   for that browser smoke path, while `?scenario=engagement-lab` seeds a
-  deterministic out-of-range Cinder Scout preview with a visible next move.
+  deterministic out-of-range Cinder Scout preview with a visible next move, and
+  `?scenario=priority-lab` shows the encounter priority/stack/phase shell.
 - Property-based invariant tests cover generated seeds, legal loadout action
   sequences, card instance preservation, replay determinism, and mutation safety.
 - Core state uses plain objects so future server validation, async ghost PvP,

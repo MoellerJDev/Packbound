@@ -308,6 +308,61 @@ test("engagement lab shows out-of-range target and next-move preview", async ({
   expect(errors.consoleErrors).toEqual([]);
 });
 
+test("priority lab alternates priority, resolves the stack, and records combat", async ({
+  page
+}) => {
+  const errors = captureBrowserErrors(page);
+
+  await page.goto("/?scenario=priority-lab");
+
+  await expect(page.getByRole("heading", { name: "Packbound" })).toBeVisible();
+  await expect(page.getByTestId("hex-arena")).toBeVisible();
+
+  const priorityPanel = panel(page, "Priority Lab");
+  await expect(priorityPanel).toBeVisible();
+  await expect(priorityPanel.getByText("Encounter / Match")).toBeVisible();
+  await expect(priorityPanel.getByText("First main", { exact: true })).toBeVisible();
+  await expect(priorityPanel.getByText("Active actor")).toBeVisible();
+  await expect(priorityPanel.getByText("Priority holder")).toBeVisible();
+  await expect(priorityPanel.getByText("Player stability")).toBeVisible();
+  await expect(priorityPanel.getByText("Enemy stability")).toBeVisible();
+  await expect(priorityPanel.getByText("Action Stack")).toBeVisible();
+  await expect(priorityPanel.getByText("Action Log")).toBeVisible();
+
+  await priorityPanel.getByRole("button", { name: "Submit Debug Action" }).click();
+  await expect(priorityPanel.getByText("Debug pressure", { exact: true })).toBeVisible();
+  await expect(priorityPanel.getByRole("button", { name: "Enemy Pass" })).toBeEnabled();
+  await expect(
+    priorityPanel.getByRole("button", { name: "Pass Priority" })
+  ).toBeDisabled();
+
+  await priorityPanel.getByRole("button", { name: "Enemy Pass" }).click();
+  await expect(
+    priorityPanel.getByRole("button", { name: "Pass Priority" })
+  ).toBeEnabled();
+  await priorityPanel.getByRole("button", { name: "Pass Priority" }).click();
+  await expect(
+    priorityPanel.getByText("Resolved Debug pressure from Player.")
+  ).toBeVisible();
+  await expect(priorityPanel.getByText("Action Stack")).toBeVisible();
+  await expect(priorityPanel.getByText("Empty").first()).toBeVisible();
+
+  await priorityPanel.getByRole("button", { name: "Pass Priority" }).click();
+  await priorityPanel.getByRole("button", { name: "Enemy Pass" }).click();
+  await expect(priorityPanel.getByText("Combat skirmish", { exact: true })).toBeVisible();
+  await expect(
+    priorityPanel.getByRole("button", { name: "Run Combat Skirmish" })
+  ).toBeEnabled();
+
+  await priorityPanel.getByRole("button", { name: "Run Combat Skirmish" }).click();
+  await expect(priorityPanel.getByText("Second main", { exact: true })).toBeVisible();
+  await expect(priorityPanel.getByText(/Skirmish 1:/)).toBeVisible();
+  await expect(priorityPanel.getByText(/Recorded skirmish 1:/)).toBeVisible();
+
+  expect(errors.pageErrors).toEqual([]);
+  expect(errors.consoleErrors).toEqual([]);
+});
+
 test("upgrade lab can perform and inspect a duplicate upgrade", async ({ page }) => {
   const errors = captureBrowserErrors(page);
 

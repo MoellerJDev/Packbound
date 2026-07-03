@@ -1,0 +1,230 @@
+import { describe, expect, it } from "vitest";
+
+import {
+  advanceEncounterPhase,
+  createEncounterMatch,
+  passEncounterPriority,
+  recordEncounterCombatSkirmish,
+  submitEncounterAction,
+  type EncounterCombatResultLike,
+  type EncounterMatchState
+} from "../encounterMatch";
+
+const createMatch = (): EncounterMatchState =>
+  createEncounterMatch({
+    matchId: "test-match",
+    seed: "encounter-test-seed"
+  });
+
+const combatResult = (
+  winner: EncounterCombatResultLike["winner"]
+): EncounterCombatResultLike => ({
+  winner,
+  damageToPlayerA: winner === "playerB" ? 2 : 0,
+  damageToPlayerB: winner === "playerA" ? 2 : 0,
+  events: [{ type: "CombatStarted", timeMs: 0 }],
+  warnings: [{ code: "test-warning", message: "Only used by the encounter shell test." }],
+  seed: `combat-${winner}`
+});
+
+const passEmptyPriorityWindow = (state: EncounterMatchState): EncounterMatchState => {
+  if (!state.priorityHolder) {
+    throw new Error(`Expected priority during ${state.phase}.`);
+  }
+  const firstPass = passEncounterPriority(state, state.priorityHolder);
+  if (!firstPass.priorityHolder) {
+    throw new Error(`Expected priority after the first pass during ${firstPass.phase}.`);
+  }
+  return passEncounterPriority(firstPass, firstPass.priorityHolder);
+};
+
+const reachSecondMain = (): EncounterMatchState => {
+  const combat = passEmptyPriorityWindow(createMatch());
+  return recordEncounterCombatSkirmish(combat, combatResult("playerA"));
+};
+
+describe("encounter match priority shell", () => {
+  it("starts in first main with the active actor holding priority", () => {
+    const state = createMatch();
+
+    expect(state.phase).toBe("firstMain");
+    expect(state.turnNumber).toBe(1);
+    expect(state.activeActor).toBe("player");
+    expect(state.priorityHolder).toBe("player");
+    expect(state.consecutivePasses).toBe(0);
+    expect(state.stack).toEqual([]);
+    expect(state.outcome).toEqual({ kind: "inProgress", reason: null });
+    expect(state.actionLog[0]).toMatchObject({
+      kind: "match_started",
+      phase: "firstMain",
+      priorityHolder: "player"
+    });
+  });
+
+  it("submitting an action puts it on the stack and passes priority", () => {
+    const state = submitEncounterAction(createMatch(), {
+      kind: "debug_pressure"
+    });
+    const item = state.stack[0];
+
+    if (!item) {
+      throw new Error("Expected a queued stack item.");
+    }
+
+    expect(state.stack).toHaveLength(1);
+    expect(item.action).toEqual({
+      kind: "debug_pressure",
+      actor: "player",
+      label: "Debug pressure"
+    });
+    expect(state.priorityHolder).toBe("enemy");
+    expect(state.consecutivePasses).toBe(0);
+    expect(state.actionLog.at(-1)).toMatchObject({
+      kind: "action_submitted",
+      actor: "player"
+    });
+  });
+
+  it("passing priority alternates the holder", () => {
+    const state = passEncounterPriority(createMatch(), "player");
+
+    expect(state.priorityHolder).toBe("enemy");
+    expect(state.consecutivePasses).toBe(1);
+    expect(state.actionLog.at(-1)).toMatchObject({
+      kind: "priority_passed",
+      actor: "player"
+    });
+  });
+
+  it("two passes with a non-empty stack resolve the top action and return priority", () => {
+    const submitted = submitEncounterAction(createMatch(), {
+      kind: "debug_pressure"
+    });
+    const enemyPass = passEncounterPriority(submitted, "enemy");
+    const resolved = passEncounterPriority(enemyPass, "player");
+
+    expect(resolved.stack).toEqual([]);
+    expect(resolved.lastResolvedAction).toMatchObject({
+      action: { kind: "debug_pressure", actor: "player" }
+    });
+    expect(resolved.priorityHolder).toBe("player");
+    expect(resolved.consecutivePasses).toBe(0);
+    expect(resolved.enemyStability).toBe(4);
+    expect(resolved.outcome.kind).toBe("inProgress");
+    expect(resolved.actionLog.at(-1)).toMatchObject({
+      kind: "action_resolved",
+      actor: "player"
+    });
+  });
+
+  it("two passes with an empty stack advances first main to combat", () => {
+    const state = passEmptyPriorityWindow(createMatch());
+
+    expect(state.phase).toBe("combat");
+    expect(state.priorityHolder).toBeNull();
+    expect(state.consecutivePasses).toBe(0);
+    expect(state.actionLog.at(-1)).toMatchObject({
+      kind: "phase_advanced",
+      text: "Advanced to combat."
+    });
+  });
+
+  it("records combat skirmishes and advances combat to second main", () => {
+    const combat = passEmptyPriorityWindow(createMatch());
+    const state = recordEncounterCombatSkirmish(combat, combatResult("playerA"));
+    const skirmish = state.skirmishes[0];
+
+    if (!skirmish) {
+      throw new Error("Expected a recorded skirmish.");
+    }
+
+    expect(state.phase).toBe("secondMain");
+    expect(state.priorityHolder).toBe("player");
+    expect(state.enemyStability).toBe(4);
+    expect(state.outcome.kind).toBe("inProgress");
+    expect(skirmish).toMatchObject({
+      id: "test-match:skirmish:0",
+      turnNumber: 1,
+      phase: "combat",
+      winner: "playerA",
+      seed: "combat-playerA",
+      eventCount: 1,
+      warningCodes: ["test-warning"],
+      stabilityDelta: { player: 0, enemy: -1 },
+      damageToPlayerA: 0,
+      damageToPlayerB: 2
+    });
+  });
+
+  it("advances second main to end, then end to the next turn with a new active actor", () => {
+    const secondMain = reachSecondMain();
+    const end = passEmptyPriorityWindow(secondMain);
+    const nextTurn = passEmptyPriorityWindow(end);
+
+    expect(end.phase).toBe("end");
+    expect(end.turnNumber).toBe(1);
+    expect(end.activeActor).toBe("player");
+    expect(end.priorityHolder).toBe("player");
+    expect(nextTurn.phase).toBe("firstMain");
+    expect(nextTurn.turnNumber).toBe(2);
+    expect(nextTurn.activeActor).toBe("enemy");
+    expect(nextTurn.priorityHolder).toBe("enemy");
+  });
+
+  it("can advance a documented start phase into first main explicitly", () => {
+    const start = createEncounterMatch({
+      matchId: "start-match",
+      seed: "start-seed",
+      phase: "start"
+    });
+    const state = advanceEncounterPhase(start);
+
+    expect(state.phase).toBe("firstMain");
+    expect(state.activeActor).toBe("player");
+    expect(state.priorityHolder).toBe("player");
+  });
+
+  it("ends when stability reaches zero and otherwise keeps one skirmish incomplete", () => {
+    const oneSkirmish = reachSecondMain();
+    const lethalCombat = createEncounterMatch({
+      matchId: "lethal-match",
+      seed: "lethal-seed",
+      phase: "combat",
+      enemyStability: 1
+    });
+    const ended = recordEncounterCombatSkirmish(lethalCombat, combatResult("playerA"));
+
+    expect(oneSkirmish.outcome.kind).toBe("inProgress");
+    expect(oneSkirmish.phase).toBe("secondMain");
+    expect(ended.phase).toBe("complete");
+    expect(ended.priorityHolder).toBeNull();
+    expect(ended.enemyStability).toBe(0);
+    expect(ended.outcome).toEqual({
+      kind: "playerWon",
+      reason: "enemy_stability_zero"
+    });
+    expect(ended.actionLog.at(-1)).toMatchObject({
+      kind: "match_completed"
+    });
+  });
+
+  it("is deterministic and JSON serializable", () => {
+    const runSequence = () => {
+      const submitted = submitEncounterAction(createMatch(), {
+        kind: "debug_pressure"
+      });
+      const resolved = passEncounterPriority(
+        passEncounterPriority(submitted, "enemy"),
+        "player"
+      );
+      const combat = passEmptyPriorityWindow(resolved);
+      return recordEncounterCombatSkirmish(combat, combatResult("playerB"));
+    };
+
+    const first = runSequence();
+    const second = runSequence();
+
+    expect(first).toEqual(second);
+    expect(JSON.parse(JSON.stringify(first))).toEqual(first);
+  });
+});

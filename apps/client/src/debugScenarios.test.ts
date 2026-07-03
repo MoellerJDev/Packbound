@@ -14,6 +14,7 @@ import {
   DEBUG_ENGAGEMENT_MELEE_CARD_DEF_ID,
   DEBUG_ENGAGEMENT_RANGED_CARD_DEF_ID,
   DEBUG_ENGAGEMENT_SCENARIO_ID,
+  DEBUG_PRIORITY_SCENARIO_ID,
   DEBUG_UPGRADE_CARD_DEF_ID,
   DEBUG_UPGRADE_SCENARIO_ID,
   applyDebugScenario,
@@ -41,6 +42,9 @@ describe("debug upgrade scenarios", () => {
     expect(debugScenarioFromSearch("?scenario=engagement-lab")).toBe(
       DEBUG_ENGAGEMENT_SCENARIO_ID
     );
+    expect(debugScenarioFromSearch("?scenario=priority-lab")).toBe(
+      DEBUG_PRIORITY_SCENARIO_ID
+    );
     expect(debugScenarioFromSearch("?scenario=unknown")).toBeUndefined();
     expect(debugScenarioFromSearch("")).toBeUndefined();
   });
@@ -49,6 +53,7 @@ describe("debug upgrade scenarios", () => {
     const run = createBaseRun();
 
     expect(applyDebugScenario(run, undefined)).toBe(run);
+    expect(applyDebugScenario(run, DEBUG_PRIORITY_SCENARIO_ID)).toBe(run);
     expect(getUpgradeableCardGroups(run, sampleCatalog)).toEqual([]);
   });
 

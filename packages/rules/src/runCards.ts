@@ -119,7 +119,8 @@ export const ownedRunCards = (run: RunState): readonly CardInstance[] => {
     ...run.sourceRow.cards,
     ...run.spellrail.cards,
     ...run.ashes,
-    ...run.void
+    ...run.void,
+    ...(run.commander ? [run.commander.card] : [])
   ]) {
     addCard(card);
   }
@@ -145,7 +146,8 @@ export const findRunCard = (
     ...run.sourceRow.cards,
     ...run.spellrail.cards,
     ...run.ashes,
-    ...run.void
+    ...run.void,
+    ...(run.commander ? [run.commander.card] : [])
   ].find((candidate) => candidate.instanceId === cardInstanceId);
 
   return card ? copyCard(card) : undefined;

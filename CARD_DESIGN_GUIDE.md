@@ -78,10 +78,15 @@ implemented as a reusable rule first.
 
 ## Future Commander And Relic Design
 
-Commanders, the Command Zone, Rebind Tax, Commander upgrades, and Signature
-Relics are future design direction only. They are not implemented content or
-rules yet. Do not add Commander cards until the rules layer has a tested
-Command Zone and Rebind lifecycle.
+Commanders are now represented by a minimal rules-first Command Zone prototype:
+starter-created runs get one prototype Commander sourced from existing starter
+Unit/Echo context, the Commander can deploy during planning, return during
+planning, and track visible deploy count plus Rebind Tax.
+
+That prototype is not final content. Do not add authored Commander cards,
+Commander upgrade cards, or Signature Relics until the rules layer has tested
+cost enforcement, destruction-to-Command replacement, and clearer upgrade
+choice surfaces.
 
 ### Commander Principles
 

@@ -107,6 +107,10 @@ pnpm dev
 - Starter kits and loadout helpers let a run build player combat setup from
   `RunState`; the debug client now resolves combat from run-owned player state
   against content-driven encounters.
+- Runs now include a minimal Command Zone Commander prototype: starter-created
+  runs derive one prototype Commander from existing Unit/Echo context, can
+  deploy it to the board during planning, return it to Command during planning,
+  and track visible deploy count plus Rebind Tax.
 - Runs carry an explicit lifecycle phase (`planning`, `combatReady`,
   `combatResolved`, `reward`, `complete`) so combat, rewards, advancement, and
   loadout edits have rules-level guardrails.

@@ -3,16 +3,40 @@
 This document tracks the current engine surface. It is not a design wishlist; it
 is a snapshot of what the rules and simulator layers actually expose today.
 
-## Not Implemented: Commander Direction
+## Implemented Command Zone Commander Prototype
 
-The design docs now describe a future Commander / Command Zone / Rebind Tax /
-Signature Relic direction. None of those systems are implemented yet.
+The rules package now has a minimal, rules-first Commander lifecycle prototype.
 
-Current run state does not contain a Command Zone. Starter kits are still normal
-debug starter loadouts, not recastable Commander cards. There are no Commander
-card definitions, Rebind or Command Tax rules, Commander upgrade rewards,
-Signature Relic zones, Signature Relic cards, Commander deployment actions, or
-Commander destruction-to-Command replacement rules.
+- `RunState` can carry one `commander` object with a normal `CardInstance`, a
+  `deployCount`, and a visible `rebindTax`.
+- The shared zone list includes `command`, and starter-created runs derive one
+  prototype Commander from an existing starter Unit/Echo definition. This is
+  prototype sourcing, not final Commander content.
+- The Commander starts in Command Zone.
+- During planning, `deployCommander` can place the Commander onto a legal board
+  tile through the same planning validation used by normal board cards. A
+  successful deploy creates a normal board placement, creates a board-zone
+  active card, and increments `deployCount`.
+- During planning, `returnCommanderToCommand` can remove the deployed Commander
+  from board/active cards, return its card to Command Zone, and increment
+  `rebindTax` by 1.
+- Commander actions are replayable run actions, deterministic, immutable, and
+  JSON-serializable.
+- The debug client shows a Command Zone panel on the default route and
+  renderer-lab, including Commander name, zone, deploy count, Rebind Tax,
+  blocked reasons, Inspect, Deploy Commander, and Return to Command controls.
+
+Current Commander prototype limitations:
+
+- There are no authored Commander card definitions yet; the prototype reuses
+  existing Unit/Echo definitions from starter context.
+- Rebind Tax is visible-only and is not added to board Charge cost yet.
+- There are no Commander upgrades, Signature Relics, Commander destruction
+  replacement rules, encounter main-phase Commander actions, enemy Commanders,
+  hand/deck/mill sourcing, counterspells, or enemy AI.
+- Combat simulation remains unchanged; if a deployed Commander is destroyed
+  during combat, it follows the current simulator output rather than returning
+  to Command Zone in `RunState`.
 
 ## Implemented Encounter Shell
 

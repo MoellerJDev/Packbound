@@ -1074,17 +1074,19 @@ Do not hardcode teamups into individual cards.
 
 ## Future System Architecture Implications
 
-These systems are design direction, not current implementation scope. Add them
-only through focused rules/content tasks with tests.
+These systems include a mix of current prototype surface and future direction.
+Expand them only through focused rules/content tasks with tests.
 
 ### Commander, Command Zone, And Rebind
 
-- The Commander direction is future work, not current run state. Do not add
-  Command Zone, Rebind Tax, Commander cards, or Signature Relics as incidental
-  client-only state.
-- When implemented, Command Zone should be serializable rules state owned by
-  `packages/rules`, with replayable actions for deploy, voluntary return,
-  Rebind, upgrade choice, and any Signature Relic lifecycle.
+- The current prototype stores one Commander in serializable `RunState` with a
+  normal `CardInstance`, `deployCount`, and visible `rebindTax`.
+- Command Zone is a real shared zone value. Starter-created runs currently
+  derive a prototype Commander from existing Unit/Echo starter context rather
+  than authored Commander content.
+- Commander deployment and return are replayable run actions owned by
+  `packages/rules`. Future actions should cover enforced Rebind cost, upgrade
+  choice, destruction replacement, and any Signature Relic lifecycle.
 - Commander deployment should validate through the same loadout, Board Charge,
   Source Row, and future encounter main-phase action boundaries as other card
   actions.

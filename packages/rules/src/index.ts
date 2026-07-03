@@ -1,5 +1,6 @@
 export * from "./cardInspection";
 export * from "./boardGrid";
+export * from "./commander";
 export * from "./combatStats";
 export * from "./economy";
 export * from "./engagementPreview";

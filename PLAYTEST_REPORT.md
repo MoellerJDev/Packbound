@@ -56,8 +56,10 @@ Reset -> Play` and checks the text state plus single-canvas safety.
 
 Planning update after the Commander design refactor: design docs now frame a
 future Commander / Command Zone / Rebind Tax / Signature Relic direction as a
-real card-like run identity layer, not a hero-power button and not current
-implemented mechanics. Packs remain the primary adaptation engine.
+real card-like run identity layer, not a hero-power button. This task adds the
+first minimal Command Zone prototype while leaving Commander upgrades, Signature
+Relics, real tax cost enforcement, and destruction replacement as future work.
+Packs remain the primary adaptation engine.
 
 Implementation update after the Pixi readability pass: Renderer Lab tokens now
 use larger unit circles, stronger support plates, clearer nameplates, larger
@@ -66,14 +68,34 @@ same-coordinate offsets, and brighter/longer attack, damage, destroyed, appear,
 and phase cues. Browser smoke still avoids pixel assertions, so this should get
 a fresh manual visual pass before Pixi becomes the default.
 
-The biggest remaining Pixi findings are no longer the absence of replay controls
-or tiny first-pass labels. The lab still needs manual readability validation,
-event grouping/filtering for long feeds, scrub or speed controls, and final
-default-route confidence. Pixi should stay opt-in until those are addressed.
+Manual validation update after this task: the latest Pixi readability pass has
+now been checked at 1280 x 720 and briefly at 1440 x 900. Pixi remained primary,
+the React/CSS fallback stayed collapsed, there was no horizontal overflow, token
+names and ATK/HP/RNG chips were readable enough for the lab, player/enemy colors
+were clear, placeable cells were easy to see, damage/destroyed/recall visuals
+worked, token click inspection worked, and Pool/Bench click-to-place still used
+the reducer. No console warnings or errors appeared. Remaining Pixi concerns:
+long names can truncate or crowd in adjacent nameplates, attack beams are still
+fast, and a `Step -> Reset -> Play` sequence can leave replay status at
+`playing` with command index `0 / N` until reload.
+
+Implementation update after this task: `RunState` now has a minimal Command Zone
+Commander prototype. Starter-created runs get one prototype Commander sourced
+from existing starter Unit/Echo context. The Commander starts in Command Zone,
+can deploy to a legal board tile during planning, can return to Command during
+planning, tracks deploy count and visible Rebind Tax, appears on the board/Pixi
+when deployed, and is inspectable from the debug client. Rebind Tax is
+visible-only for now.
+
+The biggest remaining Pixi findings are no longer the absence of replay controls,
+tiny first-pass labels, or unvalidated readability. The lab still needs the
+reset/play replay-state bug fixed, event grouping/filtering for long feeds,
+scrub or speed controls, and final default-route confidence. Pixi should stay
+opt-in until those are addressed.
 
 Recommended next task:
 
-`feat(rules): add command zone commander prototype`
+`feat(rules): enforce commander rebind tax cost`
 
 ## 2. Environment And Commands
 
@@ -121,13 +143,13 @@ Build warning observed and not fixed in this task:
 
 ## 3. Scenarios Covered
 
-| Scenario                   | Manual result | Notes                                                                                  |
-| -------------------------- | ------------- | -------------------------------------------------------------------------------------- |
-| Default route `/`          | Pass          | React/CSS Hex Arena remains default; full run loop still works.                        |
-| `?scenario=renderer-lab`   | Lab pass      | Pixi is primary for the route; readability improved but still needs manual validation. |
-| `?scenario=engagement-lab` | Pass          | Out-of-range melee and in-range ranged previews are understandable.                    |
-| `?scenario=priority-lab`   | Pass          | Prototype action, source context, stack, log, skirmish flow work.                      |
-| `?scenario=upgrade-lab`    | Pass          | Duplicate combine and Lv 1 pool-card inspection work.                                  |
+| Scenario                   | Manual result | Notes                                                                             |
+| -------------------------- | ------------- | --------------------------------------------------------------------------------- |
+| Default route `/`          | Pass          | React/CSS Hex Arena remains default; full run loop still works.                   |
+| `?scenario=renderer-lab`   | Lab pass      | Pixi readability is manually validated; replay reset/play edge still needs a fix. |
+| `?scenario=engagement-lab` | Pass          | Out-of-range melee and in-range ranged previews are understandable.               |
+| `?scenario=priority-lab`   | Pass          | Prototype action, source context, stack, log, skirmish flow work.                 |
+| `?scenario=upgrade-lab`    | Pass          | Duplicate combine and Lv 1 pool-card inspection work.                             |
 
 Browser console result: no warnings or errors captured across the manual pass.
 
@@ -227,12 +249,12 @@ What works:
 
 What is confusing or too subtle:
 
-- The latest readability pass is implementation-verified by browser smoke but
-  still needs a manual 1280 x 720 visual pass.
+- Manual 1280 x 720 validation passed for lab use, but some longer names still
+  truncate or crowd when adjacent tokens overlap.
 - The overall canvas is dark. It looks coherent, but the empty hex grid and
   destroyed dim state can become subdued.
 - Attack lines and destroyed markers are stronger than before, but they are not
-  yet validated as final combat readability.
+  final default-renderer polish. Attack beams are still quick enough to miss.
 - The feed says `Visualized appear/recall, move, attack, damage, destroyed`.
   It still does not distinguish supported event types from event types observed
   in the current replay.
@@ -271,20 +293,23 @@ Cloudspire Phase:
 Replay pacing:
 
 - Short replays are quick and understandable if watched closely.
-- Effects need stronger timing for manual comprehension, especially attack
-  lines.
+- Effects are more readable than before, but attack lines still need either
+  longer timing or easier replay inspection.
 - Long replays like Rotbloom's 111 events can now be paused and stepped through,
   but they still need scrub controls or event grouping before the canvas can be a
   reliable debugging tool.
+- A rapid `Step -> Reset -> Play` sequence can leave the UI in `playing` at
+  command index `0 / N` until reload. This is not a blank-canvas regression, but
+  it should be fixed before Pixi becomes default.
 
 ### Default-Renderer Decision
 
 Pixi should remain lab-only for now. The route is now a better playable
 viewpoint, coordinate semantics match combat truth, token inspection works, and
 the readability pass addresses the most obvious label/stat/effect issues. It is
-still not ready to replace the React/CSS Hex Arena on `/` until a manual pass
-confirms readability, long combat feeds are grouped or filtered, and replay
-scrub/speed controls exist.
+still not ready to replace the React/CSS Hex Arena on `/` until the replay
+reset/play edge bug is fixed, long combat feeds are grouped or filtered, and
+replay scrub/speed controls exist.
 
 ## 6. `?scenario=engagement-lab`
 
@@ -402,9 +427,10 @@ No horizontal overflow appeared in the upgrade lab.
   too small to use during replay.
 - Current status: the renderer now has larger unit bodies, backed nameplates,
   larger ATK/HP/RNG chips, stronger support plates, and stronger token-level
-  selected/target rings.
-- Remaining concern: this is browser-smoke verified but still needs a manual
-  1280 x 720 visual pass in dense boards before Pixi can become default.
+  selected/target rings. Manual 1280 x 720 validation found the tokens readable
+  enough for renderer-lab use.
+- Remaining concern: long names such as `Cloudgate Adept` can truncate, and
+  adjacent nameplates can still crowd in dense rows.
 - Severity: Medium before Pixi can become default.
 
 ### Partially Addressed: Pixi Attack And Destroyed Effects
@@ -414,10 +440,21 @@ No horizontal overflow appeared in the upgrade lab.
   to miss and destroyed markers could blend into the dark field.
 - Current status: attack beams, damage badges, destroyed markers, appear cues,
   recall cues, and phase cues are brighter/larger/longer lasting in the renderer
-  implementation.
-- Remaining concern: effect readability still needs a manual timing pass against
-  long replays and crowded board states.
+  implementation. Damage, destroyed, and recalled-token visuals were manually
+  visible in this pass.
+- Remaining concern: attack beams remain quick enough to miss without Step.
 - Severity: Low for lab, medium for default-renderer readiness.
+
+### UX Bug: Reset Then Play Can Stall Replay Index
+
+- Steps: Open `?scenario=renderer-lab`, play or step a replay, click
+  `Reset Replay`, then click `Play Replay`.
+- Observed: one tested `Step -> Reset -> Play` sequence left replay status at
+  `playing` while the command index stayed at `0 / 5` and latest command stayed
+  `No command visualized yet.` The canvas remained mounted and the route
+  recovered after reload.
+- Expected: Reset followed by Play should always restart command playback.
+- Severity: Low for lab, medium before Pixi can become default.
 
 ### UX Risk: Long Combat Replays Need Scrub And Grouping
 
@@ -523,11 +560,13 @@ Note:
 - The default React/CSS Hex Arena remains the reliable debug battlefield.
 - Pixi uses generated shapes and text, not final art assets.
 - Pixi labels, stat chips, rings, and combat effects have been strengthened, but
-  the latest pass still needs manual 1280 x 720 validation on dense boards.
+  long names and dense adjacent rows can still crowd.
 - Pixi has click-to-select token inspection and minimal click-to-place from
   Pool/Bench, but no drag/drop, hover tooltips, or full board-editing polish.
 - Replay controls now cover Play/Resume, Pause, Step, and Reset, but there is no
   scrubber, speed control, event grouping, or filtered command list yet.
+- A `Step -> Reset -> Play` replay sequence can stall at `playing` with command
+  index `0 / N` until reload.
 - Step advances one visual command when playback is idle or paused. If clicked
   while a paused command animation is still settling, the renderer waits for that
   command to settle and then advances one additional deterministic command.
@@ -545,9 +584,12 @@ Note:
 - Support/relic token readability was not observed in the tested renderer-lab
   starter states.
 - The Vite chunk-size warning remains.
-- Commander, Command Zone, Rebind/Command Tax, Commander upgrades, and Signature
-  Relics are documented as future design direction only. They are not in
-  RunState, card content, combat, or encounter rules yet.
+- The Command Zone Commander prototype exists in `RunState`, but it reuses
+  existing starter Unit/Echo definitions and has no authored Commander content.
+- Rebind Tax is visible-only and is not enforced as a real cost yet.
+- Commander upgrades, Signature Relics, Commander destruction-to-Command
+  replacement, encounter main-phase Commander actions, enemy Commanders, and
+  authored Commander effects are not implemented.
 - Priority Lab has one real prototype action with Sparkfall source context, but
   no real cost, hand/deck/mill, source card movement, enemy AI, interrupts,
   counterspells, or authored card effect resolution.
@@ -560,18 +602,18 @@ Note:
 
 Do next:
 
-`feat(rules): add command zone commander prototype`
+`feat(rules): enforce commander rebind tax cost`
 
-Why: the design docs now clearly frame Commander, Command Zone, Rebind Tax,
-Commander upgrades, and Signature Relics as future direction, while keeping
-packs central. The next useful rules slice is to prove a Commander as a real
-card-like object in a Command Zone without adding hand/deck/mill or normal
-run-loop integration.
+Why: the Command Zone lifecycle is now real enough to inspect and replay, but
+Rebind Tax is only visible text. The next rules slice should make that tax affect
+deployment cost or another explicit planning resource without adding
+hand/deck/mill or encounter timing.
 
 Do soon:
 
-- `feat(client): manually validate Pixi readability at 1280 x 720`
+- `fix(client): make Pixi Reset Replay reliably restart Play`
 - `feat(client): add Pixi replay scrub/speed controls`
+- `feat(rules): add Commander destruction-to-Command replacement`
 - `feat(rules): evaluate expanding the canonical board to 6 rows x 10-12 columns`
 - `feat(client): tune Pixi combat effect timing after manual readability pass`
 - `feat(client): keep selected target and next move visible together in preview labs`

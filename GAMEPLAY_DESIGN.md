@@ -181,10 +181,13 @@ This document intentionally uses Packbound-specific terminology.
 ## Future Commander Spine
 
 Packbound should explore a persistent Commander-like starter layer as a future
-run identity system. This is design direction, not current implementation. The
-current prototype has starter kits and one sourced prototype encounter action;
-it does not have Commanders, a Command Zone, Rebind Tax, Signature Relics, or
-Commander upgrade choices yet.
+run identity system. This section describes the north star. The current
+prototype has only a minimal rules-first slice: starter-created runs carry one
+prototype Commander card in Command Zone, can deploy it to the board during
+planning, can return it to Command during planning, and track visible deploy
+count plus Rebind Tax. It still does not have authored Commander content,
+Commander upgrades, Signature Relics, combat destruction replacement,
+main-phase Commander actions, or real tax payment.
 
 ### Why Add A Commander Layer?
 
@@ -241,9 +244,9 @@ Void, Charge, Relic, Technique, and Echo.
 
 ### Command Zone And Rebind Lifecycle
 
-The Command Zone is a future visible zone that holds the player's Commander
-when it is not deployed. It should be serializable run state, not client-only UI
-state.
+The Command Zone is a visible zone that holds the player's Commander
+when it is not deployed. The prototype already stores this zone in serializable
+run state rather than client-only UI state.
 
 Proposed lifecycle:
 
@@ -346,24 +349,29 @@ Commander's identity and pivot when pulls demand it," the layer is working.
 ### Relationship To Encounter Main-Phase Actions
 
 The encounter priority shell is a natural future home for Commander actions.
-Commander deployment, Rebind, voluntary return, Signature Relic activation, and
-some Commander upgrade actions can become first-main or second-main decisions
-that enter the same priority/stack model as other encounter actions.
+The current prototype only supports planning-window deploy/return through the
+run-action reducer. Later, Commander deployment, Rebind, voluntary return,
+Signature Relic activation, and some Commander upgrade actions can become
+first-main or second-main decisions that enter the same priority/stack model as
+other encounter actions.
 
 Do not add a full hand/deck/mill system just to support Commanders. The first
-Commander prototype should prove zones, Rebind cost, deployment, destruction
-return, and action logging with the same serializable reducer discipline used by
-the current encounter shell.
+Commander prototype now proves zone lifecycle, planning deployment, planning
+return, visible Rebind Tax, and reducer replay. Next Commander work should add
+real cost enforcement, destruction-to-Command replacement, and action logging in
+focused slices.
 
 ### Commander Non-Goals For Now
 
 Do not implement these as side effects of unrelated tasks:
 
-- Command Zone in `RunState`.
-- Commander card definitions or starter content.
-- Rebind/Command Tax rules.
+- Authored Commander card definitions or starter content beyond the current
+  prototype sourcing.
+- Rebind/Command Tax cost enforcement.
 - Signature Relic content or zones.
 - Commander-specific simulator effects.
+- Commander destruction-to-Command replacement.
+- Encounter main-phase Commander actions.
 - Full hand, deck, mill, Library, Graveyard, or Exile systems.
 - Counterspells or broad instant-speed timing.
 - Enemy Commander AI.

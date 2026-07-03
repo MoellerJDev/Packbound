@@ -37,6 +37,7 @@ export type RunPhase =
 export type StarterKit = {
   readonly id: string;
   readonly name: string;
+  readonly commander?: CardInstance;
   readonly pool?: readonly CardInstance[];
   readonly board?: BoardState;
   readonly activeCards?: readonly CardInstance[];
@@ -102,6 +103,12 @@ export type EncounterHistoryEntry = {
   readonly combatSummaryIndex: number;
 };
 
+export type CommanderState = {
+  readonly card: CardInstance;
+  readonly deployCount: number;
+  readonly rebindTax: number;
+};
+
 export type RunState = {
   readonly runId: RunId;
   readonly seed: string;
@@ -115,6 +122,7 @@ export type RunState = {
   readonly playerHealth: number;
   readonly playerGold: number;
   readonly playerId: PlayerId;
+  readonly commander?: CommanderState;
   readonly pool: readonly CardInstance[];
   readonly board: BoardState;
   readonly activeCards: readonly CardInstance[];
@@ -141,6 +149,17 @@ const emptySpellrail = (): SpellrailState => ({
   maxSlots: DEFAULT_SPELLRAIL_SLOTS
 });
 
+const commanderForStarterKit = (
+  starterKit: StarterKit | undefined
+): CommanderState | undefined =>
+  starterKit?.commander
+    ? {
+        card: cardInZone(starterKit.commander, "command"),
+        deployCount: 0,
+        rebindTax: 0
+      }
+    : undefined;
+
 const activeCardsForStarterKit = (
   starterKit: StarterKit | undefined
 ): readonly CardInstance[] => {
@@ -162,6 +181,7 @@ export const canEditLoadout = (run: RunState): boolean => getRunPhase(run) === "
 
 export const createRun = (config: RunConfig): RunState => {
   const starterKit = config.starterKit;
+  const commander = commanderForStarterKit(starterKit);
 
   return {
     runId: config.runId ?? asRunId(`run:${config.seed}`),
@@ -175,6 +195,7 @@ export const createRun = (config: RunConfig): RunState => {
     playerHealth: config.startingHealth ?? DEFAULT_STARTING_HEALTH,
     playerGold: config.startingGold ?? DEFAULT_STARTING_GOLD,
     playerId: config.playerId ?? asPlayerId("player"),
+    ...(commander ? { commander } : {}),
     pool: (starterKit?.pool ?? []).map(copyCard),
     board: starterKit?.board ? copyBoard(starterKit.board) : emptyBoard(),
     activeCards: activeCardsForStarterKit(starterKit),

@@ -1,6 +1,7 @@
 import type { ContentCatalog } from "@packbound/content";
 import type { BoardPosition, CardDefId, CardInstanceId } from "@packbound/shared";
 
+import { deployCommander, returnCommanderToCommand } from "./commander";
 import { prepareEncounterForRound } from "./encounters";
 import {
   addCardToSourceRow,
@@ -22,6 +23,8 @@ import { upgradeCardGroup } from "./upgrades";
 
 export type RunAction =
   | { readonly type: "prepareEncounter" }
+  | { readonly type: "deployCommander"; readonly position: BoardPosition }
+  | { readonly type: "returnCommanderToCommand" }
   | {
       readonly type: "placeCardOnBoard";
       readonly cardInstanceId: CardInstanceId;
@@ -66,6 +69,10 @@ export const applyRunAction = (
   switch (action.type) {
     case "prepareEncounter":
       return prepareEncounterForRound(run, catalog);
+    case "deployCommander":
+      return deployCommander(run, catalog, action.position);
+    case "returnCommanderToCommand":
+      return returnCommanderToCommand(run);
     case "placeCardOnBoard":
       return placeCardOnBoard(run, action.cardInstanceId, action.position);
     case "returnCardToPool":

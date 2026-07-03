@@ -11,13 +11,16 @@ import {
   buildCombatantSetupForEncounter,
   buildCombatantSetupForRun,
   canApplyReward,
+  canDeployCommander,
   canEditLoadout,
   canPlaceCardOnBoard,
   canRecordCombat,
+  canReturnCommanderToCommand,
   createEncounterMatch,
   createRunFromStarterKit,
   describeUpgradeProgressGroup,
   passEncounterPriority,
+  getDefaultCommanderPosition,
   getCurrentEncounter,
   getCurrentRewardChoices,
   getLatestOpenedPackCardInstanceIds,
@@ -268,6 +271,26 @@ export function App() {
   );
   const recordReady = canRecordCombat(run, sampleCatalog);
   const editable = canEditLoadout(run);
+  const commanderDefaultPosition = useMemo(
+    () => getDefaultCommanderPosition(run, sampleCatalog),
+    [run]
+  );
+  const commanderDeployCheck = useMemo(() => {
+    if (!run.commander) {
+      return { ok: false as const, reason: "Run has no Commander." };
+    }
+    if (run.commander.card.zone !== "command") {
+      return { ok: false as const, reason: "Commander is already deployed." };
+    }
+    if (!commanderDefaultPosition) {
+      return {
+        ok: false as const,
+        reason: "No legal Commander deployment tile is available."
+      };
+    }
+    return canDeployCommander(run, sampleCatalog, commanderDefaultPosition);
+  }, [commanderDefaultPosition, run]);
+  const commanderReturnCheck = useMemo(() => canReturnCommanderToCommand(run), [run]);
   const priorityPrototypeActionSource = useMemo(
     () =>
       listPrototypePressureActionSources({
@@ -626,6 +649,128 @@ export function App() {
             {action.label}
           </button>
         ))}
+      </div>
+    );
+  };
+
+  const inspectCommander = () => {
+    if (!run.commander) {
+      return;
+    }
+
+    const cardInstanceId = run.commander.card.instanceId;
+    setRendererPlacementCardId(undefined);
+    setSelectedAllyCardRef({ type: "run", cardInstanceId });
+    if (run.commander.card.zone === "board") {
+      setSelectedEngagementRef({ type: "run", cardInstanceId });
+    }
+  };
+
+  const deployCommanderFromCommand = () => {
+    const cardInstanceId = run.commander?.card.instanceId;
+    if (!cardInstanceId) {
+      return;
+    }
+
+    setRun((currentRun) => {
+      const position = getDefaultCommanderPosition(currentRun, sampleCatalog);
+      if (!position || !canDeployCommander(currentRun, sampleCatalog, position).ok) {
+        return currentRun;
+      }
+      return applyRunAction(currentRun, sampleCatalog, {
+        type: "deployCommander",
+        position
+      });
+    });
+    setRendererPlacementCardId(undefined);
+    setSelectedAllyCardRef({ type: "run", cardInstanceId });
+    setSelectedEngagementRef({ type: "run", cardInstanceId });
+    setRendererReplay((current) => resetPixiReplay(current));
+  };
+
+  const returnCommanderFromBoard = () => {
+    const cardInstanceId = run.commander?.card.instanceId;
+    if (!cardInstanceId) {
+      return;
+    }
+
+    setRun((currentRun) =>
+      canReturnCommanderToCommand(currentRun).ok
+        ? applyRunAction(currentRun, sampleCatalog, {
+            type: "returnCommanderToCommand"
+          })
+        : currentRun
+    );
+    setRendererPlacementCardId(undefined);
+    setSelectedAllyCardRef({ type: "run", cardInstanceId });
+    setSelectedEngagementRef(undefined);
+    setRendererReplay((current) => resetPixiReplay(current));
+  };
+
+  const renderCommandZonePanel = (variant: "panel" | "renderer-lab-panel") => {
+    const commander = run.commander;
+    const Heading = variant === "panel" ? "h2" : "h3";
+    const commanderName = commander ? cardName(commander.card.defId) : "None";
+    const blockedReasons = [
+      commanderDeployCheck.ok ? "" : `Deploy Commander: ${commanderDeployCheck.reason}`,
+      commanderReturnCheck.ok ? "" : `Return to Command: ${commanderReturnCheck.reason}`
+    ].filter((line) => line.length > 0);
+
+    return (
+      <div className={variant} data-testid="command-zone-panel">
+        <Heading>Command Zone</Heading>
+        <dl className="run-stats">
+          <div>
+            <dt>Commander</dt>
+            <dd data-testid="command-zone-card-name">{commanderName}</dd>
+          </div>
+          <div>
+            <dt>Zone</dt>
+            <dd data-testid="command-zone-location">{commander?.card.zone ?? "none"}</dd>
+          </div>
+          <div>
+            <dt>Deploy Count</dt>
+            <dd data-testid="commander-deploy-count">{commander?.deployCount ?? 0}</dd>
+          </div>
+          <div>
+            <dt>Rebind Tax</dt>
+            <dd data-testid="commander-rebind-tax">{commander?.rebindTax ?? 0}</dd>
+          </div>
+        </dl>
+        <p className="muted">
+          Prototype Commander. Rebind Tax is visible-only until cost enforcement lands.
+        </p>
+        <div className="mini-actions">
+          <button
+            type="button"
+            className="secondary"
+            onClick={inspectCommander}
+            disabled={!commander}
+          >
+            Inspect
+          </button>
+          <button
+            type="button"
+            onClick={deployCommanderFromCommand}
+            disabled={!commanderDeployCheck.ok}
+          >
+            Deploy Commander
+          </button>
+          <button
+            type="button"
+            onClick={returnCommanderFromBoard}
+            disabled={!commanderReturnCheck.ok}
+          >
+            Return to Command
+          </button>
+        </div>
+        {blockedReasons.length > 0 ? (
+          <ul className="message-list compact">
+            {blockedReasons.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        ) : null}
       </div>
     );
   };
@@ -1200,6 +1345,8 @@ export function App() {
           </div>
 
           <div className="renderer-lab-loadout-grid">
+            {renderCommandZonePanel("renderer-lab-panel")}
+
             <div className="renderer-lab-panel">
               <h3>Loadout Resources</h3>
               <dl className="source-summary">
@@ -1386,6 +1533,8 @@ export function App() {
             </div>
           </dl>
         </div>
+
+        {renderCommandZonePanel("panel")}
 
         <div className="panel">
           <h2>Current Encounter</h2>

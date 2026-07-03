@@ -138,9 +138,11 @@ least one enabler, one payoff, and one interaction or defensive tool.
 
 ## Future Commander / Signature Relic Mapping
 
-Commanders are future run-identity pieces, not current starter-kit content. When
-the Command Zone and Rebind lifecycle exist, each starter archetype can map to a
-Commander promise without rewriting the current pack matrix.
+Commanders are future run-identity pieces, not final starter-kit content. The
+current Command Zone prototype derives one temporary Commander from existing
+starter Unit/Echo context; future authored Commanders can map each starter
+archetype to a stronger Commander promise without rewriting the current pack
+matrix.
 
 - `ember_scrappers`: Commander likely starts as a fragile pressure Unit or Relic
   engineer. Signature Relic direction could reward support-layer projectiles or

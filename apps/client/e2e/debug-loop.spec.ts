@@ -89,6 +89,18 @@ test("debug loop can inspect, preview, record, reward, and advance", async ({ pa
     page.getByRole("heading", { name: "Source Row", exact: true })
   ).toBeVisible();
   await expect(panel(page, "Upgrade Progress")).toBeVisible();
+  const commandZonePanel = panel(page, "Command Zone");
+  await expect(commandZonePanel).toBeVisible();
+  await expect(commandZonePanel.getByTestId("command-zone-card-name")).toHaveText(
+    "Sparkcatch Apprentice"
+  );
+  await expect(commandZonePanel.getByTestId("command-zone-location")).toHaveText(
+    "command"
+  );
+  await expect(commandZonePanel.getByTestId("commander-rebind-tax")).toHaveText("0");
+  await expect(
+    commandZonePanel.getByRole("button", { name: "Deploy Commander" })
+  ).toBeEnabled();
 
   const boardPanel = panel(page, "Board");
   const battlefield = page.locator(".battlefield-section");
@@ -484,6 +496,37 @@ test("renderer lab loads Pixi battlefield canvas and replay controls", async ({
   const inspector = rendererLab.locator(".renderer-inspector-panel");
   await expect(inspector.getByRole("heading", { name: "Pixi Inspector" })).toBeVisible();
   await expect(inspector.getByText(/Unit \| board \| Ember/)).toBeVisible();
+  const rendererCommandZone = rendererLab.getByTestId("command-zone-panel");
+  await expect(rendererCommandZone).toBeVisible();
+  await expect(rendererCommandZone.getByTestId("command-zone-card-name")).toHaveText(
+    "Sparkcatch Apprentice"
+  );
+  await expect(rendererCommandZone.getByTestId("command-zone-location")).toHaveText(
+    "command"
+  );
+  await expect(rendererCommandZone.getByTestId("commander-deploy-count")).toHaveText("0");
+  await expect(rendererCommandZone.getByTestId("commander-rebind-tax")).toHaveText("0");
+  await rendererCommandZone.getByRole("button", { name: "Inspect" }).click();
+  await expect(inspector.getByText(/Unit \| command \| Ember/)).toBeVisible();
+  await rendererCommandZone.getByRole("button", { name: "Deploy Commander" }).click();
+  await expect(rendererCommandZone.getByTestId("command-zone-location")).toHaveText(
+    "board"
+  );
+  await expect(rendererCommandZone.getByTestId("commander-deploy-count")).toHaveText("1");
+  await expect(rendererHost.locator("canvas")).toHaveCount(1);
+  await expect(
+    rendererLab
+      .locator(".renderer-lab-panel")
+      .filter({ hasText: "Active board permanents use Board Charge" })
+      .getByRole("listitem")
+      .filter({ hasText: "Sparkcatch Apprentice" })
+  ).toBeVisible();
+  await rendererCommandZone.getByRole("button", { name: "Return to Command" }).click();
+  await expect(rendererCommandZone.getByTestId("command-zone-location")).toHaveText(
+    "command"
+  );
+  await expect(rendererCommandZone.getByTestId("commander-rebind-tax")).toHaveText("1");
+  await expect(rendererHost.locator("canvas")).toHaveCount(1);
   await clickPixiCell(page, rendererHost, 0, 3);
   await expect(inspector.getByText(/Unit \| encounter \| Ember/)).toBeVisible();
 

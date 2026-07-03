@@ -2,6 +2,7 @@ export const ZONES = [
   "pack",
   "pool",
   "bench",
+  "command",
   "board",
   "spellrail",
   "sourceRow",

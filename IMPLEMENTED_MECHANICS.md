@@ -18,8 +18,10 @@ The rules package now includes a minimal serializable encounter match reducer:
   opposing actor's stability by 1 when it resolves.
 - Queued encounter actions can optionally carry minimal source-card context:
   `cardInstanceId`, `cardDefId`, `cardName`, and `zone`. Priority Lab currently
-  submits the prototype action from a current Spellrail card context without
-  consuming, moving, exhausting, or otherwise mutating that source.
+  submits the prototype action through a rules helper that validates the source
+  is a run-owned player card in Spellrail, has a known definition, and is a
+  Technique. Queuing still does not consume, move, exhaust, or otherwise mutate
+  that source.
 - Debug placeholder actions still exist for reducer diagnostics and backward
   compatibility with focused tests.
 - Two consecutive passes with a non-empty stack resolve the top action and
@@ -32,9 +34,10 @@ The rules package now includes a minimal serializable encounter match reducer:
 
 Current encounter shell limitations:
 
-- Only one abstract prototype card action exists. Its source context is
-  descriptive metadata only; it is not validated against hand, deck, mill, enemy
-  AI, costs, or content-authored card effects yet.
+- Only one abstract prototype card action exists. Its source is validated
+  against the current player run and catalog, but it is not connected to hand,
+  deck, mill, enemy AI, costs, lifecycle changes, or content-authored card
+  effects yet.
 - There are no real card timing windows, counterspells, manual blockers, hidden
   intent choices, deck/hand/mill zones, multiplayer networking, backend
   persistence, or new cards attached to this shell yet.

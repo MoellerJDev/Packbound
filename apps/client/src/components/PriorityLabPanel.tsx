@@ -8,6 +8,7 @@ type PriorityLabPanelProps = {
   readonly match: EncounterMatchState;
   readonly canRunCombat: boolean;
   readonly prototypeActionSource: EncounterActionSource | undefined;
+  readonly prototypeActionSourceUnavailableText?: string;
   readonly onSubmitPrototypeAction: () => void;
   readonly onPassPlayer: () => void;
   readonly onPassEnemy: () => void;
@@ -58,6 +59,7 @@ export const PriorityLabPanel = ({
   match,
   canRunCombat,
   prototypeActionSource,
+  prototypeActionSourceUnavailableText,
   onSubmitPrototypeAction,
   onPassPlayer,
   onPassEnemy,
@@ -121,7 +123,7 @@ export const PriorityLabPanel = ({
           <button
             type="button"
             onClick={onSubmitPrototypeAction}
-            disabled={!playerMainPhasePriority}
+            disabled={!playerMainPhasePriority || !prototypeActionSource}
           >
             Queue Prototype Technique
           </button>
@@ -156,7 +158,7 @@ export const PriorityLabPanel = ({
           Source:{" "}
           {prototypeActionSource
             ? sourceContextLabel(prototypeActionSource)
-            : "none selected"}
+            : (prototypeActionSourceUnavailableText ?? "No valid source selected.")}
         </p>
 
         <div className="encounter-loadout">

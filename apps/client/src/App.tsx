@@ -26,13 +26,13 @@ import {
   getRunNextActionMessage,
   inspectEncounterCard,
   inspectRunCard,
+  listPrototypePressureActionSources,
   recordEncounterCombatSkirmish,
-  submitEncounterAction,
+  submitPrototypePressureActionFromRun,
   validateRunLoadout,
   type BoardGridCardSummary,
   type CombatResultLike,
   type EngagementPreviewSide,
-  type EncounterActionSource,
   type EncounterMatchState,
   type LoadoutAction,
   type RunState,
@@ -216,23 +216,15 @@ export function App() {
   );
   const recordReady = canRecordCombat(run, sampleCatalog);
   const editable = canEditLoadout(run);
-  const priorityPrototypeActionSource = useMemo<EncounterActionSource | undefined>(() => {
-    const spellrailTechnique =
-      run.spellrail.cards.find(
-        (card) => sampleCatalog.cardsById.get(card.defId)?.cardType === "Technique"
-      ) ?? run.spellrail.cards[0];
-
-    if (!spellrailTechnique) {
-      return undefined;
-    }
-
-    return {
-      cardInstanceId: spellrailTechnique.instanceId,
-      cardDefId: spellrailTechnique.defId,
-      cardName: cardName(spellrailTechnique.defId),
-      zone: spellrailTechnique.zone
-    };
-  }, [run.spellrail.cards]);
+  const priorityPrototypeActionSource = useMemo(
+    () =>
+      listPrototypePressureActionSources({
+        run,
+        catalog: sampleCatalog,
+        actor: "player"
+      })[0],
+    [run]
+  );
 
   const combat = useMemo(() => {
     if (!opponentSetup || !recordReady) {
@@ -545,13 +537,17 @@ export function App() {
   };
 
   const submitPriorityPrototypeAction = () => {
+    if (!priorityPrototypeActionSource) {
+      return;
+    }
+
     setPriorityMatch((currentMatch) =>
-      submitEncounterAction(currentMatch, {
+      submitPrototypePressureActionFromRun({
+        match: currentMatch,
+        run,
+        catalog: sampleCatalog,
         actor: "player",
-        kind: "main_phase_pressure",
-        ...(priorityPrototypeActionSource
-          ? { source: priorityPrototypeActionSource }
-          : {})
+        cardInstanceId: priorityPrototypeActionSource.cardInstanceId
       })
     );
   };
@@ -762,6 +758,7 @@ export function App() {
             priorityMatch.phase === "combat" && priorityLabCombat !== undefined
           }
           prototypeActionSource={priorityPrototypeActionSource}
+          prototypeActionSourceUnavailableText="No valid player Spellrail Technique source."
           onSubmitPrototypeAction={submitPriorityPrototypeAction}
           onPassPlayer={passPriorityAsPlayer}
           onPassEnemy={passPriorityAsEnemy}

@@ -8,6 +8,10 @@ construction is tactical and resource-limited, and finite roguelite runs reward
 adaptation through traits, duplicates, Sources, economy pressure, and
 positioning instead of prebuilt deck optimization.
 
+Packbound is also exploring a future persistent, recastable Commander-style
+starter layer for run identity, with packs still providing the run's primary
+adaptation and growth.
+
 This repository is intentionally engine-first. Core rules live in pure
 TypeScript packages, while the React client is only a thin shell that imports
 validated content, opens deterministic packs, validates a planning state, and

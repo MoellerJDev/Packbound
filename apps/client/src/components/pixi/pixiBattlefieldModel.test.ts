@@ -217,8 +217,8 @@ describe("pixi battlefield model", () => {
     expect(player).toBeDefined();
     expect(enemy).toBeDefined();
     expect(pixiCardsShareNativePosition(player!, enemy!)).toBe(true);
-    expect(player?.visualOffset).toEqual(expect.objectContaining({ x: -18 }));
-    expect(enemy?.visualOffset).toEqual(expect.objectContaining({ x: 18 }));
+    expect(player?.visualOffset).toEqual(expect.objectContaining({ x: -24 }));
+    expect(enemy?.visualOffset).toEqual(expect.objectContaining({ x: 24 }));
   });
 
   it("adds placeable markers and does not mutate input summaries", () => {

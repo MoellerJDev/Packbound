@@ -1184,6 +1184,8 @@ export function App() {
               <h3>Preview</h3>
               <ul className="message-list compact">
                 <li>Selected halo, range glow, likely target ring, and next move.</li>
+                <li>Unit circles show larger nameplates plus ATK / HP / RNG chips.</li>
+                <li>Support and Relic-style permanents use support plates.</li>
                 <li>Player tokens use cool cyan; enemy tokens use ember red.</li>
               </ul>
               {rendererLabCombatDisplaySummary ? (

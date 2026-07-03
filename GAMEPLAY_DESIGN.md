@@ -178,6 +178,197 @@ The game can use familiar design concepts, but it should express them through or
 
 This document intentionally uses Packbound-specific terminology.
 
+## Future Commander Spine
+
+Packbound should explore a persistent Commander-like starter layer as a future
+run identity system. This is design direction, not current implementation. The
+current prototype has starter kits and one sourced prototype encounter action;
+it does not have Commanders, a Command Zone, Rebind Tax, Signature Relics, or
+Commander upgrade choices yet.
+
+### Why Add A Commander Layer?
+
+The pack-opening loop gives each run adaptation and surprise. A Commander layer
+would give the run a face, an initial strategic promise, and a persistent object
+the player can build around without replacing packs as the main source of
+growth.
+
+The intended tension:
+
+- The Commander anchors the run's identity.
+- Packs decide how that identity adapts under pressure.
+- Sources, Board Charge, positioning, and encounter actions keep the Commander
+  from being a solved best-card button.
+- Upgrade choices let the Commander evolve through the run without demanding
+  duplicate pulls.
+
+The Commander should usually be a real playable card or permanent-like piece,
+not a passive profile or reusable hero button. It can occupy the board, support
+layer, or a future anchor role depending on its type, and it should interact
+with the same tactical constraints as the rest of the loadout.
+
+### Not A Hero-Power Game
+
+This direction is explicitly not a Hearthstone-style hero-power layer. A hero
+power is always available, lives outside normal card-zone pressure, and often
+asks the player to press a repeatable button. Packbound's Commander should be a
+card-like object with zones, deployment windows, visible costs, lifecycle, and
+board presence.
+
+Design consequences:
+
+- The Commander can be deployed, removed, Rebound, upgraded, and inspected like
+  a card object.
+- The Commander should take real space or capacity when active.
+- The Commander should have moments of absence or risk, especially after being
+  destroyed.
+- The player should still care deeply about pack pulls because the Commander
+  alone cannot cover every combat problem.
+
+### Not MTG Commander
+
+The design can borrow the broad idea of a persistent build-around card, but it
+should not copy a full MTG Commander rules shell. Packbound has no 100-card
+singleton deck, no multiplayer politics layer, no color identity rules, and no
+manual turn-by-turn card casting. Packbound's version should be built around
+finite roguelite runs, automatic combat skirmishes, board placement, Sources,
+pack rewards, and encounter priority phases.
+
+Use familiar terms where they improve comprehension, such as Commander, Command
+Zone, Main Phase, Stack, Resolve, Stability, and Rebind/Command Tax. Keep
+Packbound-native terms where they are stronger: Source Row, Spellrail, Ashes,
+Void, Charge, Relic, Technique, and Echo.
+
+### Command Zone And Rebind Lifecycle
+
+The Command Zone is a future visible zone that holds the player's Commander
+when it is not deployed. It should be serializable run state, not client-only UI
+state.
+
+Proposed lifecycle:
+
+1. The Commander starts in the Command Zone.
+2. During planning, and later during safe encounter main phases, the player may
+   deploy the Commander if they can pay its requirements and satisfy placement
+   rules.
+3. While deployed, the Commander is a real board/support/anchor object. It can
+   participate in combat, be targeted by appropriate effects, and contribute to
+   traits or other visible systems if its design allows.
+4. If destroyed, the Commander returns to the Command Zone instead of normal
+   Ashes unless a specific future rule says otherwise.
+5. Each return or redeploy can increase a visible Rebind Tax or Command Tax.
+6. Rebinding later costs more, asks for more Charge, consumes future encounter
+   action economy, or creates another explicit cost chosen by the implemented
+   rules.
+
+Rebind Tax should be visible, deterministic, and easy to explain. A player
+should know why their Commander now costs more and what action reset, discount,
+or upgrade could change that later.
+
+### Voluntary Return To Command
+
+Voluntary return can create good tactical choices, but it should not be allowed
+"any time." Free instant return would erase positioning, targeting, removal, and
+combat risk.
+
+Preferred safe windows:
+
+- Planning, before combat is readied.
+- Future first main or second main phases when the player has priority.
+- Specific card effects that say they return the Commander to the Command Zone.
+
+Voluntary return should usually carry a cost, timing restriction, or Rebind Tax
+increase. It should be a meaningful reset decision, not an always-correct dodge.
+
+### Commander Upgrades
+
+Commander upgrades should be discrete run choices, not only duplicate combines.
+They can appear as milestone rewards, boss rewards, pack-adjacent choices,
+archetype achievements, or future encounter rewards.
+
+Good upgrade choices:
+
+- Choose whether the Commander becomes cheaper to Rebind or stronger when
+  deployed.
+- Add a trait bridge that makes a surprising pack pull more playable.
+- Improve a trigger cap, range, support aura, or board-resource relationship.
+- Unlock a new safe-window action without adding broad instant-speed play.
+- Choose between stabilizing the next fight or scaling toward the final fight.
+
+Bad upgrade choices:
+
+- Pure numbers that always dominate other picks.
+- A self-contained engine that makes future packs irrelevant.
+- A universal answer that patches every weakness.
+- Hidden timing text that requires a full hand/deck/mill system to understand.
+
+### Signature Relics
+
+Relics fit Packbound strongly because they are persistent, spatial, and
+machine-like. Normal Relics should remain pack-opened support permanents that
+can be mixed, upgraded, destroyed, or replaced like other cards.
+
+A Signature Relic is future Commander-linked design space. It may start locked,
+appear in the Command Zone, unlock from an upgrade, or be offered as a
+Commander milestone. It should be a directional build-around or companion
+object, not a solved engine that plays the run by itself.
+
+Normal Relic:
+
+- Comes from packs or rewards.
+- Competes with other support objects and Board Charge.
+- Belongs to the run pool and can be swapped as pack pulls change.
+
+Signature Relic:
+
+- Is linked to a Commander identity.
+- May have special Rebind, upgrade, or Command Zone rules.
+- Should ask the player to draft support from packs rather than replacing the
+  need for support cards.
+
+### Relationship To Packs
+
+The Commander should make pack decisions sharper, not less important.
+
+Examples:
+
+- An Ember Commander rewards cheap Scrappers, but the player still needs packs
+  to find bodies, Sources, Relics, and answers.
+- A Shade Commander may make Ashes cards attractive, but pack openings decide
+  whether the run becomes Recall, Offer, Relic recursion, or Source Greed.
+- A defensive Commander can stabilize a run, but it should not solve damage,
+  scaling, Airborne answers, and economy all at once.
+
+Rule of thumb: if the best line is "upgrade the Commander and ignore the pack
+pool," the Commander is too central. If the best line is "read packs through the
+Commander's identity and pivot when pulls demand it," the layer is working.
+
+### Relationship To Encounter Main-Phase Actions
+
+The encounter priority shell is a natural future home for Commander actions.
+Commander deployment, Rebind, voluntary return, Signature Relic activation, and
+some Commander upgrade actions can become first-main or second-main decisions
+that enter the same priority/stack model as other encounter actions.
+
+Do not add a full hand/deck/mill system just to support Commanders. The first
+Commander prototype should prove zones, Rebind cost, deployment, destruction
+return, and action logging with the same serializable reducer discipline used by
+the current encounter shell.
+
+### Commander Non-Goals For Now
+
+Do not implement these as side effects of unrelated tasks:
+
+- Command Zone in `RunState`.
+- Commander card definitions or starter content.
+- Rebind/Command Tax rules.
+- Signature Relic content or zones.
+- Commander-specific simulator effects.
+- Full hand, deck, mill, Library, Graveyard, or Exile systems.
+- Counterspells or broad instant-speed timing.
+- Enemy Commander AI.
+- Renaming implemented starter kits before a tested rules prototype exists.
+
 ## Core Terminology
 
 Use these terms in player-facing design and preferably in code.

@@ -1077,6 +1077,26 @@ Do not hardcode teamups into individual cards.
 These systems are design direction, not current implementation scope. Add them
 only through focused rules/content tasks with tests.
 
+### Commander, Command Zone, And Rebind
+
+- The Commander direction is future work, not current run state. Do not add
+  Command Zone, Rebind Tax, Commander cards, or Signature Relics as incidental
+  client-only state.
+- When implemented, Command Zone should be serializable rules state owned by
+  `packages/rules`, with replayable actions for deploy, voluntary return,
+  Rebind, upgrade choice, and any Signature Relic lifecycle.
+- Commander deployment should validate through the same loadout, Board Charge,
+  Source Row, and future encounter main-phase action boundaries as other card
+  actions.
+- Commander destruction-to-Command replacement should be represented as
+  deterministic zone-change rules and event/log metadata, not renderer behavior.
+- Signature Relics should be modeled as explicit card instances or linked
+  persistent objects with clear ownership, zone, and lifecycle. They should not
+  bypass normal Relic, Source, and board validation rules unless a focused rules
+  task adds and tests that exception.
+- Do not add hand/deck/mill, counterspells, enemy Commander AI, or broad
+  instant-speed windows just to prove the Commander spine.
+
 ### Traits And Teamups
 
 - The first foundation is implemented as display-only trait summaries:

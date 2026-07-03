@@ -465,6 +465,9 @@ test("renderer lab loads Pixi battlefield canvas and replay controls", async ({
     rendererLab.getByText("appear/recall, move, attack, damage, destroyed")
   ).toBeVisible();
   await expect(rendererLab.getByText("Selected halo")).toBeVisible();
+  await expect(
+    rendererLab.getByText(/larger nameplates plus ATK \/ HP \/ RNG/)
+  ).toBeVisible();
   const loadoutResources = rendererLab
     .locator(".renderer-lab-panel")
     .filter({ has: page.getByRole("heading", { name: "Loadout Resources" }) });

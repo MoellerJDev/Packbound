@@ -155,9 +155,9 @@ const sideAwareOffset = (
     return { x: 0, y: 0 };
   }
 
-  const sideX = card.side === "playerA" ? -18 : 18;
-  const sideY = card.side === "playerA" ? 10 : -10;
-  const stackY = (index - (count - 1) / 2) * 7;
+  const sideX = card.side === "playerA" ? -24 : 24;
+  const sideY = card.side === "playerA" ? 14 : -14;
+  const stackY = (index - (count - 1) / 2) * 10;
   return { x: sideX, y: sideY + stackY };
 };
 

@@ -76,6 +76,94 @@ implemented as a reusable rule first.
 - `Echo`: Temporary Unit-like card. Echoes can fight, but destroyed Echoes do not
   enter Ashes.
 
+## Future Commander And Relic Design
+
+Commanders, the Command Zone, Rebind Tax, Commander upgrades, and Signature
+Relics are future design direction only. They are not implemented content or
+rules yet. Do not add Commander cards until the rules layer has a tested
+Command Zone and Rebind lifecycle.
+
+### Commander Principles
+
+A Commander should be a real card/permanent-like object, not a reusable hero
+button. It should have zones, deployment timing, costs, lifecycle, visible
+state, and interaction with board or support-space constraints.
+
+Good Commanders:
+
+- Give the run a face and a build-around question.
+- Ask the player to open packs that solve real weaknesses.
+- Have a clear deployment role, such as frontline Unit, support anchor, or
+  engine piece.
+- Create different upgrade paths based on what the run has opened.
+- Make Source Row, Spellrail, Board Charge, positioning, and encounter phases
+  more meaningful.
+
+Bad Commanders:
+
+- Generate enough value that pack choices stop mattering.
+- Answer every enemy type by themselves.
+- Work as always-available buttons outside board and zone pressure.
+- Hide core power in long text or unimplemented timing rules.
+- Require hand/deck/mill, counterspells, or broad instant-speed play to be fun.
+
+Commanders differ from existing card types:
+
+- Unlike Units, a Commander can return to Command Zone instead of normal Ashes
+  when destroyed.
+- Unlike Relics, a Commander is the run's persistent identity and may have
+  Rebind Tax or upgrade choices.
+- Unlike Sources, a Commander should not be primarily resource fixing or
+  capacity.
+- Unlike Techniques, a Commander should not be a one-shot Spellrail effect,
+  even if it creates future main-phase actions.
+
+### Commander Upgrade Choices
+
+Commander upgrades should be discrete choices during the run. They should
+create tension between identity, adaptation, and the next fight.
+
+Good upgrade examples:
+
+- `Lower Rebind Tax by 1` versus `Commander enters with Barrier`.
+- `Gain Scrapper trait` versus `First allied Echo destroyed each combat grants
+Combat Charge`.
+- `Signature Relic unlocks a support slot aura` versus `Commander gains +1 RNG`.
+- `Rebind only during main phases, but cheaper` versus `Rebind during planning
+for free once per round`.
+- `When deployed, inspect the next reward pack bias` versus `First pack next
+round costs 1 less`.
+
+Avoid upgrades that are just "more stats every time" or "the Commander wins
+without the pool." A Commander can be strong, but packs should remain the
+primary source of adaptation and board growth.
+
+### Relics And Signature Relics
+
+Normal Relics are pack-opened support permanents. They compete for support
+space, Board Charge, and synergy slots. They should remain flexible enough to
+move between archetypes when a run pivots.
+
+Signature Relics are future Commander-linked design space. They may start
+locked, live near the Command Zone, or unlock through Commander upgrades. They
+should be directional build-arounds, not solved engines.
+
+Good Signature Relic direction:
+
+- Improves a specific style of pack pull, such as Echoes, Relic projectiles,
+  Recall, or Barrier formations.
+- Asks for board placement or support adjacency.
+- Makes one archetype path more tempting while leaving alternate pulls viable.
+- Carries an explicit cost, Rebind tie, or upgrade gate.
+
+Bad Signature Relic direction:
+
+- Provides universal fixing, universal removal, and universal scaling together.
+- Makes normal Relics obsolete.
+- Replaces the need for Sources or pack rewards.
+- Requires custom one-off simulator logic before a reusable Relic framework
+  exists.
+
 ## Complexity Budget
 
 - Complexity `1`: Common teaching card. One keyword, one simple trigger, or pure

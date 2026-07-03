@@ -43,6 +43,8 @@ type TokenView = {
   readonly baseScale: number;
 };
 
+type TokenEmphasis = "selected" | "target" | "none";
+
 const layerOffset = (layer: PixiBattlefieldCard["layer"]): PixiPoint => {
   switch (layer) {
     case "support":
@@ -139,11 +141,11 @@ const drawCell = (
             : PIXI_BATTLEFIELD_THEME.hexFill;
   const fillAlpha =
     markers.selected || markers.likelyTarget
-      ? 0.42
+      ? 0.58
       : markers.placeable
-        ? 0.34
+        ? 0.46
         : markers.range
-          ? 0.25
+          ? 0.34
           : 0.72;
   const stroke = markers.selected
     ? PIXI_BATTLEFIELD_THEME.selected
@@ -169,9 +171,9 @@ const drawCell = (
           : 0.72,
       width:
         markers.selected || markers.likelyTarget || markers.placeable
-          ? 3
+          ? 4
           : markers.range
-            ? 2.2
+            ? 2.8
             : 1.2
     });
   if (markers.placeable && cell.placeablePosition && onCellSelect) {
@@ -183,11 +185,11 @@ const drawCell = (
 
   if (markers.selected || markers.likelyTarget || markers.nextMove || markers.placeable) {
     const ring = new Graphics()
-      .poly([...hexPolygonPoints(center, PIXI_BATTLEFIELD_LAYOUT.hexRadius + 4)])
+      .poly([...hexPolygonPoints(center, PIXI_BATTLEFIELD_LAYOUT.hexRadius + 6)])
       .stroke({
         color: stroke,
-        alpha: markers.placeable ? 0.7 : 0.62,
-        width: markers.nextMove ? 2.4 : 3.2
+        alpha: markers.placeable ? 0.9 : 0.82,
+        width: markers.nextMove ? 3.2 : 4.4
       });
     root.addChild(ring);
     pulseTargets.push(ring);
@@ -208,13 +210,13 @@ const drawMovePreview = (
   const arrow = new Graphics()
     .moveTo(from.x, from.y)
     .lineTo(to.x, to.y)
-    .stroke({ color: PIXI_BATTLEFIELD_THEME.nextMove, alpha: 0.78, width: 4 });
+    .stroke({ color: PIXI_BATTLEFIELD_THEME.nextMove, alpha: 0.9, width: 6 });
   root.addChild(arrow);
   root.addChild(
     new Graphics()
       .circle(to.x, to.y, 9)
-      .fill({ color: PIXI_BATTLEFIELD_THEME.nextMove, alpha: 0.34 })
-      .stroke({ color: PIXI_BATTLEFIELD_THEME.nextMove, alpha: 0.82, width: 2 })
+      .fill({ color: PIXI_BATTLEFIELD_THEME.nextMove, alpha: 0.46 })
+      .stroke({ color: PIXI_BATTLEFIELD_THEME.nextMove, alpha: 0.95, width: 3 })
   );
   pulseTargets.push(arrow);
 };
@@ -233,11 +235,18 @@ const tokenPointForCard = (
 
 const drawToken = (
   card: PixiBattlefieldCard,
-  onTokenSelect?: (card: PixiBattlefieldCard) => void
+  onTokenSelect?: (card: PixiBattlefieldCard) => void,
+  emphasis: TokenEmphasis = "none"
 ): TokenView => {
   const theme = sideTheme(card.side);
   const container = new Container();
   const isSupport = card.layer === "support" || card.cardType === "Relic";
+  const emphasisColor =
+    emphasis === "selected"
+      ? PIXI_BATTLEFIELD_THEME.selected
+      : emphasis === "target"
+        ? PIXI_BATTLEFIELD_THEME.target
+        : undefined;
   const point = tokenPointForCard(card);
   container.position.set(point.x, point.y);
   container.zIndex = card.sharedCell.row * 10 + (isSupport ? 1 : 4);
@@ -250,51 +259,95 @@ const drawToken = (
   if (isSupport) {
     container.addChild(
       new Graphics()
-        .roundRect(-24, -16, 48, 32, 7)
+        .roundRect(-31, -20, 62, 40, 8)
         .fill({ color: PIXI_BATTLEFIELD_THEME.support, alpha: 0.9 })
-        .stroke({ color: theme.accent, alpha: 0.72, width: 2 })
+        .stroke({ color: theme.accent, alpha: 0.88, width: 3 })
     );
-    addText(container, card.initials, 0, 0, {
+    container.addChild(
+      new Graphics()
+        .poly([0, -25, 24, 0, 0, 25, -24, 0])
+        .stroke({ color: theme.glow, alpha: 0.48, width: 2 })
+    );
+    if (emphasisColor) {
+      container.addChild(
+        new Graphics()
+          .roundRect(-38, -27, 76, 54, 10)
+          .stroke({ color: emphasisColor, alpha: 0.98, width: 4 })
+      );
+    }
+    addText(container, card.initials, 0, -2, {
       fill: 0x20160b,
-      fontSize: 12,
+      fontSize: 14,
       fontWeight: "900"
     });
-    return { card, container, baseScale: 0.86 };
+    container.addChild(
+      new Graphics()
+        .roundRect(-48, 24, 96, 20, 6)
+        .fill({ color: 0x061014, alpha: 0.86 })
+        .stroke({ color: theme.accent, alpha: 0.6, width: 1 })
+    );
+    addText(container, card.name, 0, 34, {
+      fill: PIXI_BATTLEFIELD_THEME.text,
+      fontSize: 9,
+      fontWeight: "900",
+      wordWrapWidth: 88
+    });
+    addText(container, "SUPPORT", 0, -31, {
+      fill: PIXI_BATTLEFIELD_THEME.text,
+      fontSize: 8,
+      fontWeight: "900"
+    });
+    return { card, container, baseScale: 0.94 };
   }
 
   container.addChild(
     new Graphics()
-      .circle(0, 0, 25)
+      .circle(0, 0, 29)
       .fill({ color: theme.fill, alpha: 0.96 })
-      .stroke({ color: theme.glow, alpha: 0.94, width: 3 })
+      .stroke({ color: theme.glow, alpha: 0.98, width: 4 })
   );
   container.addChild(
-    new Graphics().circle(0, 0, 32).stroke({ color: theme.glow, alpha: 0.22, width: 7 })
+    new Graphics().circle(0, 0, 38).stroke({ color: theme.glow, alpha: 0.28, width: 9 })
   );
-  addText(container, card.initials, 0, -3, {
+  if (emphasisColor) {
+    container.addChild(
+      new Graphics().circle(0, 0, 42).stroke({
+        color: emphasisColor,
+        alpha: 0.98,
+        width: 4.5
+      })
+    );
+  }
+  addText(container, card.initials, 0, -5, {
     fill: theme.text,
-    fontSize: 15,
+    fontSize: 17,
     fontWeight: "900"
   });
-  addText(container, card.name, 0, 34, {
+  container.addChild(
+    new Graphics()
+      .roundRect(-54, 34, 108, 24, 7)
+      .fill({ color: 0x061014, alpha: 0.88 })
+      .stroke({ color: theme.accent, alpha: 0.62, width: 1 })
+  );
+  addText(container, card.name, 0, 46, {
     fill: PIXI_BATTLEFIELD_THEME.text,
-    fontSize: 9,
-    fontWeight: "800",
-    wordWrapWidth: 84
+    fontSize: 10,
+    fontWeight: "900",
+    wordWrapWidth: 98
   });
 
   const stats = card.statChips.filter((chip) => /ATK|HP|RNG/.test(chip)).slice(0, 3);
   stats.forEach((stat, index) => {
-    const x = -30 + index * 30;
+    const x = -36 + index * 36;
     container.addChild(
       new Graphics()
-        .roundRect(x - 13, 17, 26, 13, 5)
-        .fill({ color: 0x061014, alpha: 0.86 })
-        .stroke({ color: theme.accent, alpha: 0.54, width: 1 })
+        .roundRect(x - 16, 15, 32, 16, 6)
+        .fill({ color: 0x061014, alpha: 0.92 })
+        .stroke({ color: theme.accent, alpha: 0.72, width: 1.4 })
     );
-    addText(container, stat.replace(" ", ""), x, 23.5, {
+    addText(container, stat.replace(" ", ""), x, 23, {
       fill: theme.text,
-      fontSize: 7,
+      fontSize: 8,
       fontWeight: "900"
     });
   });
@@ -396,45 +449,89 @@ const lineBetweenTokens = (
   effectLayer: Container,
   source: TokenView,
   target: TokenView
-): Graphics => {
-  const line = new Graphics()
-    .moveTo(source.container.x, source.container.y)
-    .lineTo(target.container.x, target.container.y)
-    .stroke({ color: 0xfff2aa, alpha: 0.92, width: 5 });
-  effectLayer.addChild(line);
-  return line;
+): Container => {
+  const beam = new Container();
+  beam.addChild(
+    new Graphics()
+      .moveTo(source.container.x, source.container.y)
+      .lineTo(target.container.x, target.container.y)
+      .stroke({ color: 0xffd069, alpha: 0.32, width: 15 })
+  );
+  beam.addChild(
+    new Graphics()
+      .moveTo(source.container.x, source.container.y)
+      .lineTo(target.container.x, target.container.y)
+      .stroke({ color: 0xfff2aa, alpha: 0.98, width: 7 })
+  );
+  effectLayer.addChild(beam);
+  return beam;
 };
 
 const floatDamageText = (
   effectLayer: Container,
   token: TokenView,
   amount: number
-): Text => {
-  const text = addText(
-    effectLayer,
-    `-${amount}`,
-    token.container.x,
-    token.container.y - 26,
-    {
-      fill: PIXI_BATTLEFIELD_THEME.damage,
-      fontSize: 21,
-      fontWeight: "900"
-    }
+): Container => {
+  const container = new Container();
+  container.position.set(token.container.x, token.container.y - 34);
+  container.addChild(
+    new Graphics()
+      .roundRect(-33, -18, 66, 34, 10)
+      .fill({ color: 0x061014, alpha: 0.9 })
+      .stroke({ color: PIXI_BATTLEFIELD_THEME.damage, alpha: 0.86, width: 2 })
   );
-  return text;
+  addText(container, `-${amount}`, 0, -1, {
+    fill: PIXI_BATTLEFIELD_THEME.damage,
+    fontSize: 26,
+    fontWeight: "900"
+  });
+  effectLayer.addChild(container);
+  return container;
+};
+
+const flashTokenRing = async (
+  app: Application,
+  effectLayer: Container,
+  token: TokenView,
+  color: number,
+  durationMs: number,
+  isCancelled: () => boolean
+): Promise<void> => {
+  const ring = new Container();
+  ring.position.set(token.container.x, token.container.y);
+  ring.addChild(new Graphics().circle(0, 0, 42).stroke({ color, alpha: 0.9, width: 4 }));
+  effectLayer.addChild(ring);
+  await animate(
+    app,
+    durationMs,
+    (progress) => {
+      ring.scale.set(1 + progress * 0.48);
+      ring.alpha = 1 - progress;
+    },
+    isCancelled
+  );
+  ring.destroy();
 };
 
 const markDestroyed = (token: TokenView): void => {
-  token.container.alpha = 0.34;
+  token.container.alpha = 0.46;
   token.container.addChild(
     new Graphics()
-      .circle(0, 0, 30)
-      .fill({ color: PIXI_BATTLEFIELD_THEME.destroyed, alpha: 0.54 })
-      .stroke({ color: 0xffe1d0, alpha: 0.82, width: 2 })
+      .circle(0, 0, 35)
+      .fill({ color: PIXI_BATTLEFIELD_THEME.destroyed, alpha: 0.72 })
+      .stroke({ color: 0xffe1d0, alpha: 0.96, width: 4 })
+  );
+  token.container.addChild(
+    new Graphics()
+      .moveTo(-20, -20)
+      .lineTo(20, 20)
+      .moveTo(-20, 20)
+      .lineTo(20, -20)
+      .stroke({ color: 0xffe1d0, alpha: 0.96, width: 5 })
   );
   addText(token.container, "X", 0, 0, {
     fill: 0xffe1d0,
-    fontSize: 18,
+    fontSize: 26,
     fontWeight: "900"
   });
 };
@@ -478,11 +575,11 @@ const playCommand = async (
       const line = lineBetweenTokens(effectLayer, source, target);
       await animate(
         app,
-        180,
+        280,
         (progress) => {
           line.alpha = 1 - progress;
           target.container.scale.set(
-            target.baseScale + Math.sin(progress * Math.PI) * 0.08
+            target.baseScale + Math.sin(progress * Math.PI) * 0.14
           );
         },
         isCancelled
@@ -500,9 +597,9 @@ const playCommand = async (
       const startY = text.y;
       await animate(
         app,
-        420,
+        560,
         (progress) => {
-          text.y = startY - progress * 28;
+          text.y = startY - progress * 38;
           text.alpha = 1 - progress;
         },
         isCancelled
@@ -516,6 +613,14 @@ const playCommand = async (
         return;
       }
       markDestroyed(token);
+      await flashTokenRing(
+        app,
+        effectLayer,
+        token,
+        PIXI_BATTLEFIELD_THEME.destroyed,
+        240,
+        isCancelled
+      );
       await wait(120, isCancelled);
       return;
     }
@@ -526,17 +631,25 @@ const playCommand = async (
       token.container.position.set(to.x, to.y);
       await animate(
         app,
-        220,
+        320,
         (progress) => {
           token.container.alpha = startAlpha + (1 - startAlpha) * progress;
           token.container.scale.set(
-            token.baseScale + Math.sin(progress * Math.PI) * 0.12
+            token.baseScale + Math.sin(progress * Math.PI) * 0.16
           );
         },
         isCancelled
       );
       token.container.alpha = 1;
       token.container.scale.set(token.baseScale);
+      await flashTokenRing(
+        app,
+        effectLayer,
+        token,
+        sideTheme(command.side).glow,
+        260,
+        isCancelled
+      );
       return;
     }
     case "phaseOut": {
@@ -544,9 +657,17 @@ const playCommand = async (
       if (!token) {
         return;
       }
+      await flashTokenRing(
+        app,
+        effectLayer,
+        token,
+        PIXI_BATTLEFIELD_THEME.nextMove,
+        220,
+        isCancelled
+      );
       await animate(
         app,
-        260,
+        360,
         (progress) => {
           token.container.alpha = 1 - progress * 0.72;
         },
@@ -726,8 +847,16 @@ export const PixiBattlefieldRenderer = ({
       }
       drawMovePreview(cellLayer, model, pulseTargets);
       for (const card of model.cards) {
-        const token = drawToken(card, (selectedCard) =>
-          onTokenSelectRef.current?.(selectedCard)
+        const emphasis =
+          card.cardInstanceId === model.selectedCardInstanceId
+            ? "selected"
+            : card.cardInstanceId === model.likelyTargetCardInstanceId
+              ? "target"
+              : "none";
+        const token = drawToken(
+          card,
+          (selectedCard) => onTokenSelectRef.current?.(selectedCard),
+          emphasis
         );
         token.container.scale.set(token.baseScale);
         tokenLayer.addChild(token.container);

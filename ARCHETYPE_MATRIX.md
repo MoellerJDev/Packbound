@@ -135,3 +135,29 @@ least one enabler, one payoff, and one interaction or defensive tool.
   evaluation.
 - Not implemented yet: choose-one Sources, Source exhaustion, and dynamic Aspect
   conversion.
+
+## Future Commander / Signature Relic Mapping
+
+Commanders are future run-identity pieces, not current starter-kit content. When
+the Command Zone and Rebind lifecycle exist, each starter archetype can map to a
+Commander promise without rewriting the current pack matrix.
+
+- `ember_scrappers`: Commander likely starts as a fragile pressure Unit or Relic
+  engineer. Signature Relic direction could reward support-layer projectiles or
+  controlled death sparks, but should still need packs for bodies and Sources.
+- `shade_ashes`: Commander likely cares about Ashes, Recall, or Offering.
+  Signature Relic direction could track the first allied death or Recall each
+  skirmish, but must avoid becoming a self-contained recursion engine.
+- `bloom_bodies`: Commander likely anchors stabilization, Guard, growth, or
+  board-resource holding. Signature Relic direction could reward durable tile
+  control without replacing heavy Unit pulls.
+- `cloudspire_phase`: Commander likely plays around Phase, Barrier, or
+  Airborne/Wisp tempo. Signature Relic direction could improve safe returns or
+  support positioning, but should not add broad reactive interrupts yet.
+- `source_greed`: Commander should be especially constrained. It can help read
+  or bridge pack choices, but must not provide universal fixing, universal
+  scaling, and universal answers in one piece.
+
+Good mapping rule: the Commander tells the player what kind of run they are
+trying to assemble; packs decide whether that run becomes clean, strange, greedy,
+or improvised.

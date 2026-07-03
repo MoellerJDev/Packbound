@@ -3,6 +3,17 @@
 This document tracks the current engine surface. It is not a design wishlist; it
 is a snapshot of what the rules and simulator layers actually expose today.
 
+## Not Implemented: Commander Direction
+
+The design docs now describe a future Commander / Command Zone / Rebind Tax /
+Signature Relic direction. None of those systems are implemented yet.
+
+Current run state does not contain a Command Zone. Starter kits are still normal
+debug starter loadouts, not recastable Commander cards. There are no Commander
+card definitions, Rebind or Command Tax rules, Commander upgrade rewards,
+Signature Relic zones, Signature Relic cards, Commander deployment actions, or
+Commander destruction-to-Command replacement rules.
+
 ## Implemented Encounter Shell
 
 The rules package now includes a minimal serializable encounter match reducer:

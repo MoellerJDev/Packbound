@@ -1,8 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Application, Container, Graphics, Text } from "pixi.js";
 
-import type { CombatEvent } from "@packbound/shared";
-import type { CardDefId } from "@packbound/shared";
+import type { BoardPosition, CardDefId, CombatEvent } from "@packbound/shared";
 
 import {
   combatEventsToPixiReplayCommands,
@@ -29,6 +28,8 @@ type PixiBattlefieldRendererProps = {
   readonly cardNamesByDefId?: ReadonlyMap<CardDefId, string>;
   readonly replayRequestKey: number;
   readonly playReplay: boolean;
+  readonly onTokenSelect?: (card: PixiBattlefieldCard) => void;
+  readonly onCellSelect?: (position: BoardPosition) => void;
 };
 
 type TokenView = {
@@ -94,51 +95,31 @@ const drawBackground = (root: Container): void => {
   );
   root.addChild(
     new Graphics()
-      .roundRect(12, 12, PIXI_BATTLEFIELD_LAYOUT.width - 24, 222, 18)
-      .fill({ color: PIXI_BATTLEFIELD_THEME.enemy.fill, alpha: 0.22 })
+      .roundRect(
+        18,
+        18,
+        PIXI_BATTLEFIELD_LAYOUT.width - 36,
+        PIXI_BATTLEFIELD_LAYOUT.height - 36,
+        18
+      )
+      .fill({ color: PIXI_BATTLEFIELD_THEME.fieldFill, alpha: 0.54 })
+      .stroke({ color: PIXI_BATTLEFIELD_THEME.hexStroke, alpha: 0.42, width: 1.4 })
   );
-  root.addChild(
-    new Graphics()
-      .roundRect(12, 294, PIXI_BATTLEFIELD_LAYOUT.width - 24, 222, 18)
-      .fill({ color: PIXI_BATTLEFIELD_THEME.player.fill, alpha: 0.22 })
-  );
-  root.addChild(
-    new Graphics()
-      .rect(32, 252, PIXI_BATTLEFIELD_LAYOUT.width - 64, 24)
-      .fill({ color: PIXI_BATTLEFIELD_THEME.laneDim, alpha: 0.32 })
-      .stroke({ color: PIXI_BATTLEFIELD_THEME.lane, alpha: 0.72, width: 2 })
-  );
-  addText(root, "ENEMY FIELD", 92, 32, {
-    fill: PIXI_BATTLEFIELD_THEME.enemy.accent,
-    fontSize: 11,
-    fontWeight: "900",
-    alpha: 0.86
-  });
-  addText(root, "ENGAGEMENT LINE", PIXI_BATTLEFIELD_LAYOUT.width / 2, 264, {
-    fill: PIXI_BATTLEFIELD_THEME.lane,
+  addText(root, "SHARED COMBAT FIELD", PIXI_BATTLEFIELD_LAYOUT.width / 2, 32, {
+    fill: PIXI_BATTLEFIELD_THEME.text,
     fontSize: 10,
     fontWeight: "900",
-    alpha: 0.9
-  });
-  addText(root, "ALLY FIELD", 88, 496, {
-    fill: PIXI_BATTLEFIELD_THEME.player.accent,
-    fontSize: 11,
-    fontWeight: "900",
-    alpha: 0.86
+    alpha: 0.68
   });
 };
 
 const drawCell = (
   root: Container,
   cell: PixiBattlefieldModel["cells"][number],
-  pulseTargets: Graphics[]
+  pulseTargets: Graphics[],
+  onCellSelect?: (position: BoardPosition) => void
 ): void => {
-  if (cell.isLane) {
-    return;
-  }
-
   const center = hexCenterForSharedCell(cell.sharedCell);
-  const side = cell.side ? sideTheme(cell.side) : undefined;
   const markers = cell.markers;
   const fill = markers.selected
     ? PIXI_BATTLEFIELD_THEME.selected
@@ -146,40 +127,62 @@ const drawCell = (
       ? PIXI_BATTLEFIELD_THEME.target
       : markers.nextMove
         ? PIXI_BATTLEFIELD_THEME.nextMove
-        : markers.range
-          ? PIXI_BATTLEFIELD_THEME.rangeFill
-          : PIXI_BATTLEFIELD_THEME.hexFill;
+        : markers.placeable
+          ? PIXI_BATTLEFIELD_THEME.placeable
+          : markers.range
+            ? PIXI_BATTLEFIELD_THEME.rangeFill
+            : PIXI_BATTLEFIELD_THEME.hexFill;
   const fillAlpha =
-    markers.selected || markers.likelyTarget ? 0.4 : markers.range ? 0.24 : 0.72;
+    markers.selected || markers.likelyTarget
+      ? 0.42
+      : markers.placeable
+        ? 0.34
+        : markers.range
+          ? 0.25
+          : 0.72;
   const stroke = markers.selected
     ? PIXI_BATTLEFIELD_THEME.selected
     : markers.targetInRange || markers.targetOutOfRange
       ? PIXI_BATTLEFIELD_THEME.target
       : markers.nextMove
         ? PIXI_BATTLEFIELD_THEME.nextMove
-        : (side?.accent ?? PIXI_BATTLEFIELD_THEME.hexStroke);
+        : markers.placeable
+          ? PIXI_BATTLEFIELD_THEME.placeable
+          : PIXI_BATTLEFIELD_THEME.hexStroke;
 
-  root.addChild(
-    new Graphics()
-      .poly([...hexPolygonPoints(center, PIXI_BATTLEFIELD_LAYOUT.hexRadius)])
-      .fill({ color: fill, alpha: fillAlpha })
-      .stroke({
-        color:
-          markers.range || markers.selected || markers.likelyTarget
-            ? stroke
-            : PIXI_BATTLEFIELD_THEME.hexStrokeDim,
-        alpha: markers.range || markers.selected || markers.likelyTarget ? 0.92 : 0.72,
-        width: markers.range || markers.selected || markers.likelyTarget ? 2.4 : 1.2
-      })
-  );
+  const graphic = new Graphics()
+    .poly([...hexPolygonPoints(center, PIXI_BATTLEFIELD_LAYOUT.hexRadius)])
+    .fill({ color: fill, alpha: fillAlpha })
+    .stroke({
+      color:
+        markers.range || markers.selected || markers.likelyTarget || markers.placeable
+          ? stroke
+          : PIXI_BATTLEFIELD_THEME.hexStrokeDim,
+      alpha:
+        markers.range || markers.selected || markers.likelyTarget || markers.placeable
+          ? 0.95
+          : 0.72,
+      width:
+        markers.selected || markers.likelyTarget || markers.placeable
+          ? 3
+          : markers.range
+            ? 2.2
+            : 1.2
+    });
+  if (markers.placeable && cell.placeablePosition && onCellSelect) {
+    graphic.eventMode = "static";
+    graphic.cursor = "pointer";
+    graphic.on("pointertap", () => onCellSelect(cell.placeablePosition!));
+  }
+  root.addChild(graphic);
 
-  if (markers.selected || markers.likelyTarget || markers.nextMove) {
+  if (markers.selected || markers.likelyTarget || markers.nextMove || markers.placeable) {
     const ring = new Graphics()
       .poly([...hexPolygonPoints(center, PIXI_BATTLEFIELD_LAYOUT.hexRadius + 4)])
       .stroke({
         color: stroke,
-        alpha: 0.58,
-        width: markers.nextMove ? 2 : 3
+        alpha: markers.placeable ? 0.7 : 0.62,
+        width: markers.nextMove ? 2.4 : 3.2
       });
     root.addChild(ring);
     pulseTargets.push(ring);
@@ -211,14 +214,33 @@ const drawMovePreview = (
   pulseTargets.push(arrow);
 };
 
-const drawToken = (card: PixiBattlefieldCard): TokenView => {
+const tokenPointForCard = (
+  card: PixiBattlefieldCard,
+  position: BoardPosition = card.position
+): PixiPoint => {
+  const center = hexCenterForSharedCell(sharedCellForBoardPosition(card.side, position));
+  const offset = layerOffset(card.layer);
+  return {
+    x: center.x + offset.x + card.visualOffset.x,
+    y: center.y + offset.y + card.visualOffset.y
+  };
+};
+
+const drawToken = (
+  card: PixiBattlefieldCard,
+  onTokenSelect?: (card: PixiBattlefieldCard) => void
+): TokenView => {
   const theme = sideTheme(card.side);
   const container = new Container();
-  const center = hexCenterForSharedCell(card.sharedCell);
-  const offset = layerOffset(card.layer);
   const isSupport = card.layer === "support" || card.cardType === "Relic";
-  container.position.set(center.x + offset.x, center.y + offset.y);
+  const point = tokenPointForCard(card);
+  container.position.set(point.x, point.y);
   container.zIndex = card.sharedCell.row * 10 + (isSupport ? 1 : 4);
+  if (onTokenSelect) {
+    container.eventMode = "static";
+    container.cursor = "pointer";
+    container.on("pointertap", () => onTokenSelect(card));
+  }
 
   if (isSupport) {
     container.addChild(
@@ -288,6 +310,7 @@ const replayTokenCard = (
   layer: token.layer,
   position,
   sharedCell: sharedCellForBoardPosition(token.side, position),
+  visualOffset: { x: 0, y: 0 },
   statChips: [...token.statChips],
   traits: [...token.traits],
   keywords: [...token.keywords]
@@ -296,14 +319,18 @@ const replayTokenCard = (
 const ensureReplayToken = (
   command: Extract<PixiReplayCommand, { readonly type: "appear" }>,
   tokensByCardId: Map<string, TokenView>,
-  tokenLayer: Container
+  tokenLayer: Container,
+  onTokenSelect?: (card: PixiBattlefieldCard) => void
 ): TokenView => {
   const existingToken = tokensByCardId.get(command.cardInstanceId);
   if (existingToken) {
     return existingToken;
   }
 
-  const token = drawToken(replayTokenCard(command.token, command.position));
+  const token = drawToken(
+    replayTokenCard(command.token, command.position),
+    onTokenSelect
+  );
   token.container.scale.set(token.baseScale);
   token.container.alpha = 0;
   tokenLayer.addChild(token.container);
@@ -398,7 +425,8 @@ const playCommand = async (
   command: PixiReplayCommand,
   tokensByCardId: Map<string, TokenView>,
   tokenLayer: Container,
-  effectLayer: Container
+  effectLayer: Container,
+  onTokenSelect?: (card: PixiBattlefieldCard) => void
 ): Promise<void> => {
   switch (command.type) {
     case "move": {
@@ -407,8 +435,7 @@ const playCommand = async (
         return;
       }
       const from = token.container.position.clone();
-      const toCell = sharedCellForBoardPosition(command.side, command.to);
-      const to = hexCenterForSharedCell(toCell);
+      const to = tokenPointForCard(token.card, command.to);
       await animate(app, 320, (progress) => {
         token.container.position.set(
           from.x + (to.x - from.x) * progress,
@@ -458,9 +485,8 @@ const playCommand = async (
       return;
     }
     case "appear": {
-      const token = ensureReplayToken(command, tokensByCardId, tokenLayer);
-      const sharedCell = sharedCellForBoardPosition(command.side, command.position);
-      const to = hexCenterForSharedCell(sharedCell);
+      const token = ensureReplayToken(command, tokensByCardId, tokenLayer, onTokenSelect);
+      const to = tokenPointForCard(token.card, command.position);
       const startAlpha = token.container.alpha;
       token.container.position.set(to.x, to.y);
       await animate(app, 220, (progress) => {
@@ -490,13 +516,21 @@ const playReplayCommands = async (
   tokensByCardId: Map<string, TokenView>,
   tokenLayer: Container,
   effectLayer: Container,
+  onTokenSelect: ((card: PixiBattlefieldCard) => void) | undefined,
   isCancelled: () => boolean
 ): Promise<void> => {
   for (const command of commands.slice(0, 96)) {
     if (isCancelled()) {
       return;
     }
-    await playCommand(app, command, tokensByCardId, tokenLayer, effectLayer);
+    await playCommand(
+      app,
+      command,
+      tokensByCardId,
+      tokenLayer,
+      effectLayer,
+      onTokenSelect
+    );
     await wait(35);
   }
 };
@@ -506,7 +540,9 @@ export const PixiBattlefieldRenderer = ({
   combatEvents,
   cardNamesByDefId,
   replayRequestKey,
-  playReplay
+  playReplay,
+  onTokenSelect,
+  onCellSelect
 }: PixiBattlefieldRendererProps) => {
   const hostRef = useRef<HTMLDivElement>(null);
 
@@ -550,11 +586,11 @@ export const PixiBattlefieldRenderer = ({
 
       drawBackground(root);
       for (const cell of model.cells) {
-        drawCell(cellLayer, cell, pulseTargets);
+        drawCell(cellLayer, cell, pulseTargets, onCellSelect);
       }
       drawMovePreview(cellLayer, model, pulseTargets);
       for (const card of model.cards) {
-        const token = drawToken(card);
+        const token = drawToken(card, onTokenSelect);
         token.container.scale.set(token.baseScale);
         tokenLayer.addChild(token.container);
         tokensByCardId.set(card.cardInstanceId, token);
@@ -583,6 +619,7 @@ export const PixiBattlefieldRenderer = ({
           tokensByCardId,
           tokenLayer,
           effectLayer,
+          onTokenSelect,
           () => cancelled
         );
       }
@@ -596,7 +633,15 @@ export const PixiBattlefieldRenderer = ({
         app?.destroy(true, { children: true });
       }
     };
-  }, [cardNamesByDefId, combatEvents, model, playReplay, replayRequestKey]);
+  }, [
+    cardNamesByDefId,
+    combatEvents,
+    model,
+    onCellSelect,
+    onTokenSelect,
+    playReplay,
+    replayRequestKey
+  ]);
 
   return (
     <div

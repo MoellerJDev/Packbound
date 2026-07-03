@@ -19,8 +19,6 @@ export type PixiPoint = {
 export type PixiBattlefieldLayout = {
   readonly cols: number;
   readonly rows: number;
-  readonly boardRows: number;
-  readonly laneRow: number;
   readonly hexRadius: number;
   readonly hexWidth: number;
   readonly hexHeight: number;
@@ -31,45 +29,28 @@ export type PixiBattlefieldLayout = {
   readonly height: number;
 };
 
-export const PIXI_SHARED_LANE_ROW = BOARD_ROWS;
-export const PIXI_SHARED_ROWS = BOARD_ROWS * 2 + 1;
+export const PIXI_SHARED_ROWS = BOARD_ROWS;
 
 export const PIXI_BATTLEFIELD_LAYOUT: PixiBattlefieldLayout = {
   cols: BOARD_COLS,
   rows: PIXI_SHARED_ROWS,
-  boardRows: BOARD_ROWS,
-  laneRow: PIXI_SHARED_LANE_ROW,
-  hexRadius: 34,
-  hexWidth: 58.889,
-  hexHeight: 68,
-  rowStep: 51,
-  marginX: 64,
-  marginY: 54,
-  width: 548,
-  height: 528
+  hexRadius: 48,
+  hexWidth: 83.138,
+  hexHeight: 96,
+  rowStep: 72,
+  marginX: 80,
+  marginY: 74,
+  width: 700,
+  height: 420
 };
 
 export const sharedCellForBoardPosition = (
-  side: PlayerSide,
+  _side: PlayerSide,
   position: Pick<BoardPosition, "row" | "col">
 ): PixiSharedCell => ({
-  row: side === "playerB" ? position.row : BOARD_ROWS + 1 + position.row,
+  row: position.row,
   col: position.col
 });
-
-export const sideForSharedRow = (row: number): PlayerSide | undefined => {
-  if (row < PIXI_SHARED_LANE_ROW) {
-    return "playerB";
-  }
-
-  if (row > PIXI_SHARED_LANE_ROW) {
-    return "playerA";
-  }
-
-  return undefined;
-};
-
-export const isLaneSharedRow = (row: number): boolean => row === PIXI_SHARED_LANE_ROW;
 
 export const hexCenterForSharedCell = (
   cell: PixiSharedCell,

@@ -12,6 +12,7 @@ import {
   buildCombatantSetupForRun,
   canApplyReward,
   canEditLoadout,
+  canPlaceCardOnBoard,
   canRecordCombat,
   createEncounterMatch,
   createRunFromStarterKit,
@@ -38,7 +39,15 @@ import {
   type RunState,
   type UpgradeProgressGroup
 } from "@packbound/rules";
-import { asPlayerId, type CardDefId, type CardInstanceId } from "@packbound/shared";
+import {
+  BOARD_COLS,
+  BOARD_ROWS,
+  asPlayerId,
+  type BoardPosition,
+  type CardDefId,
+  type CardInstance,
+  type CardInstanceId
+} from "@packbound/shared";
 import {
   buildCombatDisplaySummary,
   resolveCombat,
@@ -52,7 +61,10 @@ import { CombatSummaryView } from "./components/CombatSummaryView";
 import { EngagementPreviewPanel } from "./components/EngagementPreviewPanel";
 import { PriorityLabPanel } from "./components/PriorityLabPanel";
 import { PixiBattlefieldRenderer } from "./components/pixi/PixiBattlefieldRenderer";
-import { buildPixiBattlefieldModel } from "./components/pixi/pixiBattlefieldModel";
+import {
+  buildPixiBattlefieldModel,
+  type PixiBattlefieldCard
+} from "./components/pixi/pixiBattlefieldModel";
 import { RawDebugDetails } from "./components/RawDebugDetails";
 import { TraitSummaryView } from "./components/TraitSummaryView";
 import { UpgradeBadge, UpgradeProgressBadge } from "./components/upgradeBadges";
@@ -144,7 +156,24 @@ const previewSideForRef = (
       ? "playerB"
       : undefined;
 
+const boardLayerForPoolCard = (
+  card: CardInstance
+): BoardPosition["layer"] | undefined => {
+  const def = sampleCatalog.cardsById.get(card.defId);
+  if (def?.cardType === "Unit" || def?.cardType === "Echo") {
+    return "ground";
+  }
+  if (def?.cardType === "Relic" || def?.cardType === "Field") {
+    return "support";
+  }
+  return undefined;
+};
+
+const sameBoardPosition = (left: BoardPosition, right: BoardPosition): boolean =>
+  left.row === right.row && left.col === right.col && left.layer === right.layer;
+
 export function App() {
+  const isRendererLab = activeDebugScenarioId === DEBUG_RENDERER_SCENARIO_ID;
   const [selectedStarterKitId, setSelectedStarterKitId] = useState(firstStarterKitId);
   const [run, setRun] = useState(() => createDebugRun(firstStarterKitId));
   const [priorityMatch, setPriorityMatch] = useState(createPriorityLabMatch);
@@ -164,6 +193,9 @@ export function App() {
     key: 0,
     play: false
   });
+  const [rendererPlacementCardId, setRendererPlacementCardId] = useState<
+    CardInstanceId | undefined
+  >();
   const phase = getRunPhase(run);
   const rewardChoices = useMemo(() => getCurrentRewardChoices(run, sampleCatalog), [run]);
   const rewardOfferExplanations = useMemo(
@@ -367,14 +399,56 @@ export function App() {
         : {})
     });
   }, [currentEncounter, effectiveEngagementRef, run.activeCards, run.board]);
+  const rendererPlacementCard = useMemo(
+    () =>
+      rendererPlacementCardId
+        ? run.pool.find((card) => card.instanceId === rendererPlacementCardId)
+        : undefined,
+    [rendererPlacementCardId, run.pool]
+  );
+  const rendererPlaceablePositions = useMemo(() => {
+    if (!rendererPlacementCard) {
+      return [];
+    }
+
+    const layer = boardLayerForPoolCard(rendererPlacementCard);
+    if (!layer) {
+      return [];
+    }
+
+    const positions: BoardPosition[] = [];
+    for (let row = 0; row < BOARD_ROWS; row += 1) {
+      for (let col = 0; col < BOARD_COLS; col += 1) {
+        const position = { row, col, layer };
+        if (
+          canPlaceCardOnBoard(
+            run,
+            sampleCatalog,
+            rendererPlacementCard.instanceId,
+            position
+          ).ok
+        ) {
+          positions.push(position);
+        }
+      }
+    }
+    return positions;
+  }, [rendererPlacementCard, run]);
   const pixiBattlefieldModel = useMemo(
     () =>
       buildPixiBattlefieldModel({
         playerBoard: playerBoardGrid,
         ...(encounterBoardGrid ? { enemyBoard: encounterBoardGrid } : {}),
-        engagementPreview
+        engagementPreview,
+        ...(isRendererLab ? { placeablePositions: rendererPlaceablePositions } : {})
       }),
-    [encounterBoardGrid, engagementPreview, playerBoardGrid]
+    [
+      encounterBoardGrid,
+      engagementPreview,
+      isRendererLab,
+      playerBoardGrid,
+      rendererPlaceablePositions
+    ]
   );
   const selectedAllyInspection = useMemo(() => {
     if (!effectiveAllyCardRef) {
@@ -412,6 +486,10 @@ export function App() {
 
     return card ? inspectEncounterCard({ catalog: sampleCatalog, card }) : undefined;
   }, [currentEncounter, effectiveEnemyCardRef]);
+  const rendererInspectorIsEnemy = selectedEngagementRef?.type === "encounterBoard";
+  const rendererInspection = rendererInspectorIsEnemy
+    ? selectedEnemyInspection
+    : selectedAllyInspection;
   const latestPackName = latestOpenedPack
     ? (sampleCatalog.packsById.get(latestOpenedPack.packId)?.name ??
       latestOpenedPack.packId)
@@ -431,6 +509,7 @@ export function App() {
     setSelectedAllyCardRef(undefined);
     setSelectedEnemyCardRef(undefined);
     setSelectedEngagementRef(undefined);
+    setRendererPlacementCardId(undefined);
     setRendererReplay({ key: 0, play: false });
   };
 
@@ -463,11 +542,18 @@ export function App() {
           });
       }
     });
+    setRendererPlacementCardId(undefined);
+    setSelectedAllyCardRef({ type: "run", cardInstanceId });
+    if (action.type === "placeOnBoard") {
+      setSelectedEngagementRef({ type: "run", cardInstanceId });
+      setRendererReplay((current) => ({ key: current.key + 1, play: false }));
+    }
   };
 
   const renderLoadoutActions = (cardInstanceId: CardInstanceId) => {
     const actions = getLegalLoadoutActions(run, sampleCatalog, cardInstanceId);
     const selectRunCard = () => {
+      setRendererPlacementCardId(undefined);
       setSelectedAllyCardRef({ type: "run", cardInstanceId });
       if (
         run.board.placements.some(
@@ -521,15 +607,18 @@ export function App() {
     run.activeCards.find((card) => card.instanceId === cardInstanceId)?.upgradeLevel ?? 0;
 
   const inspectEncounterBoard = (cardInstanceId: CardInstanceId) => {
+    setRendererPlacementCardId(undefined);
     setSelectedEnemyCardRef({ type: "encounterBoard", cardInstanceId });
     setSelectedEngagementRef({ type: "encounterBoard", cardInstanceId });
   };
 
   const inspectEncounterSource = (cardInstanceId: CardInstanceId) => {
+    setRendererPlacementCardId(undefined);
     setSelectedEnemyCardRef({ type: "encounterSource", cardInstanceId });
   };
 
   const inspectEncounterSpellrail = (cardInstanceId: CardInstanceId) => {
+    setRendererPlacementCardId(undefined);
     setSelectedEnemyCardRef({ type: "encounterSpellrail", cardInstanceId });
   };
 
@@ -585,6 +674,7 @@ export function App() {
     setSelectedAllyCardRef(undefined);
     setSelectedEnemyCardRef(undefined);
     setSelectedEngagementRef(undefined);
+    setRendererPlacementCardId(undefined);
     setRun((currentRun) =>
       applyRunAction(currentRun, sampleCatalog, { type: "advanceRunAfterCombat" })
     );
@@ -636,6 +726,187 @@ export function App() {
     setRendererReplay((current) => ({ key: current.key + 1, play: false }));
   };
 
+  const selectPixiToken = (card: PixiBattlefieldCard) => {
+    setRendererPlacementCardId(undefined);
+    if (card.side === "playerA") {
+      setSelectedAllyCardRef({ type: "run", cardInstanceId: card.cardInstanceId });
+      setSelectedEngagementRef({ type: "run", cardInstanceId: card.cardInstanceId });
+      return;
+    }
+
+    setSelectedEnemyCardRef({
+      type: "encounterBoard",
+      cardInstanceId: card.cardInstanceId
+    });
+    setSelectedEngagementRef({
+      type: "encounterBoard",
+      cardInstanceId: card.cardInstanceId
+    });
+  };
+
+  const placeRendererCardOnCell = (position: BoardPosition) => {
+    if (
+      !rendererPlacementCardId ||
+      !rendererPlaceablePositions.some((candidate) =>
+        sameBoardPosition(candidate, position)
+      )
+    ) {
+      return;
+    }
+
+    const cardInstanceId = rendererPlacementCardId;
+    setRun((currentRun) => {
+      const check = canPlaceCardOnBoard(
+        currentRun,
+        sampleCatalog,
+        cardInstanceId,
+        position
+      );
+      if (!check.ok) {
+        return currentRun;
+      }
+
+      return applyRunAction(currentRun, sampleCatalog, {
+        type: "placeCardOnBoard",
+        cardInstanceId,
+        position
+      });
+    });
+    setSelectedAllyCardRef({ type: "run", cardInstanceId });
+    setSelectedEngagementRef({ type: "run", cardInstanceId });
+    setRendererPlacementCardId(undefined);
+    setRendererReplay((current) => ({ key: current.key + 1, play: false }));
+  };
+
+  const selectRendererPlacementCard = (cardInstanceId: CardInstanceId) => {
+    setRendererPlacementCardId(cardInstanceId);
+    setSelectedAllyCardRef({ type: "run", cardInstanceId });
+  };
+
+  const renderRendererPoolActions = (card: CardInstance) => {
+    const actions = getLegalLoadoutActions(run, sampleCatalog, card.instanceId);
+    const placeAction = actions.find((action) => action.type === "placeOnBoard");
+    const directActions = actions.filter((action) => action.type !== "placeOnBoard");
+
+    return (
+      <div className="mini-actions">
+        <button
+          type="button"
+          className="secondary"
+          onClick={() => {
+            setRendererPlacementCardId(undefined);
+            setSelectedAllyCardRef({ type: "run", cardInstanceId: card.instanceId });
+          }}
+        >
+          Inspect
+        </button>
+        {placeAction ? (
+          <button
+            type="button"
+            onClick={() => selectRendererPlacementCard(card.instanceId)}
+          >
+            Select Board Cell
+          </button>
+        ) : null}
+        {directActions.map((action) => (
+          <button
+            key={`${card.instanceId}:${action.type}`}
+            type="button"
+            onClick={() => performLoadoutAction(card.instanceId, action)}
+          >
+            {action.label}
+          </button>
+        ))}
+        {actions.length === 0 && editable ? <small>No legal action</small> : null}
+      </div>
+    );
+  };
+
+  const renderHexArena = () => (
+    <div className="battlefield-board" data-testid="hex-arena">
+      <div className="hex-arena-heading">
+        <h3>Hex Arena</h3>
+        <EngagementPreviewPanel preview={engagementPreview} />
+        <div className="hex-arena-badges" aria-label="Hex arena topology">
+          <span>Odd-r hex</span>
+          <span>Pointy-top</span>
+        </div>
+      </div>
+
+      <div className="hex-arena-viewport" data-testid="hex-arena-viewport">
+        <div className="battlefield-board-side enemy">
+          <div className="board-side-heading">
+            <h3>Enemy Hex Board</h3>
+            <span>{currentEncounter?.kind ?? "none"}</span>
+          </div>
+          <div className="board-orientation" aria-label="Enemy board orientation">
+            <span>Enemy side</span>
+            <span>Odd-r hex</span>
+            <span>Odd rows offset</span>
+            <span>Backline r0</span>
+            <span>Frontline r3</span>
+          </div>
+          {encounterBoardGrid ? (
+            <BoardGridView
+              boardSide="playerB"
+              engagementPreview={engagementPreview}
+              summary={encounterBoardGrid}
+              emptyText="No enemy board cards are placed."
+              onInspect={(card) => inspectEncounterBoard(card.cardInstanceId)}
+              renderCardMeta={renderEncounterGridCardMeta}
+              selectedCardInstanceId={
+                effectiveEnemyCardRef?.type === "encounterBoard"
+                  ? effectiveEnemyCardRef.cardInstanceId
+                  : undefined
+              }
+            />
+          ) : (
+            <p className="muted">No current encounter board to show.</p>
+          )}
+        </div>
+
+        <div className="battlefield-vs">Engagement Line</div>
+
+        <div className="battlefield-board-side ally">
+          <div className="board-side-heading">
+            <h3>Ally Hex Board</h3>
+            <span>{resourceSummary.boardChargeText} Charge</span>
+          </div>
+          <div className="board-orientation" aria-label="Ally board orientation">
+            <span>Your side</span>
+            <span>Odd-r hex</span>
+            <span>Odd rows offset</span>
+            <span>Frontline r0</span>
+            <span>Backline r3</span>
+          </div>
+          <BoardGridView
+            boardSide="playerA"
+            engagementPreview={engagementPreview}
+            summary={playerBoardGrid}
+            emptyText="No player board cards are placed."
+            onInspect={(card) => {
+              setRendererPlacementCardId(undefined);
+              setSelectedAllyCardRef({
+                type: "run",
+                cardInstanceId: card.cardInstanceId
+              });
+              setSelectedEngagementRef({
+                type: "run",
+                cardInstanceId: card.cardInstanceId
+              });
+            }}
+            renderCardMeta={renderPlayerGridCardMeta}
+            selectedCardInstanceId={
+              effectiveAllyCardRef?.type === "run"
+                ? effectiveAllyCardRef.cardInstanceId
+                : undefined
+            }
+          />
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <main className="app-shell">
       <section className="topbar">
@@ -680,148 +951,70 @@ export function App() {
         </div>
       </section>
 
-      <section className="battlefield-section" aria-labelledby="battlefield-heading">
-        <div className="battlefield-header">
-          <div>
-            <h2 id="battlefield-heading">Battlefield</h2>
-            <p className="muted">
-              Automatic combat setup for round {run.currentRound}. Inspect one ally and
-              one enemy at the same time to compare stats, keywords, and targeting clues.
-            </p>
-          </div>
-          <dl className="battlefield-run-strip">
+      {!isRendererLab ? (
+        <section className="battlefield-section" aria-labelledby="battlefield-heading">
+          <div className="battlefield-header">
             <div>
-              <dt>Phase</dt>
-              <dd>{phase}</dd>
+              <h2 id="battlefield-heading">Battlefield</h2>
+              <p className="muted">
+                Automatic combat setup for round {run.currentRound}. Inspect one ally and
+                one enemy at the same time to compare stats, keywords, and targeting
+                clues.
+              </p>
             </div>
-            <div>
-              <dt>Health</dt>
-              <dd>{run.playerHealth}</dd>
-            </div>
-            <div>
-              <dt>Gold</dt>
-              <dd>{run.playerGold}</dd>
-            </div>
-            <div>
-              <dt>Encounter</dt>
-              <dd>{currentEncounter?.name ?? "None"}</dd>
-            </div>
-          </dl>
-        </div>
-
-        <div className="battlefield-layout">
-          <aside className="battlefield-inspector ally">
-            <h3>Ally Inspector</h3>
-            <CardInspectorView
-              inspection={selectedAllyInspection}
-              emptyText="Select an ally board, pool, Source Row, or Spellrail card."
-            />
-          </aside>
-
-          <div className="battlefield-board" data-testid="hex-arena">
-            <div className="hex-arena-heading">
-              <h3>Hex Arena</h3>
-              <EngagementPreviewPanel preview={engagementPreview} />
-              <div className="hex-arena-badges" aria-label="Hex arena topology">
-                <span>Odd-r hex</span>
-                <span>Pointy-top</span>
+            <dl className="battlefield-run-strip">
+              <div>
+                <dt>Phase</dt>
+                <dd>{phase}</dd>
               </div>
-            </div>
-
-            <div className="hex-arena-viewport" data-testid="hex-arena-viewport">
-              <div className="battlefield-board-side enemy">
-                <div className="board-side-heading">
-                  <h3>Enemy Hex Board</h3>
-                  <span>{currentEncounter?.kind ?? "none"}</span>
-                </div>
-                <div className="board-orientation" aria-label="Enemy board orientation">
-                  <span>Enemy side</span>
-                  <span>Odd-r hex</span>
-                  <span>Odd rows offset</span>
-                  <span>Backline r0</span>
-                  <span>Frontline r3</span>
-                </div>
-                {encounterBoardGrid ? (
-                  <BoardGridView
-                    boardSide="playerB"
-                    engagementPreview={engagementPreview}
-                    summary={encounterBoardGrid}
-                    emptyText="No enemy board cards are placed."
-                    onInspect={(card) => inspectEncounterBoard(card.cardInstanceId)}
-                    renderCardMeta={renderEncounterGridCardMeta}
-                    selectedCardInstanceId={
-                      effectiveEnemyCardRef?.type === "encounterBoard"
-                        ? effectiveEnemyCardRef.cardInstanceId
-                        : undefined
-                    }
-                  />
-                ) : (
-                  <p className="muted">No current encounter board to show.</p>
-                )}
+              <div>
+                <dt>Health</dt>
+                <dd>{run.playerHealth}</dd>
               </div>
-
-              <div className="battlefield-vs">Engagement Line</div>
-
-              <div className="battlefield-board-side ally">
-                <div className="board-side-heading">
-                  <h3>Ally Hex Board</h3>
-                  <span>{resourceSummary.boardChargeText} Charge</span>
-                </div>
-                <div className="board-orientation" aria-label="Ally board orientation">
-                  <span>Your side</span>
-                  <span>Odd-r hex</span>
-                  <span>Odd rows offset</span>
-                  <span>Frontline r0</span>
-                  <span>Backline r3</span>
-                </div>
-                <BoardGridView
-                  boardSide="playerA"
-                  engagementPreview={engagementPreview}
-                  summary={playerBoardGrid}
-                  emptyText="No player board cards are placed."
-                  onInspect={(card) => {
-                    setSelectedAllyCardRef({
-                      type: "run",
-                      cardInstanceId: card.cardInstanceId
-                    });
-                    setSelectedEngagementRef({
-                      type: "run",
-                      cardInstanceId: card.cardInstanceId
-                    });
-                  }}
-                  renderCardMeta={renderPlayerGridCardMeta}
-                  selectedCardInstanceId={
-                    effectiveAllyCardRef?.type === "run"
-                      ? effectiveAllyCardRef.cardInstanceId
-                      : undefined
-                  }
-                />
+              <div>
+                <dt>Gold</dt>
+                <dd>{run.playerGold}</dd>
               </div>
-            </div>
+              <div>
+                <dt>Encounter</dt>
+                <dd>{currentEncounter?.name ?? "None"}</dd>
+              </div>
+            </dl>
           </div>
 
-          <aside className="battlefield-inspector enemy">
-            <h3>Enemy Inspector</h3>
-            <CardInspectorView
-              inspection={selectedEnemyInspection}
-              emptyText="Select an enemy board, Source Row, or Spellrail card."
-              showLegalActions={false}
-            />
-          </aside>
-        </div>
+          <div className="battlefield-layout">
+            <aside className="battlefield-inspector ally">
+              <h3>Ally Inspector</h3>
+              <CardInspectorView
+                inspection={selectedAllyInspection}
+                emptyText="Select an ally board, pool, Source Row, or Spellrail card."
+              />
+            </aside>
 
-        <CombatModelFactsView />
-      </section>
+            {renderHexArena()}
 
-      {activeDebugScenarioId === DEBUG_RENDERER_SCENARIO_ID ? (
+            <aside className="battlefield-inspector enemy">
+              <h3>Enemy Inspector</h3>
+              <CardInspectorView
+                inspection={selectedEnemyInspection}
+                emptyText="Select an enemy board, Source Row, or Spellrail card."
+                showLegalActions={false}
+              />
+            </aside>
+          </div>
+
+          <CombatModelFactsView />
+        </section>
+      ) : null}
+
+      {isRendererLab ? (
         <section className="renderer-lab-section" aria-labelledby="renderer-lab-heading">
           <div className="renderer-lab-header">
             <div>
               <h2 id="renderer-lab-heading">Pixi Renderer Lab</h2>
               <p className="muted">
-                A single shared battlefield rendered from existing board summaries,
-                engagement preview data, and deterministic combat events. The React Hex
-                Arena remains above as the debug fallback.
+                Pixi is the primary battlefield on this route. The React/CSS board is
+                available in the collapsed debug fallback below.
               </p>
             </div>
             <div className="button-row">
@@ -838,17 +1031,32 @@ export function App() {
             </div>
           </div>
 
-          <div className="renderer-lab-shell">
-            <div>
+          <div className="renderer-lab-main">
+            <div className="renderer-lab-stage">
               <PixiBattlefieldRenderer
                 model={pixiBattlefieldModel}
                 combatEvents={rendererLabCombat?.events ?? []}
                 cardNamesByDefId={cardNamesByDefId}
                 replayRequestKey={rendererReplay.key}
                 playReplay={rendererReplay.play}
+                onTokenSelect={selectPixiToken}
+                onCellSelect={placeRendererCardOnCell}
               />
+              <EngagementPreviewPanel preview={engagementPreview} />
+              {rendererPlacementCard ? (
+                <p className="renderer-placement-hint">
+                  Placing {cardName(rendererPlacementCard.defId)}. Legal Pixi cells are
+                  highlighted.
+                </p>
+              ) : null}
             </div>
-            <aside className="renderer-lab-panel">
+            <aside className="renderer-lab-panel renderer-inspector-panel">
+              <h3>Pixi Inspector</h3>
+              <CardInspectorView
+                inspection={rendererInspection}
+                emptyText="Select a unit or support token on the Pixi battlefield."
+                showLegalActions={!rendererInspectorIsEnemy}
+              />
               <h3>Renderer Feed</h3>
               <dl className="run-stats">
                 <div>
@@ -868,11 +1076,10 @@ export function App() {
                   <dd>appear/recall, move, attack, damage, destroyed</dd>
                 </div>
               </dl>
-              <h3>Preview Overlays</h3>
+              <h3>Preview</h3>
               <ul className="message-list compact">
-                <li>Selected halo, attack range glow, likely target ring.</li>
-                <li>Next-move ghost marker and movement arrow when available.</li>
-                <li>Player side uses cool cyan; enemy side uses ember red.</li>
+                <li>Selected halo, range glow, likely target ring, and next move.</li>
+                <li>Player tokens use cool cyan; enemy tokens use ember red.</li>
               </ul>
               {rendererLabCombatDisplaySummary ? (
                 <>
@@ -884,6 +1091,133 @@ export function App() {
               )}
             </aside>
           </div>
+
+          <div className="renderer-lab-loadout-grid">
+            <div className="renderer-lab-panel">
+              <h3>Loadout Resources</h3>
+              <dl className="source-summary">
+                <div>
+                  <dt>Board Charge</dt>
+                  <dd>{resourceSummary.boardChargeText}</dd>
+                </div>
+                <div>
+                  <dt>Aspect Access</dt>
+                  <dd>{resourceSummary.aspectAccessText}</dd>
+                </div>
+                <div>
+                  <dt>Source Row</dt>
+                  <dd>{resourceSummary.sourceSlotsText}</dd>
+                </div>
+                <div>
+                  <dt>Spellrail</dt>
+                  <dd>
+                    {run.spellrail.cards.length} / {run.spellrail.maxSlots}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Combat Charge/sec</dt>
+                  <dd>{resourceSummary.combatChargePerSecondText}</dd>
+                </div>
+              </dl>
+              <p className="muted">
+                Pool/Bench cards are inactive. Source Row provides Charge and aspects.
+                Spellrail holds Techniques.
+              </p>
+            </div>
+
+            <div className="renderer-lab-panel">
+              <h3>Board</h3>
+              <p className="muted">Active board permanents use Board Charge.</p>
+              <ol className="card-list compact">
+                {run.board.placements.length > 0 ? (
+                  run.board.placements.map((placement) => (
+                    <li key={placement.cardInstanceId}>
+                      <span>{cardName(placement.defId)}</span>
+                      <small>
+                        r{placement.position.row} c{placement.position.col}{" "}
+                        {placement.position.layer}
+                      </small>
+                      {renderLoadoutActions(placement.cardInstanceId)}
+                    </li>
+                  ))
+                ) : (
+                  <li>
+                    <span>None</span>
+                  </li>
+                )}
+              </ol>
+            </div>
+
+            <div className="renderer-lab-panel">
+              <h3>Source Row</h3>
+              <p className="muted">Sources define capacity, aspect access, and charge.</p>
+              <ol className="card-list compact">
+                {run.sourceRow.cards.map((card) => (
+                  <li key={card.instanceId}>
+                    <span>{cardName(card.defId)}</span>
+                    <small>{card.zone}</small>
+                    {renderLoadoutActions(card.instanceId)}
+                  </li>
+                ))}
+              </ol>
+            </div>
+
+            <div className="renderer-lab-panel">
+              <h3>Spellrail</h3>
+              <p className="muted">
+                Techniques queue here for the current prototype loop.
+              </p>
+              <ol className="card-list compact">
+                {run.spellrail.cards.length > 0 ? (
+                  run.spellrail.cards.map((card) => (
+                    <li key={card.instanceId}>
+                      <span>{cardName(card.defId)}</span>
+                      <small>{card.zone}</small>
+                      {renderLoadoutActions(card.instanceId)}
+                    </li>
+                  ))
+                ) : (
+                  <li>
+                    <span>None</span>
+                  </li>
+                )}
+              </ol>
+            </div>
+
+            <div className="renderer-lab-panel wide">
+              <h3>Pool / Bench</h3>
+              <p className="muted">
+                Select a board-placeable card, then click a highlighted Pixi cell.
+              </p>
+              <ol className="card-list compact">
+                {run.pool.length > 0 ? (
+                  run.pool.map((card) => (
+                    <li
+                      key={card.instanceId}
+                      className={
+                        rendererPlacementCardId === card.instanceId
+                          ? "pending-placement-card"
+                          : undefined
+                      }
+                    >
+                      <span>{cardName(card.defId)}</span>
+                      <small>Pool / Bench</small>
+                      {renderRendererPoolActions(card)}
+                    </li>
+                  ))
+                ) : (
+                  <li>
+                    <span>No Pool / Bench cards</span>
+                  </li>
+                )}
+              </ol>
+            </div>
+          </div>
+
+          <details className="renderer-debug-board">
+            <summary>React/CSS Debug Board</summary>
+            <div className="renderer-debug-board-inner">{renderHexArena()}</div>
+          </details>
         </section>
       ) : null}
 

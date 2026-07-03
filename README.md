@@ -22,8 +22,8 @@ https://moellerjdev.github.io/Packbound/
 
 Deployment happens automatically from `main` after CI verification passes. The
 demo is not a finished game or public release. The default route is the
-React/CSS debug client, and `?scenario=renderer-lab` exposes the experimental
-Pixi renderer lab.
+React/CSS debug client, and `?scenario=renderer-lab` exposes a Pixi-centric
+renderer lab with the React/CSS board kept as a collapsed debug fallback.
 
 GitHub Pages must be configured in the repository settings to use GitHub
 Actions as the Pages source. If the repository remains private, Pages
@@ -136,10 +136,13 @@ pnpm dev
   out-of-range markers, next-move previews, display-only trait/teamup summaries,
   and latest reward markers for newly opened pool cards.
 - The debug client also includes an opt-in PixiJS renderer lab at
-  `?scenario=renderer-lab`. It keeps React as the app shell and renders a single
-  shared generated-shape battlefield plus deterministic combat replay from
-  existing board summaries, engagement preview data, and simulator events. The
-  default route still uses the React/CSS Hex Arena debug board.
+  `?scenario=renderer-lab`. It keeps React as the app shell and makes Pixi the
+  primary battlefield for that route, with the React/CSS Hex Arena collapsed as
+  a debug fallback. Pixi uses the same canonical odd-r board coordinates as the
+  rules, engagement preview, and simulator; tokens are selectable, feed the
+  existing inspector, and support a minimal click-to-place flow for legal
+  Pool/Bench board permanents. The default route still uses the React/CSS Hex
+  Arena debug board.
 - The battlefield explains the current simulator model honestly: attack, health,
   attack speed, odd-r hex range, neighboring-hex movement, distance targeting,
   Guard, Barrier, Quickstart, Airborne, and AntiAir matter today.

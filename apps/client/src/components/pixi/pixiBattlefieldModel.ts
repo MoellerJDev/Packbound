@@ -14,11 +14,9 @@ import type {
 } from "@packbound/shared";
 
 import {
-  isLaneSharedRow,
   PIXI_SHARED_ROWS,
-  PIXI_SHARED_LANE_ROW,
   sharedCellForBoardPosition,
-  sideForSharedRow,
+  type PixiPoint,
   type PixiSharedCell
 } from "./pixiBattlefieldLayout";
 
@@ -32,6 +30,7 @@ export type PixiBattlefieldCard = {
   readonly layer: BoardLayer;
   readonly position: BoardPosition;
   readonly sharedCell: PixiSharedCell;
+  readonly visualOffset: PixiPoint;
   readonly statChips: readonly string[];
   readonly traits: readonly string[];
   readonly keywords: readonly Keyword[];
@@ -44,13 +43,13 @@ export type PixiBattlefieldCellMarkers = {
   readonly targetInRange: boolean;
   readonly targetOutOfRange: boolean;
   readonly nextMove: boolean;
+  readonly placeable: boolean;
 };
 
 export type PixiBattlefieldCell = {
   readonly sharedCell: PixiSharedCell;
-  readonly side?: PlayerSide;
-  readonly isLane: boolean;
   readonly nativePosition?: BoardPosition;
+  readonly placeablePosition?: BoardPosition;
   readonly markers: PixiBattlefieldCellMarkers;
 };
 
@@ -75,6 +74,7 @@ export type BuildPixiBattlefieldModelInput = {
   readonly playerBoard: BoardGridSummary;
   readonly enemyBoard?: BoardGridSummary;
   readonly engagementPreview: EngagementPreview;
+  readonly placeablePositions?: readonly BoardPosition[];
 };
 
 const sameNativeCoordinate = (
@@ -116,6 +116,7 @@ const modelCardFor = (
   layer: card.layer,
   position,
   sharedCell: sharedCellForBoardPosition(side, position),
+  visualOffset: { x: 0, y: 0 },
   statChips: statChipsForCard(card),
   traits: [...card.traits],
   keywords: [...card.keywords]
@@ -136,40 +137,87 @@ const cardsForBoard = (
   );
 
 const nativeCoordinateForSharedCell = (
-  side: PlayerSide | undefined,
   sharedCell: PixiSharedCell
 ): Pick<BoardPosition, "row" | "col"> => ({
-  row: side === "playerA" ? sharedCell.row - (PIXI_SHARED_LANE_ROW + 1) : sharedCell.row,
+  row: sharedCell.row,
   col: sharedCell.col
 });
 
+const sameNativePosition = (left: BoardPosition, right: BoardPosition): boolean =>
+  left.row === right.row && left.col === right.col && left.layer === right.layer;
+
+const sideAwareOffset = (
+  card: PixiBattlefieldCard,
+  index: number,
+  count: number
+): PixiPoint => {
+  if (count <= 1) {
+    return { x: 0, y: 0 };
+  }
+
+  const sideX = card.side === "playerA" ? -18 : 18;
+  const sideY = card.side === "playerA" ? 10 : -10;
+  const stackY = (index - (count - 1) / 2) * 7;
+  return { x: sideX, y: sideY + stackY };
+};
+
+const withDeterministicVisualOffsets = (
+  cards: readonly PixiBattlefieldCard[]
+): readonly PixiBattlefieldCard[] => {
+  const byCell = new Map<string, PixiBattlefieldCard[]>();
+
+  for (const card of cards) {
+    const key = `${card.sharedCell.row}:${card.sharedCell.col}:${card.layer}`;
+    byCell.set(key, [...(byCell.get(key) ?? []), card]);
+  }
+
+  const offsetByCardId = new Map<CardInstanceId, PixiPoint>();
+  for (const cellCards of byCell.values()) {
+    const sorted = [...cellCards].sort(
+      (left, right) =>
+        left.side.localeCompare(right.side) ||
+        left.name.localeCompare(right.name) ||
+        left.cardInstanceId.localeCompare(right.cardInstanceId)
+    );
+    sorted.forEach((card, index) => {
+      offsetByCardId.set(
+        card.cardInstanceId,
+        sideAwareOffset(card, index, sorted.length)
+      );
+    });
+  }
+
+  return cards.map((card) => ({
+    ...card,
+    visualOffset: offsetByCardId.get(card.cardInstanceId) ?? { x: 0, y: 0 }
+  }));
+};
+
 const markerForCell = (
   sharedCell: PixiSharedCell,
-  side: PlayerSide | undefined,
-  engagementPreview: EngagementPreview
+  engagementPreview: EngagementPreview,
+  placeablePositions: readonly BoardPosition[]
 ): PixiBattlefieldCellMarkers => {
   const selected = engagementPreview.selected;
   const likelyTarget = engagementPreview.likelyTarget;
-  const nativeCoordinate = nativeCoordinateForSharedCell(side, sharedCell);
+  const nativeCoordinate = nativeCoordinateForSharedCell(sharedCell);
   const isSelected =
-    selected !== undefined &&
-    side === selected.side &&
-    sameNativeCoordinate(selected.position, nativeCoordinate);
+    selected !== undefined && sameNativeCoordinate(selected.position, nativeCoordinate);
   const isRange =
     selected !== undefined &&
-    side === selected.side &&
     engagementPreview.rangeCells.some((position) =>
       sameNativeCoordinate(position, nativeCoordinate)
     );
   const isLikelyTarget =
     likelyTarget !== undefined &&
-    side === likelyTarget.side &&
     sameNativeCoordinate(likelyTarget.position, nativeCoordinate);
   const isNextMove =
     selected !== undefined &&
     engagementPreview.nextMove !== undefined &&
-    side === selected.side &&
     sameNativeCoordinate(engagementPreview.nextMove.to, nativeCoordinate);
+  const isPlaceable = placeablePositions.some((position) =>
+    sameNativeCoordinate(position, nativeCoordinate)
+  );
 
   return {
     selected: isSelected,
@@ -177,45 +225,47 @@ const markerForCell = (
     likelyTarget: isLikelyTarget,
     targetInRange: isLikelyTarget && likelyTarget?.inRange === true,
     targetOutOfRange: isLikelyTarget && likelyTarget?.inRange === false,
-    nextMove: isNextMove
+    nextMove: isNextMove,
+    placeable: isPlaceable
   };
 };
 
 export const buildPixiBattlefieldModel = ({
   playerBoard,
   enemyBoard,
-  engagementPreview
+  engagementPreview,
+  placeablePositions = []
 }: BuildPixiBattlefieldModelInput): PixiBattlefieldModel => {
-  const cards = [
-    ...cardsForBoard(enemyBoard, "playerB"),
-    ...cardsForBoard(playerBoard, "playerA")
-  ].sort(
-    (left, right) =>
-      left.sharedCell.row - right.sharedCell.row ||
-      left.sharedCell.col - right.sharedCell.col ||
-      left.layer.localeCompare(right.layer) ||
-      left.cardInstanceId.localeCompare(right.cardInstanceId)
+  const cards = withDeterministicVisualOffsets(
+    [
+      ...cardsForBoard(enemyBoard, "playerB"),
+      ...cardsForBoard(playerBoard, "playerA")
+    ].sort(
+      (left, right) =>
+        left.sharedCell.row - right.sharedCell.row ||
+        left.sharedCell.col - right.sharedCell.col ||
+        left.layer.localeCompare(right.layer) ||
+        left.side.localeCompare(right.side) ||
+        left.cardInstanceId.localeCompare(right.cardInstanceId)
+    )
   );
   const cells: PixiBattlefieldCell[] = [];
 
   for (let row = 0; row < PIXI_SHARED_ROWS; row += 1) {
-    const side = sideForSharedRow(row);
     for (let col = 0; col < playerBoard.cols; col += 1) {
       const sharedCell = { row, col };
-      const isLane = isLaneSharedRow(row);
+      const nativeCoordinate = nativeCoordinateForSharedCell(sharedCell);
+      const placeablePosition = placeablePositions.find((position) =>
+        sameNativeCoordinate(position, nativeCoordinate)
+      );
       cells.push({
         sharedCell,
-        ...(side
-          ? {
-              side,
-              nativePosition: {
-                ...nativeCoordinateForSharedCell(side, sharedCell),
-                layer: "ground" as const
-              }
-            }
-          : {}),
-        isLane,
-        markers: markerForCell(sharedCell, side, engagementPreview)
+        nativePosition: {
+          ...nativeCoordinate,
+          layer: "ground" as const
+        },
+        ...(placeablePosition ? { placeablePosition: { ...placeablePosition } } : {}),
+        markers: markerForCell(sharedCell, engagementPreview, placeablePositions)
       });
     }
   }
@@ -248,3 +298,8 @@ export const buildPixiBattlefieldModel = ({
     explanation: [...engagementPreview.explanation]
   };
 };
+
+export const pixiCardsShareNativePosition = (
+  left: PixiBattlefieldCard,
+  right: PixiBattlefieldCard
+): boolean => sameNativePosition(left.position, right.position);

@@ -38,6 +38,16 @@ descriptors. A follow-up manual Rotbloom pass confirmed that the recalled Ember
 token now appears, moves, takes damage, can be destroyed, and does not duplicate
 after `Reset Replay` / `Play Replay`.
 
+Implementation update after the Pixi-centric renderer-lab pass:
+`?scenario=renderer-lab` now hides the React/CSS Hex Arena behind a collapsed
+`React/CSS Debug Board` fallback, uses Pixi as the primary battlefield, renders
+both sides in the same canonical odd-r row/column coordinate space used by the
+rules, and exposes token click selection into the existing inspector. The route
+also has clearer Loadout Resources, Board, Source Row, Spellrail, and
+Pool/Bench panels. Pool/Bench board permanents can be selected, legal Pixi cells
+are highlighted, and clicking a highlighted cell places the card through the
+existing loadout reducer.
+
 The biggest remaining Pixi findings are replay control and compact readability,
 not the missing-token bug. Damage numbers and destroyed markers are visible, but
 attack beams are still easy to miss, long replays still rush by without
@@ -52,7 +62,7 @@ Recommended next task:
 
 - Commit tested before renderer-lab fix: `b8656401e653ab97f2f7de79aaf637e23f6b7a7d`
 - Implementation verified: local working tree for
-  `fix(client): render recalled Pixi replay units`
+  `feat(client): make renderer lab Pixi-centric`
 - Baseline: `main`, aligned with `origin/main`
 - OS/environment: Windows, PowerShell, Codex desktop workspace
 - Node version: `v24.18.0`
@@ -94,13 +104,13 @@ Build warning observed and not fixed in this task:
 
 ## 3. Scenarios Covered
 
-| Scenario                   | Manual result | Notes                                                               |
-| -------------------------- | ------------- | ------------------------------------------------------------------- |
-| Default route `/`          | Pass          | React/CSS Hex Arena remains default; full run loop still works.     |
-| `?scenario=renderer-lab`   | Mixed pass    | Mount/lifecycle good; visual/replay gaps keep it lab-only.          |
-| `?scenario=engagement-lab` | Pass          | Out-of-range melee and in-range ranged previews are understandable. |
-| `?scenario=priority-lab`   | Pass          | Prototype action, source context, stack, log, skirmish flow work.   |
-| `?scenario=upgrade-lab`    | Pass          | Duplicate combine and Lv 1 pool-card inspection work.               |
+| Scenario                   | Manual result | Notes                                                                     |
+| -------------------------- | ------------- | ------------------------------------------------------------------------- |
+| Default route `/`          | Pass          | React/CSS Hex Arena remains default; full run loop still works.           |
+| `?scenario=renderer-lab`   | Mixed pass    | Pixi is now primary for the route; replay pacing still keeps it lab-only. |
+| `?scenario=engagement-lab` | Pass          | Out-of-range melee and in-range ranged previews are understandable.       |
+| `?scenario=priority-lab`   | Pass          | Prototype action, source context, stack, log, skirmish flow work.         |
+| `?scenario=upgrade-lab`    | Pass          | Duplicate combine and Lv 1 pool-card inspection work.                     |
 
 Browser console result: no warnings or errors captured across the manual pass.
 
@@ -143,16 +153,20 @@ a blocker for the current debug loop.
 
 ## 5. `?scenario=renderer-lab`
 
-Renderer lab loads below the default React/CSS Hex Arena. The page explicitly
-says the React Hex Arena remains above as the debug fallback, which accurately
-sets expectations. The fallback board remains available, and the Pixi section
-does not affect the normal route.
+Renderer lab is now Pixi-centric. The React/CSS Hex Arena is hidden by default
+inside a collapsed `React/CSS Debug Board` fallback, and Pixi is the first
+battlefield view on the route. This does not affect the normal `/` route, which
+still uses the React/CSS Hex Arena.
 
 Basic renderer lifecycle checks passed:
 
 - Exactly one `.pixi-renderer-host canvas` mounted.
 - The page had no horizontal overflow at 1280 x 720.
 - The lab exposed `Play Replay` and `Reset Replay`.
+- Clicking a Pixi enemy token updated the inspector to the encounter card.
+- Selecting Sparkcatch Apprentice from Pool/Bench highlighted legal Pixi cells;
+  clicking a highlighted cell placed it on the board through the existing
+  loadout action path.
 - `Play -> Reset -> Play` kept exactly one canvas and one host child.
 - Navigating to `?scenario=engagement-lab` removed the canvas.
 - Navigating back to `?scenario=renderer-lab` remounted exactly one canvas.
@@ -170,8 +184,14 @@ What works:
 
 - The renderer reads much more like one shared battlefield than the default
   two-board Hex Arena.
+- The Pixi field now uses native board coordinates. A player unit at `r0 c2`
+  and enemy unit at `r0 c3` render as adjacent, matching range and targeting
+  truth.
+- Range cells can extend into enemy-occupied coordinates, and likely target
+  rings land on the actual target coordinate.
+- Opposing tokens that share a native coordinate are kept visible with a small
+  deterministic side-aware offset.
 - Ally and enemy ownership are clear through cyan and red side tinting.
-- The center engagement line is clear and reinforces the shared-field concept.
 - Hex outlines and occupied tokens are legible enough to understand board
   positions.
 - Selected/range/target overlays are understandable in the static model.
@@ -180,17 +200,16 @@ What works:
 
 What is confusing or too subtle:
 
-- Token initials are readable, but token names and stat chips are very small at
-  1280 x 720.
+- Token initials are readable, and labels are slightly clearer, but token names
+  and stat chips are still small at 1280 x 720.
 - The overall canvas is dark. It looks coherent, but the empty hex grid and
   destroyed dim state can become subdued.
 - Attack lines are fast enough that they are easy to miss.
 - The final destroyed `X` state works, but dimmed destroyed units could be more
   obvious.
-- The feed says `Visualized appear/recall, move, attack, damage, destroyed`,
-  which is more accurate after the recall-token fix. It still does not
-  distinguish supported event types from event types observed in the current
-  replay.
+- The feed says `Visualized appear/recall, move, attack, damage, destroyed`.
+  It still does not distinguish supported event types from event types observed
+  in the current replay.
 - I did not observe a support-layer/relic token in the tested renderer-lab
   starter states, so support readability remains unverified.
 
@@ -233,10 +252,11 @@ Replay pacing:
 
 ### Default-Renderer Decision
 
-Pixi should remain lab-only for now. The single-arena direction is promising,
-and off-model recalled tokens now render, but the current implementation is not
-ready to replace the React/CSS Hex Arena until labels/stats are larger or
-otherwise inspectable and replay controls make long combats understandable.
+Pixi should remain lab-only for now. The route is now a better playable
+viewpoint, coordinate semantics match combat truth, and token inspection works,
+but the current implementation is not ready to replace the React/CSS Hex Arena
+on `/` until labels/stats are larger and replay controls make long combats
+understandable.
 
 ## 6. `?scenario=engagement-lab`
 
@@ -326,6 +346,7 @@ No horizontal overflow appeared in the upgrade lab.
 | Occupied cells hidden to the right             | Fixed horizontally   | Occupied cells fit width; vertical density remains a separate issue.            |
 | Missing range/target preview                   | Fixed substantially  | Selected, range, target, attack/out-of-range, and next-move markers work.       |
 | Two boards do not feel like one arena          | Partially addressed  | Default still has two boards; Pixi lab gives a stronger one-arena prototype.    |
+| Pixi split player/enemy rows from combat truth | Fixed in lab         | Pixi now uses native row/col coordinates with only visual offsets for overlaps. |
 | Long combat summaries need grouping/filtering  | Still true           | Especially visible in Rotbloom's 111-event renderer-lab feed.                   |
 | Priority shell is not visible                  | Fixed for developers | Priority lab now shows stack, source context, stability, skirmish, second main. |
 | Priority action log metadata runs together     | Fixed                | Metadata is rendered as a separate muted row below each sentence.               |
@@ -371,15 +392,16 @@ No horizontal overflow appeared in the upgrade lab.
 - Expected: Longer fights should expose event grouping and playback control.
 - Severity: Medium as soon as Pixi is used for debugging non-trivial combats.
 
-### UX Confusion: Two Presentations Coexist
+### UX Confusion: Two Presentations Coexist, But Renderer Lab Is Cleaner
 
 - Steps: Open `?scenario=renderer-lab`.
-- Observed: React/CSS fallback sits above the Pixi lab. This is good for
-  debugging but makes the route feel like a comparison harness rather than a
-  single product screen.
-- Expected: Keep this relationship while Pixi is experimental; revisit once the
-  renderer is accurate enough to replace the fallback.
-- Severity: Low for the lab, expected by current design.
+- Observed: Pixi is now the primary route view, and the React/CSS board is
+  collapsed as a fallback. The broader debug grid still exists below the lab,
+  so the route is still a debug/prototype surface rather than a final combat
+  screen.
+- Expected: Keep the fallback while Pixi is experimental; revisit once replay
+  controls and token readability improve.
+- Severity: Low for the lab.
 
 ## 11. How To Manually Test The Pixi Renderer Lab
 
@@ -393,10 +415,11 @@ No horizontal overflow appeared in the upgrade lab.
 
 ### What You Are Looking At
 
-- The React/CSS Hex Arena is the debug fallback and remains above the Pixi lab.
-- The Pixi Renderer Lab is the canvas-based battlefield below.
-- The Pixi field is one shared arena: enemy side on top, ally side on bottom,
-  engagement line in the middle.
+- The Pixi Renderer Lab is the primary battlefield on this route.
+- The React/CSS Hex Arena is available in the collapsed `React/CSS Debug Board`
+  fallback.
+- The Pixi field uses one canonical board coordinate space. Enemy and ally
+  tokens at nearby row/column positions appear near each other.
 - Cyan/blue means player/ally side.
 - Ember/red means enemy side.
 - Glowing cells show selected/range/target/next-move overlays from the existing
@@ -418,10 +441,13 @@ No horizontal overflow appeared in the upgrade lab.
 5. Click `Play Replay`.
 6. Watch for movement, attack beams, damage numbers, destroyed markers, and
    appear/recall tokens.
-7. Click `Reset Replay`.
-8. Click `Play Replay` again.
-9. Confirm the replay restarts cleanly and does not duplicate canvases or stale
-   effects.
+7. Click a player or enemy token and confirm the Pixi Inspector changes.
+8. Select a Pool/Bench board card such as Sparkcatch Apprentice.
+9. Confirm legal Pixi cells highlight, then click one to place the card.
+10. Click `Reset Replay`.
+11. Click `Play Replay` again.
+12. Confirm the replay restarts cleanly and does not duplicate canvases or stale
+    effects.
 
 ### Starter-Specific Checks
 
@@ -454,8 +480,11 @@ Note:
 - Pixi renderer lab is opt-in only and is not the default battlefield.
 - The default React/CSS Hex Arena remains the reliable debug battlefield.
 - Pixi uses generated shapes and text, not final art assets.
-- Pixi has no drag/drop, hit-target inspection, hover tooltips, or board editing.
+- Pixi has click-to-select token inspection and minimal click-to-place from
+  Pool/Bench, but no drag/drop, hover tooltips, or full board-editing polish.
 - Replay controls are limited to Play and Reset.
+- Click-to-place only covers legal Pool/Bench board permanents; Source Row and
+  Spellrail still use explicit buttons.
 - Newly materialized appear/recall tokens use event metadata; if a card is not
   in the initial board model, stat chips, traits, and keywords are currently
   empty.
@@ -491,6 +520,7 @@ Do soon:
 
 - `feat(client): improve Pixi token label/stat readability`
 - `feat(client): add Pixi replay pause/step controls`
+- `feat(rules): evaluate expanding the canonical board to 6 rows x 10-12 columns`
 - `feat(client): strengthen Pixi attack and destroyed effect timing`
 - `feat(client): keep selected target and next move visible together in preview labs`
 - `feat(client): group or filter long combat summary events`

@@ -30,6 +30,37 @@ const expectNoHorizontalScroll = async (locator: Locator) => {
   expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.clientWidth + 4);
 };
 
+const clickPixiCell = async (
+  page: Page,
+  rendererHost: Locator,
+  row: number,
+  col: number
+) => {
+  await rendererHost.scrollIntoViewIfNeeded();
+  const box = await rendererHost.boundingBox();
+  expect(box).not.toBeNull();
+
+  const layout = {
+    width: 700,
+    height: 420,
+    marginX: 80,
+    marginY: 74,
+    hexWidth: 83.138,
+    rowStep: 72
+  };
+  const scale = Math.min(box!.width / layout.width, box!.height / layout.height);
+  const rootX = (box!.width - layout.width * scale) / 2;
+  const rootY = (box!.height - layout.height * scale) / 2;
+  const x =
+    box!.x +
+    rootX +
+    (layout.marginX + col * layout.hexWidth + (row % 2 === 1 ? layout.hexWidth / 2 : 0)) *
+      scale;
+  const y = box!.y + rootY + (layout.marginY + row * layout.rowStep) * scale;
+
+  await page.mouse.click(x, y);
+};
+
 test("debug loop can inspect, preview, record, reward, and advance", async ({ page }) => {
   const errors = captureBrowserErrors(page);
 
@@ -410,25 +441,66 @@ test("renderer lab loads Pixi battlefield canvas and replay controls", async ({
   await page.goto("/?scenario=renderer-lab");
 
   await expect(page.getByRole("heading", { name: "Packbound" })).toBeVisible();
-  await expect(page.getByTestId("hex-arena")).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Battlefield", exact: true })
+  ).toHaveCount(0);
 
   const rendererLab = page.locator(".renderer-lab-section");
   await expect(
     rendererLab.getByRole("heading", { name: "Pixi Renderer Lab" })
   ).toBeVisible();
   await expect(
-    rendererLab.getByText("The React Hex Arena remains above as the debug fallback.")
+    rendererLab.getByText("Pixi is the primary battlefield on this route.")
   ).toBeVisible();
+  const debugFallback = rendererLab.locator("details.renderer-debug-board");
+  await expect(debugFallback).toBeVisible();
+  await expect(debugFallback.getByText("React/CSS Debug Board")).toBeVisible();
+  expect(await debugFallback.evaluate((node) => (node as HTMLDetailsElement).open)).toBe(
+    false
+  );
+  await expect(page.getByTestId("hex-arena")).toBeHidden();
   await expect(rendererLab.getByText("Shared field units")).toBeVisible();
   await expect(rendererLab.getByText("Replay events")).toBeVisible();
   await expect(
     rendererLab.getByText("appear/recall, move, attack, damage, destroyed")
   ).toBeVisible();
   await expect(rendererLab.getByText("Selected halo")).toBeVisible();
+  const loadoutResources = rendererLab
+    .locator(".renderer-lab-panel")
+    .filter({ has: page.getByRole("heading", { name: "Loadout Resources" }) });
+  await expect(loadoutResources).toBeVisible();
+  await expect(loadoutResources.getByText("Board Charge", { exact: true })).toBeVisible();
+  await expect(loadoutResources.getByText("Source Row", { exact: true })).toBeVisible();
+  await expect(loadoutResources.getByText("Spellrail", { exact: true })).toBeVisible();
+  await expect(rendererLab.getByRole("heading", { name: "Pool / Bench" })).toBeVisible();
 
   const rendererHost = page.getByTestId("pixi-renderer-host");
   await expect(rendererHost).toBeVisible();
   await expect(rendererHost.locator("canvas")).toHaveCount(1);
+
+  const inspector = rendererLab.locator(".renderer-inspector-panel");
+  await expect(inspector.getByRole("heading", { name: "Pixi Inspector" })).toBeVisible();
+  await expect(inspector.getByText(/Unit \| board \| Ember/)).toBeVisible();
+  await clickPixiCell(page, rendererHost, 0, 3);
+  await expect(inspector.getByText(/Unit \| encounter \| Ember/)).toBeVisible();
+
+  const poolBench = rendererLab
+    .locator(".renderer-lab-panel")
+    .filter({ hasText: "Select a board-placeable card" });
+  const sparkcatchRow = poolBench
+    .getByRole("listitem")
+    .filter({ hasText: "Sparkcatch Apprentice" });
+  await sparkcatchRow.getByRole("button", { name: "Select Board Cell" }).click();
+  await expect(rendererLab.getByText(/Placing Sparkcatch Apprentice/)).toBeVisible();
+  await clickPixiCell(page, rendererHost, 0, 0);
+  await expect(rendererLab.getByText(/Placing Sparkcatch Apprentice/)).toHaveCount(0);
+  await expect(
+    rendererLab
+      .locator(".renderer-lab-panel")
+      .filter({ hasText: "Active board permanents use Board Charge" })
+      .getByRole("listitem")
+      .filter({ hasText: "Sparkcatch Apprentice" })
+  ).toBeVisible();
 
   await expect(rendererLab.getByRole("button", { name: "Play Replay" })).toBeVisible();
   await rendererLab.getByRole("button", { name: "Play Replay" }).click();

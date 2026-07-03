@@ -186,9 +186,10 @@ prototype has only a minimal rules-first slice: starter-created runs carry one
 prototype Commander card in Command Zone, can deploy it to the board during
 planning, can return it to Command during planning, and track visible deploy
 count plus Rebind Tax. Rebind Tax is now enforced as generic Board Charge while
-the Commander is deployed or being deployed. It still does not have authored
-Commander content, Commander upgrades, Signature Relics, combat destruction
-replacement, or main-phase Commander actions.
+the Commander is deployed or being deployed. Recording combat now returns a
+destroyed deployed player Commander to Command Zone and increases Rebind Tax.
+It still does not have authored Commander content, Commander upgrades,
+Signature Relics, or main-phase Commander actions.
 
 ### Why Add A Commander Layer?
 
@@ -259,7 +260,8 @@ Proposed lifecycle:
    participate in combat, be targeted by appropriate effects, and contribute to
    traits or other visible systems if its design allows.
 4. If destroyed, the Commander returns to the Command Zone instead of normal
-   Ashes unless a specific future rule says otherwise.
+   Ashes unless a specific future rule says otherwise. The current prototype
+   applies this after combat is recorded from `UnitDestroyed` event metadata.
 5. Each return or redeploy can increase a visible Rebind Tax or Command Tax.
 6. The current prototype makes Rebind Tax a generic Board Charge surcharge.
    Future upgrades or encounter actions may discount, redirect, or add other
@@ -358,9 +360,9 @@ other encounter actions.
 
 Do not add a full hand/deck/mill system just to support Commanders. The first
 Commander prototype now proves zone lifecycle, planning deployment, planning
-return, generic Board Charge Rebind Tax enforcement, and reducer replay. Next
-Commander work should add destruction-to-Command replacement and action logging
-in focused slices.
+return, generic Board Charge Rebind Tax enforcement, post-combat destruction
+return, and reducer replay. Next Commander work should add upgrade choices or
+encounter main-phase Commander actions in focused slices.
 
 ### Commander Non-Goals For Now
 
@@ -370,7 +372,6 @@ Do not implement these as side effects of unrelated tasks:
   prototype sourcing.
 - Signature Relic content or zones.
 - Commander-specific simulator effects.
-- Commander destruction-to-Command replacement.
 - Encounter main-phase Commander actions.
 - Full hand, deck, mill, Library, Graveyard, or Exile systems.
 - Counterspells or broad instant-speed timing.

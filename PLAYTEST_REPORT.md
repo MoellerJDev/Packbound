@@ -57,9 +57,8 @@ Reset -> Play` and checks the text state plus single-canvas safety.
 Planning update after the Commander design refactor: design docs now frame a
 future Commander / Command Zone / Rebind Tax / Signature Relic direction as a
 real card-like run identity layer, not a hero-power button. This task adds the
-first minimal Command Zone prototype while leaving Commander upgrades, Signature
-Relics and destruction replacement as future work. Packs remain the primary
-adaptation engine.
+first minimal Command Zone prototype while leaving Commander upgrades and
+Signature Relics as future work. Packs remain the primary adaptation engine.
 
 Implementation update after the Pixi readability pass: Renderer Lab tokens now
 use larger unit circles, stronger support plates, clearer nameplates, larger
@@ -87,6 +86,13 @@ when deployed, and is inspectable from the debug client. Rebind Tax is
 enforced as generic Board Charge while the Commander is deployed or being
 deployed.
 
+Implementation update after this task: recording combat now applies the
+Commander destruction-to-Command replacement in run progression. If the player's
+deployed Commander is destroyed in combat, `recordCombatResult` returns it to
+Command Zone, removes it from board/active cards, preserves deploy count,
+increments Rebind Tax once, and leaves combat history/summary intact. The
+simulator output is unchanged.
+
 Implementation update after this task: the renderer-lab replay controller and
 Pixi renderer now guard replay command completions with the current reset
 generation and session-scoped busy state. Browser smoke covers `Step -> Reset ->
@@ -101,7 +107,7 @@ default-route confidence. Pixi should stay opt-in until those are addressed.
 
 Recommended next task:
 
-`feat(rules): add Commander destruction-to-Command replacement`
+`feat(rules): add Commander upgrade choice prototype`
 
 ## 2. Environment And Commands
 
@@ -594,9 +600,12 @@ Note:
 - Rebind Tax is enforced as generic Board Charge while the Commander is deployed
   or being deployed, but there are no discounts, alternate costs, upgrades, or
   encounter-phase Commander actions yet.
-- Commander upgrades, Signature Relics, Commander destruction-to-Command
-  replacement, encounter main-phase Commander actions, enemy Commanders, and
-  authored Commander effects are not implemented.
+- Commander destruction-to-Command replacement is applied after combat is
+  recorded, but there is no player-facing lifecycle log entry yet.
+- Commander upgrades, Signature Relics, encounter main-phase Commander actions,
+  enemy Commanders, and authored Commander effects are not implemented.
+- Normal non-Commander unit death cleanup into Ashes is not implemented in
+  run-progression state by this Commander-specific replacement.
 - Priority Lab has one real prototype action with Sparkfall source context, but
   no real cost, hand/deck/mill, source card movement, enemy AI, interrupts,
   counterspells, or authored card effect resolution.
@@ -609,15 +618,17 @@ Note:
 
 Do next:
 
-`feat(rules): add Commander destruction-to-Command replacement`
+`feat(rules): add Commander upgrade choice prototype`
 
-Why: Command Zone lifecycle and generic Charge tax are now real planning rules.
-The next rules slice should make combat destruction send the Commander back to
-Command Zone with deterministic tax/lifecycle updates, without adding upgrades,
-Signature Relics, hand/deck/mill, or encounter timing.
+Why: Command Zone lifecycle, generic Charge tax, and post-combat destruction
+return are now real reducer rules. The next Commander slice should prove
+discrete run-time upgrade choices without adding authored Commander content,
+Signature Relics, hand/deck/mill, enemy Commanders, or broad encounter timing.
 
 Do soon:
 
+- `feat(rules): add Commander lifecycle log metadata`
+- `feat(rules): add encounter main-phase Commander action skeleton`
 - `feat(client): add Pixi replay scrub/speed controls`
 - `feat(rules): evaluate expanding the canonical board to 6 rows x 10-12 columns`
 - `feat(client): tune Pixi combat effect timing after manual readability pass`

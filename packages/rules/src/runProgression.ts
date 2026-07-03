@@ -1,6 +1,7 @@
 import type { ContentCatalog } from "@packbound/content";
 import type { CombatEvent, CombatWinner, SimulationWarning } from "@packbound/shared";
 
+import { applyCommanderCombatLifecycle } from "./commander";
 import { calculateCombatGoldReward } from "./economy";
 import { prepareEncounterForRound } from "./encounters";
 import { validateRunLoadout } from "./loadout";
@@ -170,15 +171,16 @@ export const recordCombatResult = (
     encounterId: run.currentEncounterId,
     combatSummaryIndex
   };
+  const lifecycleRun = applyCommanderCombatLifecycle(run, combatResult.events);
 
   return {
-    ...run,
+    ...lifecycleRun,
     status: nextHealth <= 0 ? "lost" : run.status,
     phase: nextHealth <= 0 ? "complete" : "reward",
     playerHealth: nextHealth,
-    playerGold: run.playerGold + goldEarned,
-    combatHistory: [...run.combatHistory, summary],
-    encounterHistory: [...run.encounterHistory, encounterHistoryEntry]
+    playerGold: lifecycleRun.playerGold + goldEarned,
+    combatHistory: [...lifecycleRun.combatHistory, summary],
+    encounterHistory: [...lifecycleRun.encounterHistory, encounterHistoryEntry]
   };
 };
 

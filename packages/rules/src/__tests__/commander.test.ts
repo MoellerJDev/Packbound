@@ -5,8 +5,10 @@ import {
   asCardDefId,
   asCardInstanceId,
   asPlayerId,
+  asUnitInstanceId,
   type BoardPosition,
-  type CardInstance
+  type CardInstance,
+  type CombatEvent
 } from "@packbound/shared";
 
 import {
@@ -18,9 +20,11 @@ import {
   createRunFromStarterKit,
   deployCommander,
   getDefaultCommanderPosition,
+  recordCombatResult,
   replayRunActions,
   returnCommanderToCommand,
   toRunActionLog,
+  type CombatResultLike,
   type RunAction,
   type RunState
 } from "../index";
@@ -67,6 +71,53 @@ const withExtraCrackedPrismSource = (run: RunState): RunState => ({
     ]
   }
 });
+
+const readyCombatRun = (run: RunState): RunState =>
+  applyRunActions(run, sampleCatalog, [
+    { type: "prepareEncounter" },
+    { type: "markCombatReady" }
+  ]);
+
+const combatResult = (
+  events: readonly CombatEvent[],
+  overrides: Partial<CombatResultLike> = {}
+): CombatResultLike => ({
+  winner: "playerA",
+  damageToPlayerA: 0,
+  damageToPlayerB: 3,
+  events,
+  warnings: [],
+  seed: "commander-combat-seed",
+  rulesVersion: "commander-test",
+  ...overrides
+});
+
+const unitDestroyedEvent = (
+  run: RunState,
+  card: {
+    readonly instanceId: CardInstance["instanceId"];
+    readonly defId: CardInstance["defId"];
+  },
+  overrides: Partial<Extract<CombatEvent, { readonly type: "UnitDestroyed" }>> = {}
+): Extract<CombatEvent, { readonly type: "UnitDestroyed" }> => ({
+  type: "UnitDestroyed",
+  timeMs: 200,
+  unitId: asUnitInstanceId(`playerA:${card.instanceId}`),
+  cardInstanceId: card.instanceId,
+  defId: card.defId,
+  side: "playerA",
+  ownerId: run.playerId,
+  isEcho: false,
+  reason: "combatDamage",
+  ...overrides
+});
+
+const requireCurrentEncounterId = (run: RunState): string => {
+  if (!run.currentEncounterId) {
+    throw new Error("Expected a prepared encounter");
+  }
+  return run.currentEncounterId;
+};
 
 describe("command zone commander prototype", () => {
   it("adds a JSON-serializable Commander to starter-created runs", () => {
@@ -294,5 +345,192 @@ describe("command zone commander prototype", () => {
         position: requireCommanderPosition(run)
       })
     ).toThrow(/planning/);
+  });
+
+  it("returns a destroyed deployed Commander to Command Zone when combat is recorded", () => {
+    const run = createCommanderRun("commander-destroyed-seed");
+    const deployed = deployCommander(run, sampleCatalog, requireCommanderPosition(run));
+    const ready = readyCombatRun(deployed);
+    const deployCount = ready.commander?.deployCount;
+    const result = combatResult([unitDestroyedEvent(ready, ready.commander!.card)]);
+
+    const recorded = recordCombatResult(ready, result, {
+      encounterId: requireCurrentEncounterId(ready)
+    });
+
+    expect(recorded.commander).toMatchObject({
+      deployCount,
+      rebindTax: 1,
+      card: {
+        instanceId: ready.commander?.card.instanceId,
+        zone: "command"
+      }
+    });
+    expect(
+      recorded.board.placements.map((placement) => placement.cardInstanceId)
+    ).not.toContain(ready.commander?.card.instanceId);
+    expect(recorded.activeCards.map((card) => card.instanceId)).not.toContain(
+      ready.commander?.card.instanceId
+    );
+    expect(recorded.combatHistory).toHaveLength(1);
+    expect(recorded.combatHistory[0]).toMatchObject({
+      eventCount: 1,
+      seed: "commander-combat-seed",
+      rulesVersion: "commander-test"
+    });
+    expect(recorded.phase).toBe("reward");
+    expect(ready.commander?.card.zone).toBe("board");
+    expect(ready.commander?.rebindTax).toBe(0);
+  });
+
+  it("keeps a deployed Commander on board when combat does not destroy it", () => {
+    const run = createCommanderRun("commander-survives-seed");
+    const deployed = deployCommander(run, sampleCatalog, requireCommanderPosition(run));
+    const ready = readyCombatRun(deployed);
+
+    const recorded = recordCombatResult(ready, combatResult([]), {
+      encounterId: requireCurrentEncounterId(ready)
+    });
+
+    expect(recorded.commander).toMatchObject({
+      deployCount: 1,
+      rebindTax: 0,
+      card: { zone: "board" }
+    });
+    expect(
+      recorded.board.placements.map((placement) => placement.cardInstanceId)
+    ).toContain(ready.commander?.card.instanceId);
+    expect(recorded.activeCards.map((card) => card.instanceId)).toContain(
+      ready.commander?.card.instanceId
+    );
+  });
+
+  it("ignores destroyed non-Commander player units and enemy units", () => {
+    const run = createCommanderRun("commander-ignore-destruction-seed");
+    const deployed = deployCommander(run, sampleCatalog, requireCommanderPosition(run));
+    const ready = readyCombatRun(deployed);
+    const nonCommanderPlacement = ready.board.placements.find(
+      (placement) => placement.cardInstanceId !== ready.commander?.card.instanceId
+    );
+
+    if (!nonCommanderPlacement) {
+      throw new Error("Expected a non-Commander board placement");
+    }
+
+    const result = combatResult([
+      unitDestroyedEvent(ready, {
+        instanceId: nonCommanderPlacement.cardInstanceId,
+        defId: nonCommanderPlacement.defId
+      }),
+      unitDestroyedEvent(
+        ready,
+        {
+          instanceId: asCardInstanceId("enemy-destroyed-card"),
+          defId: asCardDefId("enemy_scraprunner")
+        },
+        {
+          side: "playerB",
+          ownerId: asPlayerId("enemy-player"),
+          unitId: asUnitInstanceId("playerB:enemy-destroyed-card")
+        }
+      )
+    ]);
+
+    const recorded = recordCombatResult(ready, result, {
+      encounterId: requireCurrentEncounterId(ready)
+    });
+
+    expect(recorded.commander).toMatchObject({
+      deployCount: 1,
+      rebindTax: 0,
+      card: { zone: "board" }
+    });
+    expect(
+      recorded.board.placements.map((placement) => placement.cardInstanceId)
+    ).toContain(ready.commander?.card.instanceId);
+  });
+
+  it("increments Rebind Tax only once for duplicate Commander destruction events", () => {
+    const run = createCommanderRun("commander-duplicate-destroyed-seed");
+    const deployed = deployCommander(run, sampleCatalog, requireCommanderPosition(run));
+    const ready = readyCombatRun(deployed);
+    const destroyed = unitDestroyedEvent(ready, ready.commander!.card);
+
+    const recorded = recordCombatResult(ready, combatResult([destroyed, destroyed]), {
+      encounterId: requireCurrentEncounterId(ready)
+    });
+
+    expect(recorded.commander).toMatchObject({
+      deployCount: 1,
+      rebindTax: 1,
+      card: { zone: "command" }
+    });
+  });
+
+  it("does not apply stale Commander destruction events while Commander is already in Command Zone", () => {
+    const run = createCommanderRun("commander-stale-destroyed-seed");
+    const ready = readyCombatRun(run);
+
+    const recorded = recordCombatResult(
+      ready,
+      combatResult([unitDestroyedEvent(ready, ready.commander!.card)]),
+      { encounterId: requireCurrentEncounterId(ready) }
+    );
+
+    expect(recorded.commander).toMatchObject({
+      deployCount: 0,
+      rebindTax: 0,
+      card: { zone: "command" }
+    });
+  });
+
+  it("replays Commander destruction replacement deterministically through run actions", () => {
+    const initialRun = createCommanderRun("commander-destroyed-replay-seed");
+    const deployed = applyRunAction(initialRun, sampleCatalog, {
+      type: "deployCommander",
+      position: requireCommanderPosition(initialRun)
+    });
+    const ready = readyCombatRun(deployed);
+    const recordAction: RunAction = {
+      type: "recordCombatResult",
+      encounterId: requireCurrentEncounterId(ready),
+      combatResult: combatResult([unitDestroyedEvent(ready, ready.commander!.card)])
+    };
+
+    const recorded = applyRunAction(ready, sampleCatalog, recordAction);
+
+    expect(recorded.commander).toMatchObject({
+      deployCount: 1,
+      rebindTax: 1,
+      card: { zone: "command" }
+    });
+    expect(replayRunActions(ready, sampleCatalog, [recordAction])).toEqual(recorded);
+    expect(JSON.parse(JSON.stringify(recorded))).toEqual(recorded);
+  });
+
+  it("applies Commander destruction lifecycle even when recorded combat loses the run", () => {
+    const run = {
+      ...createCommanderRun("commander-lost-destroyed-seed"),
+      playerHealth: 2
+    };
+    const deployed = deployCommander(run, sampleCatalog, requireCommanderPosition(run));
+    const ready = readyCombatRun(deployed);
+
+    const recorded = recordCombatResult(
+      ready,
+      combatResult([unitDestroyedEvent(ready, ready.commander!.card)], {
+        winner: "playerB",
+        damageToPlayerA: 2
+      }),
+      { encounterId: requireCurrentEncounterId(ready) }
+    );
+
+    expect(recorded.status).toBe("lost");
+    expect(recorded.phase).toBe("complete");
+    expect(recorded.commander).toMatchObject({
+      deployCount: 1,
+      rebindTax: 1,
+      card: { zone: "command" }
+    });
   });
 });

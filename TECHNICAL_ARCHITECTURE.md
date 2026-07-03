@@ -1087,13 +1087,16 @@ Expand them only through focused rules/content tasks with tests.
 - Commander deployment and return are replayable run actions owned by
   `packages/rules`. Rebind Tax is enforced as a generic Board Charge surcharge
   through planning validation while the Commander is deployed or being deployed.
-  Future actions should cover upgrade choice, destruction replacement, and any
-  Signature Relic lifecycle.
+  Future actions should cover upgrade choice and any Signature Relic lifecycle.
 - Commander deployment should validate through the same loadout, Board Charge,
   Source Row, and future encounter main-phase action boundaries as other card
   actions.
-- Commander destruction-to-Command replacement should be represented as
-  deterministic zone-change rules and event/log metadata, not renderer behavior.
+- Recording combat applies the deployed player Commander destruction replacement
+  in run progression by reading `UnitDestroyed` event metadata. The simulator
+  still emits normal combat events; the run reducer removes the Commander from
+  board/active cards, returns it to Command Zone, and increments Rebind Tax once.
+- Future Commander lifecycle logging should remain structured run/progression
+  metadata, not renderer behavior.
 - Signature Relics should be modeled as explicit card instances or linked
   persistent objects with clear ownership, zone, and lifecycle. They should not
   bypass normal Relic, Source, and board validation rules unless a focused rules

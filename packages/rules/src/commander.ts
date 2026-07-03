@@ -5,7 +5,8 @@ import {
   isBoardPositionInBounds,
   positionKey,
   type BoardPosition,
-  type CardDefinition
+  type CardDefinition,
+  type CombatEvent
 } from "@packbound/shared";
 
 import { validateRunLoadout } from "./loadout";
@@ -226,6 +227,46 @@ export const returnCommanderToCommand = (run: RunState): RunState => {
     board: {
       placements: run.board.placements
         .filter((placement) => placement.cardInstanceId !== commander!.card.instanceId)
+        .map(copyPlacement)
+    }
+  };
+};
+
+export const applyCommanderCombatLifecycle = (
+  run: RunState,
+  combatEvents: readonly CombatEvent[]
+): RunState => {
+  const commander = run.commander;
+  if (!commander || commander.card.zone !== "board") {
+    return run;
+  }
+
+  const commanderWasDestroyed = combatEvents.some(
+    (event) =>
+      event.type === "UnitDestroyed" &&
+      event.cardInstanceId === commander.card.instanceId &&
+      event.ownerId === run.playerId
+  );
+
+  if (!commanderWasDestroyed) {
+    return run;
+  }
+
+  const card = cardInZone(deployedCommanderCard(run, commander), "command");
+
+  return {
+    ...run,
+    commander: {
+      ...commander,
+      card,
+      rebindTax: commander.rebindTax + 1
+    },
+    activeCards: run.activeCards
+      .filter((activeCard) => activeCard.instanceId !== commander.card.instanceId)
+      .map(copyCard),
+    board: {
+      placements: run.board.placements
+        .filter((placement) => placement.cardInstanceId !== commander.card.instanceId)
         .map(copyPlacement)
     }
   };

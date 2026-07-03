@@ -20,6 +20,9 @@ The rules package now has a minimal, rules-first Commander lifecycle prototype.
 - During planning, `returnCommanderToCommand` can remove the deployed Commander
   from board/active cards, return its card to Command Zone, and increment
   `rebindTax` by 1.
+- When combat is recorded, a matching player Commander `UnitDestroyed` event
+  returns the deployed Commander to Command Zone, removes it from board/active
+  cards, increments `rebindTax` once, and preserves `deployCount`.
 - Rebind Tax is enforced as generic Board Charge when the Commander is deployed
   or being deployed. It adds no Aspect requirements and does not alter the
   Commander's printed cost.
@@ -34,12 +37,12 @@ Current Commander prototype limitations:
 
 - There are no authored Commander card definitions yet; the prototype reuses
   existing Unit/Echo definitions from starter context.
-- There are no Commander upgrades, Signature Relics, Commander destruction
-  replacement rules, encounter main-phase Commander actions, enemy Commanders,
-  hand/deck/mill sourcing, counterspells, or enemy AI.
-- Combat simulation remains unchanged; if a deployed Commander is destroyed
-  during combat, it follows the current simulator output rather than returning
-  to Command Zone in `RunState`.
+- There are no Commander upgrades, Signature Relics, encounter main-phase
+  Commander actions, enemy Commanders, hand/deck/mill sourcing, counterspells,
+  authored Commander effects, or enemy AI.
+- Combat simulation remains unchanged. Commander destruction-to-Command is a
+  run-progression replacement applied while recording combat results, not a
+  simulator behavior change.
 
 ## Implemented Encounter Shell
 

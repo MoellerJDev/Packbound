@@ -662,6 +662,27 @@ h4 {
   padding: 6px 0;
 }
 
+.action-log-list {
+  margin-top: 8px;
+}
+
+.action-log-entry {
+  display: grid;
+  gap: 4px;
+}
+
+.action-log-text,
+.action-log-meta {
+  overflow-wrap: anywhere;
+}
+
+.action-log-meta {
+  color: #5d6870;
+  display: block;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
 .trait-list {
   list-style: none;
   margin: 8px 0 0;

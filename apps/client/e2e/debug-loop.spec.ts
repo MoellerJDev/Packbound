@@ -328,6 +328,10 @@ test("priority lab alternates priority, resolves the stack, and records combat",
   await expect(priorityPanel.getByText("Enemy stability")).toBeVisible();
   await expect(priorityPanel.getByText("Action Stack")).toBeVisible();
   await expect(priorityPanel.getByText("Action Log")).toBeVisible();
+  const actionLog = priorityPanel.locator(".action-log-list");
+  await expect(actionLog.locator(".action-log-meta").first()).toHaveText(
+    "Turn 1 | First main | Stack 0"
+  );
 
   await priorityPanel.getByRole("button", { name: "Queue Prototype Technique" }).click();
   await expect(
@@ -348,6 +352,15 @@ test("priority lab alternates priority, resolves the stack, and records combat",
       "Resolved Prototype Pressure Technique from Player: Enemy stability -1."
     )
   ).toBeVisible();
+  const resolvedLogEntry = actionLog.locator(".action-log-entry").filter({
+    hasText: "Resolved Prototype Pressure Technique from Player: Enemy stability -1."
+  });
+  await expect(resolvedLogEntry.locator(".action-log-text")).toHaveText(
+    "Resolved Prototype Pressure Technique from Player: Enemy stability -1."
+  );
+  await expect(resolvedLogEntry.locator(".action-log-meta")).toHaveText(
+    "Turn 1 | First main | Stack 0"
+  );
   await expect(priorityPanel.getByText("Action Stack")).toBeVisible();
   await expect(priorityPanel.getByText("Empty").first()).toBeVisible();
 

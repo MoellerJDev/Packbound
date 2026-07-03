@@ -27,8 +27,9 @@ prototype.
 
 Top remaining issues:
 
-1. Priority lab explains the state machine to developers, but action-log
-   metadata is cramped and the prototype action is still abstract.
+1. Priority lab explains the state machine to developers and now separates log
+   metadata from sentence text, but the prototype action is still abstract and
+   not sourced from card context.
 2. Ally Hex Board and Enemy Hex Board still read as two stacked submitted boards,
    not one shared tactical arena.
 3. Combat summaries are readable for short fights, but longer fights still need
@@ -36,7 +37,7 @@ Top remaining issues:
 
 Recommended next task:
 
-`fix(client): separate priority action-log metadata from log text`
+`feat(rules): source encounter actions from minimal card context`
 
 ## 2. Environment And Commands
 
@@ -190,12 +191,12 @@ still abstract, not sourced from a card zone, and not attached to authored card
 content. Stability changes are visible but not explained as a real gameplay
 decision yet.
 
-Priority-lab readability issue found: Action Log metadata is visually jammed
-onto the log sentence. In the browser it read like
+Priority-lab readability issue found during the manual pass: Action Log metadata
+was visually jammed onto the log sentence. In the browser it read like
 `Match started with Player active.Turn 1 | First main | Stack 0` and
 `Player submitted Debug pressure.Turn 1 | First main | Stack 1`. The current
-prototype action changes the action text, but the underlying layout issue
-remains: the log needs spacing, a muted second line, or separate columns.
+prototype action changes the action text, and a follow-up UI fix now renders the
+metadata as a separate muted row below each log sentence.
 
 ## 7. `?scenario=upgrade-lab`
 
@@ -238,14 +239,15 @@ changed to `Unit | board | Ember` with `Return to Pool` as the legal action.
 
 No confirmed gameplay or simulator bugs were found.
 
-### UX Confusion: Priority Action Log Text Runs Together
+### Resolved UX Confusion: Priority Action Log Text Ran Together
 
 - Steps: Open `?scenario=priority-lab`, submit a debug action, pass priority,
   and inspect Action Log.
 - Observed: Log sentence and metadata are adjacent, for example
   `active.Turn 1` and `pressure.Turn 1`.
 - Expected: Metadata should read as a separated detail line or column.
-- Severity: Low, but it directly affects priority-lab readability.
+- Current status: Fixed by rendering each Action Log entry as primary sentence
+  text plus a separate muted metadata row.
 
 ### UX Confusion: Target Markers Can Fall Below The First Fold
 
@@ -298,11 +300,12 @@ No confirmed gameplay or simulator bugs were found.
 
 Do next:
 
-`fix(client): separate priority action-log metadata from log text`
+`feat(rules): source encounter actions from minimal card context`
 
-Why: after the prototype action skeleton, the most visible Priority Lab issue is
-still readability. Action sentence text and metadata run together, which makes
-the now-more-important priority flow harder to follow than it needs to be.
+Why: after the prototype action skeleton and action-log readability fix, the
+next useful rules step is proving how an encounter action is sourced from a
+minimal card-like context without jumping into full hand/deck/mill,
+counterspells, enemy AI, or normal run-loop integration.
 
 Do soon:
 

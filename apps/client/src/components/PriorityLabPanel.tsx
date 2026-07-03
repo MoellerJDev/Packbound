@@ -183,11 +183,11 @@ export const PriorityLabPanel = ({
           )}
 
           <h3>Action Log</h3>
-          <ol className="message-list">
+          <ol className="message-list action-log-list">
             {visibleLog.map((entry) => (
-              <li key={entry.id}>
-                {entry.text}
-                <small>
+              <li key={entry.id} className="action-log-entry">
+                <span className="action-log-text">{entry.text}</span>
+                <small className="action-log-meta">
                   Turn {entry.turnNumber} | {encounterPhaseLabel(entry.phase)} | Stack{" "}
                   {entry.stackDepth}
                 </small>

@@ -2,283 +2,316 @@
 
 ## 1. Executive Summary
 
-Current prototype status: Packbound remains demoable as an internal systems demo.
-The deterministic debug loop, starter selection, battlefield-first layout,
-combat preview, combat recording, rewards, round advancement, and upgrade-lab
-path all worked during the browser pass.
+Current prototype status: Packbound is in a better browser-prototype state than
+the previous report described. The default deterministic run loop, starter
+selection, battlefield inspectors, engagement preview overlays, combat preview,
+combat recording, pack reward purchase, run advancement, priority lab, and
+duplicate upgrade lab all worked during this pass.
 
-Hex topology improved the mental model, but the current presentation needs one
-more readability pass. The odd-r stagger makes the board feel less like a flat
-spreadsheet, and the combat model is easier to believe when range, adjacency,
-and movement use neighboring hexes. The biggest visual issue is that the hex
-cells are very large in the current browser viewport, so the board starts with a
-wide horizontal scroll and the first visible slice can show mostly empty c0/c1
-cells while the placed units are off to the right.
+The old top blocker, horizontal hex-board scrolling at normal desktop width, is
+fixed in the current build. At the 1280 x 720 in-app browser viewport, the page
+and Hex Arena viewport both reported `scrollWidth === clientWidth`; no
+horizontal arena scroll was needed.
 
-Range and movement are clearer on hexes. Movement lines now say "moved one hex,"
-and the observed steps in Rotbloom Recall and Upgrade Lab were deterministic and
-understandable. Melee/ranged identity remains clear through the ATK/HP/AS/RNG
-chips, `Melee`/`Ranged` labels, and inspector text.
+The old missing range/target-preview blocker is also substantially fixed.
+Selected Unit/Echo cells, range cells, likely target cells, attack-now or
+out-of-range state, and next-move cells are now represented both in the
+Engagement Preview panel and directly on the hex board.
 
-The board feels less like a spreadsheet than before because the cell silhouettes
-and odd-row offsets create a more tactical visual language. It still does not
-yet feel like one shared autobattler battlefield: Ally Hex Board and Enemy Hex
-Board remain separate grids joined by a `vs` divider, and range/target causality
-is still mostly learned from the inspector and combat summary.
+The next blocker moved up the stack: the prototype now needs real encounter
+main-phase action content. Priority lab proves the future turn/phase/priority
+shell, but its only submitted action is still `Debug pressure`, so the system is
+not yet teaching card-driven main-phase decisions.
 
-Top 3 remaining blockers:
+Top remaining issues:
 
-1. The hex board is too wide in the current first viewport; starter units can be
-   offscreen behind horizontal scroll.
-2. Ally and Enemy boards still feel like two submitted boards, not one tactical
-   arena.
-3. Range and target selection are not previewed on the board, so hex range is
-   clear after reading text but not visually obvious before combat.
+1. Priority lab explains the state machine to developers, but action-log
+   metadata is cramped and actions are still placeholders.
+2. Ally Hex Board and Enemy Hex Board still read as two stacked submitted boards,
+   not one shared tactical arena.
+3. Combat summaries are readable for short fights, but longer fights still need
+   grouping, filtering, or a compact timeline.
 
-Recommended next task: `feat(client): improve hex battlefield readability`.
+Recommended next task:
+
+`feat(rules): add encounter main-phase card action skeleton`
 
 ## 2. Environment And Commands
 
-- Commit tested: `a66e841902716a4ab5efca97a27c03bbf02727de`
+- Commit tested: `520ad035d31a8d93512553b50c88907cbb92fecd`
+- Baseline: `main`, up to date with `origin/main`
 - OS/environment: Windows, PowerShell, Codex desktop workspace
-- Node version: `v24.14.0`
+- Node version: `v24.18.0`
 - pnpm version: `11.7.0`
-- Browser/tool used: Codex in-app browser control against local Vite, plus
-  Playwright browser smoke
+- Browser/tool used: Codex in-app browser against local Vite, plus Playwright
+  browser smoke tests
 - Dev server URL: `http://127.0.0.1:5173/`
-- Screenshot path: `C:\Code Projects\Packbound\playtest-notes\latest-ui.png`
-- Screenshot created: yes, full-page screenshot overwritten at the required path
+- Screenshot file created: no. I inspected transient browser screenshots only;
+  no repo screenshot file was written.
 - Stale dev servers before testing: none found on ports `4173`, `5173-5180`
-- Dev server cleanup: stopped Vite listener PID `27616`
-- Common dev ports after cleanup: clear
+- Dependency install: skipped because `node_modules` was already present
+- Dev server cleanup: stopped only the Packbound dev-port listener after testing
 - Report file behavior: `PLAYTEST_REPORT.md` was overwritten, not duplicated
 
-| Command               | Status | Notes                                         |
-| --------------------- | ------ | --------------------------------------------- |
-| `pnpm format:check`   | Pass   | Prettier check passed before playtest.        |
-| `pnpm lint`           | Pass   | ESLint passed.                                |
-| `pnpm typecheck`      | Pass   | Workspace typecheck passed.                   |
-| `pnpm test`           | Pass   | 27 files, 268 tests passed.                   |
-| `pnpm build`          | Pass   | Workspace build and client Vite build passed. |
-| `pnpm balance:report` | Pass   | No warnings in printed smoke outcomes.        |
-| `pnpm test:browser`   | Pass   | 2 Chromium smoke tests passed.                |
-| `pnpm dev`            | Pass   | Served Vite at `http://127.0.0.1:5173/`.      |
+| Command                                         | Status  | Notes                                                             |
+| ----------------------------------------------- | ------- | ----------------------------------------------------------------- |
+| `git status`                                    | Pass    | Clean worktree on `main`, up to date with `origin/main`.          |
+| Packbound dev-port listener check               | Pass    | No listeners found before starting Vite.                          |
+| `pnpm install`                                  | Skipped | Dependencies were already installed.                              |
+| `pnpm format:check`                             | Pass    | Prettier check passed before editing.                             |
+| `pnpm lint`                                     | Pass    | ESLint passed.                                                    |
+| `pnpm typecheck`                                | Pass    | All workspace project typechecks passed.                          |
+| `pnpm test`                                     | Pass    | 29 test files, 288 tests passed.                                  |
+| `pnpm build`                                    | Pass    | Workspace build and Vite client build passed.                     |
+| `pnpm balance:report`                           | Pass    | Printed starter/encounter and pack usability report, no warnings. |
+| `pnpm test:browser`                             | Pass    | 4 Chromium smoke tests passed.                                    |
+| `pnpm dev`                                      | Pass    | Served Vite on `http://127.0.0.1:5173/`.                          |
+| `pnpm exec prettier --write PLAYTEST_REPORT.md` | Pass    | Report formatted after overwrite.                                 |
+| `pnpm format:check`                             | Pass    | Final formatting check passed.                                    |
+| `git diff --check`                              | Pass    | No whitespace errors.                                             |
 
-## 3. Coverage Summary
+## 3. Scenarios Covered
 
-| Scenario         | Rounds reached | Combat recorded     | Hex movement observed             | Hex readability | Notes                                                                                                                                                                                                                                              |
-| ---------------- | -------------- | ------------------- | --------------------------------- | --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Ember Scrappers  | Round 2        | Round 1 and Round 2 | Yes, Round 2                      | Mixed           | Hex labels and odd rows were visible. Round 1 was adjacent and resolved immediately. Round 2 showed an enemy Ember Scraprunner moving one hex from `r0 c0` to `r0 c1`. Sparkcatch Apprentice was inspected from the pool as a `2 RNG` Ranged unit. |
-| Rotbloom Recall  | Round 2        | Round 1 and Round 2 | Yes, repeatedly                   | Good            | Best movement showcase. Recalled Ember Scraprunner advanced one hex at a time while Hollow Caller attacked from `2 RNG`. Odd-row movement from `r3 c1` to `r2 c2` read naturally as a hex step.                                                    |
-| Cloudspire Phase | Round 2        | Round 1 and Round 2 | No movement in observed summaries | Good            | Cloudgate Adept and Mistwing Scout preserved ranged identity. Cloudgate Adept attacked Rootbrace Guardian from range in Round 2 without needing to close.                                                                                          |
-| Upgrade Lab      | Round 1        | Round 1             | Yes                               | Mixed           | Upgraded Cinder Scout was inspected, placed legally, and moved one hex from `r0 c0` to `r0 c1`. The board layout stayed readable after placement, but the wide board made the first screenshot feel too zoomed in.                                 |
+| Scenario                   | Manual result | Notes                                                                 |
+| -------------------------- | ------------- | --------------------------------------------------------------------- |
+| Default route `/`          | Pass          | Starter selection, inspectors, combat, reward pack, and advance work. |
+| `?scenario=engagement-lab` | Pass          | Out-of-range melee and in-range ranged previews are understandable.   |
+| `?scenario=priority-lab`   | Pass          | Priority, stack, combat skirmish, and second main transitions work.   |
+| `?scenario=upgrade-lab`    | Pass          | Duplicate combine and Lv 1 Cinder Scout inspection/placement work.    |
 
-## 4. Hex Board Readability
+No browser console warnings or errors were captured during the manual pass.
 
-Staggered rows did read as a hex board. The full-page screenshot showed odd rows
-visibly offset, and DOM measurements confirmed odd rows started about 58 pixels
-to the right of even rows in the default viewport. The labels `Odd-r hex` and
-`Odd rows offset` helped connect the visible stagger to the simulator model.
+## 4. Default Route `/`
 
-Hex-shaped cells were readable, but oversized. Empty cells are quiet and the
-hex silhouettes are clear, yet the current board row width pushes the important
-occupied cells offscreen in the first visible slice. On the default debug route,
-the screenshot showed large empty c0/c1 hexes first; the starter units at c2/c3
-required horizontal board scroll to see visually.
+The main run loop still teaches what to do next. The Run State panel and top
+phase strip showed:
 
-Row/column labels are still useful for debug playtesting. They make summary
-lines like `r3 c1` to `r2 c2` interpretable. However, row/column labels alone
-do not explain odd-r neighbor relationships to a new viewer. The labels are
-acceptable for an internal systems demo, but the board itself needs better
-range and target visualization.
+- Planning: `Next: adjust your loadout or ready combat.`
+- Combat ready: `Next: review the preview, then record combat.`
+- Reward: `Next: open one reward pack.`
+- Combat resolved: `Next: advance to the next round.`
 
-Occupied cells stand out once visible. Unit cards show layer, name, card type,
-stat chips, keywords, upgrade badges, and Inspect controls. Support-layer cards
-remained readable in the board-grid style during prior smoke coverage, and the
-current pass did not reveal a support readability regression.
+Starter selection works. Switching from Ember Scrappers to Rotbloom Recall
+changed the inspected ally to Hollow Caller, changed the encounter to Bloomhide
+Stomper, and changed the engagement preview to Hollow Caller attacking a Guard
+target. Switching back restored Ember Scrappers.
 
-Ally Hex Board and Enemy Hex Board still feel like two separate boards rather
-than one battlefield. The `vs` divider and mirrored panels are understandable
-for debugging, but they do not yet communicate a single shared arena. The hex
-layout feels more tactical than the previous square grid, but presentation still
-needs tighter framing and less horizontal scrolling.
+Ally Inspector and Enemy Inspector are useful. They show card type, zone,
+aspect, cost, stats, upgrade text, keywords, tags, traits, combat stat chips,
+combat-model explanations, rules text, ability text, and design metadata. Ally
+Inspector additionally shows legal actions and blocked reasons; Enemy Inspector
+correctly suppresses legal actions.
 
-## 5. Hex Range And Movement Evaluation
+The Hex Arena shows occupied cells and relevant preview state without horizontal
+scroll. At 1280 x 720, the document width was `1265 / 1265`, and the Hex Arena
+viewport was `672 / 672` for client width and scroll width. The selected ally
+occupied cell was immediately visible. The enemy occupied cell and target marker
+can sit near or just below the first vertical fold, so vertical framing still
+needs work, but this is no longer a horizontal-scroll issue.
 
-Units moved when out of hex range. The clearest example was Rotbloom Recall:
+Selecting an ally board Unit showed selected, range, likely-target, and
+attack-now markers. Selecting the enemy board Unit flipped the selected and
+target sides correctly while preserving the two inspectors for comparison. The
+Engagement Preview panel text was clear:
 
-- `Your Ember Scraprunner moved one hex from r3 c0 ground to r3 c1 ground toward Rootbrace Guardian.`
-- `Your Ember Scraprunner moved one hex from r3 c1 ground to r2 c2 ground toward Rootbrace Guardian.`
-- `Your Ember Scraprunner moved one hex from r2 c2 ground to r1 c2 ground toward Rootbrace Guardian.`
+- `Ember Scraprunner can attack Ember Scraprunner now.`
+- `Distance 1, range 1.`
+- `Likely target: nearest valid enemy.`
 
-Units attacked when in range. Hollow Caller attacked Rootbrace Guardian from
-`2 RNG` while the recalled Ember Scraprunner was still closing. Cloudgate Adept
-attacked Rootbrace Guardian repeatedly from range in Cloudspire Round 2 without
-movement.
+The combat loop worked:
 
-Movement looked deterministic. The repeated Rotbloom path was stable across
-preview and recorded summaries. The diagonal-looking move from `r3 c1` to
-`r2 c2` made sense in the odd-r layout and was easier to accept on a hex board
-than it would have been on a square grid.
+- `Ready Combat` produced an Upcoming Combat Preview.
+- Round 1 preview showed a draw, 11 events, and no warnings.
+- `Record Combat` moved the run to reward phase and awarded +5 gold.
+- Reward choices were affordable and explained pack cost, remaining gold, trait
+  fit, duplicate/teamup relevance, pack bias, and cheapest-offer status.
+- I opened the first reward, Cloudspire Pack, for 4 gold.
+- The pool showed 6 new cards with `new` markers and a gold transition of
+  `5 -> 1`.
+- `Advance` moved the run to round 2, planning phase, against Ash Debt
+  Collector.
 
-Movement made positioning matter. Melee units no longer feel like they are
-magically attacking across the board; they spend attack-ready moments closing
-distance. It was clear when a unit moved instead of attacking because movement
-lines use the `move` kind and say "moved one hex." It was clear when a unit
-attacked because attack and damage lines follow separately.
+## 5. `?scenario=engagement-lab`
 
-No unit appeared stuck. No unit attacked out of hex range in the observed
-summaries. No unit appeared to move into an occupied ground cell. No infinite
-movement loop or max-duration warning appeared in the commands or browser
-playthrough.
+The melee out-of-range preview is clear in the panel and mostly clear on the
+board. Cinder Scout started selected and showed:
 
-Movement was sometimes noisy in long summaries. Rotbloom Round 1 had enough
-movement and attack lines to prove the model, but Cloudspire Round 2 reached
-123 events and became difficult to scan. One-hex movement makes sense, but the
-summary needs a compact timeline or filtering before longer combats feel easy
-to read.
+- `Out of range`
+- `Cinder Scout cannot attack yet.`
+- `Target is 3 hexes away, range 1.`
+- `Next move: r2 c1 to r2 c2.`
+- `Likely target: nearest valid enemy.`
 
-## 6. Melee / Ranged Identity
+Board marker counts confirmed selected, range, likely target, out-of-range, and
+next-move states were present. The selected, range, and next-move badges were
+visible in the first viewport. The target/out-of-range badge was on the enemy
+board lower in the arena, so it may require vertical scroll at 1280 x 720.
 
-Melee Units felt different from ranged Units. Ember Scraprunner and Cinder
-Scout showed `1 RNG` and `Melee`, and their out-of-range examples moved instead
-of attacking. Hollow Caller, Sparkcatch Apprentice, Mistwing Scout, and
-Cloudgate Adept showed `2 RNG` and `Ranged`.
+The ranged preview is clearer. Selecting Sparkcatch Apprentice showed:
 
-The range text in the inspector made sense:
+- `Attack now`
+- `Sparkcatch Apprentice can attack from 2 hexes away.`
+- `Distance 2, range 2.`
+- No next-move marker, which is correct because the selected ranged Unit can
+  attack immediately.
 
-`Maximum hex distance for basic attacks. Units outside range move one neighboring ground hex toward their selected target when their attack timer is ready.`
+Recording the engagement-lab combat produced a player win, 29 events, and no
+warnings. The combat summary included understandable one-hex movement:
 
-Ranged Units attacked from farther away. Hollow Caller attacked while its
-recalled melee ally was still moving. Cloudgate Adept attacked Rootbrace
-Guardian from range in Round 2 without closing.
+- `Your Cinder Scout moved one hex from r2 c1 ground to r2 c2 ground toward Ember Scraprunner.`
+- `Enemy Ember Scraprunner moved one hex from r0 c3 ground to r1 c2 ground toward Cinder Scout.`
 
-ATK / HP / AS / RNG chips are still enough for internal comprehension. They are
-compact and scannable on cards and in inspectors. The UI still needs better
-range explanations on the board itself: range rings, target preview, or threat
-bands would let players understand why a unit is safe, threatened, moving, or
-attacking without reading the inspector first.
+## 6. `?scenario=priority-lab`
 
-## 7. Combat Summary Readability
+Priority lab successfully demonstrates the future encounter shell:
 
-Movement lines improved with hex wording. The phrase "moved one hex" is more
-accurate and more evocative than "moved from/to" alone. It reinforces that the
-board topology is not square Manhattan movement anymore.
+- Initial state: turn 1, first main, active actor Player, priority holder
+  Player, stability 5/5, empty stack, in-progress outcome.
+- `Submit Debug Action` put `Debug pressure` on the stack and passed priority
+  to Enemy.
+- `Enemy Pass` returned priority to Player with one consecutive pass and the
+  stack still full.
+- `Pass Priority` resolved `Debug pressure`, emptied the stack, and reduced
+  enemy stability from 5 to 4.
+- Empty-stack player/enemy passes advanced the phase to Combat skirmish.
+- `Run Combat Skirmish` recorded skirmish 1 and advanced to Second main.
 
-Representative lines observed:
+This is enough to teach the developer-facing model: turn, phase, active actor,
+priority holder, consecutive passes, LIFO stack, action log, skirmish records,
+stability, and outcome are all visible in one panel.
 
-- `Your Cinder Scout moved one hex from r0 c0 ground to r0 c1 ground toward Ember Scraprunner.`
-- `Your Ember Scraprunner moved one hex from r3 c1 ground to r2 c2 ground toward Rootbrace Guardian.`
-- `Your Hollow Caller attacked Rootbrace Guardian.`
-- `Cloudgate Adept dealt 1 attack damage to Rootbrace Guardian.`
-- `Enemy Ember Scraprunner attacked Cloudgate Adept.`
+It is not yet enough to teach a player-facing encounter model. The only action
+is still a placeholder named `Debug pressure`, the button is `Submit Debug
+Action`, and the action kind is `debug_pressure`. Stability changes are visible
+but not explained as gameplay decisions.
 
-Attack, damage, destroyed, and trigger-source lines remain readable in short
-combats. They become noisy in long combats. Cloudspire Round 2 was mechanically
-useful but produced 123 events, which is too much for a player to scan without
-collapsing, filtering, grouping, or a compact timeline.
+Priority-lab readability issue found: Action Log metadata is visually jammed
+onto the log sentence. In the browser it read like
+`Match started with Player active.Turn 1 | First main | Stack 0` and
+`Player submitted Debug pressure.Turn 1 | First main | Stack 1`. The underlying
+data is useful, but the log needs spacing, a muted second line, or separate
+columns.
 
-A compact movement timeline is still needed, but not before the hex board
-readability pass. The board currently needs to fit and foreground occupied
-cells better so the timeline has a reliable visual anchor.
+## 7. `?scenario=upgrade-lab`
 
-## 8. Bugs Or Suspected Bugs
+Duplicate upgrade flow works.
+
+Initial Upgrade Progress showed:
+
+`Cinder Scout: 3 / 3 pool copies at Lv 0 -> Upgrade to Lv 1`
+
+The pool showed three ready Cinder Scout copies with `ready` badges and `Place
+on Board` actions. Clicking `Upgrade` consumed the three Lv 0 pool copies and
+left one Lv 1 Cinder Scout.
+
+The upgraded card is understandable in the pool inspector:
+
+- Zone: pool
+- Stats: `2 ATK / 3 HP / 1.1 speed / 1 range`
+- Upgrade: `Level 1`
+- Upgrade bonus: `Current bonus: +1 ATK / +1 HP.`
+- Progress: `Level 1: 1 / 3 pool copies.`
+- Blocked reason: needs 3 matching Lv 1 pool copies, found 1
+
+The upgraded card is also understandable on the board. After placing it, the
+Board panel showed `Cinder Scout Lv 1` at `r0 c0 ground`, the Hex Arena token
+showed `2 ATK`, `3 HP`, `1.1 AS`, `1 RNG`, and `Lv 1`, and Ally Inspector
+changed to `Unit | board | Ember` with `Return to Pool` as the legal action.
+
+## 8. Stale Report Items Rechecked
+
+| Old report item                               | Current status       | Current finding                                                                  |
+| --------------------------------------------- | -------------------- | -------------------------------------------------------------------------------- |
+| Hex board has horizontal scroll               | Fixed                | No horizontal page or arena scroll at 1280 x 720.                                |
+| Occupied cells hidden to the right            | Fixed horizontally   | Occupied cells fit width; vertical framing can still hide enemy markers.         |
+| Missing range/target preview                  | Fixed substantially  | Selected, range, target, attack/out-of-range, and next-move markers are present. |
+| Two boards do not feel like one arena         | Still true           | `Ally Hex Board` and `Enemy Hex Board` still read as stacked separate boards.    |
+| Long combat summaries need grouping/filtering | Still true           | Short fights are readable, but the UI still has no grouping/filtering.           |
+| Priority shell is not visible                 | Fixed for developers | Priority lab makes the shell visible, but actions are placeholder-only.          |
+
+## 9. Bugs Or Confusions
 
 No confirmed gameplay or simulator bugs were found.
 
-### UX Confusion: Hex Board Is Too Wide In The First Viewport
+### UX Confusion: Priority Action Log Text Runs Together
 
-- Steps to reproduce: Open `http://127.0.0.1:5173/`, wait for Battlefield, view
-  the default Ember Scrappers board, and inspect the full-page screenshot at
-  `playtest-notes/latest-ui.png`.
-- Observed behavior: The hex cells are large and the board starts with a
-  horizontal scroll. The first visible board slice can show mostly empty c0/c1
-  cells while the actual starter units at c2/c3 are offscreen.
-- Expected behavior: The first battlefield viewport should show the relevant
-  occupied cells, or the board should be scaled/framed so the player immediately
-  sees both sides' combatants.
-- Reproducibility: Reproduced on the default route during this pass.
-- Severity: Medium UX issue. It does not break simulation, but it weakens the
-  value of the new hex topology.
+- Steps: Open `?scenario=priority-lab`, submit a debug action, pass priority,
+  and inspect Action Log.
+- Observed: Log sentence and metadata are adjacent, for example
+  `active.Turn 1` and `pressure.Turn 1`.
+- Expected: Metadata should read as a separated detail line or column.
+- Severity: Low, but it directly affects priority-lab readability.
 
-### UX Confusion: Two Hex Boards Still Do Not Feel Like One Arena
+### UX Confusion: Target Markers Can Fall Below The First Fold
 
-- Steps to reproduce: Play any normal starter through combat preview and record.
-- Observed behavior: Ally Hex Board and Enemy Hex Board are clear individually,
-  but they still feel like separate submitted boards joined by a `vs` divider.
-- Expected behavior: The battlefield should communicate that both boards
-  participate in one shared tactical distance model.
-- Reproducibility: Reproduced in Ember Scrappers, Rotbloom Recall, Cloudspire
-  Phase, and Upgrade Lab.
-- Severity: Medium UX issue.
+- Steps: Open `?scenario=engagement-lab` at 1280 x 720.
+- Observed: The Cinder Scout selected/range/next-move markers are immediately
+  visible, while the out-of-range target marker sits on the enemy board lower in
+  the arena.
+- Expected: For preview labs, the selected Unit, likely target, and next move
+  should be visible together whenever practical.
+- Severity: Low to medium. The panel text prevents confusion, but the board
+  preview is less immediate than it could be.
 
-### UX Confusion: Range Is Still Text-First
+### UX Confusion: Two Boards Still Do Not Feel Like One Battlefield
 
-- Steps to reproduce: Inspect melee and ranged units, then read combat preview
-  before and after movement.
-- Observed behavior: Range is clear in stat chips, inspector text, and summary
-  lines. The board itself does not show range, target, or threat bands.
-- Expected behavior: The board should preview selected targets and reachable
-  hex ranges so movement and attacks are visually predictable.
-- Reproducibility: Reproduced across all scenarios.
-- Severity: Medium UX issue.
+- Steps: Play any route with the Hex Arena.
+- Observed: Ally and enemy sides are visually clear, but the presentation reads
+  as two separate boards joined by an `Engagement Line`.
+- Expected: The battlefield should eventually communicate one shared tactical
+  engagement space.
+- Severity: Medium UX issue, but no longer the top blocker.
 
-### Noise Risk: Long Combat Summaries Are Hard To Scan
+### UX Risk: Long Combat Summaries Still Need Structure
 
-- Steps to reproduce: Run Cloudspire Phase to Round 2 and record combat against
-  Bloomhide Stomper.
-- Observed behavior: The recorded summary reached 123 events. Attack/damage
-  sequences were correct but dense.
-- Expected behavior: Long fights should have a compact timeline or collapsible
-  grouping so movement, attacks, phase, and outcomes can be read quickly.
-- Reproducibility: Reproduced in Cloudspire Phase Round 2.
-- Severity: Low to medium UX issue.
+- Steps: Record any combat and inspect Last Recorded Combat.
+- Observed: Short 11-event and 29-event fights were readable. The display still
+  renders a flat sequence with no grouping, filters, or timeline compression.
+- Expected: Longer fights should let players collapse movement, attacks,
+  triggers, raw debug details, and outcome highlights.
+- Severity: Low now, likely medium once combats grow longer.
 
-Smoke and balance report anomalies: none. No warnings appeared in the printed
-balance outcomes. No units were observed moving into occupied ground cells,
-failing to move when they should, attacking out of hex range, or looping until
-max duration.
+## 10. Known Limitations
 
-## 9. Recommended Next Tasks
+- Priority lab actions are debug placeholders only.
+- No real encounter main-phase card action skeleton exists yet.
+- Combat skirmishes still use the existing deterministic simulator result.
+- The priority shell has no hand, deck, mill, counterspell, hidden intent,
+  multiplayer, backend persistence, or real card timing windows.
+- Traits/teamups are display-only.
+- Duplicate upgrades are generic Unit/Echo combines with +1 ATK/+1 HP per level.
+- The Hex Arena is still React/CSS debug UI, not Pixi, animation, drag/drop, or
+  final battlefield rendering.
+- The two-board presentation remains a debug framing, not a finished shared
+  arena.
+- Raw debug event details are available behind disclosure, but the compact
+  combat summary is still not a full replay tool.
 
-Do Next: `feat(client): improve hex battlefield readability`
+## 11. Recommended Next Tasks
 
-Why: the hex topology is conceptually better, but the current visual framing is
-too wide and can hide occupied cells behind horizontal scroll. Before adding a
-timeline or range overlays, the board should reliably show the relevant units
-and preserve the odd-row hex read at normal desktop widths.
+Do next:
 
-Do Soon:
+`feat(rules): add encounter main-phase card action skeleton`
 
-- `feat(client): add combat movement timeline`
-- `feat(client): add range and target preview overlays`
-- `feat(client): unify ally and enemy board presentation`
-- Add compact summary grouping for long attack/damage sequences
-- Add a small board legend or hover/help affordance for odd-r row/col meaning
+Why: the browser now has enough preview and priority UI to expose the missing
+gameplay layer. A small rules-first action skeleton would let priority lab move
+from `Debug pressure` to real Packbound-shaped decisions without jumping into
+counterspells, hand/deck/mill, multiplayer, Pixi, or broad content expansion.
 
-Still Wait:
+Do soon:
+
+- `fix(client): separate priority action-log metadata from log text`
+- `feat(client): keep selected target and next move visible together in preview labs`
+- `feat(client): group or filter long combat summary events`
+- `feat(client): improve one-arena battlefield framing`
+
+Still wait:
 
 - Pixi
 - Drag/drop
-- Multiplayer
+- Animations
 - Backend
-- Broad card expansion
-- Full animated replay
-- Board resources
-- Deployment
-
-## 10. Raw Notes
-
-- Screenshot created at `C:\Code Projects\Packbound\playtest-notes\latest-ui.png`.
-- Default route screenshot confirmed `Enemy Hex Board`, `Ally Hex Board`,
-  `Odd-r hex`, and `Odd rows offset` labels.
-- Odd rows were visibly offset in the DOM and screenshot.
-- The screenshot also showed oversized hex cells and horizontal board scroll.
-- Ember Scrappers Round 1 resolved immediately with adjacent attacks and no
-  movement, which was expected.
-- Ember Scrappers Round 2 showed enemy Ember Scraprunner moving one hex after
-  Recall.
-- Rotbloom Recall was the clearest hex movement showcase.
-- Cloudspire Phase was the clearest ranged-identity showcase.
-- Upgrade Lab confirmed upgraded Cinder Scout stats and one-hex movement.
-- No raw logs, screenshots, traces, or local artifacts were committed.
+- Multiplayer
+- Hand/deck/mill
+- Counterspells
+- Broad card or mechanic expansion

@@ -13,6 +13,34 @@ TypeScript packages, while the React client is only a thin shell that imports
 validated content, opens deterministic packs, validates a planning state, and
 resolves combat into an event log.
 
+## Live Demo
+
+The GitHub Pages build is an internal/prototype browser demo for development
+sharing:
+
+https://moellerjdev.github.io/Packbound/
+
+Deployment happens automatically from `main` after CI verification passes. The
+demo is not a finished game or public release. The default route is the
+React/CSS debug client, and `?scenario=renderer-lab` exposes the experimental
+Pixi renderer lab.
+
+GitHub Pages must be configured in the repository settings to use GitHub
+Actions as the Pages source. If the repository remains private, Pages
+availability may depend on the GitHub plan and repository settings. Treat Pages
+sites as publicly accessible demos, and do not include secrets in the built
+client.
+
+## License
+
+Packbound is source-visible for development transparency and prototype demo
+sharing, but it is not open source. The code, game design, content, names,
+rules, and project materials remain proprietary unless explicit written
+permission is granted. No permission is granted to reuse, redistribute,
+sublicense, or create derivative works without explicit written permission.
+
+See `LICENSE` for the full proprietary notice.
+
 ## Workspace
 
 - `apps/client`: Minimal Vite React debug client.
@@ -39,6 +67,11 @@ pull request: install with a frozen pnpm lockfile, then `pnpm format:check`,
 `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`,
 `pnpm balance:report`, and `pnpm test:browser`. CI installs Playwright
 Chromium before the browser smoke step.
+
+On pushes to `main`, a separate deploy job runs after verification, builds the
+Vite client with the GitHub Pages base path, uploads `apps/client/dist` as a
+Pages artifact, and deploys through GitHub Actions Pages. Pull requests verify
+the project but do not deploy.
 
 ## Commands
 

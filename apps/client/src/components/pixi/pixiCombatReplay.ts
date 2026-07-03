@@ -1,9 +1,30 @@
 import type {
+  BoardLayer,
   BoardPosition,
+  CardDefId,
   CardInstanceId,
+  CardType,
   CombatEvent,
+  Keyword,
   PlayerSide
 } from "@packbound/shared";
+
+export type PixiReplayTokenDescriptor = {
+  readonly cardInstanceId: CardInstanceId;
+  readonly defId: CardDefId;
+  readonly name: string;
+  readonly side: PlayerSide;
+  readonly cardType: CardType | "Unknown";
+  readonly layer: BoardLayer;
+  readonly position: BoardPosition;
+  readonly statChips: readonly string[];
+  readonly traits: readonly string[];
+  readonly keywords: readonly Keyword[];
+};
+
+export type PixiReplayCommandOptions = {
+  readonly cardNamesByDefId?: ReadonlyMap<CardDefId, string>;
+};
 
 export type PixiReplayCommand =
   | {
@@ -37,6 +58,7 @@ export type PixiReplayCommand =
       readonly cardInstanceId: CardInstanceId;
       readonly side: PlayerSide;
       readonly position: BoardPosition;
+      readonly token: PixiReplayTokenDescriptor;
     }
   | {
       readonly type: "phaseOut";
@@ -44,8 +66,31 @@ export type PixiReplayCommand =
       readonly cardInstanceId: CardInstanceId;
     };
 
+const cardNameForDefId = (defId: CardDefId, options: PixiReplayCommandOptions): string =>
+  options.cardNamesByDefId?.get(defId) ?? defId;
+
+const replayTokenForAppearEvent = (
+  event: Extract<
+    CombatEvent,
+    { readonly type: "UnitSummoned" | "UnitRecalled" | "UnitPhasedIn" }
+  >,
+  options: PixiReplayCommandOptions
+): PixiReplayTokenDescriptor => ({
+  cardInstanceId: event.cardInstanceId,
+  defId: event.defId,
+  name: cardNameForDefId(event.defId, options),
+  side: event.side,
+  cardType: event.isEcho ? "Echo" : "Unit",
+  layer: event.position.layer,
+  position: event.position,
+  statChips: [],
+  traits: [],
+  keywords: []
+});
+
 export const combatEventsToPixiReplayCommands = (
-  events: readonly CombatEvent[]
+  events: readonly CombatEvent[],
+  options: PixiReplayCommandOptions = {}
 ): readonly PixiReplayCommand[] =>
   events.flatMap((event): readonly PixiReplayCommand[] => {
     switch (event.type) {
@@ -97,7 +142,8 @@ export const combatEventsToPixiReplayCommands = (
             timeMs: event.timeMs,
             cardInstanceId: event.cardInstanceId,
             side: event.side,
-            position: event.position
+            position: event.position,
+            token: replayTokenForAppearEvent(event, options)
           }
         ];
       case "UnitPhasedOut":

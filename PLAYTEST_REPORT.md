@@ -31,21 +31,28 @@ and Reset are clickable, repeated `Play -> Reset -> Play` did not create
 duplicate canvases, navigating away unmounted the canvas, navigating back
 remounted exactly one canvas, and the route produced no console errors.
 
-The biggest Pixi finding is replay accuracy/coverage, not layout. Damage numbers
-and destroyed markers are visible, but attack beams are easy to miss, movement
-was not visually confirmed on a visible token during this pass, and Rotbloom's
-recall event appeared in the text feed without a new recalled token appearing in
-the canvas. Pixi should stay opt-in until the replay can materialize
-summoned/recalled/appearing units from combat events and the token labels/effects
-are easier to read.
+Implementation update after this report: Pixi replay commands now carry
+deterministic token descriptors for `UnitSummoned`, `UnitRecalled`, and
+`UnitPhasedIn`, and the renderer creates missing replay tokens from those
+descriptors. A follow-up manual Rotbloom pass confirmed that the recalled Ember
+token now appears, moves, takes damage, can be destroyed, and does not duplicate
+after `Reset Replay` / `Play Replay`.
+
+The biggest remaining Pixi findings are replay control and compact readability,
+not the missing-token bug. Damage numbers and destroyed markers are visible, but
+attack beams are still easy to miss, long replays still rush by without
+pause/step/scrub controls, and token names/stat chips are small at 1280 x 720.
+Pixi should stay opt-in until those readability controls improve.
 
 Recommended next task:
 
-`fix(client): render recalled Pixi replay units from combat events`
+`feat(client): add Pixi replay pause and step controls`
 
 ## 2. Environment And Commands
 
-- Commit tested: `00e4c64711a2acdc8e7abf4bb1de92475e3a26ce`
+- Commit tested before renderer-lab fix: `b8656401e653ab97f2f7de79aaf637e23f6b7a7d`
+- Implementation verified: local working tree for
+  `fix(client): render recalled Pixi replay units`
 - Baseline: `main`, aligned with `origin/main`
 - OS/environment: Windows, PowerShell, Codex desktop workspace
 - Node version: `v24.18.0`
@@ -63,20 +70,21 @@ Recommended next task:
   child listener on port 5173 after manual testing
 - Report file behavior: `PLAYTEST_REPORT.md` was overwritten, not duplicated
 
-| Command                                         | Status | Notes                                                                  |
-| ----------------------------------------------- | ------ | ---------------------------------------------------------------------- |
-| `git fetch origin`                              | Pass   | Fetched before testing.                                                |
-| `git status`                                    | Pass   | Clean worktree on `main`, aligned with `origin/main`.                  |
-| Commit ancestry check                           | Pass   | Local `main` includes `00e4c64711a2acdc8e7abf4bb1de92475e3a26ce`.      |
-| Dependency check                                | Pass   | `node_modules` present; Pixi installed; `pnpm install` skipped.        |
-| `pnpm typecheck`                                | Pass   | All workspace project typechecks passed.                               |
-| `pnpm test:browser`                             | Pass   | 5 Chromium smoke tests passed before manual playtest.                  |
-| `pnpm build`                                    | Pass   | Build passed with the expected Pixi/Vite chunk-size warning.           |
-| `pnpm dev -- --host 127.0.0.1`                  | Pass   | Served Vite on `http://127.0.0.1:5173/` for manual playtesting.        |
-| `pnpm exec prettier --write PLAYTEST_REPORT.md` | Pass   | Report formatted after overwrite.                                      |
-| `pnpm format:check`                             | Pass   | Final formatting check passed.                                         |
-| `pnpm test:browser`                             | Pass   | Re-run after report edit because route wording/selectors were checked. |
-| `git diff --check`                              | Pass   | No whitespace errors.                                                  |
+| Command                                                                                                                              | Status | Notes                                                                  |
+| ------------------------------------------------------------------------------------------------------------------------------------ | ------ | ---------------------------------------------------------------------- |
+| `git fetch origin`                                                                                                                   | Pass   | Fetched before testing.                                                |
+| `git status`                                                                                                                         | Pass   | Clean worktree on `main`, aligned with `origin/main`.                  |
+| Commit ancestry check                                                                                                                | Pass   | Local `main` includes `00e4c64711a2acdc8e7abf4bb1de92475e3a26ce`.      |
+| Dependency check                                                                                                                     | Pass   | `node_modules` present; Pixi installed; `pnpm install` skipped.        |
+| `pnpm typecheck`                                                                                                                     | Pass   | All workspace project typechecks passed.                               |
+| `pnpm test -- apps/client/src/components/pixi/pixiCombatReplay.test.ts apps/client/src/components/pixi/pixiBattlefieldModel.test.ts` | Pass   | Focused Pixi replay/model tests passed after the fix.                  |
+| `pnpm test:browser`                                                                                                                  | Pass   | 5 Chromium smoke tests passed before manual playtest.                  |
+| `pnpm build`                                                                                                                         | Pass   | Build passed with the expected Pixi/Vite chunk-size warning.           |
+| `pnpm dev -- --host 127.0.0.1`                                                                                                       | Pass   | Served Vite on `http://127.0.0.1:5173/` for manual playtesting.        |
+| `pnpm exec prettier --write PLAYTEST_REPORT.md`                                                                                      | Pass   | Report formatted after overwrite.                                      |
+| `pnpm format:check`                                                                                                                  | Pass   | Final formatting check passed.                                         |
+| `pnpm test:browser`                                                                                                                  | Pass   | Re-run after report edit because route wording/selectors were checked. |
+| `git diff --check`                                                                                                                   | Pass   | No whitespace errors.                                                  |
 
 Build warning observed and not fixed in this task:
 
@@ -179,8 +187,9 @@ What is confusing or too subtle:
 - Attack lines are fast enough that they are easy to miss.
 - The final destroyed `X` state works, but dimmed destroyed units could be more
   obvious.
-- The feed says `Visualized move, attack, damage, destroyed`, but the lab does
-  not yet communicate which event types were actually visible in the current
+- The feed says `Visualized appear/recall, move, attack, damage, destroyed`,
+  which is more accurate after the recall-token fix. It still does not
+  distinguish supported event types from event types observed in the current
   replay.
 - I did not observe a support-layer/relic token in the tested renderer-lab
   starter states, so support readability remains unverified.
@@ -199,12 +208,12 @@ Rotbloom Recall:
 - Feed: 2 shared field units, 111 replay events, player win.
 - Text feed included `recall`, `move`, `attack`, `damage`, and `destroyed`
   events.
-- Important issue: the feed said `You recalled Ember Scraprunner from Ashes`,
-  but I did not see a new Ember token appear in the Pixi canvas. The recalled
-  unit also appears to be the mover in the feed, so movement direction was not
-  visually confirmed on the canvas.
-- Likely cause from observed behavior: replay commands can include appear/move
-  events for a card that is not in the initial Pixi model token map.
+- Fixed follow-up result: `You recalled Ember Scraprunner from Ashes` now
+  materializes an Ember Scraprunner token on the ally side, and later movement
+  events visibly move that same token across the canvas.
+- Damage and destroyed visuals still worked after the recalled token was created.
+- `Reset Replay` followed by `Play Replay` restarted cleanly with one canvas and
+  no stale duplicate token.
 
 Cloudspire Phase:
 
@@ -225,10 +234,9 @@ Replay pacing:
 ### Default-Renderer Decision
 
 Pixi should remain lab-only for now. The single-arena direction is promising,
-but the current implementation is not ready to replace the React/CSS Hex Arena
-until off-model appear/recalled units render correctly, movement can be observed
-reliably, labels/stats are larger or otherwise inspectable, and replay controls
-make long combats understandable.
+and off-model recalled tokens now render, but the current implementation is not
+ready to replace the React/CSS Hex Arena until labels/stats are larger or
+otherwise inspectable and replay controls make long combats understandable.
 
 ## 6. `?scenario=engagement-lab`
 
@@ -312,29 +320,31 @@ No horizontal overflow appeared in the upgrade lab.
 
 ## 9. Stale Report Items Rechecked
 
-| Old report item                               | Current status       | Current finding                                                                 |
-| --------------------------------------------- | -------------------- | ------------------------------------------------------------------------------- |
-| Hex board has horizontal scroll               | Fixed                | No horizontal page overflow at 1280 x 720 on tested routes.                     |
-| Occupied cells hidden to the right            | Fixed horizontally   | Occupied cells fit width; vertical density remains a separate issue.            |
-| Missing range/target preview                  | Fixed substantially  | Selected, range, target, attack/out-of-range, and next-move markers work.       |
-| Two boards do not feel like one arena         | Partially addressed  | Default still has two boards; Pixi lab gives a stronger one-arena prototype.    |
-| Long combat summaries need grouping/filtering | Still true           | Especially visible in Rotbloom's 111-event renderer-lab feed.                   |
-| Priority shell is not visible                 | Fixed for developers | Priority lab now shows stack, source context, stability, skirmish, second main. |
-| Priority action log metadata runs together    | Fixed                | Metadata is rendered as a separate muted row below each sentence.               |
-| Renderer lab not manually evaluated           | Fixed by this report | Pixi lab has now been manually tested across lifecycle, viewport, and replay.   |
+| Old report item                                | Current status       | Current finding                                                                 |
+| ---------------------------------------------- | -------------------- | ------------------------------------------------------------------------------- |
+| Hex board has horizontal scroll                | Fixed                | No horizontal page overflow at 1280 x 720 on tested routes.                     |
+| Occupied cells hidden to the right             | Fixed horizontally   | Occupied cells fit width; vertical density remains a separate issue.            |
+| Missing range/target preview                   | Fixed substantially  | Selected, range, target, attack/out-of-range, and next-move markers work.       |
+| Two boards do not feel like one arena          | Partially addressed  | Default still has two boards; Pixi lab gives a stronger one-arena prototype.    |
+| Long combat summaries need grouping/filtering  | Still true           | Especially visible in Rotbloom's 111-event renderer-lab feed.                   |
+| Priority shell is not visible                  | Fixed for developers | Priority lab now shows stack, source context, stability, skirmish, second main. |
+| Priority action log metadata runs together     | Fixed                | Metadata is rendered as a separate muted row below each sentence.               |
+| Renderer lab not manually evaluated            | Fixed by this report | Pixi lab has now been manually tested across lifecycle, viewport, and replay.   |
+| Rotbloom recall token missing from Pixi replay | Fixed                | Recalled Ember token now appears, moves, and can be damaged/destroyed.          |
 
 ## 10. Bugs Or Confusions
 
-### Bug: Rotbloom Recall Event Did Not Produce A Visible Pixi Token
+### Fixed: Rotbloom Recall Event Now Produces A Visible Pixi Token
 
 - Steps: Open `?scenario=renderer-lab`, select Rotbloom Recall, play the replay.
-- Observed: Renderer Feed included `You recalled Ember Scraprunner from Ashes`
-  and later move events for Ember Scraprunner, but no new Ember token appeared in
-  the Pixi canvas during the pass.
-- Expected: Recalled/summoned/appearing units should materialize as replay
-  tokens even when they are not in the initial board model.
-- Severity: Medium for the renderer lab. This blocks Pixi from being a trusted
-  replay view for mechanics that create or return units mid-combat.
+- Observed before fix: Renderer Feed included
+  `You recalled Ember Scraprunner from Ashes` and later move events for Ember
+  Scraprunner, but no new Ember token appeared in the Pixi canvas.
+- Observed after fix: the recalled Ember token appears in the ally field, then
+  moves across later replay commands and shows damage/destroyed state.
+- Current status: fixed for the tested Rotbloom recall path. `UnitSummoned` and
+  `UnitPhasedIn` now use the same token-descriptor path, but they were covered
+  by unit tests rather than manually observed in this pass.
 
 ### UX Confusion: Pixi Token Text Is Too Small
 
@@ -371,15 +381,88 @@ No horizontal overflow appeared in the upgrade lab.
   renderer is accurate enough to replace the fallback.
 - Severity: Low for the lab, expected by current design.
 
-## 11. Known Limitations
+## 11. How To Manually Test The Pixi Renderer Lab
+
+### Setup
+
+1. Open a terminal in the repo.
+2. Run `git pull --rebase origin main`.
+3. Run `pnpm install` only if dependencies are missing.
+4. Run `pnpm dev -- --host 127.0.0.1`.
+5. Open `http://127.0.0.1:5173/?scenario=renderer-lab`.
+
+### What You Are Looking At
+
+- The React/CSS Hex Arena is the debug fallback and remains above the Pixi lab.
+- The Pixi Renderer Lab is the canvas-based battlefield below.
+- The Pixi field is one shared arena: enemy side on top, ally side on bottom,
+  engagement line in the middle.
+- Cyan/blue means player/ally side.
+- Ember/red means enemy side.
+- Glowing cells show selected/range/target/next-move overlays from the existing
+  engagement preview.
+- Circular tokens are units. Smaller/support-looking tokens are
+  support/relic-style permanents if present.
+- Small chips and labels are compact stat/name information.
+- Renderer Feed shows shared field units, replay events, winner, and the event
+  types currently visualized.
+- Combat Feed Sample is the text truth source to compare against the Pixi
+  replay.
+
+### Basic Route Check
+
+1. Confirm the page says `Pixi Renderer Lab`.
+2. Confirm exactly one canvas appears.
+3. Confirm there is no horizontal page scroll.
+4. Confirm the React fallback board is still visible above.
+5. Click `Play Replay`.
+6. Watch for movement, attack beams, damage numbers, destroyed markers, and
+   appear/recall tokens.
+7. Click `Reset Replay`.
+8. Click `Play Replay` again.
+9. Confirm the replay restarts cleanly and does not duplicate canvases or stale
+   effects.
+
+### Starter-Specific Checks
+
+Use the Starter dropdown in the top bar to switch kits.
+
+- Ember Scrappers: short/simple combat. Verify attacks, damage, and destroyed
+  markers are readable.
+- Rotbloom Recall: most important check. Watch Combat Feed Sample for `recall`,
+  then confirm the recalled Ember token appears in the Pixi canvas and its later
+  movement is visible.
+- Cloudspire Phase: if phase events occur, watch for fade/appear behavior. If
+  they do not occur in that run, note that phase support exists in the replay
+  command path but was not triggered in the manual pass.
+
+### What To Report If Something Looks Wrong
+
+Note:
+
+- Route.
+- Starter kit.
+- Clicked sequence.
+- Whether the text combat feed showed the event.
+- Whether Pixi showed the same event.
+- Whether the issue happened before or after `Reset Replay`.
+- Browser console errors, if any.
+- Whether there was horizontal scroll or clipping.
+
+## 12. Known Limitations
 
 - Pixi renderer lab is opt-in only and is not the default battlefield.
 - The default React/CSS Hex Arena remains the reliable debug battlefield.
 - Pixi uses generated shapes and text, not final art assets.
 - Pixi has no drag/drop, hit-target inspection, hover tooltips, or board editing.
 - Replay controls are limited to Play and Reset.
-- Recalled/summoned/off-model replay units were not visually materialized in
-  this pass.
+- Newly materialized appear/recall tokens use event metadata; if a card is not
+  in the initial board model, stat chips, traits, and keywords are currently
+  empty.
+- Renderer Feed's `Shared field units` count reflects the initial shared field,
+  not dynamic replay-created tokens.
+- Summoned and phased-in off-model tokens use the same descriptor path as
+  recalled units, but they were not manually observed in this pass.
 - Phase-in/phase-out visuals are supported in the command model but were not
   observed in the tested Cloudspire replay.
 - Support/relic token readability was not observed in the tested renderer-lab
@@ -393,15 +476,16 @@ No horizontal overflow appeared in the upgrade lab.
 - Duplicate upgrades remain generic +1 ATK/+1 HP combines.
 - Combat summaries and feeds still need grouping/filtering for longer fights.
 
-## 12. Recommended Next Tasks
+## 13. Recommended Next Tasks
 
 Do next:
 
-`fix(client): render recalled Pixi replay units from combat events`
+`feat(client): add Pixi replay pause and step controls`
 
-Why: Rotbloom's recall/move events are exactly the kind of mechanics the replay
-lab needs to prove. If the text feed says a unit appeared or moved but the canvas
-does not show it, the renderer cannot become the default battlefield yet.
+Why: the recall-token correctness gap is fixed, so the next practical blocker is
+manual comprehension. Rotbloom's 111-event replay is now visually more complete,
+but it still moves too quickly to inspect comfortably without pause/step
+controls.
 
 Do soon:
 

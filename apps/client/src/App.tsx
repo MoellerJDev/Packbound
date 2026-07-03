@@ -69,6 +69,9 @@ const activeDebugScenarioId = debugScenarioFromSearch(window.location.search);
 
 const cardName = (defId: CardDefId): string =>
   sampleCatalog.cardsById.get(defId)?.name ?? defId;
+const cardNamesByDefId = new Map(
+  sampleCatalog.cards.map((card) => [card.id, card.name] as const)
+);
 
 const combatResultForAction = (result: CombatResultLike): CombatResultLike => ({
   winner: result.winner,
@@ -840,6 +843,7 @@ export function App() {
               <PixiBattlefieldRenderer
                 model={pixiBattlefieldModel}
                 combatEvents={rendererLabCombat?.events ?? []}
+                cardNamesByDefId={cardNamesByDefId}
                 replayRequestKey={rendererReplay.key}
                 playReplay={rendererReplay.play}
               />
@@ -861,7 +865,7 @@ export function App() {
                 </div>
                 <div>
                   <dt>Visualized</dt>
-                  <dd>move, attack, damage, destroyed</dd>
+                  <dd>appear/recall, move, attack, damage, destroyed</dd>
                 </div>
               </dl>
               <h3>Preview Overlays</h3>

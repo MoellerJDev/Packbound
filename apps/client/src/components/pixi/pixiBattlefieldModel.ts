@@ -82,7 +82,7 @@ const sameNativeCoordinate = (
   right: Pick<BoardPosition, "row" | "col">
 ): boolean => left.row === right.row && left.col === right.col;
 
-const initialsForName = (name: string): string => {
+export const initialsForName = (name: string): string => {
   const words = name.split(/\s+/).filter(Boolean);
   if (words.length === 0) {
     return "?";

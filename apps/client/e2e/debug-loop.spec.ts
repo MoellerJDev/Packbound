@@ -421,7 +421,9 @@ test("renderer lab loads Pixi battlefield canvas and replay controls", async ({
   ).toBeVisible();
   await expect(rendererLab.getByText("Shared field units")).toBeVisible();
   await expect(rendererLab.getByText("Replay events")).toBeVisible();
-  await expect(rendererLab.getByText("move, attack, damage, destroyed")).toBeVisible();
+  await expect(
+    rendererLab.getByText("appear/recall, move, attack, damage, destroyed")
+  ).toBeVisible();
   await expect(rendererLab.getByText("Selected halo")).toBeVisible();
 
   const rendererHost = page.getByTestId("pixi-renderer-host");

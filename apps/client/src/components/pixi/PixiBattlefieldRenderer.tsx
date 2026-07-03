@@ -2,10 +2,12 @@ import { useEffect, useRef } from "react";
 import { Application, Container, Graphics, Text } from "pixi.js";
 
 import type { CombatEvent } from "@packbound/shared";
+import type { CardDefId } from "@packbound/shared";
 
 import {
   combatEventsToPixiReplayCommands,
-  type PixiReplayCommand
+  type PixiReplayCommand,
+  type PixiReplayTokenDescriptor
 } from "./pixiCombatReplay";
 import {
   hexCenterForSharedCell,
@@ -14,12 +16,17 @@ import {
   sharedCellForBoardPosition,
   type PixiPoint
 } from "./pixiBattlefieldLayout";
-import type { PixiBattlefieldCard, PixiBattlefieldModel } from "./pixiBattlefieldModel";
+import {
+  initialsForName,
+  type PixiBattlefieldCard,
+  type PixiBattlefieldModel
+} from "./pixiBattlefieldModel";
 import { PIXI_BATTLEFIELD_THEME, sideTheme } from "./pixiTheme";
 
 type PixiBattlefieldRendererProps = {
   readonly model: PixiBattlefieldModel;
   readonly combatEvents: readonly CombatEvent[];
+  readonly cardNamesByDefId?: ReadonlyMap<CardDefId, string>;
   readonly replayRequestKey: number;
   readonly playReplay: boolean;
 };
@@ -268,6 +275,42 @@ const drawToken = (card: PixiBattlefieldCard): TokenView => {
   return { card, container, baseScale: 1 };
 };
 
+const replayTokenCard = (
+  token: PixiReplayTokenDescriptor,
+  position = token.position
+): PixiBattlefieldCard => ({
+  cardInstanceId: token.cardInstanceId,
+  defId: token.defId,
+  name: token.name,
+  initials: initialsForName(token.name),
+  side: token.side,
+  cardType: token.cardType,
+  layer: token.layer,
+  position,
+  sharedCell: sharedCellForBoardPosition(token.side, position),
+  statChips: [...token.statChips],
+  traits: [...token.traits],
+  keywords: [...token.keywords]
+});
+
+const ensureReplayToken = (
+  command: Extract<PixiReplayCommand, { readonly type: "appear" }>,
+  tokensByCardId: Map<string, TokenView>,
+  tokenLayer: Container
+): TokenView => {
+  const existingToken = tokensByCardId.get(command.cardInstanceId);
+  if (existingToken) {
+    return existingToken;
+  }
+
+  const token = drawToken(replayTokenCard(command.token, command.position));
+  token.container.scale.set(token.baseScale);
+  token.container.alpha = 0;
+  tokenLayer.addChild(token.container);
+  tokensByCardId.set(command.cardInstanceId, token);
+  return token;
+};
+
 const fitRoot = (app: Application, root: Container): void => {
   const scale = Math.min(
     app.screen.width / PIXI_BATTLEFIELD_LAYOUT.width,
@@ -354,6 +397,7 @@ const playCommand = async (
   app: Application,
   command: PixiReplayCommand,
   tokensByCardId: Map<string, TokenView>,
+  tokenLayer: Container,
   effectLayer: Container
 ): Promise<void> => {
   switch (command.type) {
@@ -414,17 +458,16 @@ const playCommand = async (
       return;
     }
     case "appear": {
-      const token = tokensByCardId.get(command.cardInstanceId);
-      if (!token) {
-        return;
-      }
+      const token = ensureReplayToken(command, tokensByCardId, tokenLayer);
       const sharedCell = sharedCellForBoardPosition(command.side, command.position);
       const to = hexCenterForSharedCell(sharedCell);
+      const startAlpha = token.container.alpha;
       token.container.position.set(to.x, to.y);
-      token.container.alpha = 1;
       await animate(app, 220, (progress) => {
+        token.container.alpha = startAlpha + (1 - startAlpha) * progress;
         token.container.scale.set(token.baseScale + Math.sin(progress * Math.PI) * 0.12);
       });
+      token.container.alpha = 1;
       token.container.scale.set(token.baseScale);
       return;
     }
@@ -445,6 +488,7 @@ const playReplayCommands = async (
   app: Application,
   commands: readonly PixiReplayCommand[],
   tokensByCardId: Map<string, TokenView>,
+  tokenLayer: Container,
   effectLayer: Container,
   isCancelled: () => boolean
 ): Promise<void> => {
@@ -452,7 +496,7 @@ const playReplayCommands = async (
     if (isCancelled()) {
       return;
     }
-    await playCommand(app, command, tokensByCardId, effectLayer);
+    await playCommand(app, command, tokensByCardId, tokenLayer, effectLayer);
     await wait(35);
   }
 };
@@ -460,6 +504,7 @@ const playReplayCommands = async (
 export const PixiBattlefieldRenderer = ({
   model,
   combatEvents,
+  cardNamesByDefId,
   replayRequestKey,
   playReplay
 }: PixiBattlefieldRendererProps) => {
@@ -532,8 +577,11 @@ export const PixiBattlefieldRenderer = ({
       if (playReplay) {
         await playReplayCommands(
           app,
-          combatEventsToPixiReplayCommands(combatEvents),
+          combatEventsToPixiReplayCommands(combatEvents, {
+            ...(cardNamesByDefId ? { cardNamesByDefId } : {})
+          }),
           tokensByCardId,
+          tokenLayer,
           effectLayer,
           () => cancelled
         );
@@ -548,7 +596,7 @@ export const PixiBattlefieldRenderer = ({
         app?.destroy(true, { children: true });
       }
     };
-  }, [combatEvents, model, playReplay, replayRequestKey]);
+  }, [cardNamesByDefId, combatEvents, model, playReplay, replayRequestKey]);
 
   return (
     <div

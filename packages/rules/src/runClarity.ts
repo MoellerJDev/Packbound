@@ -39,6 +39,9 @@ const formatAspectAccess = (access: Readonly<Record<Aspect, number>>): string =>
   return parts.length > 0 ? parts.join(", ") : "None";
 };
 
+const commanderEffectiveRebindTax = (run: RunState): number =>
+  Math.max(0, (run.commander?.rebindTax ?? 0) - (run.commander?.rebindTaxDiscount ?? 0));
+
 export const buildLoadoutResourceSummary = (
   run: RunState,
   catalog: ContentCatalog
@@ -65,7 +68,7 @@ export const buildLoadoutResourceSummary = (
     return sum + (def ? chargeCostTotal(def.cost) : 0);
   }, 0);
   const commanderRebindTaxUsed =
-    run.commander?.card.zone === "board" ? run.commander.rebindTax : 0;
+    run.commander?.card.zone === "board" ? commanderEffectiveRebindTax(run) : 0;
   const totalBoardChargeUsed = boardChargeUsed + commanderRebindTaxUsed;
   const roundedCombatChargePerSecond = Number(combatChargePerSecond.toFixed(4));
 
@@ -101,10 +104,29 @@ export const getRunNextActionMessage = (
         : "Fix loadout errors before combat.";
     case "combatReady":
       return "Next: review the preview, then record combat.";
-    case "reward":
-      return canApplyRewardNow
-        ? "Next: open one reward pack."
-        : "Next: rewards will appear after combat.";
+    case "reward": {
+      if (!canApplyRewardNow) {
+        return "Next: rewards will appear after combat.";
+      }
+
+      const packRewardClaimed = run.rewardHistory.some(
+        (entry) => entry.type === "pack" && entry.round === run.currentRound
+      );
+      const commanderUpgradeClaimed =
+        !run.commander ||
+        run.commander.upgradeHistory.some((entry) => entry.round === run.currentRound);
+
+      if (!packRewardClaimed && !commanderUpgradeClaimed) {
+        return "Next: open one reward pack and choose one Commander upgrade.";
+      }
+      if (!packRewardClaimed) {
+        return "Next: open one reward pack.";
+      }
+      if (!commanderUpgradeClaimed) {
+        return "Next: choose one Commander upgrade.";
+      }
+      return "Next: reward choices are complete.";
+    }
     case "combatResolved":
       return "Next: advance to the next round.";
   }

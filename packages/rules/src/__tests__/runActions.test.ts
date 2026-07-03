@@ -139,6 +139,10 @@ describe("run action reducer", () => {
         throw new Error("Expected first reward purchase history");
       }
       expect(firstPurchase.goldBefore).toBeGreaterThan(firstPurchase.goldAfter);
+      dispatch({
+        type: "applyCommanderUpgradeChoice",
+        choiceId: "combat_training"
+      });
       dispatch({ type: "advanceRunAfterCombat" });
 
       const loadoutAction = firstLegalPoolAction(run);
@@ -153,6 +157,10 @@ describe("run action reducer", () => {
         combatResult: combatResult("round-2")
       });
       dispatch({ type: "applyPackReward", choiceId: firstRewardChoiceId(run) });
+      dispatch({
+        type: "applyCommanderUpgradeChoice",
+        choiceId: "combat_training"
+      });
       dispatch({ type: "advanceRunAfterCombat" });
 
       expect(run.status).toBe("won");

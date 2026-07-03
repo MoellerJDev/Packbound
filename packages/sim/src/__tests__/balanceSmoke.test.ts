@@ -7,6 +7,7 @@ import {
   createRunFromStarterKit,
   getCurrentEncounter,
   getCurrentRewardChoices,
+  applyCommanderUpgradeChoice,
   markCombatReady,
   prepareEncounterForRound,
   recordCombatResult,
@@ -160,6 +161,9 @@ describe("balance smoke fixtures", () => {
     run = applyPackReward(run, sampleCatalog, rewardChoice.id);
     expect(run.openedPacks).toHaveLength(1);
     expect(run.pool.length).toBeGreaterThan(poolSizeBeforeReward);
+
+    run = applyCommanderUpgradeChoice(run, "combat_training");
+    expect(run.phase).toBe("combatResolved");
 
     run = advanceRunAfterCombat(run, sampleCatalog);
     expect(["planning", "complete"]).toContain(run.phase);

@@ -1,7 +1,10 @@
 import type { ContentCatalog } from "@packbound/content";
 import type { CombatEvent, CombatWinner, SimulationWarning } from "@packbound/shared";
 
-import { applyCommanderCombatLifecycle } from "./commander";
+import {
+  applyCommanderCombatLifecycle,
+  getCurrentCommanderUpgradeChoices
+} from "./commander";
 import { calculateCombatGoldReward } from "./economy";
 import { prepareEncounterForRound } from "./encounters";
 import { validateRunLoadout } from "./loadout";
@@ -118,14 +121,19 @@ export const applyPackReward = (
     cardInstanceIds: openedPack.slots.map((slot) => slot.cardInstanceId)
   };
 
-  return {
+  const nextRun = {
     ...run,
-    phase: "combatResolved",
     playerGold: goldAfter,
     pool: [...run.pool, ...openedPack.cards],
     currentRewardChoices: [],
     rewardHistory: [...run.rewardHistory, historyEntry],
     openedPacks: [...run.openedPacks, openedPack]
+  };
+
+  return {
+    ...nextRun,
+    phase:
+      getCurrentCommanderUpgradeChoices(nextRun).length > 0 ? "reward" : "combatResolved"
   };
 };
 

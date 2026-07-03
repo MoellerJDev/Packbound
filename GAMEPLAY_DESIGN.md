@@ -188,8 +188,9 @@ planning, can return it to Command during planning, and track visible deploy
 count plus Rebind Tax. Rebind Tax is now enforced as generic Board Charge while
 the Commander is deployed or being deployed. Recording combat now returns a
 destroyed deployed player Commander to Command Zone and increases Rebind Tax.
-It still does not have authored Commander content, Commander upgrades,
-Signature Relics, or main-phase Commander actions.
+The reward phase now has a minimal Commander upgrade choice prototype with
+`Combat Training` and `Rebind Calibration`. It still does not have authored
+Commander content, Signature Relics, or main-phase Commander actions.
 
 ### Why Add A Commander Layer?
 
@@ -292,6 +293,13 @@ Commander upgrades should be discrete run choices, not only duplicate combines.
 They can appear as milestone rewards, boss rewards, pack-adjacent choices,
 archetype achievements, or future encounter rewards.
 
+Current prototype status: after combat rewards, the run can offer one separate
+Commander upgrade bucket alongside the pack reward bucket. `Combat Training`
+raises only the current Commander's upgrade level by 1. `Rebind Calibration`
+adds a Rebind Tax discount that reduces effective generic Board Charge tax for
+future deployments. These are placeholder effects to prove deterministic reward
+choice state, history, replay, and UI, not final authored Commander designs.
+
 Good upgrade choices:
 
 - Choose whether the Commander becomes cheaper to Rebind or stronger when
@@ -361,8 +369,9 @@ other encounter actions.
 Do not add a full hand/deck/mill system just to support Commanders. The first
 Commander prototype now proves zone lifecycle, planning deployment, planning
 return, generic Board Charge Rebind Tax enforcement, post-combat destruction
-return, and reducer replay. Next Commander work should add upgrade choices or
-encounter main-phase Commander actions in focused slices.
+return, reward-phase upgrade choices, and reducer replay. Next Commander work
+should add encounter main-phase Commander actions or richer lifecycle feedback
+in focused slices.
 
 ### Commander Non-Goals For Now
 

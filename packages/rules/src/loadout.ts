@@ -90,11 +90,14 @@ const getPoolCardForAction = (
 const firstValidationErrorReason = (result: ValidationResult): string =>
   result.errors[0]?.message ?? "Loadout would be illegal.";
 
+const commanderEffectiveRebindTax = (run: RunState): number =>
+  Math.max(0, (run.commander?.rebindTax ?? 0) - (run.commander?.rebindTaxDiscount ?? 0));
+
 const commanderRebindTaxSurcharges = (run: RunState) =>
-  run.commander?.card.zone === "board" && run.commander.rebindTax > 0
+  run.commander?.card.zone === "board" && commanderEffectiveRebindTax(run) > 0
     ? [
         {
-          amount: run.commander.rebindTax,
+          amount: commanderEffectiveRebindTax(run),
           label: "Commander Rebind Tax",
           cardInstanceId: run.commander.card.instanceId
         }

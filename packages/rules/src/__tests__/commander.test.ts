@@ -14,12 +14,16 @@ import {
 import {
   applyRunAction,
   applyRunActions,
+  applyPackReward,
   canDeployCommander,
   canPlaceCardOnBoard,
   canReturnCommanderToCommand,
   createRunFromStarterKit,
   deployCommander,
+  getCommanderEffectiveRebindTax,
+  getCurrentCommanderUpgradeChoices,
   getDefaultCommanderPosition,
+  getCurrentRewardChoices,
   recordCombatResult,
   replayRunActions,
   returnCommanderToCommand,
@@ -78,6 +82,21 @@ const readyCombatRun = (run: RunState): RunState =>
     { type: "markCombatReady" }
   ]);
 
+const rewardCombatRun = (run: RunState): RunState => {
+  const ready = readyCombatRun(run);
+  return recordCombatResult(ready, combatResult([]), {
+    encounterId: requireCurrentEncounterId(ready)
+  });
+};
+
+const firstPackRewardChoiceId = (run: RunState): string => {
+  const choice = getCurrentRewardChoices(run, sampleCatalog)[0];
+  if (!choice) {
+    throw new Error("Expected a pack reward choice");
+  }
+  return choice.id;
+};
+
 const combatResult = (
   events: readonly CombatEvent[],
   overrides: Partial<CombatResultLike> = {}
@@ -126,6 +145,8 @@ describe("command zone commander prototype", () => {
     expect(run.commander).toMatchObject({
       deployCount: 0,
       rebindTax: 0,
+      rebindTaxDiscount: 0,
+      upgradeHistory: [],
       card: {
         defId: "sparkcatch_apprentice",
         ownerId: run.playerId,
@@ -450,6 +471,32 @@ describe("command zone commander prototype", () => {
     ).toContain(ready.commander?.card.instanceId);
   });
 
+  it("ignores malformed same-owner Commander destruction events from the enemy side", () => {
+    const run = createCommanderRun("commander-wrong-side-destroyed-seed");
+    const deployed = deployCommander(run, sampleCatalog, requireCommanderPosition(run));
+    const ready = readyCombatRun(deployed);
+
+    const recorded = recordCombatResult(
+      ready,
+      combatResult([
+        unitDestroyedEvent(ready, ready.commander!.card, {
+          side: "playerB",
+          unitId: asUnitInstanceId(`playerB:${ready.commander!.card.instanceId}`)
+        })
+      ]),
+      { encounterId: requireCurrentEncounterId(ready) }
+    );
+
+    expect(recorded.commander).toMatchObject({
+      deployCount: 1,
+      rebindTax: 0,
+      card: { zone: "board" }
+    });
+    expect(
+      recorded.board.placements.map((placement) => placement.cardInstanceId)
+    ).toContain(ready.commander?.card.instanceId);
+  });
+
   it("increments Rebind Tax only once for duplicate Commander destruction events", () => {
     const run = createCommanderRun("commander-duplicate-destroyed-seed");
     const deployed = deployCommander(run, sampleCatalog, requireCommanderPosition(run));
@@ -532,5 +579,234 @@ describe("command zone commander prototype", () => {
       rebindTax: 1,
       card: { zone: "command" }
     });
+  });
+
+  it("exposes Commander upgrade choices only during reward with a Commander", () => {
+    const planning = createCommanderRun("commander-upgrade-choice-window-seed");
+    const ready = readyCombatRun(planning);
+    const reward = recordCombatResult(ready, combatResult([]), {
+      encounterId: requireCurrentEncounterId(ready)
+    });
+
+    expect(getCurrentCommanderUpgradeChoices(planning)).toEqual([]);
+    expect(getCurrentCommanderUpgradeChoices(ready)).toEqual([]);
+    const { commander, ...rewardWithoutCommander } = reward;
+    expect(commander).toBeDefined();
+    expect(getCurrentCommanderUpgradeChoices(rewardWithoutCommander)).toEqual([]);
+    expect(getCurrentCommanderUpgradeChoices(reward)).toEqual([
+      expect.objectContaining({
+        id: "combat_training",
+        label: "Combat Training"
+      }),
+      expect.objectContaining({
+        id: "rebind_calibration",
+        label: "Rebind Calibration"
+      })
+    ]);
+  });
+
+  it("applies one Commander upgrade choice per reward round and records history", () => {
+    const reward = rewardCombatRun(createCommanderRun("commander-upgrade-history-seed"));
+
+    const upgraded = applyRunAction(reward, sampleCatalog, {
+      type: "applyCommanderUpgradeChoice",
+      choiceId: "combat_training"
+    });
+
+    expect(upgraded.commander).toMatchObject({
+      card: { upgradeLevel: 1 },
+      upgradeHistory: [
+        expect.objectContaining({
+          round: reward.currentRound,
+          upgradeId: "combat_training",
+          label: "Combat Training"
+        })
+      ]
+    });
+    expect(getCurrentCommanderUpgradeChoices(upgraded)).toEqual([]);
+    expect(() =>
+      applyRunAction(upgraded, sampleCatalog, {
+        type: "applyCommanderUpgradeChoice",
+        choiceId: "rebind_calibration"
+      })
+    ).toThrow(/already claimed/);
+    expect(JSON.parse(JSON.stringify(upgraded.commander?.upgradeHistory))).toEqual(
+      upgraded.commander?.upgradeHistory
+    );
+  });
+
+  it("Combat Training upgrades only the Commander card in Command Zone", () => {
+    const reward = rewardCombatRun(createCommanderRun("commander-training-command-seed"));
+    const normalCopy = {
+      ...reward.commander!.card,
+      instanceId: asCardInstanceId("normal-pool-sparkcatch-copy"),
+      zone: "pool" as const,
+      upgradeLevel: 0
+    };
+
+    const upgraded = applyRunAction(
+      {
+        ...reward,
+        pool: [...reward.pool, normalCopy]
+      },
+      sampleCatalog,
+      {
+        type: "applyCommanderUpgradeChoice",
+        choiceId: "combat_training"
+      }
+    );
+
+    expect(upgraded.commander?.card).toMatchObject({
+      zone: "command",
+      upgradeLevel: 1
+    });
+    expect(
+      upgraded.pool.find(
+        (card) => card.instanceId === asCardInstanceId("normal-pool-sparkcatch-copy")
+      )?.upgradeLevel
+    ).toBe(0);
+  });
+
+  it("Combat Training updates activeCards when the Commander is deployed", () => {
+    const run = createCommanderRun("commander-training-board-seed");
+    const deployed = deployCommander(run, sampleCatalog, requireCommanderPosition(run));
+    const reward = rewardCombatRun(deployed);
+
+    const upgraded = applyRunAction(reward, sampleCatalog, {
+      type: "applyCommanderUpgradeChoice",
+      choiceId: "combat_training"
+    });
+
+    expect(upgraded.commander?.card).toMatchObject({
+      zone: "board",
+      upgradeLevel: 1
+    });
+    expect(
+      upgraded.activeCards.find(
+        (card) => card.instanceId === upgraded.commander?.card.instanceId
+      )
+    ).toMatchObject({
+      zone: "board",
+      upgradeLevel: 1
+    });
+  });
+
+  it("Combat Training persists from Command Zone into later deployment", () => {
+    const reward = rewardCombatRun(createCommanderRun("commander-training-deploy-seed"));
+    const trained = applyRunAction(reward, sampleCatalog, {
+      type: "applyCommanderUpgradeChoice",
+      choiceId: "combat_training"
+    });
+    const packed = applyPackReward(
+      trained,
+      sampleCatalog,
+      firstPackRewardChoiceId(trained)
+    );
+    const nextPlanning = applyRunAction(packed, sampleCatalog, {
+      type: "advanceRunAfterCombat"
+    });
+    const deployed = deployCommander(
+      nextPlanning,
+      sampleCatalog,
+      requireCommanderPosition(nextPlanning)
+    );
+
+    expect(deployed.commander?.card).toMatchObject({
+      zone: "board",
+      upgradeLevel: 1
+    });
+    expect(
+      deployed.activeCards.find(
+        (card) => card.instanceId === deployed.commander?.card.instanceId
+      )?.upgradeLevel
+    ).toBe(1);
+  });
+
+  it("Rebind Calibration discounts effective Rebind Tax and deployment validation", () => {
+    const run = createCommanderRun("commander-rebind-calibration-seed");
+    const commanderPosition = requireCommanderPosition(run);
+    const deployed = deployCommander(run, sampleCatalog, commanderPosition);
+    const returned = returnCommanderToCommand(deployed);
+    const reward = rewardCombatRun(returned);
+
+    expect(returned.commander?.rebindTax).toBe(1);
+    expect(getCommanderEffectiveRebindTax(returned.commander)).toBe(1);
+    expect(canDeployCommander(returned, sampleCatalog, commanderPosition)).toEqual({
+      ok: false,
+      reason:
+        "Commander Rebind Tax requires 4 total Board Charge, but the Source Row provides 3."
+    });
+
+    const calibrated = applyRunAction(reward, sampleCatalog, {
+      type: "applyCommanderUpgradeChoice",
+      choiceId: "rebind_calibration"
+    });
+    const packed = applyPackReward(
+      calibrated,
+      sampleCatalog,
+      firstPackRewardChoiceId(calibrated)
+    );
+    const nextPlanning = applyRunAction(packed, sampleCatalog, {
+      type: "advanceRunAfterCombat"
+    });
+
+    expect(nextPlanning.commander).toMatchObject({
+      rebindTax: 1,
+      rebindTaxDiscount: 1
+    });
+    expect(getCommanderEffectiveRebindTax(nextPlanning.commander)).toBe(0);
+    expect(canDeployCommander(nextPlanning, sampleCatalog, commanderPosition)).toEqual({
+      ok: true
+    });
+  });
+
+  it("replays Commander upgrade choice actions deterministically", () => {
+    const initialRun = createCommanderRun("commander-upgrade-replay-seed");
+    const ready = readyCombatRun(initialRun);
+    const actions: readonly RunAction[] = [
+      {
+        type: "recordCombatResult",
+        encounterId: requireCurrentEncounterId(ready),
+        combatResult: combatResult([])
+      },
+      {
+        type: "applyCommanderUpgradeChoice",
+        choiceId: "rebind_calibration"
+      }
+    ];
+
+    const upgraded = applyRunActions(ready, sampleCatalog, actions);
+
+    expect(upgraded.commander).toMatchObject({
+      rebindTaxDiscount: 1,
+      upgradeHistory: [expect.objectContaining({ upgradeId: "rebind_calibration" })]
+    });
+    expect(replayRunActions(ready, sampleCatalog, actions)).toEqual(upgraded);
+    expect(JSON.parse(JSON.stringify(toRunActionLog(actions)))).toEqual(
+      toRunActionLog(actions)
+    );
+  });
+
+  it("keeps pack rewards and Commander upgrade rewards separate in the same round", () => {
+    const reward = rewardCombatRun(createCommanderRun("commander-reward-buckets-seed"));
+    const packChoiceId = firstPackRewardChoiceId(reward);
+
+    const packed = applyPackReward(reward, sampleCatalog, packChoiceId);
+
+    expect(packed.phase).toBe("reward");
+    expect(getCurrentRewardChoices(packed, sampleCatalog)).toEqual([]);
+    expect(getCurrentCommanderUpgradeChoices(packed)).toHaveLength(2);
+    expect(() => applyPackReward(packed, sampleCatalog, packChoiceId)).toThrow(
+      /Unknown reward choice/
+    );
+
+    const upgraded = applyRunAction(packed, sampleCatalog, {
+      type: "applyCommanderUpgradeChoice",
+      choiceId: "combat_training"
+    });
+
+    expect(upgraded.phase).toBe("combatResolved");
+    expect(upgraded.openedPacks).toHaveLength(1);
+    expect(upgraded.commander?.upgradeHistory).toHaveLength(1);
   });
 });

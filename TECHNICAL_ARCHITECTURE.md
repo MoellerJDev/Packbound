@@ -1080,14 +1080,16 @@ Expand them only through focused rules/content tasks with tests.
 ### Commander, Command Zone, And Rebind
 
 - The current prototype stores one Commander in serializable `RunState` with a
-  normal `CardInstance`, `deployCount`, and `rebindTax`.
+  normal `CardInstance`, `deployCount`, raw `rebindTax`,
+  `rebindTaxDiscount`, and upgrade history.
 - Command Zone is a real shared zone value. Starter-created runs currently
   derive a prototype Commander from existing Unit/Echo starter context rather
   than authored Commander content.
 - Commander deployment and return are replayable run actions owned by
   `packages/rules`. Rebind Tax is enforced as a generic Board Charge surcharge
   through planning validation while the Commander is deployed or being deployed.
-  Future actions should cover upgrade choice and any Signature Relic lifecycle.
+  Effective tax uses raw tax minus discount and never creates Aspect
+  requirements. Future actions should cover any Signature Relic lifecycle.
 - Commander deployment should validate through the same loadout, Board Charge,
   Source Row, and future encounter main-phase action boundaries as other card
   actions.
@@ -1095,6 +1097,10 @@ Expand them only through focused rules/content tasks with tests.
   in run progression by reading `UnitDestroyed` event metadata. The simulator
   still emits normal combat events; the run reducer removes the Commander from
   board/active cards, returns it to Command Zone, and increments Rebind Tax once.
+- Commander upgrade choices are deterministic rules/reward-state data, not
+  client-only UI. The current reward phase can keep pack rewards and Commander
+  upgrades as separate one-per-round buckets, and `applyCommanderUpgradeChoice`
+  records history on `CommanderState`.
 - Future Commander lifecycle logging should remain structured run/progression
   metadata, not renderer behavior.
 - Signature Relics should be modeled as explicit card instances or linked

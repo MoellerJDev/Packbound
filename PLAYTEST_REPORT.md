@@ -57,8 +57,8 @@ Reset -> Play` and checks the text state plus single-canvas safety.
 Planning update after the Commander design refactor: design docs now frame a
 future Commander / Command Zone / Rebind Tax / Signature Relic direction as a
 real card-like run identity layer, not a hero-power button. This task adds the
-first minimal Command Zone prototype while leaving Commander upgrades and
-Signature Relics as future work. Packs remain the primary adaptation engine.
+first minimal Command Zone prototype while leaving authored Commander content
+and Signature Relics as future work. Packs remain the primary adaptation engine.
 
 Implementation update after the Pixi readability pass: Renderer Lab tokens now
 use larger unit circles, stronger support plates, clearer nameplates, larger
@@ -93,6 +93,14 @@ Command Zone, removes it from board/active cards, preserves deploy count,
 increments Rebind Tax once, and leaves combat history/summary intact. The
 simulator output is unchanged.
 
+Implementation update after this task: the reward phase now has a minimal
+Commander upgrade choice prototype. Pack rewards and Commander upgrades are
+separate one-per-round buckets. `Combat Training` increases only the current
+Commander card's upgrade level by 1, while `Rebind Calibration` adds 1 Rebind
+Tax discount and lowers effective future deploy tax. The choices are
+deterministic, serializable, replayable run actions and are visible in the
+default route and renderer-lab debug UI.
+
 Implementation update after this task: the renderer-lab replay controller and
 Pixi renderer now guard replay command completions with the current reset
 generation and session-scoped busy state. Browser smoke covers `Step -> Reset ->
@@ -107,13 +115,15 @@ default-route confidence. Pixi should stay opt-in until those are addressed.
 
 Recommended next task:
 
-`feat(rules): add Commander upgrade choice prototype`
+`feat(rules): add Commander lifecycle log metadata`
 
 ## 2. Environment And Commands
 
 - Commit tested before renderer-lab fix: `b8656401e653ab97f2f7de79aaf637e23f6b7a7d`
+- Baseline before Commander upgrade prototype:
+  `851ee27ec8e19600cc1fe2c1d679109036dc7bf1`
 - Implementation verified: local working tree for
-  `feat(client): make renderer lab Pixi-centric`
+  `feat(rules): add commander upgrade choices`
 - Baseline: `main`, aligned with `origin/main`
 - OS/environment: Windows, PowerShell, Codex desktop workspace
 - Node version: `v24.18.0`
@@ -173,8 +183,8 @@ Run State guidance moved through the expected loop:
 - Planning: ready combat is enabled.
 - Combat ready: `Record Combat` becomes enabled after `Ready Combat`.
 - Reward: recording combat produces reward choices and disables advance until a
-  pack is opened.
-- Combat resolved: opening a pack enables `Advance`.
+  pack is opened and the one Commander upgrade bucket is resolved.
+- Combat resolved: resolving both reward buckets enables `Advance`.
 - Advancing moves to round 2 planning against Ash Debt Collector.
 
 The default route did not mount Pixi. It used the React/CSS Hex Arena, with
@@ -598,12 +608,13 @@ Note:
 - The Command Zone Commander prototype exists in `RunState`, but it reuses
   existing starter Unit/Echo definitions and has no authored Commander content.
 - Rebind Tax is enforced as generic Board Charge while the Commander is deployed
-  or being deployed, but there are no discounts, alternate costs, upgrades, or
-  encounter-phase Commander actions yet.
+  or being deployed, and Rebind Calibration can discount effective tax. There
+  are still no alternate costs or encounter-phase Commander actions.
 - Commander destruction-to-Command replacement is applied after combat is
   recorded, but there is no player-facing lifecycle log entry yet.
-- Commander upgrades, Signature Relics, encounter main-phase Commander actions,
-  enemy Commanders, and authored Commander effects are not implemented.
+- Commander upgrades are implemented only as two mechanical prototype choices.
+  Signature Relics, encounter main-phase Commander actions, enemy Commanders,
+  authored Commander cards, and authored Commander effects are not implemented.
 - Normal non-Commander unit death cleanup into Ashes is not implemented in
   run-progression state by this Commander-specific replacement.
 - Priority Lab has one real prototype action with Sparkfall source context, but
@@ -618,16 +629,17 @@ Note:
 
 Do next:
 
-`feat(rules): add Commander upgrade choice prototype`
+`feat(rules): add Commander lifecycle log metadata`
 
-Why: Command Zone lifecycle, generic Charge tax, and post-combat destruction
-return are now real reducer rules. The next Commander slice should prove
-discrete run-time upgrade choices without adding authored Commander content,
-Signature Relics, hand/deck/mill, enemy Commanders, or broad encounter timing.
+Why: Command Zone lifecycle, generic Charge tax, post-combat destruction return,
+and reward-phase Commander upgrades are now real reducer rules. The next narrow
+slice should make Commander deploy, return, destruction replacement, tax change,
+and upgrade application visible as structured run/progression log metadata
+without adding authored Commander content, Signature Relics, hand/deck/mill,
+enemy Commanders, or broad encounter timing.
 
 Do soon:
 
-- `feat(rules): add Commander lifecycle log metadata`
 - `feat(rules): add encounter main-phase Commander action skeleton`
 - `feat(client): add Pixi replay scrub/speed controls`
 - `feat(rules): evaluate expanding the canonical board to 6 rows x 10-12 columns`

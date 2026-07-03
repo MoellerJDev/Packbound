@@ -6,6 +6,11 @@ import type { PackRewardChoice, RewardChoice, RunState } from "./runState";
 
 const REWARD_CHOICE_COUNT = 3;
 
+export const hasPackRewardForCurrentRound = (run: RunState): boolean =>
+  run.rewardHistory.some(
+    (entry) => entry.type === "pack" && entry.round === run.currentRound
+  );
+
 const packChoiceForRun = (
   run: RunState,
   pack: PackDefinition,
@@ -70,6 +75,10 @@ export const getCurrentRewardChoices = (
   catalog: ContentCatalog
 ): readonly RewardChoice[] => {
   if (run.status !== "active" || run.phase !== "reward") {
+    return [];
+  }
+
+  if (hasPackRewardForCurrentRound(run)) {
     return [];
   }
 

@@ -21,8 +21,10 @@ import {
   describeUpgradeProgressGroup,
   passEncounterPriority,
   getCommanderDeploymentCandidatePosition,
+  getCommanderEffectiveRebindTax,
   getDefaultCommanderPosition,
   getCurrentEncounter,
+  getCurrentCommanderUpgradeChoices,
   getCurrentRewardChoices,
   getLatestOpenedPackCardInstanceIds,
   getLegalLoadoutActions,
@@ -37,6 +39,7 @@ import {
   validateRunLoadout,
   type BoardGridCardSummary,
   type CombatResultLike,
+  type CommanderUpgradeId,
   type EngagementPreviewSide,
   type EncounterMatchState,
   type LoadoutAction,
@@ -213,6 +216,10 @@ export function App() {
   >();
   const phase = getRunPhase(run);
   const rewardChoices = useMemo(() => getCurrentRewardChoices(run, sampleCatalog), [run]);
+  const commanderUpgradeChoices = useMemo(
+    () => getCurrentCommanderUpgradeChoices(run),
+    [run]
+  );
   const rewardOfferExplanations = useMemo(
     () => buildRewardOfferExplanations(run, sampleCatalog),
     [run]
@@ -285,8 +292,11 @@ export function App() {
     ? sampleCatalog.cardsById.get(run.commander.card.defId)
     : undefined;
   const commanderBaseBoardCharge = chargeCostTotal(commanderDefinition?.cost);
-  const commanderRebindTax = run.commander?.rebindTax ?? 0;
-  const commanderDeployBoardCharge = commanderBaseBoardCharge + commanderRebindTax;
+  const commanderRawRebindTax = run.commander?.rebindTax ?? 0;
+  const commanderRebindTaxDiscount = run.commander?.rebindTaxDiscount ?? 0;
+  const commanderEffectiveRebindTax = getCommanderEffectiveRebindTax(run.commander);
+  const commanderDeployBoardCharge =
+    commanderBaseBoardCharge + commanderEffectiveRebindTax;
   const commanderBoardChargeAfterDeploy =
     run.commander?.card.zone === "board"
       ? resourceSummary.boardChargeUsed
@@ -752,13 +762,33 @@ export function App() {
             <dd data-testid="commander-deploy-count">{commander?.deployCount ?? 0}</dd>
           </div>
           <div>
-            <dt>Rebind Tax</dt>
-            <dd data-testid="commander-rebind-tax">+{commanderRebindTax} Charge</dd>
+            <dt>Upgrade Level</dt>
+            <dd data-testid="commander-upgrade-level">
+              Lv {commander?.card.upgradeLevel ?? 0}
+            </dd>
+          </div>
+          <div>
+            <dt>Raw Rebind Tax</dt>
+            <dd data-testid="commander-raw-rebind-tax">
+              +{commanderRawRebindTax} Charge
+            </dd>
+          </div>
+          <div>
+            <dt>Tax Discount</dt>
+            <dd data-testid="commander-rebind-discount">
+              -{commanderRebindTaxDiscount} Charge
+            </dd>
+          </div>
+          <div>
+            <dt>Effective Rebind Tax</dt>
+            <dd data-testid="commander-rebind-tax">
+              +{commanderEffectiveRebindTax} Charge
+            </dd>
           </div>
           <div>
             <dt>Deploy Cost</dt>
             <dd data-testid="commander-deploy-cost">
-              {commanderBaseBoardCharge} base + {commanderRebindTax} tax ={" "}
+              {commanderBaseBoardCharge} base + {commanderEffectiveRebindTax} tax ={" "}
               {commanderDeployBoardCharge} Charge
             </dd>
           </div>
@@ -770,8 +800,8 @@ export function App() {
           </div>
         </dl>
         <p className="muted">
-          Prototype Commander. Rebind Tax is enforced as generic Board Charge while
-          deployed.
+          Prototype Commander. Effective Rebind Tax is enforced as generic Board Charge
+          while deployed.
         </p>
         <div className="mini-actions">
           <button
@@ -803,6 +833,72 @@ export function App() {
               <li key={line}>{line}</li>
             ))}
           </ul>
+        ) : null}
+      </div>
+    );
+  };
+
+  const renderCommanderUpgradePanel = (variant: "panel" | "renderer-lab-panel") => {
+    const commander = run.commander;
+    const Heading = variant === "panel" ? "h2" : "h3";
+    const history = commander?.upgradeHistory ?? [];
+    const latestUpgrade = history.at(-1);
+
+    return (
+      <div className={variant} data-testid="commander-upgrade-panel">
+        <Heading>Commander Upgrades</Heading>
+        <dl className="run-stats">
+          <div>
+            <dt>Current Level</dt>
+            <dd data-testid="commander-upgrade-panel-level">
+              Lv {commander?.card.upgradeLevel ?? 0}
+            </dd>
+          </div>
+          <div>
+            <dt>Raw Tax</dt>
+            <dd>+{commanderRawRebindTax} Charge</dd>
+          </div>
+          <div>
+            <dt>Discount</dt>
+            <dd>-{commanderRebindTaxDiscount} Charge</dd>
+          </div>
+          <div>
+            <dt>Effective Tax</dt>
+            <dd data-testid="commander-upgrade-effective-tax">
+              +{commanderEffectiveRebindTax} Charge
+            </dd>
+          </div>
+          <div>
+            <dt>History</dt>
+            <dd data-testid="commander-upgrade-history-count">{history.length}</dd>
+          </div>
+        </dl>
+        <p className="muted">
+          {phase === "reward"
+            ? commanderUpgradeChoices.length > 0
+              ? "Choose one Commander upgrade for this reward."
+              : "Commander upgrade claimed for this reward."
+            : "Commander upgrade choices appear after combat rewards."}
+        </p>
+        {commanderUpgradeChoices.length > 0 ? (
+          <ol className="card-list compact">
+            {commanderUpgradeChoices.map((choice) => (
+              <li key={choice.id}>
+                <div className="reward-choice-cell">
+                  <span>{choice.label}</span>
+                  <small>{choice.effectText}</small>
+                </div>
+                <button type="button" onClick={() => applyCommanderUpgrade(choice.id)}>
+                  Apply {choice.label}
+                </button>
+              </li>
+            ))}
+          </ol>
+        ) : null}
+        {latestUpgrade ? (
+          <p className="muted" data-testid="commander-latest-upgrade">
+            Latest: {latestUpgrade.label}, round {latestUpgrade.round}.
+          </p>
         ) : null}
       </div>
     );
@@ -880,6 +976,15 @@ export function App() {
     setRun((currentRun) =>
       applyRunAction(currentRun, sampleCatalog, {
         type: "applyPackReward",
+        choiceId
+      })
+    );
+  };
+
+  const applyCommanderUpgrade = (choiceId: CommanderUpgradeId) => {
+    setRun((currentRun) =>
+      applyRunAction(currentRun, sampleCatalog, {
+        type: "applyCommanderUpgradeChoice",
         choiceId
       })
     );
@@ -1381,6 +1486,7 @@ export function App() {
 
           <div className="renderer-lab-loadout-grid">
             {renderCommandZonePanel("renderer-lab-panel")}
+            {renderCommanderUpgradePanel("renderer-lab-panel")}
 
             <div className="renderer-lab-panel">
               <h3>Loadout Resources</h3>
@@ -1570,6 +1676,7 @@ export function App() {
         </div>
 
         {renderCommandZonePanel("panel")}
+        {renderCommanderUpgradePanel("panel")}
 
         <div className="panel">
           <h2>Current Encounter</h2>
@@ -1677,7 +1784,9 @@ export function App() {
           <h2>Reward Choices</h2>
           <p className="muted">
             {canApplyReward(run)
-              ? "Buy one pack to add to the pool."
+              ? rewardChoices.length > 0
+                ? "Buy one pack to add to the pool."
+                : "Pack reward claimed for this combat."
               : "Rewards appear after combat is recorded."}
           </p>
           <ol className="card-list">

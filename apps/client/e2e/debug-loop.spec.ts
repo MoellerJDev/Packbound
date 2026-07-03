@@ -100,6 +100,9 @@ test("debug loop can inspect, preview, record, reward, and advance", async ({ pa
   await expect(commandZonePanel.getByTestId("commander-rebind-tax")).toHaveText(
     "+0 Charge"
   );
+  await expect(commandZonePanel.getByTestId("commander-rebind-discount")).toHaveText(
+    "-0 Charge"
+  );
   await expect(commandZonePanel.getByTestId("commander-deploy-cost")).toHaveText(
     "1 base + 0 tax = 1 Charge"
   );
@@ -243,6 +246,32 @@ test("debug loop can inspect, preview, record, reward, and advance", async ({ pa
   await expect(recordedPanel.getByText("Damage to you", { exact: true })).toBeVisible();
   await expect(recordedPanel.getByText("Damage to enemy", { exact: true })).toBeVisible();
   await expect(recordedPanel.getByText("Warnings", { exact: true })).toBeVisible();
+
+  const commanderUpgradePanel = panel(page, "Commander Upgrades");
+  await expect(
+    commanderUpgradePanel.getByText("Choose one Commander upgrade for this reward.")
+  ).toBeVisible();
+  await expect(
+    commanderUpgradePanel.getByText("Combat Training", { exact: true })
+  ).toBeVisible();
+  await expect(
+    commanderUpgradePanel.getByText("Rebind Calibration", { exact: true })
+  ).toBeVisible();
+  await expect(
+    commanderUpgradePanel.getByTestId("commander-upgrade-panel-level")
+  ).toHaveText("Lv 0");
+  await commanderUpgradePanel
+    .getByRole("button", { name: "Apply Combat Training" })
+    .click();
+  await expect(
+    commanderUpgradePanel.getByTestId("commander-upgrade-panel-level")
+  ).toHaveText("Lv 1");
+  await expect(
+    commanderUpgradePanel.getByText("Commander upgrade claimed for this reward.")
+  ).toBeVisible();
+  await expect(
+    commanderUpgradePanel.getByTestId("commander-latest-upgrade")
+  ).toContainText("Combat Training");
 
   const rewardPanel = panel(page, "Reward Choices");
   await expect(rewardPanel.getByText(/Cost \d+ gold/).first()).toBeVisible();
@@ -513,6 +542,12 @@ test("renderer lab loads Pixi battlefield canvas and replay controls", async ({
     "command"
   );
   await expect(rendererCommandZone.getByTestId("commander-deploy-count")).toHaveText("0");
+  await expect(rendererCommandZone.getByTestId("commander-upgrade-level")).toHaveText(
+    "Lv 0"
+  );
+  await expect(rendererCommandZone.getByTestId("commander-raw-rebind-tax")).toHaveText(
+    "+0 Charge"
+  );
   await expect(rendererCommandZone.getByTestId("commander-rebind-tax")).toHaveText(
     "+0 Charge"
   );
@@ -542,6 +577,9 @@ test("renderer lab loads Pixi battlefield canvas and replay controls", async ({
     "command"
   );
   await expect(rendererCommandZone.getByTestId("commander-rebind-tax")).toHaveText(
+    "+1 Charge"
+  );
+  await expect(rendererCommandZone.getByTestId("commander-raw-rebind-tax")).toHaveText(
     "+1 Charge"
   );
   await expect(rendererCommandZone.getByTestId("commander-deploy-cost")).toHaveText(

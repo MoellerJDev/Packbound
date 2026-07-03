@@ -1,7 +1,11 @@
 import type { ContentCatalog } from "@packbound/content";
 import type { BoardPosition, CardDefId, CardInstanceId } from "@packbound/shared";
 
-import { deployCommander, returnCommanderToCommand } from "./commander";
+import {
+  applyCommanderUpgradeChoice,
+  deployCommander,
+  returnCommanderToCommand
+} from "./commander";
 import { prepareEncounterForRound } from "./encounters";
 import {
   addCardToSourceRow,
@@ -18,7 +22,7 @@ import {
   recordCombatResult,
   type CombatResultLike
 } from "./runProgression";
-import type { RunState } from "./runState";
+import type { CommanderUpgradeId, RunState } from "./runState";
 import { upgradeCardGroup } from "./upgrades";
 
 export type RunAction =
@@ -45,6 +49,10 @@ export type RunAction =
       readonly type: "upgradeCardGroup";
       readonly defId: CardDefId;
       readonly upgradeLevel: number;
+    }
+  | {
+      readonly type: "applyCommanderUpgradeChoice";
+      readonly choiceId: CommanderUpgradeId;
     }
   | { readonly type: "markCombatReady" }
   | {
@@ -87,6 +95,8 @@ export const applyRunAction = (
       return removeCardFromSpellrail(run, action.cardInstanceId);
     case "upgradeCardGroup":
       return upgradeCardGroup(run, catalog, action.defId, action.upgradeLevel);
+    case "applyCommanderUpgradeChoice":
+      return applyCommanderUpgradeChoice(run, action.choiceId);
     case "markCombatReady":
       return markCombatReady(run, catalog);
     case "recordCombatResult":

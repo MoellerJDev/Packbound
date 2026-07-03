@@ -64,7 +64,7 @@ describe("run clarity helpers", () => {
     ).toBe("Next: review the preview, then record combat.");
     expect(
       getRunNextActionMessage({ ...planningRun, phase: "reward" }, planningValidation)
-    ).toBe("Next: open one reward pack.");
+    ).toBe("Next: open one reward pack and choose one Commander upgrade.");
     expect(
       getRunNextActionMessage(
         { ...planningRun, phase: "combatResolved" },

@@ -8,7 +8,8 @@ is a snapshot of what the rules and simulator layers actually expose today.
 The rules package now has a minimal, rules-first Commander lifecycle prototype.
 
 - `RunState` can carry one `commander` object with a normal `CardInstance`, a
-  `deployCount`, and a visible `rebindTax`.
+  `deployCount`, raw `rebindTax`, `rebindTaxDiscount`, and serializable upgrade
+  history.
 - The shared zone list includes `command`, and starter-created runs derive one
   prototype Commander from an existing starter Unit/Echo definition. This is
   prototype sourcing, not final Commander content.
@@ -25,21 +26,29 @@ The rules package now has a minimal, rules-first Commander lifecycle prototype.
   cards, increments `rebindTax` once, and preserves `deployCount`.
 - Rebind Tax is enforced as generic Board Charge when the Commander is deployed
   or being deployed. It adds no Aspect requirements and does not alter the
-  Commander's printed cost.
+  Commander's printed cost. Effective Rebind Tax is
+  `max(0, rebindTax - rebindTaxDiscount)`.
+- Reward-phase Commander upgrade choices are implemented as a separate bucket
+  from pack rewards. The player can apply at most one Commander upgrade per
+  reward round. `Combat Training` increases only the Commander card's
+  `upgradeLevel` by 1, and `Rebind Calibration` adds 1 Rebind Tax discount for
+  future deployments.
 - Commander actions are replayable run actions, deterministic, immutable, and
   JSON-serializable.
 - The debug client shows a Command Zone panel on the default route and
-  renderer-lab, including Commander name, zone, deploy count, Rebind Tax,
-  deploy cost, Board Charge after deploy, blocked reasons, Inspect, Deploy
-  Commander, and Return to Command controls.
+  renderer-lab, including Commander name, zone, deploy count, raw/effective
+  Rebind Tax, discount, deploy cost, Board Charge after deploy, blocked
+  reasons, Inspect, Deploy Commander, and Return to Command controls. It also
+  shows a simple Commander Upgrades panel during reward flow.
 
 Current Commander prototype limitations:
 
 - There are no authored Commander card definitions yet; the prototype reuses
   existing Unit/Echo definitions from starter context.
-- There are no Commander upgrades, Signature Relics, encounter main-phase
-  Commander actions, enemy Commanders, hand/deck/mill sourcing, counterspells,
-  authored Commander effects, or enemy AI.
+- Commander upgrades are mechanical placeholders only. There are no authored
+  Commander cards, Signature Relics, encounter main-phase Commander actions,
+  enemy Commanders, hand/deck/mill sourcing, counterspells, authored Commander
+  effects, or enemy AI.
 - Combat simulation remains unchanged. Commander destruction-to-Command is a
   run-progression replacement applied while recording combat results, not a
   simulator behavior change.

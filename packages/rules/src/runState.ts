@@ -85,6 +85,21 @@ export type RewardHistoryEntry = {
   readonly cardInstanceIds: readonly CardInstanceId[];
 };
 
+export type CommanderUpgradeId = "combat_training" | "rebind_calibration";
+
+export type CommanderUpgradeHistoryEntry = {
+  readonly id: string;
+  readonly round: number;
+  readonly upgradeId: CommanderUpgradeId;
+  readonly label: string;
+  readonly cardInstanceId: CardInstanceId;
+  readonly cardDefId: CardDefId;
+  readonly previousUpgradeLevel: number;
+  readonly nextUpgradeLevel: number;
+  readonly previousRebindTaxDiscount: number;
+  readonly nextRebindTaxDiscount: number;
+};
+
 export type CombatSummary = {
   readonly round: number;
   readonly winner: CombatWinner;
@@ -107,6 +122,8 @@ export type CommanderState = {
   readonly card: CardInstance;
   readonly deployCount: number;
   readonly rebindTax: number;
+  readonly rebindTaxDiscount: number;
+  readonly upgradeHistory: readonly CommanderUpgradeHistoryEntry[];
 };
 
 export type RunState = {
@@ -156,7 +173,9 @@ const commanderForStarterKit = (
     ? {
         card: cardInZone(starterKit.commander, "command"),
         deployCount: 0,
-        rebindTax: 0
+        rebindTax: 0,
+        rebindTaxDiscount: 0,
+        upgradeHistory: []
       }
     : undefined;
 

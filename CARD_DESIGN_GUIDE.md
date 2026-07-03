@@ -81,12 +81,14 @@ implemented as a reusable rule first.
 Commanders are now represented by a minimal rules-first Command Zone prototype:
 starter-created runs get one prototype Commander sourced from existing starter
 Unit/Echo context, the Commander can deploy during planning, return during
-planning, and track visible deploy count plus Rebind Tax.
+planning, track visible deploy count plus Rebind Tax, return to Command after
+post-combat destruction, and choose one placeholder Commander upgrade during a
+reward phase.
 
 That prototype is not final content. Do not add authored Commander cards,
 Commander upgrade cards, or Signature Relics until the rules layer has tested
-cost enforcement, destruction-to-Command replacement, and clearer upgrade
-choice surfaces.
+broader upgrade contracts, main-phase Commander action timing, and clearer
+lifecycle feedback.
 
 ### Commander Principles
 
@@ -127,6 +129,11 @@ Commanders differ from existing card types:
 
 Commander upgrades should be discrete choices during the run. They should
 create tension between identity, adaptation, and the next fight.
+
+Current prototype choices are mechanical placeholders: `Combat Training` gives
+the Commander card +1 upgrade level, and `Rebind Calibration` discounts future
+effective Rebind Tax by 1. Use them as proof of the reward-state shape, not as
+finished examples of authored Commander identity.
 
 Good upgrade examples:
 

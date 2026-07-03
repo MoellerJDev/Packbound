@@ -11,10 +11,29 @@ import {
 
 import { validateRunLoadout } from "./loadout";
 import { cardInZone, copyCard, copyPlacement } from "./runCards";
-import type { CommanderState, RunState } from "./runState";
+import type { CommanderState, CommanderUpgradeId, RunState } from "./runState";
 
 export type CommanderActionCheck =
   { readonly ok: true } | { readonly ok: false; readonly reason: string };
+
+export type CommanderUpgradeChoice = {
+  readonly id: CommanderUpgradeId;
+  readonly label: string;
+  readonly effectText: string;
+};
+
+const COMMANDER_UPGRADE_CHOICES: readonly CommanderUpgradeChoice[] = [
+  {
+    id: "combat_training",
+    label: "Combat Training",
+    effectText: "Increase this Commander's upgrade level by 1."
+  },
+  {
+    id: "rebind_calibration",
+    label: "Rebind Calibration",
+    effectText: "Add 1 Rebind Tax discount for future Commander deployments."
+  }
+];
 
 const ok = (): CommanderActionCheck => ({ ok: true });
 
@@ -52,6 +71,17 @@ const positionOccupied = (run: RunState, position: BoardPosition): boolean => {
 const deployedCommanderCard = (run: RunState, commander: CommanderState) =>
   run.activeCards.find((card) => card.instanceId === commander.card.instanceId) ??
   commander.card;
+
+export const getCommanderEffectiveRebindTax = (
+  commander: CommanderState | undefined
+): number =>
+  Math.max(0, (commander?.rebindTax ?? 0) - (commander?.rebindTaxDiscount ?? 0));
+
+const hasCommanderUpgradeForRound = (run: RunState, round = run.currentRound): boolean =>
+  run.commander?.upgradeHistory.some((entry) => entry.round === round) ?? false;
+
+const hasPackRewardForRound = (run: RunState, round = run.currentRound): boolean =>
+  run.rewardHistory.some((entry) => entry.type === "pack" && entry.round === round);
 
 const nextRunWithCommanderDeployed = (
   run: RunState,
@@ -182,6 +212,87 @@ export const deployCommander = (
   return nextRunWithCommanderDeployed(run, run.commander!, position);
 };
 
+export const getCurrentCommanderUpgradeChoices = (
+  run: RunState
+): readonly CommanderUpgradeChoice[] => {
+  if (
+    run.status !== "active" ||
+    run.phase !== "reward" ||
+    !run.commander ||
+    hasCommanderUpgradeForRound(run)
+  ) {
+    return [];
+  }
+
+  return COMMANDER_UPGRADE_CHOICES.map((choice) => ({ ...choice }));
+};
+
+export const applyCommanderUpgradeChoice = (
+  run: RunState,
+  choiceId: CommanderUpgradeId
+): RunState => {
+  if (run.status !== "active") {
+    return run;
+  }
+  if (run.phase !== "reward") {
+    throw new Error(`Cannot apply a Commander upgrade while run phase is ${run.phase}`);
+  }
+
+  const commander = run.commander;
+  if (!commander) {
+    throw new Error("Run has no Commander to upgrade.");
+  }
+  if (hasCommanderUpgradeForRound(run)) {
+    throw new Error(`Commander upgrade already claimed for round ${run.currentRound}.`);
+  }
+
+  const choice = COMMANDER_UPGRADE_CHOICES.find((candidate) => candidate.id === choiceId);
+  if (!choice) {
+    throw new Error(`Unknown Commander upgrade choice id: ${choiceId}`);
+  }
+
+  const previousUpgradeLevel = commander.card.upgradeLevel;
+  const previousRebindTaxDiscount = commander.rebindTaxDiscount;
+  const card =
+    choice.id === "combat_training"
+      ? { ...commander.card, upgradeLevel: commander.card.upgradeLevel + 1 }
+      : { ...commander.card };
+  const nextRebindTaxDiscount =
+    choice.id === "rebind_calibration"
+      ? commander.rebindTaxDiscount + 1
+      : commander.rebindTaxDiscount;
+
+  return {
+    ...run,
+    phase: hasPackRewardForRound(run) ? "combatResolved" : run.phase,
+    commander: {
+      ...commander,
+      card,
+      rebindTaxDiscount: nextRebindTaxDiscount,
+      upgradeHistory: [
+        ...commander.upgradeHistory,
+        {
+          id: `commander-upgrade:${run.currentRound}:${commander.upgradeHistory.length}:${choice.id}`,
+          round: run.currentRound,
+          upgradeId: choice.id,
+          label: choice.label,
+          cardInstanceId: card.instanceId,
+          cardDefId: card.defId,
+          previousUpgradeLevel,
+          nextUpgradeLevel: card.upgradeLevel,
+          previousRebindTaxDiscount,
+          nextRebindTaxDiscount
+        }
+      ]
+    },
+    activeCards: run.activeCards.map((activeCard) =>
+      activeCard.instanceId === commander.card.instanceId
+        ? cardInZone(card, "board")
+        : copyCard(activeCard)
+    )
+  };
+};
+
 export const canReturnCommanderToCommand = (run: RunState): CommanderActionCheck => {
   if (run.status !== "active" || run.phase !== "planning") {
     return reason("Commander can only return to Command during planning.");
@@ -245,7 +356,8 @@ export const applyCommanderCombatLifecycle = (
     (event) =>
       event.type === "UnitDestroyed" &&
       event.cardInstanceId === commander.card.instanceId &&
-      event.ownerId === run.playerId
+      event.ownerId === run.playerId &&
+      event.side === "playerA"
   );
 
   if (!commanderWasDestroyed) {

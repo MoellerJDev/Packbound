@@ -58,8 +58,8 @@ Planning update after the Commander design refactor: design docs now frame a
 future Commander / Command Zone / Rebind Tax / Signature Relic direction as a
 real card-like run identity layer, not a hero-power button. This task adds the
 first minimal Command Zone prototype while leaving Commander upgrades, Signature
-Relics, real tax cost enforcement, and destruction replacement as future work.
-Packs remain the primary adaptation engine.
+Relics and destruction replacement as future work. Packs remain the primary
+adaptation engine.
 
 Implementation update after the Pixi readability pass: Renderer Lab tokens now
 use larger unit circles, stronger support plates, clearer nameplates, larger
@@ -76,8 +76,7 @@ were clear, placeable cells were easy to see, damage/destroyed/recall visuals
 worked, token click inspection worked, and Pool/Bench click-to-place still used
 the reducer. No console warnings or errors appeared. Remaining Pixi concerns:
 long names can truncate or crowd in adjacent nameplates, attack beams are still
-fast, and a `Step -> Reset -> Play` sequence can leave replay status at
-`playing` with command index `0 / N` until reload.
+fast.
 
 Implementation update after this task: `RunState` now has a minimal Command Zone
 Commander prototype. Starter-created runs get one prototype Commander sourced
@@ -85,17 +84,24 @@ from existing starter Unit/Echo context. The Commander starts in Command Zone,
 can deploy to a legal board tile during planning, can return to Command during
 planning, tracks deploy count and visible Rebind Tax, appears on the board/Pixi
 when deployed, and is inspectable from the debug client. Rebind Tax is
-visible-only for now.
+enforced as generic Board Charge while the Commander is deployed or being
+deployed.
+
+Implementation update after this task: the renderer-lab replay controller and
+Pixi renderer now guard replay command completions with the current reset
+generation and session-scoped busy state. Browser smoke covers `Step -> Reset ->
+Play`, `Play -> Reset -> Play`, repeated reset/play, single-canvas safety, and
+console/page-error capture. The previously observed replay stall is fixed in
+automated coverage.
 
 The biggest remaining Pixi findings are no longer the absence of replay controls,
 tiny first-pass labels, or unvalidated readability. The lab still needs the
-reset/play replay-state bug fixed, event grouping/filtering for long feeds,
-scrub or speed controls, and final default-route confidence. Pixi should stay
-opt-in until those are addressed.
+event grouping/filtering for long feeds, scrub or speed controls, and final
+default-route confidence. Pixi should stay opt-in until those are addressed.
 
 Recommended next task:
 
-`feat(rules): enforce commander rebind tax cost`
+`feat(rules): add Commander destruction-to-Command replacement`
 
 ## 2. Environment And Commands
 
@@ -143,13 +149,13 @@ Build warning observed and not fixed in this task:
 
 ## 3. Scenarios Covered
 
-| Scenario                   | Manual result | Notes                                                                             |
-| -------------------------- | ------------- | --------------------------------------------------------------------------------- |
-| Default route `/`          | Pass          | React/CSS Hex Arena remains default; full run loop still works.                   |
-| `?scenario=renderer-lab`   | Lab pass      | Pixi readability is manually validated; replay reset/play edge still needs a fix. |
-| `?scenario=engagement-lab` | Pass          | Out-of-range melee and in-range ranged previews are understandable.               |
-| `?scenario=priority-lab`   | Pass          | Prototype action, source context, stack, log, skirmish flow work.                 |
-| `?scenario=upgrade-lab`    | Pass          | Duplicate combine and Lv 1 pool-card inspection work.                             |
+| Scenario                   | Manual result | Notes                                                                                |
+| -------------------------- | ------------- | ------------------------------------------------------------------------------------ |
+| Default route `/`          | Pass          | React/CSS Hex Arena remains default; full run loop still works.                      |
+| `?scenario=renderer-lab`   | Lab pass      | Pixi readability is manually validated; reset/play stall is fixed in smoke coverage. |
+| `?scenario=engagement-lab` | Pass          | Out-of-range melee and in-range ranged previews are understandable.                  |
+| `?scenario=priority-lab`   | Pass          | Prototype action, source context, stack, log, skirmish flow work.                    |
+| `?scenario=upgrade-lab`    | Pass          | Duplicate combine and Lv 1 pool-card inspection work.                                |
 
 Browser console result: no warnings or errors captured across the manual pass.
 
@@ -298,18 +304,18 @@ Replay pacing:
 - Long replays like Rotbloom's 111 events can now be paused and stepped through,
   but they still need scrub controls or event grouping before the canvas can be a
   reliable debugging tool.
-- A rapid `Step -> Reset -> Play` sequence can leave the UI in `playing` at
-  command index `0 / N` until reload. This is not a blank-canvas regression, but
-  it should be fixed before Pixi becomes default.
+- `Step -> Reset -> Play`, `Play -> Reset -> Play`, repeated reset/play, and
+  reset/step cycles are now covered by browser smoke and pure replay-controller
+  tests. The previously observed `playing` at `0 / N` stall is fixed in
+  automated coverage.
 
 ### Default-Renderer Decision
 
 Pixi should remain lab-only for now. The route is now a better playable
 viewpoint, coordinate semantics match combat truth, token inspection works, and
 the readability pass addresses the most obvious label/stat/effect issues. It is
-still not ready to replace the React/CSS Hex Arena on `/` until the replay
-reset/play edge bug is fixed, long combat feeds are grouped or filtered, and
-replay scrub/speed controls exist.
+still not ready to replace the React/CSS Hex Arena on `/` until long combat
+feeds are grouped or filtered and replay scrub/speed controls exist.
 
 ## 6. `?scenario=engagement-lab`
 
@@ -445,16 +451,17 @@ No horizontal overflow appeared in the upgrade lab.
 - Remaining concern: attack beams remain quick enough to miss without Step.
 - Severity: Low for lab, medium for default-renderer readiness.
 
-### UX Bug: Reset Then Play Can Stall Replay Index
+### Fixed: Reset Then Play No Longer Stalls Replay Index
 
 - Steps: Open `?scenario=renderer-lab`, play or step a replay, click
   `Reset Replay`, then click `Play Replay`.
-- Observed: one tested `Step -> Reset -> Play` sequence left replay status at
-  `playing` while the command index stayed at `0 / 5` and latest command stayed
-  `No command visualized yet.` The canvas remained mounted and the route
-  recovered after reload.
-- Expected: Reset followed by Play should always restart command playback.
-- Severity: Low for lab, medium before Pixi can become default.
+- Previous observation: one tested `Step -> Reset -> Play` sequence left replay
+  status at `playing` while the command index stayed at `0 / 5` and latest
+  command stayed `No command visualized yet.`
+- Current status: fixed in implementation and browser smoke. Reset invalidates
+  stale replay completions, Pixi busy state is scoped to the current replay
+  session, and `Step -> Reset -> Play` plus `Play -> Reset -> Play` now advance
+  from command 0 without adding duplicate canvases.
 
 ### UX Risk: Long Combat Replays Need Scrub And Grouping
 
@@ -565,8 +572,6 @@ Note:
   Pool/Bench, but no drag/drop, hover tooltips, or full board-editing polish.
 - Replay controls now cover Play/Resume, Pause, Step, and Reset, but there is no
   scrubber, speed control, event grouping, or filtered command list yet.
-- A `Step -> Reset -> Play` replay sequence can stall at `playing` with command
-  index `0 / N` until reload.
 - Step advances one visual command when playback is idle or paused. If clicked
   while a paused command animation is still settling, the renderer waits for that
   command to settle and then advances one additional deterministic command.
@@ -586,7 +591,9 @@ Note:
 - The Vite chunk-size warning remains.
 - The Command Zone Commander prototype exists in `RunState`, but it reuses
   existing starter Unit/Echo definitions and has no authored Commander content.
-- Rebind Tax is visible-only and is not enforced as a real cost yet.
+- Rebind Tax is enforced as generic Board Charge while the Commander is deployed
+  or being deployed, but there are no discounts, alternate costs, upgrades, or
+  encounter-phase Commander actions yet.
 - Commander upgrades, Signature Relics, Commander destruction-to-Command
   replacement, encounter main-phase Commander actions, enemy Commanders, and
   authored Commander effects are not implemented.
@@ -602,18 +609,16 @@ Note:
 
 Do next:
 
-`feat(rules): enforce commander rebind tax cost`
+`feat(rules): add Commander destruction-to-Command replacement`
 
-Why: the Command Zone lifecycle is now real enough to inspect and replay, but
-Rebind Tax is only visible text. The next rules slice should make that tax affect
-deployment cost or another explicit planning resource without adding
-hand/deck/mill or encounter timing.
+Why: Command Zone lifecycle and generic Charge tax are now real planning rules.
+The next rules slice should make combat destruction send the Commander back to
+Command Zone with deterministic tax/lifecycle updates, without adding upgrades,
+Signature Relics, hand/deck/mill, or encounter timing.
 
 Do soon:
 
-- `fix(client): make Pixi Reset Replay reliably restart Play`
 - `feat(client): add Pixi replay scrub/speed controls`
-- `feat(rules): add Commander destruction-to-Command replacement`
 - `feat(rules): evaluate expanding the canonical board to 6 rows x 10-12 columns`
 - `feat(client): tune Pixi combat effect timing after manual readability pass`
 - `feat(client): keep selected target and next move visible together in preview labs`

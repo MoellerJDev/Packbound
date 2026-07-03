@@ -31,7 +31,8 @@ type PixiBattlefieldRendererProps = {
   readonly replayStepRequestKey: number;
   readonly onReplayCommandComplete?: (
     nextCommandIndex: number,
-    command: PixiReplayCommand
+    command: PixiReplayCommand,
+    resetKey: number
   ) => void;
   readonly onTokenSelect?: (card: PixiBattlefieldCard) => void;
   readonly onCellSelect?: (position: BoardPosition) => void;
@@ -697,8 +698,9 @@ export const PixiBattlefieldRenderer = ({
   const replayCommandsRef = useRef(replayCommands);
   const replayStatusRef = useRef(replayStatus);
   const replayCommandIndexRef = useRef(replayCommandIndex);
+  const replayResetKeyRef = useRef(replayResetKey);
   const replaySessionRef = useRef(0);
-  const replayBusyRef = useRef(false);
+  const replayBusySessionRef = useRef<number | undefined>(undefined);
   const lastStepRequestKeyRef = useRef(replayStepRequestKey);
   const onTokenSelectRef = useRef(onTokenSelect);
   const onCellSelectRef = useRef(onCellSelect);
@@ -717,6 +719,10 @@ export const PixiBattlefieldRenderer = ({
   }, [replayCommandIndex]);
 
   useEffect(() => {
+    replayResetKeyRef.current = replayResetKey;
+  }, [replayResetKey]);
+
+  useEffect(() => {
     onTokenSelectRef.current = onTokenSelect;
   }, [onTokenSelect]);
 
@@ -729,8 +735,12 @@ export const PixiBattlefieldRenderer = ({
   }, [onReplayCommandComplete]);
 
   const executeCurrentCommand = useCallback(async (): Promise<boolean> => {
-    if (replayBusyRef.current) {
+    const session = replaySessionRef.current;
+    if (replayBusySessionRef.current === session) {
       return false;
+    }
+    if (replayBusySessionRef.current !== undefined) {
+      replayBusySessionRef.current = undefined;
     }
 
     const app = appRef.current;
@@ -740,14 +750,14 @@ export const PixiBattlefieldRenderer = ({
       return false;
     }
 
-    const session = replaySessionRef.current;
+    const resetKey = replayResetKeyRef.current;
     const commandIndex = replayCommandIndexRef.current;
     const command = replayCommandsRef.current[commandIndex];
     if (!command) {
       return false;
     }
 
-    replayBusyRef.current = true;
+    replayBusySessionRef.current = session;
     try {
       await playCommand(
         app,
@@ -765,10 +775,12 @@ export const PixiBattlefieldRenderer = ({
 
       const nextCommandIndex = commandIndex + 1;
       replayCommandIndexRef.current = nextCommandIndex;
-      onReplayCommandCompleteRef.current?.(nextCommandIndex, command);
+      onReplayCommandCompleteRef.current?.(nextCommandIndex, command, resetKey);
       return true;
     } finally {
-      replayBusyRef.current = false;
+      if (replayBusySessionRef.current === session) {
+        replayBusySessionRef.current = undefined;
+      }
     }
   }, []);
 
@@ -785,14 +797,16 @@ export const PixiBattlefieldRenderer = ({
   const waitForReplayIdle = useCallback(async (session: number): Promise<boolean> => {
     const startedAt = performance.now();
     while (
-      replayBusyRef.current &&
+      replayBusySessionRef.current === session &&
       replaySessionRef.current === session &&
       performance.now() - startedAt < 1500
     ) {
       await wait(16, () => replaySessionRef.current !== session);
     }
 
-    return !replayBusyRef.current && replaySessionRef.current === session;
+    return (
+      replayBusySessionRef.current !== session && replaySessionRef.current === session
+    );
   }, []);
 
   useEffect(() => {
@@ -838,6 +852,7 @@ export const PixiBattlefieldRenderer = ({
       tokensByCardIdRef.current = tokensByCardId;
       replayCommandIndexRef.current = replayCommandIndex;
       replaySessionRef.current += 1;
+      replayBusySessionRef.current = undefined;
 
       drawBackground(root);
       for (const cell of model.cells) {
@@ -887,6 +902,7 @@ export const PixiBattlefieldRenderer = ({
     return () => {
       cancelled = true;
       replaySessionRef.current += 1;
+      replayBusySessionRef.current = undefined;
       appRef.current = undefined;
       tokenLayerRef.current = undefined;
       effectLayerRef.current = undefined;

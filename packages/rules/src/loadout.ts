@@ -90,6 +90,17 @@ const getPoolCardForAction = (
 const firstValidationErrorReason = (result: ValidationResult): string =>
   result.errors[0]?.message ?? "Loadout would be illegal.";
 
+const commanderRebindTaxSurcharges = (run: RunState) =>
+  run.commander?.card.zone === "board" && run.commander.rebindTax > 0
+    ? [
+        {
+          amount: run.commander.rebindTax,
+          label: "Commander Rebind Tax",
+          cardInstanceId: run.commander.card.instanceId
+        }
+      ]
+    : [];
+
 export const placeCardOnBoard = (
   run: RunState,
   cardInstanceId: CardInstanceId,
@@ -255,7 +266,8 @@ export const validateRunLoadout = (
     catalog,
     board: run.board,
     sourceRow: run.sourceRow,
-    spellrail: run.spellrail
+    spellrail: run.spellrail,
+    boardChargeSurcharges: commanderRebindTaxSurcharges(run)
   });
   const boardCardIds = new Set(
     run.board.placements.map((placement) => placement.cardInstanceId)

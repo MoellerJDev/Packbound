@@ -20,17 +20,20 @@ The rules package now has a minimal, rules-first Commander lifecycle prototype.
 - During planning, `returnCommanderToCommand` can remove the deployed Commander
   from board/active cards, return its card to Command Zone, and increment
   `rebindTax` by 1.
+- Rebind Tax is enforced as generic Board Charge when the Commander is deployed
+  or being deployed. It adds no Aspect requirements and does not alter the
+  Commander's printed cost.
 - Commander actions are replayable run actions, deterministic, immutable, and
   JSON-serializable.
 - The debug client shows a Command Zone panel on the default route and
   renderer-lab, including Commander name, zone, deploy count, Rebind Tax,
-  blocked reasons, Inspect, Deploy Commander, and Return to Command controls.
+  deploy cost, Board Charge after deploy, blocked reasons, Inspect, Deploy
+  Commander, and Return to Command controls.
 
 Current Commander prototype limitations:
 
 - There are no authored Commander card definitions yet; the prototype reuses
   existing Unit/Echo definitions from starter context.
-- Rebind Tax is visible-only and is not added to board Charge cost yet.
 - There are no Commander upgrades, Signature Relics, Commander destruction
   replacement rules, encounter main-phase Commander actions, enemy Commanders,
   hand/deck/mill sourcing, counterspells, or enemy AI.

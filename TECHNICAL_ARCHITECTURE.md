@@ -1080,13 +1080,15 @@ Expand them only through focused rules/content tasks with tests.
 ### Commander, Command Zone, And Rebind
 
 - The current prototype stores one Commander in serializable `RunState` with a
-  normal `CardInstance`, `deployCount`, and visible `rebindTax`.
+  normal `CardInstance`, `deployCount`, and `rebindTax`.
 - Command Zone is a real shared zone value. Starter-created runs currently
   derive a prototype Commander from existing Unit/Echo starter context rather
   than authored Commander content.
 - Commander deployment and return are replayable run actions owned by
-  `packages/rules`. Future actions should cover enforced Rebind cost, upgrade
-  choice, destruction replacement, and any Signature Relic lifecycle.
+  `packages/rules`. Rebind Tax is enforced as a generic Board Charge surcharge
+  through planning validation while the Commander is deployed or being deployed.
+  Future actions should cover upgrade choice, destruction replacement, and any
+  Signature Relic lifecycle.
 - Commander deployment should validate through the same loadout, Board Charge,
   Source Row, and future encounter main-phase action boundaries as other card
   actions.

@@ -185,9 +185,10 @@ run identity system. This section describes the north star. The current
 prototype has only a minimal rules-first slice: starter-created runs carry one
 prototype Commander card in Command Zone, can deploy it to the board during
 planning, can return it to Command during planning, and track visible deploy
-count plus Rebind Tax. It still does not have authored Commander content,
-Commander upgrades, Signature Relics, combat destruction replacement,
-main-phase Commander actions, or real tax payment.
+count plus Rebind Tax. Rebind Tax is now enforced as generic Board Charge while
+the Commander is deployed or being deployed. It still does not have authored
+Commander content, Commander upgrades, Signature Relics, combat destruction
+replacement, or main-phase Commander actions.
 
 ### Why Add A Commander Layer?
 
@@ -260,9 +261,9 @@ Proposed lifecycle:
 4. If destroyed, the Commander returns to the Command Zone instead of normal
    Ashes unless a specific future rule says otherwise.
 5. Each return or redeploy can increase a visible Rebind Tax or Command Tax.
-6. Rebinding later costs more, asks for more Charge, consumes future encounter
-   action economy, or creates another explicit cost chosen by the implemented
-   rules.
+6. The current prototype makes Rebind Tax a generic Board Charge surcharge.
+   Future upgrades or encounter actions may discount, redirect, or add other
+   explicit costs.
 
 Rebind Tax should be visible, deterministic, and easy to explain. A player
 should know why their Commander now costs more and what action reset, discount,
@@ -357,9 +358,9 @@ other encounter actions.
 
 Do not add a full hand/deck/mill system just to support Commanders. The first
 Commander prototype now proves zone lifecycle, planning deployment, planning
-return, visible Rebind Tax, and reducer replay. Next Commander work should add
-real cost enforcement, destruction-to-Command replacement, and action logging in
-focused slices.
+return, generic Board Charge Rebind Tax enforcement, and reducer replay. Next
+Commander work should add destruction-to-Command replacement and action logging
+in focused slices.
 
 ### Commander Non-Goals For Now
 
@@ -367,7 +368,6 @@ Do not implement these as side effects of unrelated tasks:
 
 - Authored Commander card definitions or starter content beyond the current
   prototype sourcing.
-- Rebind/Command Tax cost enforcement.
 - Signature Relic content or zones.
 - Commander-specific simulator effects.
 - Commander destruction-to-Command replacement.

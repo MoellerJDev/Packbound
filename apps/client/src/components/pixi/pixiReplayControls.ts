@@ -128,8 +128,13 @@ export const completePixiReplayCommand = (
   commandCount: number,
   nextCommandIndex: number,
   command: PixiReplayCommand,
-  options: PixiReplayCommandSummaryOptions = {}
+  options: PixiReplayCommandSummaryOptions = {},
+  expectedResetKey = state.resetKey
 ): PixiReplayControlsState => {
+  if (expectedResetKey !== state.resetKey) {
+    return state;
+  }
+
   const commandIndex = Math.max(0, Math.min(nextCommandIndex, commandCount));
   const complete = commandCount <= 0 || commandIndex >= commandCount;
 

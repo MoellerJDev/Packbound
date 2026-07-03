@@ -9,6 +9,7 @@ import {
   type BoardState,
   type CardDefinition,
   type CardInstance,
+  type CardInstanceId,
   type SourceCardDefinition,
   type SourceRowState,
   type SpellrailState,
@@ -22,6 +23,13 @@ export type PlanningState = {
   readonly board: BoardState;
   readonly sourceRow: SourceRowState;
   readonly spellrail: SpellrailState;
+  readonly boardChargeSurcharges?: readonly PlanningBoardChargeSurcharge[];
+};
+
+export type PlanningBoardChargeSurcharge = {
+  readonly amount: number;
+  readonly label: string;
+  readonly cardInstanceId?: CardInstanceId;
 };
 
 type MutableValidation = {
@@ -191,14 +199,28 @@ export const validatePlanningState = (state: PlanningState): ValidationResult =>
     activeCards.push({ instance: placement, def });
   }
 
-  const boardChargeUsed = activeCards.reduce(
+  const baseBoardChargeUsed = activeCards.reduce(
     (sum, entry) => sum + chargeCostTotal(entry.def.cost),
     0
   );
+  const boardChargeSurcharges = state.boardChargeSurcharges ?? [];
+  const boardChargeSurchargeUsed = boardChargeSurcharges.reduce(
+    (sum, surcharge) => sum + Math.max(0, surcharge.amount),
+    0
+  );
+  const boardChargeUsed = baseBoardChargeUsed + boardChargeSurchargeUsed;
   if (boardChargeUsed > sourceInfo.boardChargeCapacity) {
+    const commanderTax = boardChargeSurcharges.find(
+      (surcharge) => surcharge.label === "Commander Rebind Tax" && surcharge.amount > 0
+    );
     addError(mutable, {
       code: "BOARD_CHARGE_EXCEEDED",
-      message: `Board uses ${boardChargeUsed} Charge, but the Source Row provides ${sourceInfo.boardChargeCapacity}.`
+      message: commanderTax
+        ? `Commander Rebind Tax requires ${boardChargeUsed} total Board Charge, but the Source Row provides ${sourceInfo.boardChargeCapacity}.`
+        : `Board uses ${boardChargeUsed} Charge, but the Source Row provides ${sourceInfo.boardChargeCapacity}.`,
+      ...(commanderTax?.cardInstanceId
+        ? { cardInstanceId: commanderTax.cardInstanceId }
+        : {})
     });
   }
 

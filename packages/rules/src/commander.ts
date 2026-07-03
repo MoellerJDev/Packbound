@@ -131,31 +131,45 @@ export const getDefaultCommanderPosition = (
   run: RunState,
   catalog: ContentCatalog
 ): BoardPosition | undefined => {
+  const positions = getCommanderDeploymentCandidatePositions(run, catalog);
+  return positions.find((position) => canDeployCommander(run, catalog, position).ok);
+};
+
+export const getCommanderDeploymentCandidatePosition = (
+  run: RunState,
+  catalog: ContentCatalog
+): BoardPosition | undefined => getCommanderDeploymentCandidatePositions(run, catalog)[0];
+
+const getCommanderDeploymentCandidatePositions = (
+  run: RunState,
+  catalog: ContentCatalog
+): readonly BoardPosition[] => {
   const commander = run.commander;
   if (!commander || commander.card.zone !== "command") {
-    return undefined;
+    return [];
   }
 
   const def = catalog.cardsById.get(commander.card.defId);
   if (!def) {
-    return undefined;
+    return [];
   }
 
   const layer = boardLayerForCommander(def);
   if (!layer) {
-    return undefined;
+    return [];
   }
 
+  const positions: BoardPosition[] = [];
   for (let row = 0; row < BOARD_ROWS; row += 1) {
     for (let col = 0; col < BOARD_COLS; col += 1) {
       const position: BoardPosition = { row, col, layer };
-      if (canDeployCommander(run, catalog, position).ok) {
-        return position;
+      if (!positionOccupied(run, position)) {
+        positions.push(position);
       }
     }
   }
 
-  return undefined;
+  return positions;
 };
 
 export const deployCommander = (

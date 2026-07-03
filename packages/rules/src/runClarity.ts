@@ -64,12 +64,15 @@ export const buildLoadoutResourceSummary = (
     const def = catalog.cardsById.get(placement.defId);
     return sum + (def ? chargeCostTotal(def.cost) : 0);
   }, 0);
+  const commanderRebindTaxUsed =
+    run.commander?.card.zone === "board" ? run.commander.rebindTax : 0;
+  const totalBoardChargeUsed = boardChargeUsed + commanderRebindTaxUsed;
   const roundedCombatChargePerSecond = Number(combatChargePerSecond.toFixed(4));
 
   return {
-    boardChargeUsed,
+    boardChargeUsed: totalBoardChargeUsed,
     boardChargeCapacity,
-    boardChargeText: `${boardChargeUsed} / ${boardChargeCapacity}`,
+    boardChargeText: `${totalBoardChargeUsed} / ${boardChargeCapacity}`,
     aspectAccess,
     aspectAccessText: formatAspectAccess(aspectAccess),
     combatChargePerSecond: roundedCombatChargePerSecond,

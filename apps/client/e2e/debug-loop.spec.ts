@@ -97,7 +97,15 @@ test("debug loop can inspect, preview, record, reward, and advance", async ({ pa
   await expect(commandZonePanel.getByTestId("command-zone-location")).toHaveText(
     "command"
   );
-  await expect(commandZonePanel.getByTestId("commander-rebind-tax")).toHaveText("0");
+  await expect(commandZonePanel.getByTestId("commander-rebind-tax")).toHaveText(
+    "+0 Charge"
+  );
+  await expect(commandZonePanel.getByTestId("commander-deploy-cost")).toHaveText(
+    "1 base + 0 tax = 1 Charge"
+  );
+  await expect(
+    commandZonePanel.getByTestId("commander-board-charge-after-deploy")
+  ).toHaveText("3 / 3");
   await expect(
     commandZonePanel.getByRole("button", { name: "Deploy Commander" })
   ).toBeEnabled();
@@ -505,7 +513,15 @@ test("renderer lab loads Pixi battlefield canvas and replay controls", async ({
     "command"
   );
   await expect(rendererCommandZone.getByTestId("commander-deploy-count")).toHaveText("0");
-  await expect(rendererCommandZone.getByTestId("commander-rebind-tax")).toHaveText("0");
+  await expect(rendererCommandZone.getByTestId("commander-rebind-tax")).toHaveText(
+    "+0 Charge"
+  );
+  await expect(rendererCommandZone.getByTestId("commander-deploy-cost")).toHaveText(
+    "1 base + 0 tax = 1 Charge"
+  );
+  await expect(
+    rendererCommandZone.getByTestId("commander-board-charge-after-deploy")
+  ).toHaveText("3 / 3");
   await rendererCommandZone.getByRole("button", { name: "Inspect" }).click();
   await expect(inspector.getByText(/Unit \| command \| Ember/)).toBeVisible();
   await rendererCommandZone.getByRole("button", { name: "Deploy Commander" }).click();
@@ -525,7 +541,23 @@ test("renderer lab loads Pixi battlefield canvas and replay controls", async ({
   await expect(rendererCommandZone.getByTestId("command-zone-location")).toHaveText(
     "command"
   );
-  await expect(rendererCommandZone.getByTestId("commander-rebind-tax")).toHaveText("1");
+  await expect(rendererCommandZone.getByTestId("commander-rebind-tax")).toHaveText(
+    "+1 Charge"
+  );
+  await expect(rendererCommandZone.getByTestId("commander-deploy-cost")).toHaveText(
+    "1 base + 1 tax = 2 Charge"
+  );
+  await expect(
+    rendererCommandZone.getByTestId("commander-board-charge-after-deploy")
+  ).toHaveText("4 / 3");
+  await expect(
+    rendererCommandZone.getByRole("button", { name: "Deploy Commander" })
+  ).toBeDisabled();
+  await expect(
+    rendererCommandZone.getByText(
+      "Deploy Commander: Commander Rebind Tax requires 4 total Board Charge, but the Source Row provides 3."
+    )
+  ).toBeVisible();
   await expect(rendererHost.locator("canvas")).toHaveCount(1);
   await clickPixiCell(page, rendererHost, 0, 3);
   await expect(inspector.getByText(/Unit \| encounter \| Ember/)).toBeVisible();
@@ -573,6 +605,20 @@ test("renderer lab loads Pixi battlefield canvas and replay controls", async ({
   await expect(replayCommandIndex).toHaveText(/0 \/ \d+/);
   await rendererLab.getByRole("button", { name: "Play Replay" }).click();
   await expect(replayStatus).toHaveText("playing");
+  await expect(replayCommandIndex).not.toHaveText(/0 \/ \d+/, { timeout: 3000 });
+  await rendererLab.getByRole("button", { name: "Reset Replay" }).click();
+  await expect(replayStatus).toHaveText("idle");
+  await expect(replayCommandIndex).toHaveText(/0 \/ \d+/);
+  await rendererLab.getByRole("button", { name: "Step Replay" }).click();
+  await expect(replayCommandIndex).not.toHaveText(/0 \/ \d+/, { timeout: 3000 });
+  await rendererLab.getByRole("button", { name: "Reset Replay" }).click();
+  await expect(replayStatus).toHaveText("idle");
+  await rendererLab.getByRole("button", { name: "Play Replay" }).click();
+  await expect(replayCommandIndex).not.toHaveText(/0 \/ \d+/, { timeout: 3000 });
+  await rendererLab.getByRole("button", { name: "Reset Replay" }).click();
+  await expect(replayStatus).toHaveText("idle");
+  await rendererLab.getByRole("button", { name: "Play Replay" }).click();
+  await expect(replayCommandIndex).not.toHaveText(/0 \/ \d+/, { timeout: 3000 });
   await expect(rendererHost.locator("canvas")).toHaveCount(1);
 
   expect(errors.pageErrors).toEqual([]);

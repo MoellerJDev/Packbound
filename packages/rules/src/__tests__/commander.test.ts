@@ -1,12 +1,19 @@
 import { describe, expect, it } from "vitest";
 
 import { sampleCatalog } from "@packbound/content";
-import { asPlayerId, type BoardPosition } from "@packbound/shared";
+import {
+  asCardDefId,
+  asCardInstanceId,
+  asPlayerId,
+  type BoardPosition,
+  type CardInstance
+} from "@packbound/shared";
 
 import {
   applyRunAction,
   applyRunActions,
   canDeployCommander,
+  canPlaceCardOnBoard,
   canReturnCommanderToCommand,
   createRunFromStarterKit,
   deployCommander,
@@ -33,6 +40,33 @@ const requireCommanderPosition = (run: RunState): BoardPosition => {
   }
   return position;
 };
+
+const requirePoolCard = (run: RunState, defId: string): CardInstance => {
+  const cardDefId = asCardDefId(defId);
+  const card = run.pool.find((candidate) => candidate.defId === cardDefId);
+  if (!card) {
+    throw new Error(`Expected ${defId} in pool`);
+  }
+  return card;
+};
+
+const withExtraCrackedPrismSource = (run: RunState): RunState => ({
+  ...run,
+  sourceRow: {
+    ...run.sourceRow,
+    cards: [
+      ...run.sourceRow.cards,
+      {
+        instanceId: asCardInstanceId(`${run.runId}:test-source:cracked-prism`),
+        defId: asCardDefId("cracked_prism"),
+        ownerId: run.playerId,
+        zone: "sourceRow",
+        modifiers: [],
+        upgradeLevel: 0
+      }
+    ]
+  }
+});
 
 describe("command zone commander prototype", () => {
   it("adds a JSON-serializable Commander to starter-created runs", () => {
@@ -154,8 +188,10 @@ describe("command zone commander prototype", () => {
     expect(() => returnCommanderToCommand(ready)).toThrow(/planning/);
   });
 
-  it("redeploys deterministically while preserving visible Rebind Tax", () => {
-    const run = createCommanderRun("redeploy-commander-seed");
+  it("redeploys deterministically when Source Row can pay Rebind Tax", () => {
+    const run = withExtraCrackedPrismSource(
+      createCommanderRun("redeploy-commander-seed")
+    );
     const firstDeploy = deployCommander(
       run,
       sampleCatalog,
@@ -179,8 +215,50 @@ describe("command zone commander prototype", () => {
     expect(JSON.parse(JSON.stringify(redeployed))).toEqual(redeployed);
   });
 
+  it("blocks redeploy when Rebind Tax exceeds available Board Charge", () => {
+    const run = createCommanderRun("tax-block-seed");
+    const position = requireCommanderPosition(run);
+    const firstDeploy = deployCommander(run, sampleCatalog, position);
+    const returned = returnCommanderToCommand(firstDeploy);
+
+    const check = canDeployCommander(returned, sampleCatalog, position);
+
+    expect(check).toEqual({
+      ok: false,
+      reason:
+        "Commander Rebind Tax requires 4 total Board Charge, but the Source Row provides 3."
+    });
+    expect(check.ok ? "" : check.reason).toMatch(/Rebind Tax|Charge/);
+    expect(check.ok ? "" : check.reason).not.toMatch(/Ember access/);
+    expect(() => deployCommander(returned, sampleCatalog, position)).toThrow(
+      /Rebind Tax/
+    );
+  });
+
+  it("does not apply Rebind Tax to normal pool card placement", () => {
+    const run = createCommanderRun("pool-tax-bypass-seed");
+    const firstDeploy = deployCommander(
+      run,
+      sampleCatalog,
+      requireCommanderPosition(run)
+    );
+    const returned = returnCommanderToCommand(firstDeploy);
+    const poolCard = requirePoolCard(returned, "sparkcatch_apprentice");
+
+    expect(returned.commander?.rebindTax).toBe(1);
+    expect(
+      canPlaceCardOnBoard(returned, sampleCatalog, poolCard.instanceId, {
+        row: 0,
+        col: 0,
+        layer: "ground"
+      })
+    ).toEqual({ ok: true });
+  });
+
   it("applies and replays Commander run actions without mutating prior state", () => {
-    const initialRun = createCommanderRun("commander-action-seed");
+    const initialRun = withExtraCrackedPrismSource(
+      createCommanderRun("commander-action-seed")
+    );
     const firstPosition = requireCommanderPosition(initialRun);
     const actions: readonly RunAction[] = [
       { type: "deployCommander", position: firstPosition },

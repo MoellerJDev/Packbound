@@ -20,6 +20,7 @@ import {
   createRunFromStarterKit,
   describeUpgradeProgressGroup,
   passEncounterPriority,
+  getCommanderDeploymentCandidatePosition,
   getDefaultCommanderPosition,
   getCurrentEncounter,
   getCurrentRewardChoices,
@@ -46,6 +47,7 @@ import {
   BOARD_COLS,
   BOARD_ROWS,
   asPlayerId,
+  chargeCostTotal,
   type BoardPosition,
   type CardDefId,
   type CardInstance,
@@ -271,16 +273,33 @@ export function App() {
   );
   const recordReady = canRecordCombat(run, sampleCatalog);
   const editable = canEditLoadout(run);
+  const commanderCandidatePosition = useMemo(
+    () => getCommanderDeploymentCandidatePosition(run, sampleCatalog),
+    [run]
+  );
   const commanderDefaultPosition = useMemo(
     () => getDefaultCommanderPosition(run, sampleCatalog),
     [run]
   );
+  const commanderDefinition = run.commander
+    ? sampleCatalog.cardsById.get(run.commander.card.defId)
+    : undefined;
+  const commanderBaseBoardCharge = chargeCostTotal(commanderDefinition?.cost);
+  const commanderRebindTax = run.commander?.rebindTax ?? 0;
+  const commanderDeployBoardCharge = commanderBaseBoardCharge + commanderRebindTax;
+  const commanderBoardChargeAfterDeploy =
+    run.commander?.card.zone === "board"
+      ? resourceSummary.boardChargeUsed
+      : resourceSummary.boardChargeUsed + commanderDeployBoardCharge;
   const commanderDeployCheck = useMemo(() => {
     if (!run.commander) {
       return { ok: false as const, reason: "Run has no Commander." };
     }
     if (run.commander.card.zone !== "command") {
       return { ok: false as const, reason: "Commander is already deployed." };
+    }
+    if (!commanderDefaultPosition && commanderCandidatePosition) {
+      return canDeployCommander(run, sampleCatalog, commanderCandidatePosition);
     }
     if (!commanderDefaultPosition) {
       return {
@@ -289,7 +308,7 @@ export function App() {
       };
     }
     return canDeployCommander(run, sampleCatalog, commanderDefaultPosition);
-  }, [commanderDefaultPosition, run]);
+  }, [commanderCandidatePosition, commanderDefaultPosition, run]);
   const commanderReturnCheck = useMemo(() => canReturnCommanderToCommand(run), [run]);
   const priorityPrototypeActionSource = useMemo(
     () =>
@@ -734,11 +753,25 @@ export function App() {
           </div>
           <div>
             <dt>Rebind Tax</dt>
-            <dd data-testid="commander-rebind-tax">{commander?.rebindTax ?? 0}</dd>
+            <dd data-testid="commander-rebind-tax">+{commanderRebindTax} Charge</dd>
+          </div>
+          <div>
+            <dt>Deploy Cost</dt>
+            <dd data-testid="commander-deploy-cost">
+              {commanderBaseBoardCharge} base + {commanderRebindTax} tax ={" "}
+              {commanderDeployBoardCharge} Charge
+            </dd>
+          </div>
+          <div>
+            <dt>Board Charge After Deploy</dt>
+            <dd data-testid="commander-board-charge-after-deploy">
+              {commanderBoardChargeAfterDeploy} / {resourceSummary.boardChargeCapacity}
+            </dd>
           </div>
         </dl>
         <p className="muted">
-          Prototype Commander. Rebind Tax is visible-only until cost enforcement lands.
+          Prototype Commander. Rebind Tax is enforced as generic Board Charge while
+          deployed.
         </p>
         <div className="mini-actions">
           <button
@@ -923,7 +956,8 @@ export function App() {
 
   const completeRendererReplayCommand = (
     nextCommandIndex: number,
-    command: PixiReplayCommand
+    command: PixiReplayCommand,
+    resetKey: number
   ) => {
     setRendererReplay((current) =>
       completePixiReplayCommand(
@@ -931,7 +965,8 @@ export function App() {
         rendererReplayCommands.length,
         nextCommandIndex,
         command,
-        { cardNameByInstanceId: rendererReplayCardNameByInstanceId }
+        { cardNameByInstanceId: rendererReplayCardNameByInstanceId },
+        resetKey
       )
     );
   };

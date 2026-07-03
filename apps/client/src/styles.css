@@ -529,6 +529,17 @@ h4 {
   margin-top: 0;
 }
 
+.renderer-replay-latest {
+  background: #eef5f1;
+  border: 1px solid #d5e4dd;
+  border-radius: 6px;
+  color: #34464b;
+  font-size: 0.86rem;
+  font-weight: 800;
+  margin: -2px 0 8px;
+  padding: 8px 10px;
+}
+
 .renderer-lab-loadout-grid {
   display: grid;
   gap: 14px;

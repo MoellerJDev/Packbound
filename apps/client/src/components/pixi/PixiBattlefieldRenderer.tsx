@@ -1,10 +1,9 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { Application, Container, Graphics, Text } from "pixi.js";
 
-import type { BoardPosition, CardDefId, CombatEvent } from "@packbound/shared";
+import type { BoardPosition } from "@packbound/shared";
 
 import {
-  combatEventsToPixiReplayCommands,
   type PixiReplayCommand,
   type PixiReplayTokenDescriptor
 } from "./pixiCombatReplay";
@@ -20,14 +19,20 @@ import {
   type PixiBattlefieldCard,
   type PixiBattlefieldModel
 } from "./pixiBattlefieldModel";
+import type { PixiReplayStatus } from "./pixiReplayControls";
 import { PIXI_BATTLEFIELD_THEME, sideTheme } from "./pixiTheme";
 
 type PixiBattlefieldRendererProps = {
   readonly model: PixiBattlefieldModel;
-  readonly combatEvents: readonly CombatEvent[];
-  readonly cardNamesByDefId?: ReadonlyMap<CardDefId, string>;
-  readonly replayRequestKey: number;
-  readonly playReplay: boolean;
+  readonly replayCommands: readonly PixiReplayCommand[];
+  readonly replayStatus: PixiReplayStatus;
+  readonly replayCommandIndex: number;
+  readonly replayResetKey: number;
+  readonly replayStepRequestKey: number;
+  readonly onReplayCommandComplete?: (
+    nextCommandIndex: number,
+    command: PixiReplayCommand
+  ) => void;
   readonly onTokenSelect?: (card: PixiBattlefieldCard) => void;
   readonly onCellSelect?: (position: BoardPosition) => void;
 };
@@ -350,19 +355,33 @@ const fitRoot = (app: Application, root: Container): void => {
   );
 };
 
-const wait = (ms: number): Promise<void> =>
+const wait = (ms: number, isCancelled: () => boolean = () => false): Promise<void> =>
   new Promise((resolve) => {
-    window.setTimeout(resolve, ms);
+    const startedAt = performance.now();
+    const tick = () => {
+      if (isCancelled() || performance.now() - startedAt >= ms) {
+        resolve();
+        return;
+      }
+      window.requestAnimationFrame(tick);
+    };
+    window.requestAnimationFrame(tick);
   });
 
 const animate = (
   app: Application,
   durationMs: number,
-  onFrame: (progress: number) => void
+  onFrame: (progress: number) => void,
+  isCancelled: () => boolean = () => false
 ): Promise<void> =>
   new Promise((resolve) => {
     const start = performance.now();
     const tick = () => {
+      if (isCancelled()) {
+        app.ticker.remove(tick);
+        resolve();
+        return;
+      }
       const progress = Math.min(1, (performance.now() - start) / durationMs);
       onFrame(progress);
       if (progress >= 1) {
@@ -426,7 +445,8 @@ const playCommand = async (
   tokensByCardId: Map<string, TokenView>,
   tokenLayer: Container,
   effectLayer: Container,
-  onTokenSelect?: (card: PixiBattlefieldCard) => void
+  onTokenSelect: ((card: PixiBattlefieldCard) => void) | undefined,
+  isCancelled: () => boolean
 ): Promise<void> => {
   switch (command.type) {
     case "move": {
@@ -436,12 +456,17 @@ const playCommand = async (
       }
       const from = token.container.position.clone();
       const to = tokenPointForCard(token.card, command.to);
-      await animate(app, 320, (progress) => {
-        token.container.position.set(
-          from.x + (to.x - from.x) * progress,
-          from.y + (to.y - from.y) * progress
-        );
-      });
+      await animate(
+        app,
+        320,
+        (progress) => {
+          token.container.position.set(
+            from.x + (to.x - from.x) * progress,
+            from.y + (to.y - from.y) * progress
+          );
+        },
+        isCancelled
+      );
       return;
     }
     case "attack": {
@@ -451,12 +476,17 @@ const playCommand = async (
         return;
       }
       const line = lineBetweenTokens(effectLayer, source, target);
-      await animate(app, 180, (progress) => {
-        line.alpha = 1 - progress;
-        target.container.scale.set(
-          target.baseScale + Math.sin(progress * Math.PI) * 0.08
-        );
-      });
+      await animate(
+        app,
+        180,
+        (progress) => {
+          line.alpha = 1 - progress;
+          target.container.scale.set(
+            target.baseScale + Math.sin(progress * Math.PI) * 0.08
+          );
+        },
+        isCancelled
+      );
       target.container.scale.set(target.baseScale);
       line.destroy();
       return;
@@ -468,10 +498,15 @@ const playCommand = async (
       }
       const text = floatDamageText(effectLayer, target, command.amount);
       const startY = text.y;
-      await animate(app, 420, (progress) => {
-        text.y = startY - progress * 28;
-        text.alpha = 1 - progress;
-      });
+      await animate(
+        app,
+        420,
+        (progress) => {
+          text.y = startY - progress * 28;
+          text.alpha = 1 - progress;
+        },
+        isCancelled
+      );
       text.destroy();
       return;
     }
@@ -481,7 +516,7 @@ const playCommand = async (
         return;
       }
       markDestroyed(token);
-      await wait(120);
+      await wait(120, isCancelled);
       return;
     }
     case "appear": {
@@ -489,10 +524,17 @@ const playCommand = async (
       const to = tokenPointForCard(token.card, command.position);
       const startAlpha = token.container.alpha;
       token.container.position.set(to.x, to.y);
-      await animate(app, 220, (progress) => {
-        token.container.alpha = startAlpha + (1 - startAlpha) * progress;
-        token.container.scale.set(token.baseScale + Math.sin(progress * Math.PI) * 0.12);
-      });
+      await animate(
+        app,
+        220,
+        (progress) => {
+          token.container.alpha = startAlpha + (1 - startAlpha) * progress;
+          token.container.scale.set(
+            token.baseScale + Math.sin(progress * Math.PI) * 0.12
+          );
+        },
+        isCancelled
+      );
       token.container.alpha = 1;
       token.container.scale.set(token.baseScale);
       return;
@@ -502,49 +544,135 @@ const playCommand = async (
       if (!token) {
         return;
       }
-      await animate(app, 260, (progress) => {
-        token.container.alpha = 1 - progress * 0.72;
-      });
+      await animate(
+        app,
+        260,
+        (progress) => {
+          token.container.alpha = 1 - progress * 0.72;
+        },
+        isCancelled
+      );
       return;
     }
-  }
-};
-
-const playReplayCommands = async (
-  app: Application,
-  commands: readonly PixiReplayCommand[],
-  tokensByCardId: Map<string, TokenView>,
-  tokenLayer: Container,
-  effectLayer: Container,
-  onTokenSelect: ((card: PixiBattlefieldCard) => void) | undefined,
-  isCancelled: () => boolean
-): Promise<void> => {
-  for (const command of commands.slice(0, 96)) {
-    if (isCancelled()) {
-      return;
-    }
-    await playCommand(
-      app,
-      command,
-      tokensByCardId,
-      tokenLayer,
-      effectLayer,
-      onTokenSelect
-    );
-    await wait(35);
   }
 };
 
 export const PixiBattlefieldRenderer = ({
   model,
-  combatEvents,
-  cardNamesByDefId,
-  replayRequestKey,
-  playReplay,
+  replayCommands,
+  replayStatus,
+  replayCommandIndex,
+  replayResetKey,
+  replayStepRequestKey,
+  onReplayCommandComplete,
   onTokenSelect,
   onCellSelect
 }: PixiBattlefieldRendererProps) => {
   const hostRef = useRef<HTMLDivElement>(null);
+  const appRef = useRef<Application | undefined>(undefined);
+  const tokenLayerRef = useRef<Container | undefined>(undefined);
+  const effectLayerRef = useRef<Container | undefined>(undefined);
+  const tokensByCardIdRef = useRef<Map<string, TokenView>>(new Map());
+  const replayCommandsRef = useRef(replayCommands);
+  const replayStatusRef = useRef(replayStatus);
+  const replayCommandIndexRef = useRef(replayCommandIndex);
+  const replaySessionRef = useRef(0);
+  const replayBusyRef = useRef(false);
+  const lastStepRequestKeyRef = useRef(replayStepRequestKey);
+  const onTokenSelectRef = useRef(onTokenSelect);
+  const onCellSelectRef = useRef(onCellSelect);
+  const onReplayCommandCompleteRef = useRef(onReplayCommandComplete);
+
+  useEffect(() => {
+    replayCommandsRef.current = replayCommands;
+  }, [replayCommands]);
+
+  useEffect(() => {
+    replayStatusRef.current = replayStatus;
+  }, [replayStatus]);
+
+  useEffect(() => {
+    replayCommandIndexRef.current = replayCommandIndex;
+  }, [replayCommandIndex]);
+
+  useEffect(() => {
+    onTokenSelectRef.current = onTokenSelect;
+  }, [onTokenSelect]);
+
+  useEffect(() => {
+    onCellSelectRef.current = onCellSelect;
+  }, [onCellSelect]);
+
+  useEffect(() => {
+    onReplayCommandCompleteRef.current = onReplayCommandComplete;
+  }, [onReplayCommandComplete]);
+
+  const executeCurrentCommand = useCallback(async (): Promise<boolean> => {
+    if (replayBusyRef.current) {
+      return false;
+    }
+
+    const app = appRef.current;
+    const tokenLayer = tokenLayerRef.current;
+    const effectLayer = effectLayerRef.current;
+    if (!app || !tokenLayer || !effectLayer) {
+      return false;
+    }
+
+    const session = replaySessionRef.current;
+    const commandIndex = replayCommandIndexRef.current;
+    const command = replayCommandsRef.current[commandIndex];
+    if (!command) {
+      return false;
+    }
+
+    replayBusyRef.current = true;
+    try {
+      await playCommand(
+        app,
+        command,
+        tokensByCardIdRef.current,
+        tokenLayer,
+        effectLayer,
+        onTokenSelectRef.current,
+        () => replaySessionRef.current !== session
+      );
+
+      if (replaySessionRef.current !== session) {
+        return false;
+      }
+
+      const nextCommandIndex = commandIndex + 1;
+      replayCommandIndexRef.current = nextCommandIndex;
+      onReplayCommandCompleteRef.current?.(nextCommandIndex, command);
+      return true;
+    } finally {
+      replayBusyRef.current = false;
+    }
+  }, []);
+
+  const runAutomaticPlayback = useCallback(async () => {
+    while (replayStatusRef.current === "playing") {
+      const played = await executeCurrentCommand();
+      if (!played) {
+        return;
+      }
+      await wait(35, () => replayStatusRef.current !== "playing");
+    }
+  }, [executeCurrentCommand]);
+
+  const waitForReplayIdle = useCallback(async (session: number): Promise<boolean> => {
+    const startedAt = performance.now();
+    while (
+      replayBusyRef.current &&
+      replaySessionRef.current === session &&
+      performance.now() - startedAt < 1500
+    ) {
+      await wait(16, () => replaySessionRef.current !== session);
+    }
+
+    return !replayBusyRef.current && replaySessionRef.current === session;
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -583,14 +711,24 @@ export const PixiBattlefieldRenderer = ({
       const tokensByCardId = new Map<string, TokenView>();
       root.sortableChildren = true;
       tokenLayer.sortableChildren = true;
+      appRef.current = app;
+      tokenLayerRef.current = tokenLayer;
+      effectLayerRef.current = effectLayer;
+      tokensByCardIdRef.current = tokensByCardId;
+      replayCommandIndexRef.current = replayCommandIndex;
+      replaySessionRef.current += 1;
 
       drawBackground(root);
       for (const cell of model.cells) {
-        drawCell(cellLayer, cell, pulseTargets, onCellSelect);
+        drawCell(cellLayer, cell, pulseTargets, (position) =>
+          onCellSelectRef.current?.(position)
+        );
       }
       drawMovePreview(cellLayer, model, pulseTargets);
       for (const card of model.cards) {
-        const token = drawToken(card, onTokenSelect);
+        const token = drawToken(card, (selectedCard) =>
+          onTokenSelectRef.current?.(selectedCard)
+        );
         token.container.scale.set(token.baseScale);
         tokenLayer.addChild(token.container);
         tokensByCardId.set(card.cardInstanceId, token);
@@ -610,18 +748,8 @@ export const PixiBattlefieldRenderer = ({
       };
       app.ticker.add(pulse);
 
-      if (playReplay) {
-        await playReplayCommands(
-          app,
-          combatEventsToPixiReplayCommands(combatEvents, {
-            ...(cardNamesByDefId ? { cardNamesByDefId } : {})
-          }),
-          tokensByCardId,
-          tokenLayer,
-          effectLayer,
-          onTokenSelect,
-          () => cancelled
-        );
+      if (replayStatusRef.current === "playing") {
+        void runAutomaticPlayback();
       }
     };
 
@@ -629,19 +757,44 @@ export const PixiBattlefieldRenderer = ({
 
     return () => {
       cancelled = true;
+      replaySessionRef.current += 1;
+      appRef.current = undefined;
+      tokenLayerRef.current = undefined;
+      effectLayerRef.current = undefined;
+      tokensByCardIdRef.current = new Map();
       if (initialized) {
         app?.destroy(true, { children: true });
       }
     };
-  }, [
-    cardNamesByDefId,
-    combatEvents,
-    model,
-    onCellSelect,
-    onTokenSelect,
-    playReplay,
-    replayRequestKey
-  ]);
+  }, [model, replayResetKey, runAutomaticPlayback]);
+
+  useEffect(() => {
+    if (replayStatus === "playing") {
+      void runAutomaticPlayback();
+    }
+  }, [replayStatus, runAutomaticPlayback]);
+
+  useEffect(() => {
+    if (replayStepRequestKey === lastStepRequestKeyRef.current) {
+      return;
+    }
+
+    lastStepRequestKeyRef.current = replayStepRequestKey;
+
+    if (replayStatusRef.current === "playing") {
+      return;
+    }
+
+    // Step requests that arrive mid-animation wait for that command to settle,
+    // then advance exactly one additional deterministic replay command.
+    const session = replaySessionRef.current;
+    void (async () => {
+      const idle = await waitForReplayIdle(session);
+      if (idle && replayStatusRef.current !== "playing") {
+        void executeCurrentCommand();
+      }
+    })();
+  }, [executeCurrentCommand, replayStepRequestKey, waitForReplayIdle]);
 
   return (
     <div

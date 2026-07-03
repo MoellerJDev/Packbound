@@ -65,6 +65,19 @@ import {
   buildPixiBattlefieldModel,
   type PixiBattlefieldCard
 } from "./components/pixi/pixiBattlefieldModel";
+import {
+  combatEventsToPixiReplayCommands,
+  type PixiReplayCommand
+} from "./components/pixi/pixiCombatReplay";
+import {
+  completePixiReplayCommand,
+  createPixiReplayControlsState,
+  limitPixiReplayCommands,
+  pausePixiReplay,
+  playPixiReplay,
+  resetPixiReplay,
+  stepPixiReplay
+} from "./components/pixi/pixiReplayControls";
 import { RawDebugDetails } from "./components/RawDebugDetails";
 import { TraitSummaryView } from "./components/TraitSummaryView";
 import { UpgradeBadge, UpgradeProgressBadge } from "./components/upgradeBadges";
@@ -189,10 +202,7 @@ export function App() {
   const [selectedEngagementRef, setSelectedEngagementRef] = useState<
     BoardSelectedCardRef | undefined
   >();
-  const [rendererReplay, setRendererReplay] = useState({
-    key: 0,
-    play: false
-  });
+  const [rendererReplay, setRendererReplay] = useState(createPixiReplayControlsState);
   const [rendererPlacementCardId, setRendererPlacementCardId] = useState<
     CardInstanceId | undefined
   >();
@@ -328,6 +338,15 @@ export function App() {
       playerB: opponentSetup
     });
   }, [currentEncounter, opponentSetup, playerSetup, run.currentRound, run.seed]);
+  const rendererReplayCommands = useMemo(
+    () =>
+      limitPixiReplayCommands(
+        combatEventsToPixiReplayCommands(rendererLabCombat?.events ?? [], {
+          cardNamesByDefId
+        })
+      ),
+    [rendererLabCombat]
+  );
   const latestCombatSummary = run.combatHistory.at(-1);
   const latestOpenedPack = run.openedPacks.at(-1);
   const latestRewardHistoryEntry = run.rewardHistory.at(-1);
@@ -450,6 +469,24 @@ export function App() {
       rendererPlaceablePositions
     ]
   );
+  const rendererReplayCardNameByInstanceId = useMemo(() => {
+    const byInstanceId = new Map<CardInstanceId, string>();
+    for (const card of pixiBattlefieldModel.cards) {
+      byInstanceId.set(card.cardInstanceId, card.name);
+    }
+    for (const command of rendererReplayCommands) {
+      if (command.type === "appear") {
+        byInstanceId.set(command.cardInstanceId, command.token.name);
+      }
+    }
+    return byInstanceId;
+  }, [pixiBattlefieldModel.cards, rendererReplayCommands]);
+  const rendererReplayCommandCountText = `${Math.min(
+    rendererReplay.commandIndex,
+    rendererReplayCommands.length
+  )} / ${rendererReplayCommands.length}`;
+  const rendererReplayLatestSummary =
+    rendererReplay.latestCommandSummary ?? "No command visualized yet.";
   const selectedAllyInspection = useMemo(() => {
     if (!effectiveAllyCardRef) {
       return undefined;
@@ -510,7 +547,7 @@ export function App() {
     setSelectedEnemyCardRef(undefined);
     setSelectedEngagementRef(undefined);
     setRendererPlacementCardId(undefined);
-    setRendererReplay({ key: 0, play: false });
+    setRendererReplay((current) => resetPixiReplay(current));
   };
 
   const performLoadoutAction = (
@@ -546,7 +583,7 @@ export function App() {
     setSelectedAllyCardRef({ type: "run", cardInstanceId });
     if (action.type === "placeOnBoard") {
       setSelectedEngagementRef({ type: "run", cardInstanceId });
-      setRendererReplay((current) => ({ key: current.key + 1, play: false }));
+      setRendererReplay((current) => resetPixiReplay(current));
     }
   };
 
@@ -675,6 +712,7 @@ export function App() {
     setSelectedEnemyCardRef(undefined);
     setSelectedEngagementRef(undefined);
     setRendererPlacementCardId(undefined);
+    setRendererReplay((current) => resetPixiReplay(current));
     setRun((currentRun) =>
       applyRunAction(currentRun, sampleCatalog, { type: "advanceRunAfterCombat" })
     );
@@ -719,11 +757,38 @@ export function App() {
   };
 
   const playRendererReplay = () => {
-    setRendererReplay((current) => ({ key: current.key + 1, play: true }));
+    setRendererReplay((current) =>
+      playPixiReplay(current, rendererReplayCommands.length)
+    );
+  };
+
+  const pauseRendererReplay = () => {
+    setRendererReplay((current) => pausePixiReplay(current));
+  };
+
+  const stepRendererReplay = () => {
+    setRendererReplay((current) =>
+      stepPixiReplay(current, rendererReplayCommands.length)
+    );
   };
 
   const resetRendererReplay = () => {
-    setRendererReplay((current) => ({ key: current.key + 1, play: false }));
+    setRendererReplay((current) => resetPixiReplay(current));
+  };
+
+  const completeRendererReplayCommand = (
+    nextCommandIndex: number,
+    command: PixiReplayCommand
+  ) => {
+    setRendererReplay((current) =>
+      completePixiReplayCommand(
+        current,
+        rendererReplayCommands.length,
+        nextCommandIndex,
+        command,
+        { cardNameByInstanceId: rendererReplayCardNameByInstanceId }
+      )
+    );
   };
 
   const selectPixiToken = (card: PixiBattlefieldCard) => {
@@ -775,7 +840,7 @@ export function App() {
     setSelectedAllyCardRef({ type: "run", cardInstanceId });
     setSelectedEngagementRef({ type: "run", cardInstanceId });
     setRendererPlacementCardId(undefined);
-    setRendererReplay((current) => ({ key: current.key + 1, play: false }));
+    setRendererReplay((current) => resetPixiReplay(current));
   };
 
   const selectRendererPlacementCard = (cardInstanceId: CardInstanceId) => {
@@ -1021,9 +1086,34 @@ export function App() {
               <button
                 type="button"
                 onClick={playRendererReplay}
-                disabled={!rendererLabCombat}
+                disabled={
+                  !rendererLabCombat ||
+                  rendererReplayCommands.length === 0 ||
+                  rendererReplay.status === "playing"
+                }
               >
-                Play Replay
+                {rendererReplay.status === "paused" ? "Resume Replay" : "Play Replay"}
+              </button>
+              <button
+                type="button"
+                className="secondary"
+                onClick={pauseRendererReplay}
+                disabled={rendererReplay.status !== "playing"}
+              >
+                Pause Replay
+              </button>
+              <button
+                type="button"
+                className="secondary"
+                onClick={stepRendererReplay}
+                disabled={
+                  !rendererLabCombat ||
+                  rendererReplayCommands.length === 0 ||
+                  rendererReplay.status === "playing" ||
+                  rendererReplay.status === "complete"
+                }
+              >
+                Step Replay
               </button>
               <button type="button" className="secondary" onClick={resetRendererReplay}>
                 Reset Replay
@@ -1035,10 +1125,12 @@ export function App() {
             <div className="renderer-lab-stage">
               <PixiBattlefieldRenderer
                 model={pixiBattlefieldModel}
-                combatEvents={rendererLabCombat?.events ?? []}
-                cardNamesByDefId={cardNamesByDefId}
-                replayRequestKey={rendererReplay.key}
-                playReplay={rendererReplay.play}
+                replayCommands={rendererReplayCommands}
+                replayStatus={rendererReplay.status}
+                replayCommandIndex={rendererReplay.commandIndex}
+                replayResetKey={rendererReplay.resetKey}
+                replayStepRequestKey={rendererReplay.stepRequestKey}
+                onReplayCommandComplete={completeRendererReplayCommand}
                 onTokenSelect={selectPixiToken}
                 onCellSelect={placeRendererCardOnCell}
               />
@@ -1068,6 +1160,16 @@ export function App() {
                   <dd>{rendererLabCombat?.events.length ?? 0}</dd>
                 </div>
                 <div>
+                  <dt>Replay status</dt>
+                  <dd data-testid="renderer-replay-status">{rendererReplay.status}</dd>
+                </div>
+                <div>
+                  <dt>Replay command</dt>
+                  <dd data-testid="renderer-replay-command-index">
+                    {rendererReplayCommandCountText}
+                  </dd>
+                </div>
+                <div>
                   <dt>Winner</dt>
                   <dd>{rendererLabCombat?.winner ?? "none"}</dd>
                 </div>
@@ -1076,6 +1178,9 @@ export function App() {
                   <dd>appear/recall, move, attack, damage, destroyed</dd>
                 </div>
               </dl>
+              <p className="renderer-replay-latest" data-testid="renderer-replay-latest">
+                {rendererReplayLatestSummary}
+              </p>
               <h3>Preview</h3>
               <ul className="message-list compact">
                 <li>Selected halo, range glow, likely target ring, and next move.</li>

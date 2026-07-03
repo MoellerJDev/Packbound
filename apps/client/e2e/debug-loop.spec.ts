@@ -502,9 +502,32 @@ test("renderer lab loads Pixi battlefield canvas and replay controls", async ({
       .filter({ hasText: "Sparkcatch Apprentice" })
   ).toBeVisible();
 
+  const replayStatus = page.getByTestId("renderer-replay-status");
+  const replayCommandIndex = page.getByTestId("renderer-replay-command-index");
+  const replayLatest = page.getByTestId("renderer-replay-latest");
+  await expect(replayStatus).toHaveText("idle");
+  await expect(replayCommandIndex).toHaveText(/0 \/ \d+/);
+  await expect(replayLatest).toHaveText("No command visualized yet.");
   await expect(rendererLab.getByRole("button", { name: "Play Replay" })).toBeVisible();
-  await rendererLab.getByRole("button", { name: "Play Replay" }).click();
+  await expect(rendererLab.getByRole("button", { name: "Pause Replay" })).toBeVisible();
+  await expect(rendererLab.getByRole("button", { name: "Step Replay" })).toBeVisible();
   await expect(rendererLab.getByRole("button", { name: "Reset Replay" })).toBeVisible();
+  await rendererLab.getByRole("button", { name: "Play Replay" }).click();
+  await expect(replayStatus).toHaveText("playing");
+  await rendererLab.getByRole("button", { name: "Pause Replay" }).click();
+  await expect(replayStatus).toHaveText("paused");
+  await expect(rendererHost.locator("canvas")).toHaveCount(1);
+  await page.waitForTimeout(500);
+  const beforeStep = await replayCommandIndex.textContent();
+  await rendererLab.getByRole("button", { name: "Step Replay" }).click();
+  await expect(replayCommandIndex).not.toHaveText(beforeStep ?? "");
+  await expect(replayLatest).not.toHaveText("No command visualized yet.");
+  await rendererLab.getByRole("button", { name: "Reset Replay" }).click();
+  await expect(replayStatus).toHaveText("idle");
+  await expect(replayCommandIndex).toHaveText(/0 \/ \d+/);
+  await rendererLab.getByRole("button", { name: "Play Replay" }).click();
+  await expect(replayStatus).toHaveText("playing");
+  await expect(rendererHost.locator("canvas")).toHaveCount(1);
 
   expect(errors.pageErrors).toEqual([]);
   expect(errors.consoleErrors).toEqual([]);

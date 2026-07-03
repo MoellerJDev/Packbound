@@ -48,15 +48,21 @@ Pool/Bench panels. Pool/Bench board permanents can be selected, legal Pixi cells
 are highlighted, and clicking a highlighted cell places the card through the
 existing loadout reducer.
 
-The biggest remaining Pixi findings are replay control and compact readability,
-not the missing-token bug. Damage numbers and destroyed markers are visible, but
-attack beams are still easy to miss, long replays still rush by without
-pause/step/scrub controls, and token names/stat chips are small at 1280 x 720.
-Pixi should stay opt-in until those readability controls improve.
+Implementation update after this task: `?scenario=renderer-lab` now has
+React-owned replay controls for Play/Resume, Pause, Step, and Reset. The UI
+shows replay status, visual command index, total visualized command count, and
+the latest command summary. Browser smoke now clicks `Play -> Pause -> Step ->
+Reset -> Play` and checks the text state plus single-canvas safety.
+
+The biggest remaining Pixi findings are compact readability and effect timing,
+not missing replay controls. Damage numbers and destroyed markers are visible,
+but attack beams are still easy to miss, long combat feeds still need
+grouping/filtering, and token names/stat chips are small at 1280 x 720. Pixi
+should stay opt-in until those readability controls improve.
 
 Recommended next task:
 
-`feat(client): add Pixi replay pause and step controls`
+`feat(client): improve Pixi token label/stat readability`
 
 ## 2. Environment And Commands
 
@@ -162,12 +168,14 @@ Basic renderer lifecycle checks passed:
 
 - Exactly one `.pixi-renderer-host canvas` mounted.
 - The page had no horizontal overflow at 1280 x 720.
-- The lab exposed `Play Replay` and `Reset Replay`.
+- The lab exposed `Play Replay`, `Pause Replay`, `Step Replay`, and
+  `Reset Replay`.
 - Clicking a Pixi enemy token updated the inspector to the encounter card.
 - Selecting Sparkcatch Apprentice from Pool/Bench highlighted legal Pixi cells;
   clicking a highlighted cell placed it on the board through the existing
   loadout action path.
-- `Play -> Reset -> Play` kept exactly one canvas and one host child.
+- `Play -> Pause -> Step -> Reset -> Play` kept exactly one canvas and one host
+  child.
 - Navigating to `?scenario=engagement-lab` removed the canvas.
 - Navigating back to `?scenario=renderer-lab` remounted exactly one canvas.
 - No browser console warnings or errors appeared.
@@ -247,8 +255,9 @@ Replay pacing:
 - Short replays are quick and understandable if watched closely.
 - Effects need stronger timing for manual comprehension, especially attack
   lines.
-- Long replays like Rotbloom's 111 events need step/pause/scrub controls or
-  event grouping before the canvas can be a reliable debugging tool.
+- Long replays like Rotbloom's 111 events can now be paused and stepped through,
+  but they still need scrub controls or event grouping before the canvas can be a
+  reliable debugging tool.
 
 ### Default-Renderer Decision
 
@@ -439,14 +448,18 @@ No horizontal overflow appeared in the upgrade lab.
 3. Confirm there is no horizontal page scroll.
 4. Confirm the React fallback board is still visible above.
 5. Click `Play Replay`.
-6. Watch for movement, attack beams, damage numbers, destroyed markers, and
-   appear/recall tokens.
-7. Click a player or enemy token and confirm the Pixi Inspector changes.
-8. Select a Pool/Bench board card such as Sparkcatch Apprentice.
-9. Confirm legal Pixi cells highlight, then click one to place the card.
-10. Click `Reset Replay`.
-11. Click `Play Replay` again.
-12. Confirm the replay restarts cleanly and does not duplicate canvases or stale
+6. Click `Pause Replay`.
+7. Click `Step Replay` several times and confirm the replay command count and
+   latest command summary advance one visual command at a time.
+8. Click `Reset Replay`.
+9. Click `Play Replay` again.
+10. Compare the Pixi replay with the Combat Feed Sample.
+11. Watch for movement, attack beams, damage numbers, destroyed markers, and
+    appear/recall tokens.
+12. Click a player or enemy token and confirm the Pixi Inspector changes.
+13. Select a Pool/Bench board card such as Sparkcatch Apprentice.
+14. Confirm legal Pixi cells highlight, then click one to place the card.
+15. Confirm the replay restarts cleanly and does not duplicate canvases or stale
     effects.
 
 ### Starter-Specific Checks
@@ -482,7 +495,11 @@ Note:
 - Pixi uses generated shapes and text, not final art assets.
 - Pixi has click-to-select token inspection and minimal click-to-place from
   Pool/Bench, but no drag/drop, hover tooltips, or full board-editing polish.
-- Replay controls are limited to Play and Reset.
+- Replay controls now cover Play/Resume, Pause, Step, and Reset, but there is no
+  scrubber, speed control, event grouping, or filtered command list yet.
+- Step advances one visual command when playback is idle or paused. If clicked
+  while a paused command animation is still settling, the renderer waits for that
+  command to settle and then advances one additional deterministic command.
 - Click-to-place only covers legal Pool/Bench board permanents; Source Row and
   Spellrail still use explicit buttons.
 - Newly materialized appear/recall tokens use event metadata; if a card is not
@@ -509,17 +526,17 @@ Note:
 
 Do next:
 
-`feat(client): add Pixi replay pause and step controls`
+`feat(client): improve Pixi token label/stat readability`
 
-Why: the recall-token correctness gap is fixed, so the next practical blocker is
-manual comprehension. Rotbloom's 111-event replay is now visually more complete,
-but it still moves too quickly to inspect comfortably without pause/step
-controls.
+Why: the replay-control gap is now covered, so the next practical blocker is
+whether users can identify tokens and key stats without leaning on the side
+panel. At 1280 x 720, initials are readable, but token names and stat chips are
+still too small for Pixi to replace the React/CSS debug board.
 
 Do soon:
 
 - `feat(client): improve Pixi token label/stat readability`
-- `feat(client): add Pixi replay pause/step controls`
+- `feat(client): add Pixi replay scrub/speed controls`
 - `feat(rules): evaluate expanding the canonical board to 6 rows x 10-12 columns`
 - `feat(client): strengthen Pixi attack and destroyed effect timing`
 - `feat(client): keep selected target and next move visible together in preview labs`

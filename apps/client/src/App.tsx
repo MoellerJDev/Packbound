@@ -454,6 +454,19 @@ const boardGridStyle = (cols: number): CSSProperties => ({
   gridTemplateColumns: `repeat(${cols}, minmax(112px, 1fr))`
 });
 
+type BoardPlacementSummary = RunState["board"]["placements"][number];
+
+const firstUnitOrEchoPlacement = (
+  placements: readonly BoardPlacementSummary[]
+): BoardPlacementSummary | undefined =>
+  placements.find((placement) => {
+    const def = sampleCatalog.cardsById.get(placement.defId);
+    return def?.cardType === "Unit" || def?.cardType === "Echo";
+  }) ?? placements[0];
+
+const cardTypeClass = (card: BoardGridCardSummary): string =>
+  `card-${card.cardType.toLowerCase()}`;
+
 const BoardGridView = ({
   summary,
   emptyText,
@@ -478,7 +491,9 @@ const BoardGridView = ({
         {summary.cells.map((cell) => (
           <div
             key={`${cell.row}:${cell.col}`}
-            className={`board-grid-cell ${cell.cards.length === 0 ? "empty" : ""}`}
+            className={`board-grid-cell ${
+              cell.cards.length === 0 ? "empty" : "occupied"
+            }`}
           >
             <div className="board-grid-coordinate">
               r{cell.row} c{cell.col}
@@ -487,7 +502,7 @@ const BoardGridView = ({
               cell.cards.map((card) => (
                 <div
                   key={card.cardInstanceId}
-                  className={`board-grid-layer ${card.layer} ${
+                  className={`board-grid-layer ${card.layer} ${cardTypeClass(card)} ${
                     selectedCardInstanceId === card.cardInstanceId ? "selected" : ""
                   }`}
                 >
@@ -651,13 +666,15 @@ export function App() {
     [lastRecordedCombat]
   );
   const defaultAllyCardRef = useMemo<AllySelectedCardRef | undefined>(() => {
-    const placement = run.board.placements[0];
+    const placement = firstUnitOrEchoPlacement(run.board.placements);
     return placement
       ? { type: "run", cardInstanceId: placement.cardInstanceId }
       : undefined;
   }, [run.board.placements]);
   const defaultEnemyCardRef = useMemo<EnemySelectedCardRef | undefined>(() => {
-    const placement = currentEncounter?.loadout.board.placements[0];
+    const placement = currentEncounter
+      ? firstUnitOrEchoPlacement(currentEncounter.loadout.board.placements)
+      : undefined;
     return placement
       ? { type: "encounterBoard", cardInstanceId: placement.cardInstanceId }
       : undefined;
@@ -958,6 +975,11 @@ export function App() {
                 <h3>Enemy Board</h3>
                 <span>{currentEncounter?.kind ?? "none"}</span>
               </div>
+              <div className="board-orientation" aria-label="Enemy board orientation">
+                <span>Enemy side</span>
+                <span>Backline r0</span>
+                <span>Frontline r3</span>
+              </div>
               {encounterBoardGrid ? (
                 <BoardGridView
                   summary={encounterBoardGrid}
@@ -981,6 +1003,11 @@ export function App() {
               <div className="board-side-heading">
                 <h3>Ally Board</h3>
                 <span>{resourceSummary.boardChargeText} Charge</span>
+              </div>
+              <div className="board-orientation" aria-label="Ally board orientation">
+                <span>Your side</span>
+                <span>Frontline r0</span>
+                <span>Backline r3</span>
               </div>
               <BoardGridView
                 summary={playerBoardGrid}

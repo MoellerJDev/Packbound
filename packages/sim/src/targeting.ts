@@ -6,6 +6,9 @@ import type { AbilitySource, MutableCombatState, MutableUnit } from "./types";
 const sourcePosition = (source: AbilitySource) =>
   source.unit?.position ?? source.placement?.position;
 
+export const isTargetInRange = (attacker: MutableUnit, target: MutableUnit): boolean =>
+  distance(attacker.position, target.position) <= Math.max(0, attacker.range);
+
 export const selectEnemyTarget = (
   attacker: MutableUnit,
   state: MutableCombatState

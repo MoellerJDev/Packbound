@@ -76,8 +76,16 @@ export type CombatEvent =
       readonly type: "UnitMoved";
       readonly timeMs: number;
       readonly unitId: UnitInstanceId;
+      readonly cardInstanceId: CardInstanceId;
+      readonly defId: CardDefId;
+      readonly side: PlayerSide;
+      readonly ownerId: PlayerId;
       readonly from: BoardPosition;
       readonly to: BoardPosition;
+      readonly targetId: UnitInstanceId;
+      readonly targetCardInstanceId: CardInstanceId;
+      readonly targetDefId: CardDefId;
+      readonly targetSide: PlayerSide;
     }
   | {
       readonly type: "UnitAttacked";

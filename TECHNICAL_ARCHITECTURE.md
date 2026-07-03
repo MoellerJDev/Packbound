@@ -208,9 +208,11 @@ Current simulator stat audit: attack determines basic-attack damage, health
 determines survival, attack speed feeds the attack timer, board distance affects
 target priority, Guard and AntiAir can override target choice, Airborne changes
 target sorting, Barrier blocks one damage instance, and Quickstart starts the
-first attack timer ready. Range is stored on runtime Units and displayed in the
-debug UI, but the current MVP does not enforce range as a maximum attack
-distance or implement movement/pathing.
+first attack timer ready. Range is enforced as maximum Manhattan distance for
+basic attacks. When a ready Unit or Echo has no selected target in range, it
+attempts one deterministic ground-tile step toward that target and emits a
+`UnitMoved` event. Movement remains discrete simulation state; it has no
+physics, renderer, Pixi, canvas, server, or real-3D dependency.
 
 ## Core Rule: Simulation Does Not Render
 

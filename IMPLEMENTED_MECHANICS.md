@@ -90,11 +90,14 @@ loop:
 ## Known Simulator Limitations
 
 - Attack, health, attack speed, board distance, Guard, Barrier, Quickstart,
-  Airborne, AntiAir, support-layer trigger positions, and Technique combat
-  Charge affect combat today.
-- Range is stored on runtime Units and displayed in the debug UI, but it is not
-  currently enforced as a maximum attack distance.
-- Movement/pathing is not implemented; units attack from their submitted tiles.
+  Airborne, AntiAir, support-layer trigger positions, Manhattan range, one-tile
+  movement, and Technique combat Charge affect combat today.
+- Range is enforced for basic attacks as maximum Manhattan distance.
+- Basic movement is implemented as deterministic one-tile ground movement toward
+  the selected target when a Unit or Echo is ready to attack but out of range.
+  Occupied ground cells block movement, while support and terrain layers do not.
+- Movement is grid-based engagement only, not full pathfinding, obstacle
+  routing, collision physics, or an ability-card movement system.
 - Pierce, Airborne, and AntiAir are only partially represented through targeting.
 - Phase uses scheduled return events, but phased-out units do not count as active
   units while gone.

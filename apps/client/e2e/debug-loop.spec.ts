@@ -57,10 +57,22 @@ test("debug loop can inspect, preview, record, reward, and advance", async ({ pa
   const allyInspector = battlefield.locator(".battlefield-inspector.ally");
   const enemyInspector = battlefield.locator(".battlefield-inspector.enemy");
 
+  await expect(
+    allyInspector.getByRole("heading", { name: "Ember Scraprunner" })
+  ).toBeVisible();
+  await expect(enemyInspector.getByText(/\| encounter \|/)).toBeVisible();
+  await expect(allyInspector.getByText("2 ATK").first()).toBeVisible();
+  await expect(allyInspector.getByText("1 HP").first()).toBeVisible();
+  await expect(allyInspector.getByText("1.3 AS").first()).toBeVisible();
+  await expect(allyInspector.getByText("1 RNG").first()).toBeVisible();
   await expect(boardPanel.getByRole("button", { name: "Inspect" }).first()).toBeVisible();
+  await expect(playerGridPanel.getByText("Your side")).toBeVisible();
+  await expect(enemyGridPanel.getByText("Enemy side")).toBeVisible();
   await expect(playerGridPanel.getByText("r0 c2")).toBeVisible();
   await expect(playerGridPanel.getByText("ground").first()).toBeVisible();
   await expect(playerGridPanel.getByText("2 ATK").first()).toBeVisible();
+  await expect(playerGridPanel.getByText("1 HP").first()).toBeVisible();
+  await expect(playerGridPanel.getByText("1.3 AS").first()).toBeVisible();
   await expect(playerGridPanel.getByText("1 RNG").first()).toBeVisible();
   await expect(playerGridPanel.getByText("Melee").first()).toBeVisible();
   await playerGridPanel

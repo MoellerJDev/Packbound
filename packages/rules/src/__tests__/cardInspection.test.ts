@@ -340,7 +340,7 @@ describe("card inspection helpers", () => {
     ).toMatchObject({
       value: "1 RNG",
       description:
-        "Range is displayed for card identity; current MVP targeting still attacks the selected target without movement/range gating."
+        "Maximum Manhattan distance for basic attacks. Units outside range move one ground tile toward their selected target when their attack timer is ready."
     });
   });
 

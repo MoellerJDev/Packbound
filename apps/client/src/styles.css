@@ -248,6 +248,24 @@ h4 {
   text-transform: uppercase;
 }
 
+.board-orientation {
+  color: #4f6066;
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.68rem;
+  font-weight: 900;
+  gap: 6px;
+  margin-top: 7px;
+  text-transform: uppercase;
+}
+
+.board-orientation span {
+  background: #f3f6f2;
+  border: 1px solid #d8e2dd;
+  border-radius: 999px;
+  padding: 3px 7px;
+}
+
 .battlefield-vs {
   align-items: center;
   color: #6b767a;
@@ -648,8 +666,17 @@ h4 {
 }
 
 .board-grid-cell.empty {
-  background: #f3f7f5;
-  color: #8e877f;
+  background: #f6f8f7;
+  border-color: #e0e8e4;
+  color: #a5aaa7;
+}
+
+.board-grid-cell.occupied {
+  background: #fffdf7;
+  border-color: #b8c7c2;
+  box-shadow:
+    inset 0 0 0 1px #f0e2bd,
+    0 2px 8px rgb(31 43 50 / 0.08);
 }
 
 .board-grid-coordinate {
@@ -662,14 +689,27 @@ h4 {
 
 .board-grid-layer {
   align-items: center;
-  background: #f5f8ee;
-  border: 1px solid #dbe5d5;
-  border-left: 4px solid #5d7a55;
+  background: #f7f4ea;
+  border: 1px solid #d8c99f;
+  border-left: 4px solid #7d6838;
   border-radius: 5px;
   display: grid;
   gap: 4px;
   grid-template-columns: minmax(0, 1fr);
   padding: 6px;
+}
+
+.board-grid-layer.card-unit,
+.board-grid-layer.card-echo {
+  background: #fff8e6;
+  border-color: #d8bd74;
+  border-left-color: #9b6c20;
+}
+
+.board-grid-layer.card-relic {
+  background: #eef3f8;
+  border-color: #c4d5e0;
+  border-left-color: #436f91;
 }
 
 .board-grid-layer.selected {
@@ -729,8 +769,8 @@ h4 {
 }
 
 .board-grid-empty {
-  color: #aaa198;
-  font-size: 0.74rem;
+  color: #b7bbb8;
+  font-size: 0.7rem;
   font-weight: 700;
 }
 

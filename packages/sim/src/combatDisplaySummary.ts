@@ -12,6 +12,7 @@ export type CombatDisplayLine = {
   readonly kind:
     | "start"
     | "technique"
+    | "move"
     | "attack"
     | "trigger"
     | "damage"
@@ -62,16 +63,22 @@ const possessiveSideLabel = (side: PlayerSide, perspectiveSide: PlayerSide): str
 const cardName = (catalog: ContentCatalog, defId: CardDefId): string =>
   catalog.cardsById.get(defId)?.name ?? defId;
 
+const boardPositionText = (position: {
+  readonly row: number;
+  readonly col: number;
+  readonly layer: string;
+}): string => `r${position.row} c${position.col} ${position.layer}`;
+
 const positionText = (event: Extract<CombatEvent, { readonly type: "UnitSummoned" }>) =>
-  `r${event.position.row} c${event.position.col} ${event.position.layer}`;
+  boardPositionText(event.position);
 
 const recallPositionText = (
   event: Extract<CombatEvent, { readonly type: "UnitRecalled" }>
-) => `r${event.position.row} c${event.position.col} ${event.position.layer}`;
+) => boardPositionText(event.position);
 
 const phaseInPositionText = (
   event: Extract<CombatEvent, { readonly type: "UnitPhasedIn" }>
-) => `r${event.position.row} c${event.position.col} ${event.position.layer}`;
+) => boardPositionText(event.position);
 
 const winnerTitle = (winner: CombatWinner, perspectiveSide: PlayerSide): string => {
   if (winner === "draw") {
@@ -206,6 +213,18 @@ const buildEventLine = (
         text: "A Technique was interrupted.",
         severity: "warning"
       };
+    case "UnitMoved":
+      return {
+        timeMs: event.timeMs,
+        kind: "move",
+        text: `${possessiveSideLabel(event.side, perspectiveSide)} ${cardName(
+          catalog,
+          event.defId
+        )} moved from ${boardPositionText(event.from)} to ${boardPositionText(
+          event.to
+        )} toward ${cardName(catalog, event.targetDefId)}.`,
+        severity: "info"
+      };
     case "UnitAttacked":
       return {
         timeMs: event.timeMs,
@@ -333,7 +352,6 @@ const buildEventLine = (
       };
     case "CombatChargeGained":
     case "TraitActivated":
-    case "UnitMoved":
       return undefined;
   }
 };

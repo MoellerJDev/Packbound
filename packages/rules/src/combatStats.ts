@@ -25,7 +25,7 @@ export type CombatModelFact = {
 };
 
 export const RANGE_MODEL_TEXT =
-  "Range is displayed for card identity; current MVP targeting still attacks the selected target without movement/range gating.";
+  "Maximum Manhattan distance for basic attacks. Units outside range move one ground tile toward their selected target when their attack timer is ready.";
 
 export const COMBAT_MODEL_FACTS: readonly CombatModelFact[] = [
   {
@@ -42,7 +42,7 @@ export const COMBAT_MODEL_FACTS: readonly CombatModelFact[] = [
   },
   {
     label: "Positioning",
-    text: "Board distance affects target priority; Guard can override that priority."
+    text: "Board distance affects target priority, Guard can override that priority, and out-of-range Units move one ground tile toward their selected target."
   },
   {
     label: "Keywords",
@@ -117,7 +117,7 @@ export const buildCombatStatSummary = (
       {
         label: "Melee/Ranged",
         value: role,
-        description: "Derived from range for readability."
+        description: "Melee means range 1; Ranged means range greater than 1."
       }
     ]
   };

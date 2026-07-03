@@ -119,8 +119,8 @@ const playerBEmberScraprunner = placement(
   fixturePlayerB,
   "fixture-b",
   "ember_scraprunner",
-  0,
-  3
+  3,
+  1
 );
 const summonedSignalWispCardInstanceId = asCardInstanceId(
   "playerA:summon:signal_wisp_echo:0"

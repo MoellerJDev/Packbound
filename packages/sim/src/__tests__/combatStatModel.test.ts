@@ -79,6 +79,19 @@ const statCards: readonly CardDefinition[] = [
     stats: { attack: 4, health: 10, attackSpeed: 1, range: 1 }
   },
   {
+    id: asCardDefId("stat_ranged_attacker"),
+    name: "Stat Ranged Attacker",
+    set: "stat_lab",
+    rarity: "common",
+    cardType: "Unit",
+    aspects: ["Tide"],
+    cost: { generic: 1 },
+    tags: ["Tester"],
+    keywords: ["Quickstart"],
+    abilities: [],
+    stats: { attack: 1, health: 10, attackSpeed: 1, range: 3 }
+  },
+  {
     id: asCardDefId("stat_anti_air_attacker"),
     name: "Stat AntiAir Attacker",
     set: "stat_lab",
@@ -89,7 +102,7 @@ const statCards: readonly CardDefinition[] = [
     tags: ["Tester"],
     keywords: ["AntiAir", "Quickstart"],
     abilities: [],
-    stats: { attack: 1, health: 10, attackSpeed: 1, range: 1 }
+    stats: { attack: 1, health: 10, attackSpeed: 1, range: 3 }
   },
   {
     id: asCardDefId("stat_airborne_attacker"),
@@ -102,7 +115,7 @@ const statCards: readonly CardDefinition[] = [
     tags: ["Tester"],
     keywords: ["Airborne", "Quickstart"],
     abilities: [],
-    stats: { attack: 1, health: 10, attackSpeed: 1, range: 1 }
+    stats: { attack: 1, health: 10, attackSpeed: 1, range: 3 }
   },
   {
     id: asCardDefId("stat_training_target"),
@@ -239,6 +252,12 @@ const attacksBySide = (events: readonly CombatEvent[], side: "playerA" | "player
       event.type === "UnitAttacked" && event.attackerSide === side
   );
 
+const movesBySide = (events: readonly CombatEvent[], side: "playerA" | "playerB") =>
+  events.filter(
+    (event): event is Extract<CombatEvent, { readonly type: "UnitMoved" }> =>
+      event.type === "UnitMoved" && event.side === side
+  );
+
 const firstAttack = (
   events: readonly CombatEvent[]
 ): Extract<CombatEvent, { readonly type: "UnitAttacked" }> => {
@@ -252,9 +271,22 @@ const firstAttack = (
   return attack;
 };
 
+const firstMove = (
+  events: readonly CombatEvent[]
+): Extract<CombatEvent, { readonly type: "UnitMoved" }> => {
+  const move = events.find(
+    (event): event is Extract<CombatEvent, { readonly type: "UnitMoved" }> =>
+      event.type === "UnitMoved"
+  );
+  if (!move) {
+    throw new Error("Expected a UnitMoved event");
+  }
+  return move;
+};
+
 describe("combat stat model", () => {
   it("uses attack as basic-attack damage", () => {
-    const target = placement(playerB, "b", "stat_training_target", 0, 6, "target");
+    const target = placement(playerB, "b", "stat_training_target", 0, 1, "target");
     const result = resolve({
       playerA: combatant(
         playerA,
@@ -275,7 +307,7 @@ describe("combat stat model", () => {
   });
 
   it("uses health to determine whether damage destroys a Unit", () => {
-    const target = placement(playerB, "b", "stat_training_target", 0, 6, "target");
+    const target = placement(playerB, "b", "stat_training_target", 0, 1, "target");
     const result = resolve({
       playerA: combatant(
         playerA,
@@ -306,7 +338,7 @@ describe("combat stat model", () => {
         ),
         playerB: combatant(
           playerB,
-          board(placement(playerB, "b", "stat_endless_target", 0, 6, "target"))
+          board(placement(playerB, "b", "stat_endless_target", 0, 1, "target"))
         ),
         maxDurationMs: 1000
       });
@@ -328,7 +360,7 @@ describe("combat stat model", () => {
         ),
         playerB: combatant(
           playerB,
-          board(placement(playerB, "b", "stat_training_target", 0, 6, "target"))
+          board(placement(playerB, "b", "stat_training_target", 0, 1, "target"))
         ),
         maxDurationMs: 100
       });
@@ -359,8 +391,8 @@ describe("combat stat model", () => {
   });
 
   it("lets Guard override distance target priority", () => {
-    const nearTarget = placement(playerB, "b", "stat_training_target", 0, 1, "near");
-    const guardTarget = placement(playerB, "b", "stat_guard_target", 0, 6, "guard");
+    const nearTarget = placement(playerB, "b", "stat_training_target", 0, 0, "near");
+    const guardTarget = placement(playerB, "b", "stat_guard_target", 0, 1, "guard");
     const result = resolve({
       playerA: combatant(
         playerA,
@@ -376,7 +408,7 @@ describe("combat stat model", () => {
   });
 
   it("uses Barrier to block one damage instance", () => {
-    const target = placement(playerB, "b", "stat_barrier_target", 0, 6, "target");
+    const target = placement(playerB, "b", "stat_barrier_target", 0, 1, "target");
     const result = resolve({
       playerA: combatant(
         playerA,
@@ -405,7 +437,7 @@ describe("combat stat model", () => {
 
   it("uses AntiAir to prefer Airborne targets", () => {
     const nearGround = placement(playerB, "b", "stat_training_target", 0, 1, "near");
-    const airborne = placement(playerB, "b", "stat_airborne_target", 0, 6, "air");
+    const airborne = placement(playerB, "b", "stat_airborne_target", 0, 3, "air");
     const result = resolve({
       playerA: combatant(
         playerA,
@@ -427,7 +459,7 @@ describe("combat stat model", () => {
       "b",
       "stat_low_health_target",
       0,
-      6,
+      3,
       "far-low"
     );
     const result = resolve({
@@ -444,7 +476,7 @@ describe("combat stat model", () => {
     );
   });
 
-  it("stores range but does not enforce it as max attack distance yet", () => {
+  it("uses range as the maximum basic-attack distance", () => {
     const attacker = placement(
       playerA,
       "a",
@@ -453,11 +485,33 @@ describe("combat stat model", () => {
       0,
       "attacker"
     );
-    const farTarget = placement(playerB, "b", "stat_training_target", 0, 6, "far");
+    const target = placement(playerB, "b", "stat_training_target", 0, 1, "target");
+    const result = resolve({
+      playerA: combatant(playerA, board(attacker)),
+      playerB: combatant(playerB, board(target)),
+      maxDurationMs: 100
+    });
+
+    expect(firstAttack(result.events).targetId).toBe(
+      unitId("playerB", target.cardInstanceId)
+    );
+    expect(movesBySide(result.events, "playerA")).toHaveLength(0);
+  });
+
+  it("moves outside range instead of attacking", () => {
+    const attacker = placement(
+      playerA,
+      "a",
+      "stat_quickstart_attacker",
+      0,
+      0,
+      "attacker"
+    );
+    const farTarget = placement(playerB, "b", "stat_training_target", 0, 3, "far");
     const result = resolve({
       playerA: combatant(playerA, board(attacker)),
       playerB: combatant(playerB, board(farTarget)),
-      maxDurationMs: 5000
+      maxDurationMs: 100
     });
 
     expect(
@@ -465,9 +519,81 @@ describe("combat stat model", () => {
         (unit) => unit.cardInstanceId === attacker.cardInstanceId
       )?.range
     ).toBe(1);
-    expect(firstAttack(result.events).targetId).toBe(
-      unitId("playerB", farTarget.cardInstanceId)
+    expect(movesBySide(result.events, "playerA")).toHaveLength(1);
+    expect(firstMove(result.events)).toMatchObject({
+      cardInstanceId: attacker.cardInstanceId,
+      from: { row: 0, col: 0, layer: "ground" },
+      to: { row: 0, col: 1, layer: "ground" },
+      targetCardInstanceId: farTarget.cardInstanceId
+    });
+    expect(attacksBySide(result.events, "playerA")).toHaveLength(0);
+  });
+
+  it("lets ranged Units attack from farther away than melee Units", () => {
+    const target = placement(playerB, "b", "stat_training_target", 0, 3, "target");
+    const runCase = (defId: string) =>
+      resolve({
+        playerA: combatant(
+          playerA,
+          board(placement(playerA, "a", defId, 0, 0, "attacker"))
+        ),
+        playerB: combatant(playerB, board(target)),
+        maxDurationMs: 100
+      });
+
+    expect(
+      attacksBySide(runCase("stat_quickstart_attacker").events, "playerA")
+    ).toHaveLength(0);
+    expect(
+      movesBySide(runCase("stat_quickstart_attacker").events, "playerA")
+    ).toHaveLength(1);
+    expect(firstAttack(runCase("stat_ranged_attacker").events).targetId).toBe(
+      unitId("playerB", target.cardInstanceId)
     );
-    expect(result.warnings).toEqual([]);
+  });
+
+  it("moves deterministically toward the selected target", () => {
+    const runCase = () =>
+      resolve({
+        playerA: combatant(
+          playerA,
+          board(placement(playerA, "a", "stat_quickstart_attacker", 0, 0, "attacker"))
+        ),
+        playerB: combatant(
+          playerB,
+          board(placement(playerB, "b", "stat_training_target", 1, 1, "target"))
+        ),
+        maxDurationMs: 100
+      });
+
+    const first = runCase();
+    const second = runCase();
+
+    expect(second.events).toEqual(first.events);
+    expect(firstMove(first.events)).toMatchObject({
+      from: { row: 0, col: 0, layer: "ground" },
+      to: { row: 0, col: 1, layer: "ground" }
+    });
+  });
+
+  it("does not move into occupied ground cells", () => {
+    const attacker = placement(
+      playerA,
+      "a",
+      "stat_quickstart_attacker",
+      0,
+      0,
+      "attacker"
+    );
+    const blocker = placement(playerA, "a", "stat_training_target", 0, 1, "blocker");
+    const target = placement(playerB, "b", "stat_training_target", 0, 3, "target");
+    const result = resolve({
+      playerA: combatant(playerA, board(attacker, blocker)),
+      playerB: combatant(playerB, board(target)),
+      maxDurationMs: 100
+    });
+
+    expect(movesBySide(result.events, "playerA")).toHaveLength(0);
+    expect(attacksBySide(result.events, "playerA")).toHaveLength(0);
   });
 });

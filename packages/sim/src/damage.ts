@@ -10,6 +10,7 @@ import {
 } from "@packbound/shared";
 
 import { removeUnit } from "./placement";
+import { moveUnitOneStepTowardTarget } from "./movement";
 import {
   aliveUnits,
   attackIntervalMs,
@@ -18,7 +19,7 @@ import {
   opponentOf
 } from "./state";
 import { hasStatus } from "./statuses";
-import { selectEnemyTarget } from "./targeting";
+import { isTargetInRange, selectEnemyTarget } from "./targeting";
 import type {
   AbilitySource,
   MutableCombatState,
@@ -307,6 +308,12 @@ export const processAttacks = (
 
     const target = selectEnemyTarget(unit, state);
     if (!target) {
+      continue;
+    }
+
+    if (!isTargetInRange(unit, target)) {
+      moveUnitOneStepTowardTarget(state, unit, target);
+      unit.attackTimerMs += attackIntervalMs(unit);
       continue;
     }
 

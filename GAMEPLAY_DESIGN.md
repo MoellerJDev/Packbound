@@ -497,11 +497,13 @@ Positioning should matter for:
 - Phase return placement
 
 Current implementation note: the MVP simulator already uses attack, health,
-attack speed, board distance, Guard, Barrier, Quickstart, Airborne, AntiAir,
-support-layer Relic trigger positions, and Technique combat Charge. It does not
-yet implement movement/pathing, and range is currently a displayed Unit stat
-rather than an enforced maximum attack distance. The debug client says this
-plainly instead of presenting range as a finished tactical rule.
+attack speed, board distance, Manhattan range, deterministic one-tile ground
+movement, Guard, Barrier, Quickstart, Airborne, AntiAir, support-layer Relic
+trigger positions, and Technique combat Charge. A ready Unit or Echo attacks
+its selected target if that target is within range; otherwise it moves one legal
+ground tile toward that target. Occupied ground cells block movement, while
+support and terrain layers do not. This is a deliberately small engagement
+model, not full pathfinding or a shared TFT-style arena rewrite.
 
 ### Future Board Resources
 

@@ -49,6 +49,21 @@ const sampleEvents: readonly CombatEvent[] = [
     position: { row: 3, col: 0, layer: "ground" }
   },
   {
+    type: "UnitMoved",
+    timeMs: 750,
+    unitId: unit("warden"),
+    cardInstanceId: card("warden"),
+    defId: def("vanishing_warden"),
+    side: "playerA",
+    ownerId: playerA,
+    from: { row: 0, col: 0, layer: "ground" },
+    to: { row: 0, col: 1, layer: "ground" },
+    targetId: unit("enemy-scrapper"),
+    targetCardInstanceId: card("enemy-scrapper"),
+    targetDefId: def("ember_scraprunner"),
+    targetSide: "playerB"
+  },
+  {
     type: "UnitAttacked",
     timeMs: 800,
     attackerId: unit("enemy-scrapper"),
@@ -256,6 +271,9 @@ describe("combat display summary", () => {
 
     expect(text).toContain("Barrier on Vanishing Warden blocked Ember Scraprunner");
     expect(text).toContain("summoned Signal Wisp Echo");
+    expect(text).toContain(
+      "Vanishing Warden moved from r0 c0 ground to r0 c1 ground toward Ember Scraprunner"
+    );
     expect(text).toContain("Vanishing Warden phased out");
     expect(text).toContain("Vanishing Warden phased in");
     expect(text).toContain("recalled Hollow Caller from Ashes");

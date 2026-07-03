@@ -41,6 +41,9 @@ describe("combat stat summaries", () => {
     expect(summary?.details.find((detail) => detail.label === "Range")?.description).toBe(
       RANGE_MODEL_TEXT
     );
+    expect(
+      summary?.details.find((detail) => detail.label === "Melee/Ranged")?.description
+    ).toBe("Melee means range 1; Ranged means range greater than 1.");
   });
 
   it("derives ranged identity from range greater than one", () => {
@@ -71,5 +74,8 @@ describe("combat stat summaries", () => {
     expect(COMBAT_MODEL_FACTS.find((fact) => fact.label === "Range")?.text).toBe(
       RANGE_MODEL_TEXT
     );
+    expect(
+      COMBAT_MODEL_FACTS.find((fact) => fact.label === "Positioning")?.text
+    ).toContain("out-of-range Units move");
   });
 });

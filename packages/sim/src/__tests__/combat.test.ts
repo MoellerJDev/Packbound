@@ -858,7 +858,7 @@ describe("deterministic combat", () => {
   });
 
   it("Guard affects targeting priority", () => {
-    const guard = placement(playerB, "b", "test_guard_target", 0, 6, "guard");
+    const guard = placement(playerB, "b", "test_guard_target", 0, 1, "guard");
     const nearerPlain = placement(playerB, "b", "test_plain_target", 0, 0, "plain");
 
     const result = resolve({

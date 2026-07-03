@@ -4,6 +4,7 @@ import { sampleCatalog } from "@packbound/content";
 import {
   applyRunAction,
   buildBoardGridSummary,
+  buildEngagementPreview,
   COMBAT_MODEL_FACTS,
   buildLoadoutResourceSummary,
   buildRewardOfferExplanations,
@@ -29,13 +30,20 @@ import {
   type BoardGridSummary,
   type CardInspection,
   type CombatResultLike,
+  type EngagementPreview,
+  type EngagementPreviewSide,
   type LoadoutAction,
   type RunState,
   type TraitCount,
   type TraitSummary,
   type UpgradeProgressGroup
 } from "@packbound/rules";
-import { asPlayerId, type CardDefId, type CardInstanceId } from "@packbound/shared";
+import {
+  asPlayerId,
+  type BoardPosition,
+  type CardDefId,
+  type CardInstanceId
+} from "@packbound/shared";
 import {
   buildCombatDisplaySummary,
   resolveCombat,
@@ -94,6 +102,10 @@ type SelectedCardRef =
 
 type AllySelectedCardRef = Extract<SelectedCardRef, { readonly type: "run" }>;
 type EnemySelectedCardRef = Exclude<SelectedCardRef, AllySelectedCardRef>;
+type BoardSelectedCardRef = Extract<
+  SelectedCardRef,
+  { readonly type: "run" | "encounterBoard" }
+>;
 
 const timeLabel = (timeMs?: number): string =>
   timeMs === undefined ? "--" : `${(timeMs / 1000).toFixed(1)}s`;
@@ -482,13 +494,68 @@ const compactCardName = (name: string): string => {
 const boardStatChips = (card: BoardGridCardSummary): readonly string[] =>
   card.combatStats?.chips.slice(0, 4) ?? [];
 
+const sameCoordinate = (
+  left: Pick<BoardPosition, "row" | "col">,
+  right: Pick<BoardPosition, "row" | "col">
+): boolean => left.row === right.row && left.col === right.col;
+
+const formatCoordinate = (position: Pick<BoardPosition, "row" | "col">): string =>
+  `r${position.row} c${position.col}`;
+
+const previewSideForRef = (
+  ref: BoardSelectedCardRef | undefined
+): EngagementPreviewSide | undefined =>
+  ref?.type === "run"
+    ? "playerA"
+    : ref?.type === "encounterBoard"
+      ? "playerB"
+      : undefined;
+
+const EngagementPreviewPanel = ({ preview }: { readonly preview: EngagementPreview }) => (
+  <div className="engagement-preview-panel" data-testid="engagement-preview">
+    <h4>Engagement Preview</h4>
+    {preview.selected ? (
+      <>
+        <div className="engagement-preview-title">
+          <strong>{preview.selected.name}</strong>
+          <span>{preview.selected.identity}</span>
+        </div>
+        <div className="engagement-preview-chips">
+          <span>{preview.selected.attack} ATK</span>
+          <span>{preview.selected.health} HP</span>
+          <span>{preview.selected.attackSpeed} AS</span>
+          <span>{preview.selected.range} RNG</span>
+        </div>
+        <p>
+          {preview.likelyTarget
+            ? `${preview.likelyTarget.name}: ${preview.likelyTarget.distance} hex${
+                preview.likelyTarget.distance === 1 ? "" : "es"
+              } away, ${preview.likelyTarget.inRange ? "in range" : "out of range"}.`
+            : (preview.targetingReason ?? "No valid target.")}
+        </p>
+        {preview.nextMove ? (
+          <p>Next move: {formatCoordinate(preview.nextMove.to)}.</p>
+        ) : preview.blockedMovementReason ? (
+          <p>{preview.blockedMovementReason}</p>
+        ) : null}
+      </>
+    ) : (
+      <p>{preview.explanation[0] ?? "Select a board Unit or Echo."}</p>
+    )}
+  </div>
+);
+
 const BoardGridView = ({
+  boardSide,
+  engagementPreview,
   summary,
   emptyText,
   onInspect,
   renderCardMeta,
   selectedCardInstanceId
 }: {
+  readonly boardSide: EngagementPreviewSide;
+  readonly engagementPreview: EngagementPreview;
   readonly summary: BoardGridSummary;
   readonly emptyText: string;
   readonly onInspect: (card: BoardGridCardSummary) => void;
@@ -514,58 +581,104 @@ const BoardGridView = ({
             key={`row:${row}`}
             className={`board-grid-row ${rowCells[0]?.isOffsetRow ? "offset" : ""}`}
           >
-            {rowCells.map((cell) => (
-              <div
-                key={`${cell.row}:${cell.col}`}
-                className={`board-grid-cell ${
-                  cell.cards.length === 0 ? "empty" : "occupied"
-                } ${cell.isOffsetRow ? "offset-row" : ""}`}
-                data-occupied={cell.cards.length > 0 ? "true" : "false"}
-              >
-                <div className="board-grid-coordinate">
-                  r{cell.row} c{cell.col}
-                </div>
-                {cell.cards.length > 0 ? (
-                  cell.cards.map((card) => (
-                    <button
-                      key={card.cardInstanceId}
-                      type="button"
-                      data-testid="board-card"
-                      className={`board-grid-layer ${card.layer} ${cardTypeClass(card)} ${
-                        selectedCardInstanceId === card.cardInstanceId ? "selected" : ""
+            {rowCells.map((cell) => {
+              const coordinate = { row: cell.row, col: cell.col };
+              const isRangeCell =
+                engagementPreview.selected?.side === boardSide &&
+                engagementPreview.rangeCells.some((position) =>
+                  sameCoordinate(position, coordinate)
+                );
+              const isSelectedCell =
+                engagementPreview.selected?.side === boardSide &&
+                sameCoordinate(engagementPreview.selected.position, coordinate);
+              const isLikelyTargetCell =
+                engagementPreview.likelyTarget?.side === boardSide &&
+                sameCoordinate(engagementPreview.likelyTarget.position, coordinate);
+              const isNextMoveCell =
+                engagementPreview.selected?.side === boardSide &&
+                engagementPreview.nextMove !== undefined &&
+                sameCoordinate(engagementPreview.nextMove.to, coordinate);
+
+              return (
+                <div
+                  key={`${cell.row}:${cell.col}`}
+                  data-testid="board-cell"
+                  className={`board-grid-cell ${
+                    cell.cards.length === 0 ? "empty" : "occupied"
+                  } ${cell.isOffsetRow ? "offset-row" : ""} ${
+                    isRangeCell ? "preview-range" : ""
+                  } ${isSelectedCell ? "preview-selected" : ""} ${
+                    isLikelyTargetCell ? "preview-target" : ""
+                  } ${
+                    isLikelyTargetCell && engagementPreview.likelyTarget?.inRange
+                      ? "preview-target-in-range"
+                      : ""
+                  } ${isNextMoveCell ? "preview-next-move" : ""}`}
+                  data-occupied={cell.cards.length > 0 ? "true" : "false"}
+                  data-range-preview={isRangeCell ? "true" : "false"}
+                  data-selected-preview={isSelectedCell ? "true" : "false"}
+                  data-likely-target={isLikelyTargetCell ? "true" : "false"}
+                  data-next-move={isNextMoveCell ? "true" : "false"}
+                >
+                  <div className="board-grid-coordinate">
+                    r{cell.row} c{cell.col}
+                  </div>
+                  {isLikelyTargetCell ? (
+                    <span
+                      className={`board-preview-marker target ${
+                        engagementPreview.likelyTarget?.inRange ? "in-range" : ""
                       }`}
-                      aria-label={`Inspect ${card.name} ${card.layer} r${cell.row} c${cell.col}`}
-                      title={`${card.name} | ${card.cardType} | ${card.layer} | r${cell.row} c${cell.col}`}
-                      onClick={() => onInspect(card)}
                     >
-                      <span className="board-grid-layer-label">
-                        {card.layer} {card.cardType}
-                      </span>
-                      <span className="board-grid-card-name">
-                        {compactCardName(card.name)}
-                      </span>
-                      {boardStatChips(card).length > 0 ? (
-                        <div
-                          className="board-stat-chips"
-                          aria-label={`${card.name} combat stats`}
-                        >
-                          {boardStatChips(card).map((chip) => (
-                            <span key={chip} className="stat-chip compact">
-                              {chip}
-                            </span>
-                          ))}
-                        </div>
-                      ) : null}
-                      {renderCardMeta ? (
-                        <span className="board-grid-meta">{renderCardMeta(card)}</span>
-                      ) : null}
-                    </button>
-                  ))
-                ) : (
-                  <span className="board-grid-empty">Empty</span>
-                )}
-              </div>
-            ))}
+                      {engagementPreview.likelyTarget?.inRange ? "In range" : "Target"}
+                    </span>
+                  ) : null}
+                  {isNextMoveCell ? (
+                    <span className="board-preview-marker move">Move</span>
+                  ) : null}
+                  {cell.cards.length > 0 ? (
+                    cell.cards.map((card) => (
+                      <button
+                        key={card.cardInstanceId}
+                        type="button"
+                        data-testid="board-card"
+                        className={`board-grid-layer ${card.layer} ${cardTypeClass(
+                          card
+                        )} ${
+                          selectedCardInstanceId === card.cardInstanceId ? "selected" : ""
+                        }`}
+                        aria-label={`Inspect ${card.name} ${card.layer} r${cell.row} c${cell.col}`}
+                        title={`${card.name} | ${card.cardType} | ${card.layer} | r${cell.row} c${cell.col}`}
+                        onClick={() => onInspect(card)}
+                      >
+                        <span className="board-grid-layer-label">
+                          {card.layer} {card.cardType}
+                        </span>
+                        <span className="board-grid-card-name">
+                          {compactCardName(card.name)}
+                        </span>
+                        {boardStatChips(card).length > 0 ? (
+                          <div
+                            className="board-stat-chips"
+                            aria-label={`${card.name} combat stats`}
+                          >
+                            {boardStatChips(card).map((chip) => (
+                              <span key={chip} className="stat-chip compact">
+                                {chip}
+                              </span>
+                            ))}
+                          </div>
+                        ) : null}
+                        {renderCardMeta ? (
+                          <span className="board-grid-meta">{renderCardMeta(card)}</span>
+                        ) : null}
+                      </button>
+                    ))
+                  ) : (
+                    <span className="board-grid-empty">Empty</span>
+                  )}
+                </div>
+              );
+            })}
           </div>
         ))}
       </div>
@@ -585,6 +698,9 @@ export function App() {
   >();
   const [selectedEnemyCardRef, setSelectedEnemyCardRef] = useState<
     EnemySelectedCardRef | undefined
+  >();
+  const [selectedEngagementRef, setSelectedEngagementRef] = useState<
+    BoardSelectedCardRef | undefined
   >();
   const phase = getRunPhase(run);
   const rewardChoices = useMemo(() => getCurrentRewardChoices(run, sampleCatalog), [run]);
@@ -709,6 +825,24 @@ export function App() {
   }, [currentEncounter]);
   const effectiveAllyCardRef = selectedAllyCardRef ?? defaultAllyCardRef;
   const effectiveEnemyCardRef = selectedEnemyCardRef ?? defaultEnemyCardRef;
+  const effectiveEngagementRef =
+    selectedEngagementRef ?? (defaultAllyCardRef as BoardSelectedCardRef | undefined);
+  const engagementPreview = useMemo(() => {
+    const engagementSide = previewSideForRef(effectiveEngagementRef);
+
+    return buildEngagementPreview({
+      catalog: sampleCatalog,
+      playerBoard: run.board,
+      enemyBoard: currentEncounter?.loadout.board ?? { placements: [] },
+      playerActiveCards: run.activeCards,
+      ...(effectiveEngagementRef && engagementSide
+        ? {
+            selectedCardInstanceId: effectiveEngagementRef.cardInstanceId,
+            selectedSide: engagementSide
+          }
+        : {})
+    });
+  }, [currentEncounter, effectiveEngagementRef, run.activeCards, run.board]);
   const selectedAllyInspection = useMemo(() => {
     if (!effectiveAllyCardRef) {
       return undefined;
@@ -762,6 +896,7 @@ export function App() {
     setLastRecordedCombat(undefined);
     setSelectedAllyCardRef(undefined);
     setSelectedEnemyCardRef(undefined);
+    setSelectedEngagementRef(undefined);
   };
 
   const performLoadoutAction = (
@@ -797,12 +932,18 @@ export function App() {
 
   const renderLoadoutActions = (cardInstanceId: CardInstanceId) => {
     const actions = getLegalLoadoutActions(run, sampleCatalog, cardInstanceId);
+    const selectRunCard = () => {
+      setSelectedAllyCardRef({ type: "run", cardInstanceId });
+      if (
+        run.board.placements.some(
+          (placement) => placement.cardInstanceId === cardInstanceId
+        )
+      ) {
+        setSelectedEngagementRef({ type: "run", cardInstanceId });
+      }
+    };
     const inspectButton = (
-      <button
-        type="button"
-        className="secondary"
-        onClick={() => setSelectedAllyCardRef({ type: "run", cardInstanceId })}
-      >
+      <button type="button" className="secondary" onClick={selectRunCard}>
         Inspect
       </button>
     );
@@ -846,6 +987,7 @@ export function App() {
 
   const inspectEncounterBoard = (cardInstanceId: CardInstanceId) => {
     setSelectedEnemyCardRef({ type: "encounterBoard", cardInstanceId });
+    setSelectedEngagementRef({ type: "encounterBoard", cardInstanceId });
   };
 
   const inspectEncounterSource = (cardInstanceId: CardInstanceId) => {
@@ -905,6 +1047,9 @@ export function App() {
   };
 
   const advanceRound = () => {
+    setSelectedAllyCardRef(undefined);
+    setSelectedEnemyCardRef(undefined);
+    setSelectedEngagementRef(undefined);
     setRun((currentRun) =>
       applyRunAction(currentRun, sampleCatalog, { type: "advanceRunAfterCombat" })
     );
@@ -995,6 +1140,7 @@ export function App() {
           <div className="battlefield-board" data-testid="hex-arena">
             <div className="hex-arena-heading">
               <h3>Hex Arena</h3>
+              <EngagementPreviewPanel preview={engagementPreview} />
               <div className="hex-arena-badges" aria-label="Hex arena topology">
                 <span>Odd-r hex</span>
                 <span>Pointy-top</span>
@@ -1016,6 +1162,8 @@ export function App() {
                 </div>
                 {encounterBoardGrid ? (
                   <BoardGridView
+                    boardSide="playerB"
+                    engagementPreview={engagementPreview}
                     summary={encounterBoardGrid}
                     emptyText="No enemy board cards are placed."
                     onInspect={(card) => inspectEncounterBoard(card.cardInstanceId)}
@@ -1046,14 +1194,20 @@ export function App() {
                   <span>Backline r3</span>
                 </div>
                 <BoardGridView
+                  boardSide="playerA"
+                  engagementPreview={engagementPreview}
                   summary={playerBoardGrid}
                   emptyText="No player board cards are placed."
-                  onInspect={(card) =>
+                  onInspect={(card) => {
                     setSelectedAllyCardRef({
                       type: "run",
                       cardInstanceId: card.cardInstanceId
-                    })
-                  }
+                    });
+                    setSelectedEngagementRef({
+                      type: "run",
+                      cardInstanceId: card.cardInstanceId
+                    });
+                  }}
                   renderCardMeta={renderPlayerGridCardMeta}
                   selectedCardInstanceId={
                     effectiveAllyCardRef?.type === "run"

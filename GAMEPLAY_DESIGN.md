@@ -506,6 +506,8 @@ selected target if that target is within range; otherwise it moves one legal
 neighboring ground hex toward that target. Occupied ground cells block movement,
 while support and terrain layers do not. This is a deliberately small
 engagement model, not full pathfinding or a shared TFT-style arena rewrite.
+The debug client previews selected Unit/Echo range cells, likely target, and
+next movement step from the same discrete data for planning clarity only.
 
 ### Future Board Resources
 

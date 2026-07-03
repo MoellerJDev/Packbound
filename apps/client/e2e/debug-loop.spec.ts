@@ -79,9 +79,23 @@ test("debug loop can inspect, preview, record, reward, and advance", async ({ pa
   await expect(boardPanel.getByRole("button", { name: "Inspect" }).first()).toBeVisible();
   await expect(hexArena.getByRole("heading", { name: "Hex Arena" })).toBeVisible();
   await expect(hexArena.getByText("Engagement Line")).toBeVisible();
+  const engagementPreview = hexArena.getByTestId("engagement-preview");
+  await expect(
+    engagementPreview.getByRole("heading", { name: "Engagement Preview" })
+  ).toBeVisible();
+  await expect(engagementPreview.getByText("Ember Scraprunner").first()).toBeVisible();
+  await expect(engagementPreview.getByText(/1 hex away, in range/)).toBeVisible();
+  await expect(engagementPreview.getByText("2 ATK")).toBeVisible();
+  await expect(engagementPreview.getByText("1 HP")).toBeVisible();
+  await expect(engagementPreview.getByText("1.3 AS")).toBeVisible();
+  await expect(engagementPreview.getByText("1 RNG")).toBeVisible();
   await expect(hexArena.getByText("Odd-r hex").first()).toBeVisible();
   await expect(hexArena.getByText("Pointy-top")).toBeVisible();
   await expect(hexArena.getByTestId("board-card").first()).toBeVisible();
+  await expect(hexArena.locator('[data-range-preview="true"]').first()).toBeVisible();
+  await expect(hexArena.locator('[data-selected-preview="true"]').first()).toBeVisible();
+  await expect(hexArena.locator('[data-likely-target="true"]').first()).toBeVisible();
+  await expect(hexArena.getByText("In range").first()).toBeVisible();
   await expectNoHorizontalScroll(hexArenaViewport);
   const occupiedCardsInViewport = await hexArena.getByTestId("board-card").evaluateAll(
     (cards) =>
@@ -132,6 +146,9 @@ test("debug loop can inspect, preview, record, reward, and advance", async ({ pa
   await expect(
     allyInspector.getByRole("heading", { name: "Legal Actions" })
   ).toBeVisible();
+  await expect(playerGridPanel.locator('[data-selected-preview="true"]')).toBeVisible();
+  await expect(enemyGridPanel.locator('[data-likely-target="true"]')).toBeVisible();
+  await expectNoHorizontalScroll(hexArenaViewport);
 
   await enemyGridPanel
     .getByRole("button", { name: /Inspect .+/ })
@@ -146,6 +163,10 @@ test("debug loop can inspect, preview, record, reward, and advance", async ({ pa
     allyInspector.getByRole("heading", { name: "Ember Scraprunner" })
   ).toBeVisible();
   await expect(enemyInspector).toBeVisible();
+  await expect(enemyGridPanel.locator('[data-selected-preview="true"]')).toBeVisible();
+  await expect(playerGridPanel.locator('[data-likely-target="true"]')).toBeVisible();
+  await expect(engagementPreview.getByText(/1 hex away, in range/)).toBeVisible();
+  await expectNoHorizontalScroll(hexArenaViewport);
 
   await page.getByRole("button", { name: "Ready Combat" }).click();
 

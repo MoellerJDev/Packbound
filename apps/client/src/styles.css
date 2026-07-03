@@ -215,7 +215,7 @@ h4 {
 }
 
 .battlefield-board {
-  --hex-w: clamp(52px, 4.4vw, 64px);
+  --hex-w: clamp(48px, 4vw, 58px);
   --hex-h: calc(var(--hex-w) * 1.1547);
   --hex-gap: 2px;
   --hex-row-step: calc(var(--hex-h) * 0.75);
@@ -230,11 +230,11 @@ h4 {
 }
 
 .hex-arena-heading {
-  align-items: center;
+  align-items: start;
   border-bottom: 1px solid #dce5e0;
-  display: flex;
+  display: grid;
   gap: 10px;
-  justify-content: space-between;
+  grid-template-columns: auto minmax(220px, 1fr) auto;
   padding-bottom: 8px;
 }
 
@@ -249,6 +249,59 @@ h4 {
   flex-wrap: wrap;
   gap: 6px;
   justify-content: flex-end;
+}
+
+.engagement-preview-panel {
+  background: #f4f8f6;
+  border: 1px solid #d8e4df;
+  border-radius: 6px;
+  color: #1f2b32;
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  padding: 5px 8px;
+}
+
+.engagement-preview-panel h4 {
+  color: #486168;
+  font-size: 0.58rem;
+  letter-spacing: 0;
+  line-height: 1;
+  margin: 0;
+}
+
+.engagement-preview-panel p {
+  color: #33464d;
+  font-size: 0.68rem;
+  line-height: 1.18;
+  overflow-wrap: anywhere;
+}
+
+.engagement-preview-title,
+.engagement-preview-chips {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.engagement-preview-title strong {
+  font-size: 0.72rem;
+  line-height: 1.05;
+}
+
+.engagement-preview-title span,
+.engagement-preview-chips span {
+  background: #eaf2ee;
+  border: 1px solid #ccdbd4;
+  border-radius: 999px;
+  color: #1d4f3d;
+  font-size: 0.56rem;
+  font-weight: 900;
+  line-height: 1;
+  padding: 2px 5px;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .hex-arena-badges span {
@@ -744,6 +797,48 @@ h4 {
     0 2px 8px rgb(31 43 50 / 0.1);
 }
 
+.board-grid-cell.preview-range {
+  background: #e7f2ec;
+  box-shadow: inset 0 0 0 2px #88b99a;
+}
+
+.board-grid-cell.preview-range.occupied .board-grid-layer {
+  background: #edf7ed;
+}
+
+.board-grid-cell.preview-selected {
+  box-shadow:
+    inset 0 0 0 2px #f5c84b,
+    inset 0 0 0 5px rgb(255 255 255 / 0.62);
+}
+
+.board-grid-cell.preview-target {
+  background: #f8ebe7;
+  box-shadow:
+    inset 0 0 0 2px #c65b4d,
+    inset 0 0 0 5px rgb(255 255 255 / 0.58);
+}
+
+.board-grid-cell.preview-target.preview-target-in-range {
+  background: #e5f3e8;
+  box-shadow:
+    inset 0 0 0 2px #2f8e55,
+    inset 0 0 0 5px rgb(255 255 255 / 0.58);
+}
+
+.board-grid-cell.preview-next-move {
+  background: #edf0fb;
+  box-shadow:
+    inset 0 0 0 2px #506db8,
+    inset 0 0 0 5px rgb(255 255 255 / 0.58);
+}
+
+.board-grid-cell.preview-target .board-grid-layer,
+.board-grid-cell.preview-target.preview-target-in-range .board-grid-layer,
+.board-grid-cell.preview-next-move .board-grid-layer {
+  background: transparent;
+}
+
 .board-grid-coordinate {
   color: #66767b;
   font-size: 0.52rem;
@@ -757,6 +852,35 @@ h4 {
   top: 19%;
   text-transform: uppercase;
   z-index: 2;
+}
+
+.board-preview-marker {
+  border-radius: 999px;
+  bottom: 15%;
+  color: #fbfcfa;
+  font-size: 0.48rem;
+  font-weight: 900;
+  left: 50%;
+  line-height: 1;
+  padding: 2px 4px;
+  pointer-events: none;
+  position: absolute;
+  text-transform: uppercase;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  z-index: 4;
+}
+
+.board-preview-marker.target {
+  background: #a8463b;
+}
+
+.board-preview-marker.target.in-range {
+  background: #247843;
+}
+
+.board-preview-marker.move {
+  background: #334f9d;
 }
 
 .board-grid-layer {
@@ -1113,7 +1237,7 @@ pre {
 
   .hex-arena-heading {
     align-items: flex-start;
-    flex-direction: column;
+    grid-template-columns: 1fr;
   }
 
   .card-list li {

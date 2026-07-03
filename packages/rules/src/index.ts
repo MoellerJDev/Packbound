@@ -2,6 +2,7 @@ export * from "./cardInspection";
 export * from "./boardGrid";
 export * from "./combatStats";
 export * from "./economy";
+export * from "./engagementPreview";
 export * from "./encounters";
 export * from "./instances";
 export * from "./loadout";

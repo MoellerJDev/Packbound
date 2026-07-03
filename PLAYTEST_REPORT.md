@@ -2,149 +2,238 @@
 
 ## 1. Executive Summary
 
-Current prototype status: Packbound is in a better browser-prototype state than
-the previous report described. The default deterministic run loop, starter
-selection, battlefield inspectors, engagement preview overlays, combat preview,
-combat recording, pack reward purchase, run advancement, priority lab, and
-duplicate upgrade lab all worked during this pass.
+Current prototype status: Packbound's normal browser prototype still works, and
+the new opt-in Pixi renderer lab is a useful proof of direction but should remain
+lab-only for now.
 
-The old top blocker, horizontal hex-board scrolling at normal desktop width, is
-fixed in the current build. At the 1280 x 720 in-app browser viewport, the page
-and Hex Arena viewport both reported `scrollWidth === clientWidth`; no
-horizontal arena scroll was needed.
+The default route still uses the React/CSS Hex Arena. Starter selection, dual
+inspectors, readying combat, combat recording, reward pack purchase, run
+advancement, engagement preview overlays, priority lab, and duplicate upgrade lab
+all worked during this pass. No browser console warnings or errors were captured
+while manually testing the requested routes.
 
-The old missing range/target-preview blocker is also substantially fixed.
-Selected Unit/Echo cells, range cells, likely target cells, attack-now or
-out-of-range state, and next-move cells are now represented both in the
-Engagement Preview panel and directly on the hex board.
+The old stale issues are no longer the right top blockers:
 
-Implementation update after this report: follow-up rules tasks have added a
-first abstract encounter main-phase action skeleton,
-`Prototype Pressure Technique`, and Priority Lab now queues it from minimal
-source-card context. A later helper now validates that source against the run
-and catalog as a player-owned Spellrail Technique before queueing. The remaining
-blocker is that the source lifecycle is still match-local bookkeeping only; it
-has no cost, `RunState` zone change, or authored card-zone effect resolution.
-Another renderer-only follow-up has added `?scenario=renderer-lab` as an opt-in
-PixiJS shared battlefield and deterministic replay lab. It does not replace the
-default React/CSS Hex Arena yet and has not been manually playtested in this
-report pass.
+1. Horizontal hex-board scroll at normal desktop width appears fixed. At the
+   default 1280 x 720 in-app browser viewport, the default route, renderer lab,
+   engagement lab, priority lab, and upgrade lab all reported no horizontal page
+   overflow.
+2. Missing selected range/target preview is fixed substantially. The React/CSS
+   Hex Arena shows selected cells, range cells, likely target, attack-now or
+   out-of-range state, and next-move markers clearly enough for debug play.
+3. The two-board battlefield presentation is only partially addressed. The
+   default route still reads as two stacked boards joined by an engagement line.
+   `?scenario=renderer-lab` presents a better single shared battlefield, but it
+   is still a generated-shape lab with readability and replay-coverage gaps.
 
-Top remaining issues:
+The Pixi renderer lab passes its basic lifecycle checks: one canvas mounts, Play
+and Reset are clickable, repeated `Play -> Reset -> Play` did not create
+duplicate canvases, navigating away unmounted the canvas, navigating back
+remounted exactly one canvas, and the route produced no console errors.
 
-1. Priority lab explains the state machine to developers, separates log
-   metadata from sentence text, and now shows a validated minimal source
-   context plus a match-local used-source record for the prototype action. That
-   source still has no real card-zone movement, cost, or authored-effect system.
-2. Ally Hex Board and Enemy Hex Board still read as two stacked submitted boards
-   on the default route. The new Pixi renderer lab starts exploring a single
-   shared arena, but it is opt-in and not the default battlefield.
-3. Combat summaries are readable for short fights, but longer fights still need
-   grouping, filtering, or a compact timeline.
+The biggest Pixi finding is replay accuracy/coverage, not layout. Damage numbers
+and destroyed markers are visible, but attack beams are easy to miss, movement
+was not visually confirmed on a visible token during this pass, and Rotbloom's
+recall event appeared in the text feed without a new recalled token appearing in
+the canvas. Pixi should stay opt-in until the replay can materialize
+summoned/recalled/appearing units from combat events and the token labels/effects
+are easier to read.
 
 Recommended next task:
 
-`docs(playtest): manually evaluate Pixi renderer lab`
+`fix(client): render recalled Pixi replay units from combat events`
 
 ## 2. Environment And Commands
 
-- Commit tested: `520ad035d31a8d93512553b50c88907cbb92fecd`
-- Baseline: `main`, up to date with `origin/main`
+- Commit tested: `00e4c64711a2acdc8e7abf4bb1de92475e3a26ce`
+- Baseline: `main`, aligned with `origin/main`
 - OS/environment: Windows, PowerShell, Codex desktop workspace
 - Node version: `v24.18.0`
 - pnpm version: `11.7.0`
 - Browser/tool used: Codex in-app browser against local Vite, plus Playwright
   browser smoke tests
 - Dev server URL: `http://127.0.0.1:5173/`
-- Screenshot file created: no. I inspected transient browser screenshots only;
-  no repo screenshot file was written.
-- Stale dev servers before testing: none found on ports `4173`, `5173-5180`
-- Dependency install: skipped because `node_modules` was already present
-- Dev server cleanup: stopped only the Packbound dev-port listener after testing
+- Manual viewport coverage: default in-app browser viewport, 1280 x 720, and
+  temporary 1440 x 900
+- Screenshot file created: no. I inspected transient in-app browser screenshots
+  only; no repo screenshot file was written.
+- Dependency install: skipped because `node_modules` was already present and
+  `pixi.js@8.19.0` was installed for `@packbound/client`
+- Dev server cleanup: stopped only the Packbound `pnpm dev` wrapper and its Vite
+  child listener on port 5173 after manual testing
 - Report file behavior: `PLAYTEST_REPORT.md` was overwritten, not duplicated
 
-| Command                                         | Status  | Notes                                                             |
-| ----------------------------------------------- | ------- | ----------------------------------------------------------------- |
-| `git status`                                    | Pass    | Clean worktree on `main`, up to date with `origin/main`.          |
-| Packbound dev-port listener check               | Pass    | No listeners found before starting Vite.                          |
-| `pnpm install`                                  | Skipped | Dependencies were already installed.                              |
-| `pnpm format:check`                             | Pass    | Prettier check passed before editing.                             |
-| `pnpm lint`                                     | Pass    | ESLint passed.                                                    |
-| `pnpm typecheck`                                | Pass    | All workspace project typechecks passed.                          |
-| `pnpm test`                                     | Pass    | 29 test files, 288 tests passed.                                  |
-| `pnpm build`                                    | Pass    | Workspace build and Vite client build passed.                     |
-| `pnpm balance:report`                           | Pass    | Printed starter/encounter and pack usability report, no warnings. |
-| `pnpm test:browser`                             | Pass    | 4 Chromium smoke tests passed.                                    |
-| `pnpm dev`                                      | Pass    | Served Vite on `http://127.0.0.1:5173/`.                          |
-| `pnpm exec prettier --write PLAYTEST_REPORT.md` | Pass    | Report formatted after overwrite.                                 |
-| `pnpm format:check`                             | Pass    | Final formatting check passed.                                    |
-| `git diff --check`                              | Pass    | No whitespace errors.                                             |
+| Command                                         | Status | Notes                                                                  |
+| ----------------------------------------------- | ------ | ---------------------------------------------------------------------- |
+| `git fetch origin`                              | Pass   | Fetched before testing.                                                |
+| `git status`                                    | Pass   | Clean worktree on `main`, aligned with `origin/main`.                  |
+| Commit ancestry check                           | Pass   | Local `main` includes `00e4c64711a2acdc8e7abf4bb1de92475e3a26ce`.      |
+| Dependency check                                | Pass   | `node_modules` present; Pixi installed; `pnpm install` skipped.        |
+| `pnpm typecheck`                                | Pass   | All workspace project typechecks passed.                               |
+| `pnpm test:browser`                             | Pass   | 5 Chromium smoke tests passed before manual playtest.                  |
+| `pnpm build`                                    | Pass   | Build passed with the expected Pixi/Vite chunk-size warning.           |
+| `pnpm dev -- --host 127.0.0.1`                  | Pass   | Served Vite on `http://127.0.0.1:5173/` for manual playtesting.        |
+| `pnpm exec prettier --write PLAYTEST_REPORT.md` | Pass   | Report formatted after overwrite.                                      |
+| `pnpm format:check`                             | Pass   | Final formatting check passed.                                         |
+| `pnpm test:browser`                             | Pass   | Re-run after report edit because route wording/selectors were checked. |
+| `git diff --check`                              | Pass   | No whitespace errors.                                                  |
+
+Build warning observed and not fixed in this task:
+
+- Vite reported `(!) Some chunks are larger than 500 kB after minification`.
+- Largest listed chunk: `assets/index-17-9XDWW.js`, `714.13 kB`, gzip
+  `210.92 kB`.
 
 ## 3. Scenarios Covered
 
-| Scenario                   | Manual result | Notes                                                                 |
-| -------------------------- | ------------- | --------------------------------------------------------------------- |
-| Default route `/`          | Pass          | Starter selection, inspectors, combat, reward pack, and advance work. |
-| `?scenario=engagement-lab` | Pass          | Out-of-range melee and in-range ranged previews are understandable.   |
-| `?scenario=priority-lab`   | Pass          | Priority, stack, combat skirmish, and second main transitions work.   |
-| `?scenario=upgrade-lab`    | Pass          | Duplicate combine and Lv 1 Cinder Scout inspection/placement work.    |
+| Scenario                   | Manual result | Notes                                                               |
+| -------------------------- | ------------- | ------------------------------------------------------------------- |
+| Default route `/`          | Pass          | React/CSS Hex Arena remains default; full run loop still works.     |
+| `?scenario=renderer-lab`   | Mixed pass    | Mount/lifecycle good; visual/replay gaps keep it lab-only.          |
+| `?scenario=engagement-lab` | Pass          | Out-of-range melee and in-range ranged previews are understandable. |
+| `?scenario=priority-lab`   | Pass          | Prototype action, source context, stack, log, skirmish flow work.   |
+| `?scenario=upgrade-lab`    | Pass          | Duplicate combine and Lv 1 pool-card inspection work.               |
 
-No browser console warnings or errors were captured during the manual pass.
+Browser console result: no warnings or errors captured across the manual pass.
 
 ## 4. Default Route `/`
 
-The main run loop still teaches what to do next. The Run State panel and top
-phase strip showed:
+The default route still teaches what to do next. The visible top controls and
+Run State guidance moved through the expected loop:
 
-- Planning: `Next: adjust your loadout or ready combat.`
-- Combat ready: `Next: review the preview, then record combat.`
-- Reward: `Next: open one reward pack.`
-- Combat resolved: `Next: advance to the next round.`
+- Planning: ready combat is enabled.
+- Combat ready: `Record Combat` becomes enabled after `Ready Combat`.
+- Reward: recording combat produces reward choices and disables advance until a
+  pack is opened.
+- Combat resolved: opening a pack enables `Advance`.
+- Advancing moves to round 2 planning against Ash Debt Collector.
 
-Starter selection works. Switching from Ember Scrappers to Rotbloom Recall
-changed the inspected ally to Hollow Caller, changed the encounter to Bloomhide
-Stomper, and changed the engagement preview to Hollow Caller attacking a Guard
-target. Switching back restored Ember Scrappers.
+The default route did not mount Pixi. It used the React/CSS Hex Arena, with
+`canvasCount: 0`, and produced no Pixi errors on the default page.
 
-Ally Inspector and Enemy Inspector are useful. They show card type, zone,
-aspect, cost, stats, upgrade text, keywords, tags, traits, combat stat chips,
-combat-model explanations, rules text, ability text, and design metadata. Ally
-Inspector additionally shows legal actions and blocked reasons; Enemy Inspector
-correctly suppresses legal actions.
+Ally Inspector and Enemy Inspector remain useful. They expose type, zone,
+aspect, cost, stats, upgrade state, keywords, tags, traits, combat stat chips,
+rules text, ability text, design metadata, and legal actions where relevant.
+The selected ally and selected enemy can be compared at the same time.
 
-The Hex Arena shows occupied cells and relevant preview state without horizontal
-scroll. At 1280 x 720, the document width was `1265 / 1265`, and the Hex Arena
-viewport was `672 / 672` for client width and scroll width. The selected ally
-occupied cell was immediately visible. The enemy occupied cell and target marker
-can sit near or just below the first vertical fold, so vertical framing still
-needs work, but this is no longer a horizontal-scroll issue.
+The Hex Arena shows relevant occupied cells immediately and has no horizontal
+overflow at the default 1280 x 720 browser size. The first selected Ember
+Scraprunner preview showed:
 
-Selecting an ally board Unit showed selected, range, likely-target, and
-attack-now markers. Selecting the enemy board Unit flipped the selected and
-target sides correctly while preserving the two inspectors for comparison. The
-Engagement Preview panel text was clear:
-
+- `Attack now`
 - `Ember Scraprunner can attack Ember Scraprunner now.`
 - `Distance 1, range 1.`
 - `Likely target: nearest valid enemy.`
 
-The combat loop worked:
+The normal debug loop worked end to end. I readied combat, recorded the round 1
+draw, reached reward phase, opened a reward pack, saw a new pool card marker and
+gold drop from 5 to 1, then advanced to round 2 planning.
 
-- `Ready Combat` produced an Upcoming Combat Preview.
-- Round 1 preview showed a draw, 11 events, and no warnings.
-- `Record Combat` moved the run to reward phase and awarded +5 gold.
-- Reward choices were affordable and explained pack cost, remaining gold, trait
-  fit, duplicate/teamup relevance, pack bias, and cheapest-offer status.
-- I opened the first reward, Cloudspire Pack, for 4 gold.
-- The pool showed 6 new cards with `new` markers and a gold transition of
-  `5 -> 1`.
-- `Advance` moved the run to round 2, planning phase, against Ash Debt
-  Collector.
+Remaining default-route UX note: the two-board Hex Arena still reads as two
+submitted boards rather than one battlefield. This is a presentation issue, not
+a blocker for the current debug loop.
 
-## 5. `?scenario=engagement-lab`
+## 5. `?scenario=renderer-lab`
 
-The melee out-of-range preview is clear in the panel and mostly clear on the
-board. Cinder Scout started selected and showed:
+Renderer lab loads below the default React/CSS Hex Arena. The page explicitly
+says the React Hex Arena remains above as the debug fallback, which accurately
+sets expectations. The fallback board remains available, and the Pixi section
+does not affect the normal route.
+
+Basic renderer lifecycle checks passed:
+
+- Exactly one `.pixi-renderer-host canvas` mounted.
+- The page had no horizontal overflow at 1280 x 720.
+- The lab exposed `Play Replay` and `Reset Replay`.
+- `Play -> Reset -> Play` kept exactly one canvas and one host child.
+- Navigating to `?scenario=engagement-lab` removed the canvas.
+- Navigating back to `?scenario=renderer-lab` remounted exactly one canvas.
+- No browser console warnings or errors appeared.
+
+At 1280 x 720, the Pixi lab canvas was visible below the fallback arena and fit
+within the page width. At 1440 x 900, the lab fit more comfortably, still with no
+horizontal overflow. The full Pixi section remains vertically tall, so the
+canvas plus feed is still a scrollable lab view rather than a first-fold final
+combat screen.
+
+### Visual Readability
+
+What works:
+
+- The renderer reads much more like one shared battlefield than the default
+  two-board Hex Arena.
+- Ally and enemy ownership are clear through cyan and red side tinting.
+- The center engagement line is clear and reinforces the shared-field concept.
+- Hex outlines and occupied tokens are legible enough to understand board
+  positions.
+- Selected/range/target overlays are understandable in the static model.
+- Damage numbers are visible during replay.
+- Destroyed markers are visible at replay end.
+
+What is confusing or too subtle:
+
+- Token initials are readable, but token names and stat chips are very small at
+  1280 x 720.
+- The overall canvas is dark. It looks coherent, but the empty hex grid and
+  destroyed dim state can become subdued.
+- Attack lines are fast enough that they are easy to miss.
+- The final destroyed `X` state works, but dimmed destroyed units could be more
+  obvious.
+- The feed says `Visualized move, attack, damage, destroyed`, but the lab does
+  not yet communicate which event types were actually visible in the current
+  replay.
+- I did not observe a support-layer/relic token in the tested renderer-lab
+  starter states, so support readability remains unverified.
+
+### Replay Clarity
+
+Ember Scrappers:
+
+- Feed: 2 shared field units, 11 replay events, draw.
+- Observed: damage numbers and destroyed markers.
+- Not clearly observed: attack beam, because it resolves quickly.
+- Movement was not expected in this short melee mirror.
+
+Rotbloom Recall:
+
+- Feed: 2 shared field units, 111 replay events, player win.
+- Text feed included `recall`, `move`, `attack`, `damage`, and `destroyed`
+  events.
+- Important issue: the feed said `You recalled Ember Scraprunner from Ashes`,
+  but I did not see a new Ember token appear in the Pixi canvas. The recalled
+  unit also appears to be the mover in the feed, so movement direction was not
+  visually confirmed on the canvas.
+- Likely cause from observed behavior: replay commands can include appear/move
+  events for a card that is not in the initial Pixi model token map.
+
+Cloudspire Phase:
+
+- Feed: 2 shared field units, 25 replay events, enemy win.
+- The model updated to Cloudgate Adept versus Ember Scraprunner.
+- `Phase Step` appeared as queued text in the combat feed.
+- I did not observe phase-in or phase-out visuals during this pass.
+- Damage and destroyed state remained visible.
+
+Replay pacing:
+
+- Short replays are quick and understandable if watched closely.
+- Effects need stronger timing for manual comprehension, especially attack
+  lines.
+- Long replays like Rotbloom's 111 events need step/pause/scrub controls or
+  event grouping before the canvas can be a reliable debugging tool.
+
+### Default-Renderer Decision
+
+Pixi should remain lab-only for now. The single-arena direction is promising,
+but the current implementation is not ready to replace the React/CSS Hex Arena
+until off-model appear/recalled units render correctly, movement can be observed
+reliably, labels/stats are larger or otherwise inspectable, and replay controls
+make long combats understandable.
+
+## 6. `?scenario=engagement-lab`
+
+The out-of-range melee preview remains clear in the panel and on the board.
+Cinder Scout starts selected and shows:
 
 - `Out of range`
 - `Cinder Scout cannot attack yet.`
@@ -152,179 +241,173 @@ board. Cinder Scout started selected and showed:
 - `Next move: r2 c1 to r2 c2.`
 - `Likely target: nearest valid enemy.`
 
-Board marker counts confirmed selected, range, likely target, out-of-range, and
-next-move states were present. The selected, range, and next-move badges were
-visible in the first viewport. The target/out-of-range badge was on the enemy
-board lower in the arena, so it may require vertical scroll at 1280 x 720.
+Board marker counts confirmed one selected marker, five range markers, one
+target label, one target status, one next-move marker, and out-of-range target
+state. There was no horizontal overflow.
 
-The ranged preview is clearer. Selecting Sparkcatch Apprentice showed:
+The ranged preview also remains clear. Selecting Sparkcatch Apprentice changed
+the panel to:
 
 - `Attack now`
 - `Sparkcatch Apprentice can attack from 2 hexes away.`
 - `Distance 2, range 2.`
-- No next-move marker, which is correct because the selected ranged Unit can
-  attack immediately.
+- `Likely target: nearest valid enemy.`
 
-Recording the engagement-lab combat produced a player win, 29 events, and no
-warnings. The combat summary included understandable one-hex movement:
+The ranged case removed next-move markers and showed in-range target state. This
+is the clearest proof that the old missing range/target-preview issue is stale.
 
-- `Your Cinder Scout moved one hex from r2 c1 ground to r2 c2 ground toward Ember Scraprunner.`
-- `Enemy Ember Scraprunner moved one hex from r0 c3 ground to r1 c2 ground toward Cinder Scout.`
+## 7. `?scenario=priority-lab`
 
-## 6. `?scenario=priority-lab`
+Priority Lab still explains the developer-facing encounter model well. The panel
+shows turn, phase, active actor, priority holder, consecutive passes, player and
+enemy stability, outcome, action buttons, stack, used sources, skirmish records,
+and action log.
 
-Priority lab successfully demonstrates the future encounter shell:
+Manual flow tested:
 
-- Initial state: turn 1, first main, active actor Player, priority holder
-  Player, stability 5/5, empty stack, in-progress outcome.
-- At the time of this manual pass, `Submit Debug Action` put `Debug pressure` on
-  the stack and passed priority to Enemy. The current implementation now uses
-  `Queue Prototype Technique` / `Prototype Pressure Technique` for this lab
-  path.
-- `Enemy Pass` returned priority to Player with one consecutive pass and the
-  stack still full.
-- `Pass Priority` resolved the stack action, emptied the stack, and reduced
-  enemy stability from 5 to 4.
-- Empty-stack player/enemy passes advanced the phase to Combat skirmish.
-- `Run Combat Skirmish` recorded skirmish 1 and advanced to Second main.
+1. Initial state: turn 1, first main, active actor Player, priority holder
+   Player, stability 5/5, empty stack.
+2. `Queue Prototype Technique` queued `Prototype Pressure Technique` from
+   Sparkfall and passed priority to Enemy.
+3. Action Stack showed `Prototype Pressure Technique` with
+   `Source: Sparkfall (spellrail)`.
+4. Enemy passed priority.
+5. Player passed priority.
+6. The action resolved and changed enemy stability from 5 to 4.
+7. Used Sources recorded `Sparkfall used by Prototype Pressure Technique`.
+8. Empty-stack player/enemy passes advanced to combat.
+9. `Run Combat Skirmish` recorded skirmish 1 as a draw and advanced to second
+   main.
 
-This is enough to teach the developer-facing model: turn, phase, active actor,
-priority holder, consecutive passes, LIFO stack, action log, skirmish records,
-stability, and outcome are all visible in one panel.
+The previous action-log readability issue is fixed. Log sentences and metadata
+now render separately. For example:
 
-It is not yet enough to teach a player-facing encounter model. The current lab
-now has one prototype action instead of a debug-only button, and that action can
-carry validated minimal source-card context. The source remains non-mutating
-metadata plus match-local lifecycle history rather than a costed card-zone move
-or authored card effect. Stability changes are visible but not explained as a
-real gameplay decision yet.
+- `Player queued Prototype Pressure Technique from Sparkfall.`
+- `Turn 1 | First main | Stack 1`
 
-Priority-lab readability issue found during the manual pass: Action Log metadata
-was visually jammed onto the log sentence. In the browser it read like
-`Match started with Player active.Turn 1 | First main | Stack 0` and
-`Player submitted Debug pressure.Turn 1 | First main | Stack 1`. The current
-prototype action changes the action text, and a follow-up UI fix now renders the
-metadata as a separate muted row below each log sentence.
+The lab is no longer debug-action-only in the UI. It now has a real prototype
+card-like action with minimal source context. Known limitation: this is still an
+abstract prototype action with no cost payment, hand/deck/mill sourcing,
+RunState card movement, enemy action choice, or authored effect system.
 
-## 7. `?scenario=upgrade-lab`
+## 8. `?scenario=upgrade-lab`
 
-Duplicate upgrade flow works.
+Duplicate upgrade flow still works.
 
-Initial Upgrade Progress showed:
+Initial Upgrade Progress showed ready duplicate progress for Cinder Scout, and
+the pool exposed an enabled `Upgrade` button. Clicking `Upgrade` consumed the
+ready Lv 0 pool copies and left one `Cinder Scout Lv 1` pool card.
 
-`Cinder Scout: 3 / 3 pool copies at Lv 0 -> Upgrade to Lv 1`
+Inspecting the upgraded pool card was understandable:
 
-The pool showed three ready Cinder Scout copies with `ready` badges and `Place
-on Board` actions. Clicking `Upgrade` consumed the three Lv 0 pool copies and
-left one Lv 1 Cinder Scout.
-
-The upgraded card is understandable in the pool inspector:
-
-- Zone: pool
+- Zone: `pool`
 - Stats: `2 ATK / 3 HP / 1.1 speed / 1 range`
 - Upgrade: `Level 1`
 - Upgrade bonus: `Current bonus: +1 ATK / +1 HP.`
 - Progress: `Level 1: 1 / 3 pool copies.`
 - Blocked reason: needs 3 matching Lv 1 pool copies, found 1
+- Legal action: `Place on Board`
 
-The upgraded card is also understandable on the board. After placing it, the
-Board panel showed `Cinder Scout Lv 1` at `r0 c0 ground`, the Hex Arena token
-showed `2 ATK`, `3 HP`, `1.1 AS`, `1 RNG`, and `Lv 1`, and Ally Inspector
-changed to `Unit | board | Ember` with `Return to Pool` as the legal action.
+No horizontal overflow appeared in the upgrade lab.
 
-## 8. Stale Report Items Rechecked
+## 9. Stale Report Items Rechecked
 
-| Old report item                               | Current status       | Current finding                                                                             |
-| --------------------------------------------- | -------------------- | ------------------------------------------------------------------------------------------- |
-| Hex board has horizontal scroll               | Fixed                | No horizontal page or arena scroll at 1280 x 720.                                           |
-| Occupied cells hidden to the right            | Fixed horizontally   | Occupied cells fit width; vertical framing can still hide enemy markers.                    |
-| Missing range/target preview                  | Fixed substantially  | Selected, range, target, attack/out-of-range, and next-move markers are present.            |
-| Two boards do not feel like one arena         | Partially addressed  | Default Hex Arena still stacks boards; `renderer-lab` now prototypes one shared Pixi field. |
-| Long combat summaries need grouping/filtering | Still true           | Short fights are readable, but the UI still has no grouping/filtering.                      |
-| Priority shell is not visible                 | Fixed for developers | Priority lab makes the shell visible with one validated, source-tracked action.             |
+| Old report item                               | Current status       | Current finding                                                                 |
+| --------------------------------------------- | -------------------- | ------------------------------------------------------------------------------- |
+| Hex board has horizontal scroll               | Fixed                | No horizontal page overflow at 1280 x 720 on tested routes.                     |
+| Occupied cells hidden to the right            | Fixed horizontally   | Occupied cells fit width; vertical density remains a separate issue.            |
+| Missing range/target preview                  | Fixed substantially  | Selected, range, target, attack/out-of-range, and next-move markers work.       |
+| Two boards do not feel like one arena         | Partially addressed  | Default still has two boards; Pixi lab gives a stronger one-arena prototype.    |
+| Long combat summaries need grouping/filtering | Still true           | Especially visible in Rotbloom's 111-event renderer-lab feed.                   |
+| Priority shell is not visible                 | Fixed for developers | Priority lab now shows stack, source context, stability, skirmish, second main. |
+| Priority action log metadata runs together    | Fixed                | Metadata is rendered as a separate muted row below each sentence.               |
+| Renderer lab not manually evaluated           | Fixed by this report | Pixi lab has now been manually tested across lifecycle, viewport, and replay.   |
 
-## 9. Bugs Or Confusions
+## 10. Bugs Or Confusions
 
-No confirmed gameplay or simulator bugs were found.
+### Bug: Rotbloom Recall Event Did Not Produce A Visible Pixi Token
 
-### Resolved UX Confusion: Priority Action Log Text Ran Together
+- Steps: Open `?scenario=renderer-lab`, select Rotbloom Recall, play the replay.
+- Observed: Renderer Feed included `You recalled Ember Scraprunner from Ashes`
+  and later move events for Ember Scraprunner, but no new Ember token appeared in
+  the Pixi canvas during the pass.
+- Expected: Recalled/summoned/appearing units should materialize as replay
+  tokens even when they are not in the initial board model.
+- Severity: Medium for the renderer lab. This blocks Pixi from being a trusted
+  replay view for mechanics that create or return units mid-combat.
 
-- Steps: Open `?scenario=priority-lab`, submit a debug action, pass priority,
-  and inspect Action Log.
-- Observed: Log sentence and metadata are adjacent, for example
-  `active.Turn 1` and `pressure.Turn 1`.
-- Expected: Metadata should read as a separated detail line or column.
-- Current status: Fixed by rendering each Action Log entry as primary sentence
-  text plus a separate muted metadata row.
+### UX Confusion: Pixi Token Text Is Too Small
 
-### UX Confusion: Target Markers Can Fall Below The First Fold
+- Steps: Open `?scenario=renderer-lab` at 1280 x 720.
+- Observed: Initials are readable, but names and stat chips are small. This is
+  especially noticeable when watching effects.
+- Expected: A user should be able to identify token name, ownership, and key
+  stats without relying on the side feed or React fallback.
+- Severity: Medium before Pixi can become default.
 
-- Steps: Open `?scenario=engagement-lab` at 1280 x 720.
-- Observed: The Cinder Scout selected/range/next-move markers are immediately
-  visible, while the out-of-range target marker sits on the enemy board lower in
-  the arena.
-- Expected: For preview labs, the selected Unit, likely target, and next move
-  should be visible together whenever practical.
-- Severity: Low to medium. The panel text prevents confusion, but the board
-  preview is less immediate than it could be.
+### UX Confusion: Pixi Attack And Destroyed Effects Are Too Subtle
 
-### UX Confusion: Two Boards Still Do Not Feel Like One Battlefield
+- Steps: Play Ember or Cloudspire renderer-lab replay.
+- Observed: Damage numbers are readable. Attack lines are easy to miss, and
+  destroyed markers can blend into the dark field.
+- Expected: Attack direction and death state should be readable at a glance.
+- Severity: Low for lab, medium for default-renderer readiness.
 
-- Steps: Play any route with the Hex Arena.
-- Observed: Ally and enemy sides are visually clear, but the presentation reads
-  as two separate boards joined by an `Engagement Line`.
-- Expected: The battlefield should eventually communicate one shared tactical
-  engagement space.
-- Severity: Medium UX issue, but no longer the top blocker.
+### UX Risk: Long Combat Replays Need Controls
 
-### UX Risk: Long Combat Summaries Still Need Structure
+- Steps: Select Rotbloom Recall in renderer lab and play the 111-event replay.
+- Observed: The text feed truncates additional lines, and the canvas replay
+  cannot be stepped, paused, scrubbed, or filtered.
+- Expected: Longer fights should expose event grouping and playback control.
+- Severity: Medium as soon as Pixi is used for debugging non-trivial combats.
 
-- Steps: Record any combat and inspect Last Recorded Combat.
-- Observed: Short 11-event and 29-event fights were readable. The display still
-  renders a flat sequence with no grouping, filters, or timeline compression.
-- Expected: Longer fights should let players collapse movement, attacks,
-  triggers, raw debug details, and outcome highlights.
-- Severity: Low now, likely medium once combats grow longer.
+### UX Confusion: Two Presentations Coexist
 
-## 10. Known Limitations
+- Steps: Open `?scenario=renderer-lab`.
+- Observed: React/CSS fallback sits above the Pixi lab. This is good for
+  debugging but makes the route feel like a comparison harness rather than a
+  single product screen.
+- Expected: Keep this relationship while Pixi is experimental; revisit once the
+  renderer is accurate enough to replace the fallback.
+- Severity: Low for the lab, expected by current design.
 
-- Priority lab now has one abstract prototype main-phase action with validated
-  run-owned player Spellrail Technique source context and match-local
-  `usedOnResolve` lifecycle events, but no real hand/deck/mill sourcing,
-  RunState card movement, costs, enemy-sourced actions, or authored card effects
-  exist yet.
-- Debug placeholder reducer actions still exist for diagnostics, but the
-  browser lab emphasizes the prototype action.
-- Combat skirmishes still use the existing deterministic simulator result.
-- The priority shell has no hand, deck, mill, counterspell, hidden intent,
-  multiplayer, backend persistence, or real card timing windows.
-- Traits/teamups are display-only.
-- Duplicate upgrades are generic Unit/Echo combines with +1 ATK/+1 HP per level.
-- The Hex Arena is still React/CSS debug UI, not Pixi, animation, drag/drop, or
-  final battlefield rendering.
-- `?scenario=renderer-lab` now exists as an opt-in generated-shape Pixi
-  battlefield and replay lab, but it is not the default renderer, has no art
-  assets, and does not affect rules, targeting, movement, or combat timing.
-- The two-board presentation remains a debug framing, not a finished shared
-  arena.
-- Raw debug event details are available behind disclosure, but the compact
-  combat summary is still not a full replay tool.
+## 11. Known Limitations
 
-## 11. Recommended Next Tasks
+- Pixi renderer lab is opt-in only and is not the default battlefield.
+- The default React/CSS Hex Arena remains the reliable debug battlefield.
+- Pixi uses generated shapes and text, not final art assets.
+- Pixi has no drag/drop, hit-target inspection, hover tooltips, or board editing.
+- Replay controls are limited to Play and Reset.
+- Recalled/summoned/off-model replay units were not visually materialized in
+  this pass.
+- Phase-in/phase-out visuals are supported in the command model but were not
+  observed in the tested Cloudspire replay.
+- Support/relic token readability was not observed in the tested renderer-lab
+  starter states.
+- The Vite chunk-size warning remains.
+- Priority Lab has one real prototype action with Sparkfall source context, but
+  no real cost, hand/deck/mill, source card movement, enemy AI, interrupts,
+  counterspells, or authored card effect resolution.
+- Combat simulation remains deterministic and unchanged.
+- Traits/teamups remain display-only.
+- Duplicate upgrades remain generic +1 ATK/+1 HP combines.
+- Combat summaries and feeds still need grouping/filtering for longer fights.
+
+## 12. Recommended Next Tasks
 
 Do next:
 
-`docs(playtest): manually evaluate Pixi renderer lab`
+`fix(client): render recalled Pixi replay units from combat events`
 
-Why: after the prototype action skeleton, action-log readability fix, minimal
-source metadata, source validation, match-local lifecycle records, and a first
-Pixi renderer lab, the next useful step is a manual browser pass focused on the
-new canvas battlefield: readability, replay pacing, fallback/debug board
-relationship, and whether the single shared field actually fixes the two-board
-confusion.
+Why: Rotbloom's recall/move events are exactly the kind of mechanics the replay
+lab needs to prove. If the text feed says a unit appeared or moved but the canvas
+does not show it, the renderer cannot become the default battlefield yet.
 
 Do soon:
 
+- `feat(client): improve Pixi token label/stat readability`
+- `feat(client): add Pixi replay pause/step controls`
+- `feat(client): strengthen Pixi attack and destroyed effect timing`
 - `feat(client): keep selected target and next move visible together in preview labs`
 - `feat(client): group or filter long combat summary events`
 - `feat(rules): add encounter action cost and effect contract`
@@ -333,7 +416,6 @@ Still wait:
 
 - Pixi as the default renderer
 - Drag/drop
-- Animations
 - Backend
 - Multiplayer
 - Hand/deck/mill

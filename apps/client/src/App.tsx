@@ -526,11 +526,11 @@ export function App() {
     );
   };
 
-  const submitPriorityDebugAction = () => {
+  const submitPriorityPrototypeAction = () => {
     setPriorityMatch((currentMatch) =>
       submitEncounterAction(currentMatch, {
         actor: "player",
-        kind: "debug_pressure"
+        kind: "main_phase_pressure"
       })
     );
   };
@@ -740,7 +740,7 @@ export function App() {
           canRunCombat={
             priorityMatch.phase === "combat" && priorityLabCombat !== undefined
           }
-          onSubmitDebugAction={submitPriorityDebugAction}
+          onSubmitPrototypeAction={submitPriorityPrototypeAction}
           onPassPlayer={passPriorityAsPlayer}
           onPassEnemy={passPriorityAsEnemy}
           onRunSkirmish={runPrioritySkirmish}

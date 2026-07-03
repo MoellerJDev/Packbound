@@ -3,7 +3,7 @@ import type { EncounterActor, EncounterMatchState } from "@packbound/rules";
 type PriorityLabPanelProps = {
   readonly match: EncounterMatchState;
   readonly canRunCombat: boolean;
-  readonly onSubmitDebugAction: () => void;
+  readonly onSubmitPrototypeAction: () => void;
   readonly onPassPlayer: () => void;
   readonly onPassEnemy: () => void;
   readonly onRunSkirmish: () => void;
@@ -49,7 +49,7 @@ const encounterOutcomeLabel = (outcome: EncounterMatchState["outcome"]): string 
 export const PriorityLabPanel = ({
   match,
   canRunCombat,
-  onSubmitDebugAction,
+  onSubmitPrototypeAction,
   onPassPlayer,
   onPassEnemy,
   onRunSkirmish,
@@ -58,6 +58,10 @@ export const PriorityLabPanel = ({
   const complete = match.outcome.kind !== "inProgress";
   const playerHasPriority = match.priorityHolder === "player";
   const enemyHasPriority = match.priorityHolder === "enemy";
+  const playerMainPhasePriority =
+    (match.phase === "firstMain" || match.phase === "secondMain") &&
+    playerHasPriority &&
+    !complete;
   const priorityPhase = match.phase !== "combat" && !complete;
   const visibleStack = [...match.stack].reverse();
   const visibleLog = match.actionLog.slice(-10);
@@ -107,10 +111,10 @@ export const PriorityLabPanel = ({
         <div className="button-row">
           <button
             type="button"
-            onClick={onSubmitDebugAction}
-            disabled={!priorityPhase || !playerHasPriority}
+            onClick={onSubmitPrototypeAction}
+            disabled={!playerMainPhasePriority}
           >
-            Submit Debug Action
+            Queue Prototype Technique
           </button>
           <button
             type="button"

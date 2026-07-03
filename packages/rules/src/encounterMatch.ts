@@ -15,7 +15,7 @@ export type EncounterOutcome = {
   readonly reason: EncounterOutcomeReason | null;
 };
 
-export type EncounterActionKind = "debug_noop" | "debug_pressure";
+export type EncounterActionKind = "debug_noop" | "debug_pressure" | "main_phase_pressure";
 
 export type EncounterQueuedAction = {
   readonly kind: EncounterActionKind;
@@ -127,11 +127,36 @@ const actionLabel = (kind: EncounterActionKind, label?: string): string => {
       return "Debug no-op";
     case "debug_pressure":
       return "Debug pressure";
+    case "main_phase_pressure":
+      return "Prototype Pressure Technique";
   }
 };
 
 const phaseAllowsPriority = (phase: EncounterPhase): boolean =>
   phase === "start" || phase === "firstMain" || phase === "secondMain" || phase === "end";
+
+const phaseAllowsMainPhaseAction = (phase: EncounterPhase): boolean =>
+  phase === "firstMain" || phase === "secondMain";
+
+const assertCanSubmitActionKind = (
+  state: EncounterMatchState,
+  kind: EncounterActionKind,
+  label: string
+): void => {
+  if (kind === "main_phase_pressure" && !phaseAllowsMainPhaseAction(state.phase)) {
+    throw new Error(`${label} can only be queued during main phases.`);
+  }
+};
+
+const actionSubmissionText = (action: EncounterQueuedAction): string => {
+  const actor = actorLabel(action.actor);
+
+  if (action.kind === "main_phase_pressure") {
+    return `${actor} queued ${action.label} as a prototype card action.`;
+  }
+
+  return `${actor} submitted ${action.label}.`;
+};
 
 const appendLog = (
   state: EncounterMatchState,
@@ -266,13 +291,16 @@ export const submitEncounterAction = (
   }
 
   const kind = input.kind ?? "debug_noop";
+  const label = actionLabel(kind, input.label);
+  assertCanSubmitActionKind(state, kind, label);
+
   const item: EncounterStackItem = {
     id: `${state.matchId}:stack:${state.nextActionIndex}:${kind}`,
     index: state.nextActionIndex,
     action: {
       kind,
       actor,
-      label: actionLabel(kind, input.label)
+      label
     }
   };
   const submitted: EncounterMatchState = {
@@ -285,9 +313,50 @@ export const submitEncounterAction = (
 
   return appendLog(submitted, {
     kind: "action_submitted",
-    text: `${actorLabel(actor)} submitted ${item.action.label}.`,
+    text: actionSubmissionText(item.action),
     actor
   });
+};
+
+const stabilityDeltaForAction = (
+  action: EncounterQueuedAction
+): { readonly player: number; readonly enemy: number } => {
+  switch (action.kind) {
+    case "debug_noop":
+      return { player: 0, enemy: 0 };
+    case "debug_pressure":
+    case "main_phase_pressure":
+      return action.actor === "player"
+        ? { player: 0, enemy: -1 }
+        : { player: -1, enemy: 0 };
+  }
+};
+
+const stabilityDeltaText = (delta: {
+  readonly player: number;
+  readonly enemy: number;
+}): string => {
+  if (delta.enemy < 0) {
+    return `Enemy stability ${delta.enemy}.`;
+  }
+  if (delta.player < 0) {
+    return `Player stability ${delta.player}.`;
+  }
+
+  return "No stability change.";
+};
+
+const actionResolutionText = (
+  item: EncounterStackItem,
+  delta: { readonly player: number; readonly enemy: number }
+): string => {
+  const base = `Resolved ${item.action.label} from ${actorLabel(item.action.actor)}`;
+
+  if (item.action.kind === "main_phase_pressure") {
+    return `${base}: ${stabilityDeltaText(delta)}`;
+  }
+
+  return `${base}.`;
 };
 
 const resolveTopStackItem = (state: EncounterMatchState): EncounterMatchState => {
@@ -297,17 +366,12 @@ const resolveTopStackItem = (state: EncounterMatchState): EncounterMatchState =>
   }
 
   const nextStack = state.stack.slice(0, -1);
-  const pressureDelta =
-    item.action.kind === "debug_pressure"
-      ? item.action.actor === "player"
-        ? { player: 0, enemy: -1 }
-        : { player: -1, enemy: 0 }
-      : { player: 0, enemy: 0 };
+  const stabilityDelta = stabilityDeltaForAction(item.action);
   const resolved: EncounterMatchState = {
     ...state,
     stack: nextStack,
-    playerStability: state.playerStability + pressureDelta.player,
-    enemyStability: state.enemyStability + pressureDelta.enemy,
+    playerStability: state.playerStability + stabilityDelta.player,
+    enemyStability: state.enemyStability + stabilityDelta.enemy,
     priorityHolder: state.activeActor,
     consecutivePasses: 0,
     lastResolvedAction: item
@@ -316,7 +380,7 @@ const resolveTopStackItem = (state: EncounterMatchState): EncounterMatchState =>
   return appendCompletionLog(
     appendLog(withOutcome(resolved), {
       kind: "action_resolved",
-      text: `Resolved ${item.action.label} from ${actorLabel(item.action.actor)}.`,
+      text: actionResolutionText(item, stabilityDelta),
       actor: item.action.actor
     })
   );

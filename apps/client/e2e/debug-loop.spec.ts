@@ -329,8 +329,10 @@ test("priority lab alternates priority, resolves the stack, and records combat",
   await expect(priorityPanel.getByText("Action Stack")).toBeVisible();
   await expect(priorityPanel.getByText("Action Log")).toBeVisible();
 
-  await priorityPanel.getByRole("button", { name: "Submit Debug Action" }).click();
-  await expect(priorityPanel.getByText("Debug pressure", { exact: true })).toBeVisible();
+  await priorityPanel.getByRole("button", { name: "Queue Prototype Technique" }).click();
+  await expect(
+    priorityPanel.getByText("Prototype Pressure Technique", { exact: true })
+  ).toBeVisible();
   await expect(priorityPanel.getByRole("button", { name: "Enemy Pass" })).toBeEnabled();
   await expect(
     priorityPanel.getByRole("button", { name: "Pass Priority" })
@@ -342,7 +344,9 @@ test("priority lab alternates priority, resolves the stack, and records combat",
   ).toBeEnabled();
   await priorityPanel.getByRole("button", { name: "Pass Priority" }).click();
   await expect(
-    priorityPanel.getByText("Resolved Debug pressure from Player.")
+    priorityPanel.getByText(
+      "Resolved Prototype Pressure Technique from Player: Enemy stability -1."
+    )
   ).toBeVisible();
   await expect(priorityPanel.getByText("Action Stack")).toBeVisible();
   await expect(priorityPanel.getByText("Empty").first()).toBeVisible();

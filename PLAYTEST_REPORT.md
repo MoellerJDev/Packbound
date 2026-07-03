@@ -18,15 +18,17 @@ Selected Unit/Echo cells, range cells, likely target cells, attack-now or
 out-of-range state, and next-move cells are now represented both in the
 Engagement Preview panel and directly on the hex board.
 
-The next blocker moved up the stack: the prototype now needs real encounter
-main-phase action content. Priority lab proves the future turn/phase/priority
-shell, but its only submitted action is still `Debug pressure`, so the system is
-not yet teaching card-driven main-phase decisions.
+Implementation update after this report: the follow-up rules task has added a
+first abstract encounter main-phase action skeleton,
+`Prototype Pressure Technique`, so the previous debug-only limitation is no
+longer literally true. The remaining blocker is making encounter actions come
+from real card zones and authored card context instead of a single lab-only
+prototype.
 
 Top remaining issues:
 
 1. Priority lab explains the state machine to developers, but action-log
-   metadata is cramped and actions are still placeholders.
+   metadata is cramped and the prototype action is still abstract.
 2. Ally Hex Board and Enemy Hex Board still read as two stacked submitted boards,
    not one shared tactical arena.
 3. Combat summaries are readable for short fights, but longer fights still need
@@ -34,7 +36,7 @@ Top remaining issues:
 
 Recommended next task:
 
-`feat(rules): add encounter main-phase card action skeleton`
+`fix(client): separate priority action-log metadata from log text`
 
 ## 2. Environment And Commands
 
@@ -167,11 +169,13 @@ Priority lab successfully demonstrates the future encounter shell:
 
 - Initial state: turn 1, first main, active actor Player, priority holder
   Player, stability 5/5, empty stack, in-progress outcome.
-- `Submit Debug Action` put `Debug pressure` on the stack and passed priority
-  to Enemy.
+- At the time of this manual pass, `Submit Debug Action` put `Debug pressure` on
+  the stack and passed priority to Enemy. The current implementation now uses
+  `Queue Prototype Technique` / `Prototype Pressure Technique` for this lab
+  path.
 - `Enemy Pass` returned priority to Player with one consecutive pass and the
   stack still full.
-- `Pass Priority` resolved `Debug pressure`, emptied the stack, and reduced
+- `Pass Priority` resolved the stack action, emptied the stack, and reduced
   enemy stability from 5 to 4.
 - Empty-stack player/enemy passes advanced the phase to Combat skirmish.
 - `Run Combat Skirmish` recorded skirmish 1 and advanced to Second main.
@@ -180,17 +184,18 @@ This is enough to teach the developer-facing model: turn, phase, active actor,
 priority holder, consecutive passes, LIFO stack, action log, skirmish records,
 stability, and outcome are all visible in one panel.
 
-It is not yet enough to teach a player-facing encounter model. The only action
-is still a placeholder named `Debug pressure`, the button is `Submit Debug
-Action`, and the action kind is `debug_pressure`. Stability changes are visible
-but not explained as gameplay decisions.
+It is not yet enough to teach a player-facing encounter model. The current lab
+now has one prototype action instead of a debug-only button, but that action is
+still abstract, not sourced from a card zone, and not attached to authored card
+content. Stability changes are visible but not explained as a real gameplay
+decision yet.
 
 Priority-lab readability issue found: Action Log metadata is visually jammed
 onto the log sentence. In the browser it read like
 `Match started with Player active.Turn 1 | First main | Stack 0` and
-`Player submitted Debug pressure.Turn 1 | First main | Stack 1`. The underlying
-data is useful, but the log needs spacing, a muted second line, or separate
-columns.
+`Player submitted Debug pressure.Turn 1 | First main | Stack 1`. The current
+prototype action changes the action text, but the underlying layout issue
+remains: the log needs spacing, a muted second line, or separate columns.
 
 ## 7. `?scenario=upgrade-lab`
 
@@ -273,8 +278,10 @@ No confirmed gameplay or simulator bugs were found.
 
 ## 10. Known Limitations
 
-- Priority lab actions are debug placeholders only.
-- No real encounter main-phase card action skeleton exists yet.
+- Priority lab now has one abstract prototype main-phase action, but no real
+  hand/deck/mill/card-zone source exists yet.
+- Debug placeholder reducer actions still exist for diagnostics, but the
+  browser lab emphasizes the prototype action.
 - Combat skirmishes still use the existing deterministic simulator result.
 - The priority shell has no hand, deck, mill, counterspell, hidden intent,
   multiplayer, backend persistence, or real card timing windows.
@@ -291,16 +298,14 @@ No confirmed gameplay or simulator bugs were found.
 
 Do next:
 
-`feat(rules): add encounter main-phase card action skeleton`
+`fix(client): separate priority action-log metadata from log text`
 
-Why: the browser now has enough preview and priority UI to expose the missing
-gameplay layer. A small rules-first action skeleton would let priority lab move
-from `Debug pressure` to real Packbound-shaped decisions without jumping into
-counterspells, hand/deck/mill, multiplayer, Pixi, or broad content expansion.
+Why: after the prototype action skeleton, the most visible Priority Lab issue is
+still readability. Action sentence text and metadata run together, which makes
+the now-more-important priority flow harder to follow than it needs to be.
 
 Do soon:
 
-- `fix(client): separate priority action-log metadata from log text`
 - `feat(client): keep selected target and next move visible together in preview labs`
 - `feat(client): group or filter long combat summary events`
 - `feat(client): improve one-arena battlefield framing`

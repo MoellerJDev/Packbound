@@ -85,6 +85,31 @@ describe("encounter match priority shell", () => {
     });
   });
 
+  it("submits a prototype main-phase pressure action during first main", () => {
+    const state = submitEncounterAction(createMatch(), {
+      kind: "main_phase_pressure"
+    });
+    const item = state.stack[0];
+
+    if (!item) {
+      throw new Error("Expected a queued stack item.");
+    }
+
+    expect(item.action).toEqual({
+      kind: "main_phase_pressure",
+      actor: "player",
+      label: "Prototype Pressure Technique"
+    });
+    expect(state.priorityHolder).toBe("enemy");
+    expect(state.consecutivePasses).toBe(0);
+    expect(state.actionLog.at(-1)).toMatchObject({
+      kind: "action_submitted",
+      actor: "player",
+      text: "Player queued Prototype Pressure Technique as a prototype card action."
+    });
+    expect(state.actionLog.at(-1)?.text).not.toContain("Debug");
+  });
+
   it("passing priority alternates the holder", () => {
     const state = passEncounterPriority(createMatch(), "player");
 
@@ -114,6 +139,29 @@ describe("encounter match priority shell", () => {
     expect(resolved.actionLog.at(-1)).toMatchObject({
       kind: "action_resolved",
       actor: "player"
+    });
+  });
+
+  it("resolves prototype main-phase pressure after two passes", () => {
+    const submitted = submitEncounterAction(createMatch(), {
+      kind: "main_phase_pressure"
+    });
+    const enemyPass = passEncounterPriority(submitted, "enemy");
+    const resolved = passEncounterPriority(enemyPass, "player");
+
+    expect(resolved.stack).toEqual([]);
+    expect(resolved.lastResolvedAction).toMatchObject({
+      action: { kind: "main_phase_pressure", actor: "player" }
+    });
+    expect(resolved.priorityHolder).toBe("player");
+    expect(resolved.consecutivePasses).toBe(0);
+    expect(resolved.playerStability).toBe(5);
+    expect(resolved.enemyStability).toBe(4);
+    expect(resolved.outcome.kind).toBe("inProgress");
+    expect(resolved.actionLog.at(-1)).toMatchObject({
+      kind: "action_resolved",
+      actor: "player",
+      text: "Resolved Prototype Pressure Technique from Player: Enemy stability -1."
     });
   });
 
@@ -184,6 +232,32 @@ describe("encounter match priority shell", () => {
     expect(state.priorityHolder).toBe("player");
   });
 
+  it("guards prototype main-phase pressure outside main phases and wrong actors", () => {
+    const endPhase = createEncounterMatch({
+      matchId: "end-match",
+      seed: "end-seed",
+      phase: "end"
+    });
+    const combatPhase = createEncounterMatch({
+      matchId: "combat-match",
+      seed: "combat-seed",
+      phase: "combat"
+    });
+
+    expect(() =>
+      submitEncounterAction(endPhase, { kind: "main_phase_pressure" })
+    ).toThrow(/Prototype Pressure Technique can only be queued during main phases/);
+    expect(() =>
+      submitEncounterAction(combatPhase, { kind: "main_phase_pressure" })
+    ).toThrow(/Cannot submit an action during combat/);
+    expect(() =>
+      submitEncounterAction(createMatch(), {
+        actor: "enemy",
+        kind: "main_phase_pressure"
+      })
+    ).toThrow(/Enemy cannot act while Player has priority/);
+  });
+
   it("ends when stability reaches zero and otherwise keeps one skirmish incomplete", () => {
     const oneSkirmish = reachSecondMain();
     const lethalCombat = createEncounterMatch({
@@ -219,6 +293,26 @@ describe("encounter match priority shell", () => {
       );
       const combat = passEmptyPriorityWindow(resolved);
       return recordEncounterCombatSkirmish(combat, combatResult("playerB"));
+    };
+
+    const first = runSequence();
+    const second = runSequence();
+
+    expect(first).toEqual(second);
+    expect(JSON.parse(JSON.stringify(first))).toEqual(first);
+  });
+
+  it("keeps prototype main-phase actions deterministic and JSON serializable", () => {
+    const runSequence = () => {
+      const submitted = submitEncounterAction(createMatch(), {
+        kind: "main_phase_pressure"
+      });
+      const resolved = passEncounterPriority(
+        passEncounterPriority(submitted, "enemy"),
+        "player"
+      );
+      const combat = passEmptyPriorityWindow(resolved);
+      return recordEncounterCombatSkirmish(combat, combatResult("playerA"));
     };
 
     const first = runSequence();

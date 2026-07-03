@@ -11,8 +11,13 @@ The rules package now includes a minimal serializable encounter match reducer:
 - Empty-stack double passes advance `firstMain` to `combat`, `secondMain` to
   `end`, and `end` into the next turn.
 - The active actor alternates on each new turn.
-- Submitted debug actions enter a LIFO action stack and pass priority to the
-  opponent.
+- Submitted actions enter a LIFO action stack and pass priority to the opponent.
+- `main_phase_pressure` is the first real encounter main-phase action skeleton:
+  the Priority Lab labels it `Prototype Pressure Technique`, it is legal during
+  first main or second main priority, and it deterministically reduces the
+  opposing actor's stability by 1 when it resolves.
+- Debug placeholder actions still exist for reducer diagnostics and backward
+  compatibility with focused tests.
 - Two consecutive passes with a non-empty stack resolve the top action and
   return priority to the active actor.
 - The combat phase records one deterministic skirmish from a combat-result-like
@@ -23,7 +28,8 @@ The rules package now includes a minimal serializable encounter match reducer:
 
 Current encounter shell limitations:
 
-- The only submitted actions are debug placeholders.
+- Only one abstract prototype card action exists, and it is not sourced from a
+  hand, deck, mill, card zone, enemy AI, or content-authored card yet.
 - There are no real card timing windows, counterspells, manual blockers, hidden
   intent choices, deck/hand/mill zones, multiplayer networking, backend
   persistence, or new cards attached to this shell yet.

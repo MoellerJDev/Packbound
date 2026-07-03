@@ -90,10 +90,11 @@ loop:
 ## Known Simulator Limitations
 
 - Attack, health, attack speed, board distance, Guard, Barrier, Quickstart,
-  Airborne, AntiAir, support-layer trigger positions, Manhattan range, one-tile
-  movement, and Technique combat Charge affect combat today.
-- Range is enforced for basic attacks as maximum Manhattan distance.
-- Basic movement is implemented as deterministic one-tile ground movement toward
+  Airborne, AntiAir, support-layer trigger positions, odd-r hex range,
+  neighboring-hex movement, and Technique combat Charge affect combat today.
+- Range is enforced for basic attacks as maximum hex distance on the odd-r
+  offset board.
+- Basic movement is implemented as deterministic one-hex ground movement toward
   the selected target when a Unit or Echo is ready to attack but out of range.
   Occupied ground cells block movement, while support and terrain layers do not.
 - Movement is grid-based engagement only, not full pathfinding, obstacle

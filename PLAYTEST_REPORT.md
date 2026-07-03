@@ -118,14 +118,15 @@ Sporeback Beast, and Vanishing Warden all read as melee through `1 RNG` and
 Adept, and Mistwing Scout read as ranged through `2 RNG` and `Ranged`.
 
 The range text in the inspector made sense:
-`Maximum Manhattan distance for basic attacks. Units outside range move one
-ground tile toward their selected target when their attack timer is ready.`
+`Maximum hex distance for basic attacks. Units outside range move one
+neighboring ground hex toward their selected target when their attack timer is
+ready.`
 
 Ranged Units attacked from farther away. Cloudgate Adept attacked Rootbrace
 Guardian from range in Round 2 without closing. Hollow Caller attacked while its
 recalled melee ally was still moving.
 
-Melee Units closed distance. The upgraded Cinder Scout moved one tile at `0.1s`
+Melee Units closed distance. The upgraded Cinder Scout moved one hex at `0.1s`
 instead of attacking. Recalled Ember Scraprunner spent multiple ticks moving
 toward targets in Rotbloom.
 

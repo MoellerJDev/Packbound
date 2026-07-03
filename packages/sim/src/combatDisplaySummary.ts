@@ -220,7 +220,7 @@ const buildEventLine = (
         text: `${possessiveSideLabel(event.side, perspectiveSide)} ${cardName(
           catalog,
           event.defId
-        )} moved from ${boardPositionText(event.from)} to ${boardPositionText(
+        )} moved one hex from ${boardPositionText(event.from)} to ${boardPositionText(
           event.to
         )} toward ${cardName(catalog, event.targetDefId)}.`,
         severity: "info"

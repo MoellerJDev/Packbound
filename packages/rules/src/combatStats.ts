@@ -25,7 +25,7 @@ export type CombatModelFact = {
 };
 
 export const RANGE_MODEL_TEXT =
-  "Maximum Manhattan distance for basic attacks. Units outside range move one ground tile toward their selected target when their attack timer is ready.";
+  "Maximum hex distance for basic attacks. Units outside range move one neighboring ground hex toward their selected target when their attack timer is ready.";
 
 export const COMBAT_MODEL_FACTS: readonly CombatModelFact[] = [
   {
@@ -42,7 +42,7 @@ export const COMBAT_MODEL_FACTS: readonly CombatModelFact[] = [
   },
   {
     label: "Positioning",
-    text: "Board distance affects target priority, Guard can override that priority, and out-of-range Units move one ground tile toward their selected target."
+    text: "Hex board distance affects target priority, Guard can override that priority, and out-of-range Units move one neighboring ground hex toward their selected target."
   },
   {
     label: "Keywords",

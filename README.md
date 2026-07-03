@@ -93,8 +93,8 @@ pnpm dev
   phase-aware next-action guidance, display-only trait/teamup summaries, and
   latest reward markers for newly opened pool cards.
 - The battlefield explains the current simulator model honestly: attack, health,
-  attack speed, Manhattan range, one-tile movement, distance targeting, Guard,
-  Barrier, Quickstart, Airborne, and AntiAir matter today.
+  attack speed, odd-r hex range, neighboring-hex movement, distance targeting,
+  Guard, Barrier, Quickstart, Airborne, and AntiAir matter today.
 - Duplicate upgrades currently combine 3 matching Unit or Echo instances in the
   pool at the same level, preserve one deterministic card identity, and add +1
   ATK/+1 HP per upgrade level in combat up to level 2. The debug client also

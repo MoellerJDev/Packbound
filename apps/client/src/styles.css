@@ -651,18 +651,35 @@ h4 {
   display: grid;
   gap: 6px;
   min-width: max-content;
+  padding-right: 58px;
+}
+
+.board-grid-row {
+  display: grid;
+  gap: 6px;
+  min-width: max-content;
+}
+
+.board-grid-row.offset {
+  margin-left: 58px;
+}
+
+.board-grid-row + .board-grid-row {
+  margin-top: 6px;
 }
 
 .board-grid-cell {
-  aspect-ratio: 1 / 1;
+  align-content: start;
+  aspect-ratio: 1.08 / 1;
   background: #ffffff;
   border: 1px solid #cfd9d5;
-  border-radius: 6px;
+  border-radius: 0;
+  clip-path: polygon(13% 0, 87% 0, 100% 50%, 87% 100%, 13% 100%, 0 50%);
   display: grid;
   gap: 6px;
-  min-height: 128px;
+  min-height: 122px;
   min-width: 112px;
-  padding: 7px;
+  padding: 12px 14px;
 }
 
 .board-grid-cell.empty {
@@ -1002,6 +1019,14 @@ pre {
 
   .board-grid-layer button {
     width: fit-content;
+  }
+
+  .board-grid {
+    padding-right: 38px;
+  }
+
+  .board-grid-row.offset {
+    margin-left: 38px;
   }
 
   .card-list li {

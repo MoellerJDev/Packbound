@@ -272,7 +272,7 @@ describe("combat display summary", () => {
     expect(text).toContain("Barrier on Vanishing Warden blocked Ember Scraprunner");
     expect(text).toContain("summoned Signal Wisp Echo");
     expect(text).toContain(
-      "Vanishing Warden moved from r0 c0 ground to r0 c1 ground toward Ember Scraprunner"
+      "Vanishing Warden moved one hex from r0 c0 ground to r0 c1 ground toward Ember Scraprunner"
     );
     expect(text).toContain("Vanishing Warden phased out");
     expect(text).toContain("Vanishing Warden phased in");

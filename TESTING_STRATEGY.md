@@ -101,6 +101,10 @@ metadata is part of replay, report, and debugging confidence. Add fixtures when
 a simulator change affects multiple systems or when a bug is easiest to prevent
 with a saved scenario.
 
+Board-topology tests should cover odd-r hex distance, six-neighbor adjacency,
+edge/corner filtering, one-hex movement, and the rule that occupied ground cells
+block movement while support and terrain layers do not.
+
 ### Balance Smoke Tests
 
 Balance smoke tests sit between replay integration and manual playtesting. They

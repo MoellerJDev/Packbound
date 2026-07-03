@@ -484,60 +484,74 @@ const BoardGridView = ({
     (count, cell) => count + cell.cards.length,
     0
   );
+  const rows = Array.from({ length: summary.rows }, (_, row) =>
+    summary.cells.filter((cell) => cell.row === row)
+  );
 
   return (
     <div className="board-grid-wrap">
-      <div className="board-grid" style={boardGridStyle(summary.cols)}>
-        {summary.cells.map((cell) => (
+      <div
+        className={`board-grid hex-board-grid offset-${summary.layout.offsetMode}`}
+        aria-label={`${summary.layout.offsetMode} offset hex board`}
+      >
+        {rows.map((rowCells, row) => (
           <div
-            key={`${cell.row}:${cell.col}`}
-            className={`board-grid-cell ${
-              cell.cards.length === 0 ? "empty" : "occupied"
-            }`}
+            key={`row:${row}`}
+            className={`board-grid-row ${rowCells[0]?.isOffsetRow ? "offset" : ""}`}
+            style={boardGridStyle(summary.cols)}
           >
-            <div className="board-grid-coordinate">
-              r{cell.row} c{cell.col}
-            </div>
-            {cell.cards.length > 0 ? (
-              cell.cards.map((card) => (
-                <div
-                  key={card.cardInstanceId}
-                  className={`board-grid-layer ${card.layer} ${cardTypeClass(card)} ${
-                    selectedCardInstanceId === card.cardInstanceId ? "selected" : ""
-                  }`}
-                >
-                  <span className="board-grid-layer-label">{card.layer}</span>
-                  <span className="board-grid-card-name">{card.name}</span>
-                  <span className="board-grid-card-type">{card.cardType}</span>
-                  {card.combatStats ? (
-                    <div
-                      className="board-stat-chips"
-                      aria-label={`${card.name} combat stats`}
-                    >
-                      {card.combatStats.chips.map((chip) => (
-                        <span key={chip} className="stat-chip compact">
-                          {chip}
-                        </span>
-                      ))}
-                    </div>
-                  ) : null}
-                  {card.keywords.length > 0 ? (
-                    <span className="board-keywords">{card.keywords.join(", ")}</span>
-                  ) : null}
-                  {renderCardMeta ? renderCardMeta(card) : null}
-                  <button
-                    type="button"
-                    className="secondary"
-                    aria-label={`Inspect ${card.name} ${card.layer} r${cell.row} c${cell.col}`}
-                    onClick={() => onInspect(card)}
-                  >
-                    Inspect
-                  </button>
+            {rowCells.map((cell) => (
+              <div
+                key={`${cell.row}:${cell.col}`}
+                className={`board-grid-cell ${
+                  cell.cards.length === 0 ? "empty" : "occupied"
+                } ${cell.isOffsetRow ? "offset-row" : ""}`}
+              >
+                <div className="board-grid-coordinate">
+                  r{cell.row} c{cell.col}
                 </div>
-              ))
-            ) : (
-              <span className="board-grid-empty">Empty</span>
-            )}
+                {cell.cards.length > 0 ? (
+                  cell.cards.map((card) => (
+                    <div
+                      key={card.cardInstanceId}
+                      className={`board-grid-layer ${card.layer} ${cardTypeClass(card)} ${
+                        selectedCardInstanceId === card.cardInstanceId ? "selected" : ""
+                      }`}
+                    >
+                      <span className="board-grid-layer-label">{card.layer}</span>
+                      <span className="board-grid-card-name">{card.name}</span>
+                      <span className="board-grid-card-type">{card.cardType}</span>
+                      {card.combatStats ? (
+                        <div
+                          className="board-stat-chips"
+                          aria-label={`${card.name} combat stats`}
+                        >
+                          {card.combatStats.chips.map((chip) => (
+                            <span key={chip} className="stat-chip compact">
+                              {chip}
+                            </span>
+                          ))}
+                        </div>
+                      ) : null}
+                      {card.keywords.length > 0 ? (
+                        <span className="board-keywords">{card.keywords.join(", ")}</span>
+                      ) : null}
+                      {renderCardMeta ? renderCardMeta(card) : null}
+                      <button
+                        type="button"
+                        className="secondary"
+                        aria-label={`Inspect ${card.name} ${card.layer} r${cell.row} c${cell.col}`}
+                        onClick={() => onInspect(card)}
+                      >
+                        Inspect
+                      </button>
+                    </div>
+                  ))
+                ) : (
+                  <span className="board-grid-empty">Empty</span>
+                )}
+              </div>
+            ))}
           </div>
         ))}
       </div>
@@ -972,11 +986,13 @@ export function App() {
           <div className="battlefield-board">
             <div className="battlefield-board-side enemy">
               <div className="board-side-heading">
-                <h3>Enemy Board</h3>
+                <h3>Enemy Hex Board</h3>
                 <span>{currentEncounter?.kind ?? "none"}</span>
               </div>
               <div className="board-orientation" aria-label="Enemy board orientation">
                 <span>Enemy side</span>
+                <span>Odd-r hex</span>
+                <span>Odd rows offset</span>
                 <span>Backline r0</span>
                 <span>Frontline r3</span>
               </div>
@@ -1001,11 +1017,13 @@ export function App() {
 
             <div className="battlefield-board-side ally">
               <div className="board-side-heading">
-                <h3>Ally Board</h3>
+                <h3>Ally Hex Board</h3>
                 <span>{resourceSummary.boardChargeText} Charge</span>
               </div>
               <div className="board-orientation" aria-label="Ally board orientation">
                 <span>Your side</span>
+                <span>Odd-r hex</span>
+                <span>Odd rows offset</span>
                 <span>Frontline r0</span>
                 <span>Backline r3</span>
               </div>

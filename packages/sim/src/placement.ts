@@ -3,6 +3,7 @@ import {
   BOARD_ROWS,
   asCardInstanceId,
   chargeCostTotal,
+  hexNeighbors,
   positionKey,
   type AbilityEffect,
   type BoardPlacement,
@@ -36,19 +37,13 @@ export const findOpenPosition = (
       : [...Array.from({ length: BOARD_ROWS }, (_, index) => index)];
 
   if (placement === "AdjacentToSource" && sourcePosition) {
-    const adjacent = [
-      { row: sourcePosition.row - 1, col: sourcePosition.col, layer: "ground" },
-      { row: sourcePosition.row + 1, col: sourcePosition.col, layer: "ground" },
-      { row: sourcePosition.row, col: sourcePosition.col - 1, layer: "ground" },
-      { row: sourcePosition.row, col: sourcePosition.col + 1, layer: "ground" }
-    ] satisfies BoardPosition[];
-    const openAdjacent = adjacent.find(
-      (position) =>
-        position.row >= 0 &&
-        position.row < BOARD_ROWS &&
-        position.col >= 0 &&
-        position.col < BOARD_COLS &&
-        !occupied.has(positionKey(position))
+    const sourceGroundPosition = {
+      row: sourcePosition.row,
+      col: sourcePosition.col,
+      layer: "ground"
+    } satisfies BoardPosition;
+    const openAdjacent = hexNeighbors(sourceGroundPosition).find(
+      (position) => !occupied.has(positionKey(position))
     );
     if (openAdjacent) {
       return openAdjacent;

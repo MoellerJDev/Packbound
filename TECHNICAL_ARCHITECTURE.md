@@ -208,10 +208,10 @@ Current simulator stat audit: attack determines basic-attack damage, health
 determines survival, attack speed feeds the attack timer, board distance affects
 target priority, Guard and AntiAir can override target choice, Airborne changes
 target sorting, Barrier blocks one damage instance, and Quickstart starts the
-first attack timer ready. Range is enforced as maximum Manhattan distance for
+first attack timer ready. Range is enforced as maximum odd-r hex distance for
 basic attacks. When a ready Unit or Echo has no selected target in range, it
-attempts one deterministic ground-tile step toward that target and emits a
-`UnitMoved` event. Movement remains discrete simulation state; it has no
+attempts one deterministic neighboring ground-hex step toward that target and
+emits a `UnitMoved` event. Movement remains discrete simulation state; it has no
 physics, renderer, Pixi, canvas, server, or real-3D dependency.
 
 ## Core Rule: Simulation Does Not Render
@@ -394,7 +394,8 @@ type BoardSlot = {
 };
 ```
 
-Use a rectangular board for MVP.
+Use rectangular row/column storage for MVP, interpreted as an odd-r offset hex
+board for distance, adjacency, movement, and rendering offsets.
 
 Recommended constants:
 
@@ -1097,8 +1098,9 @@ only through focused rules/content tasks with tests.
 
 ### Board Resources
 
-- The board model should remain a discrete 2D grid with layers. Use the existing
-  terrain/resource-layer direction before considering any richer renderer.
+- The board model should remain a discrete 2D odd-r offset hex grid with layers.
+  Use the existing terrain/resource-layer direction before considering any
+  richer renderer.
 - Resource extraction and denial must be resolved by rules/sim code, not React
   or future visual rendering.
 - Combat events should explain extraction, spending, denial, and resource-based
@@ -1220,7 +1222,8 @@ type RenderPosition = {
 };
 ```
 
-Visual offsets never affect simulation.
+Visual offsets mirror the odd-r hex topology but never override simulation
+distance or adjacency helpers.
 
 ## Client Development Strategy
 

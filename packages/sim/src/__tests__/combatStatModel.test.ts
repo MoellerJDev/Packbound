@@ -118,6 +118,48 @@ const statCards: readonly CardDefinition[] = [
     stats: { attack: 1, health: 10, attackSpeed: 1, range: 3 }
   },
   {
+    id: asCardDefId("stat_hex_adjacent_leader"),
+    name: "Stat Hex Adjacent Leader",
+    set: "stat_lab",
+    rarity: "common",
+    cardType: "Unit",
+    aspects: ["Gleam"],
+    cost: { generic: 1 },
+    tags: ["Tester"],
+    keywords: [],
+    abilities: [
+      {
+        id: "stat-hex-adjacent-rally",
+        trigger: { type: "OnCombatStart" },
+        condition: { type: "Always" },
+        target: { type: "AdjacentAllied" },
+        effect: { type: "ModifyStats", attack: 1 }
+      }
+    ],
+    stats: { attack: 0, health: 10, attackSpeed: 1, range: 1 }
+  },
+  {
+    id: asCardDefId("stat_hex_adjacent_zapper"),
+    name: "Stat Hex Adjacent Zapper",
+    set: "stat_lab",
+    rarity: "common",
+    cardType: "Unit",
+    aspects: ["Ember"],
+    cost: { generic: 1 },
+    tags: ["Tester"],
+    keywords: [],
+    abilities: [
+      {
+        id: "stat-hex-adjacent-zap",
+        trigger: { type: "OnCombatStart" },
+        condition: { type: "Always" },
+        target: { type: "AdjacentEnemy" },
+        effect: { type: "DealDamage", amount: 1 }
+      }
+    ],
+    stats: { attack: 0, health: 10, attackSpeed: 1, range: 1 }
+  },
+  {
     id: asCardDefId("stat_training_target"),
     name: "Stat Training Target",
     set: "stat_lab",
@@ -373,20 +415,27 @@ describe("combat stat model", () => {
     ).toBe(100);
   });
 
-  it("uses board distance for normal target priority", () => {
-    const nearTarget = placement(playerB, "b", "stat_training_target", 0, 1, "near");
-    const farTarget = placement(playerB, "b", "stat_training_target", 0, 6, "far");
+  it("uses hex board distance for normal target priority", () => {
+    const hexNearTarget = placement(
+      playerB,
+      "b",
+      "stat_training_target",
+      3,
+      0,
+      "hex-near"
+    );
+    const hexFarTarget = placement(playerB, "b", "stat_training_target", 0, 6, "hex-far");
     const result = resolve({
       playerA: combatant(
         playerA,
-        board(placement(playerA, "a", "stat_quickstart_attacker", 0, 0, "attacker"))
+        board(placement(playerA, "a", "stat_ranged_attacker", 0, 2, "attacker"))
       ),
-      playerB: combatant(playerB, board(farTarget, nearTarget)),
+      playerB: combatant(playerB, board(hexFarTarget, hexNearTarget)),
       maxDurationMs: 100
     });
 
     expect(firstAttack(result.events).targetId).toBe(
-      unitId("playerB", nearTarget.cardInstanceId)
+      unitId("playerB", hexNearTarget.cardInstanceId)
     );
   });
 
@@ -474,6 +523,65 @@ describe("combat stat model", () => {
     expect(firstAttack(result.events).targetId).toBe(
       unitId("playerB", farLowHealthTarget.cardInstanceId)
     );
+  });
+
+  it("uses six-neighbor hex adjacency for allied ability selectors", () => {
+    const hexAdjacent = placement(playerA, "a", "stat_training_target", 1, 0, "adjacent");
+    const squareDiagonal = placement(
+      playerA,
+      "a",
+      "stat_training_target",
+      1,
+      1,
+      "diagonal"
+    );
+    const result = resolve({
+      playerA: combatant(
+        playerA,
+        board(
+          placement(playerA, "a", "stat_hex_adjacent_leader", 0, 0, "leader"),
+          hexAdjacent,
+          squareDiagonal
+        )
+      ),
+      playerB: combatant(
+        playerB,
+        board(placement(playerB, "b", "stat_endless_target", 3, 6, "target"))
+      ),
+      maxDurationMs: 0
+    });
+    const unitAttack = (cardInstanceId: string) =>
+      result.finalState.units.find((unit) => unit.cardInstanceId === cardInstanceId)
+        ?.attack;
+
+    expect(unitAttack(hexAdjacent.cardInstanceId)).toBe(1);
+    expect(unitAttack(squareDiagonal.cardInstanceId)).toBe(0);
+  });
+
+  it("uses six-neighbor hex adjacency for enemy ability selectors", () => {
+    const hexAdjacent = placement(playerB, "b", "stat_training_target", 1, 0, "adjacent");
+    const squareDiagonal = placement(
+      playerB,
+      "b",
+      "stat_training_target",
+      1,
+      1,
+      "diagonal"
+    );
+    const result = resolve({
+      playerA: combatant(
+        playerA,
+        board(placement(playerA, "a", "stat_hex_adjacent_zapper", 0, 0, "zapper"))
+      ),
+      playerB: combatant(playerB, board(hexAdjacent, squareDiagonal)),
+      maxDurationMs: 0
+    });
+    const unitHealth = (cardInstanceId: string) =>
+      result.finalState.units.find((unit) => unit.cardInstanceId === cardInstanceId)
+        ?.currentHealth;
+
+    expect(unitHealth(hexAdjacent.cardInstanceId)).toBe(4);
+    expect(unitHealth(squareDiagonal.cardInstanceId)).toBe(5);
   });
 
   it("uses range as the maximum basic-attack distance", () => {
@@ -595,5 +703,33 @@ describe("combat stat model", () => {
 
     expect(movesBySide(result.events, "playerA")).toHaveLength(0);
     expect(attacksBySide(result.events, "playerA")).toHaveLength(0);
+  });
+
+  it("does move through support layers when the ground cell is open", () => {
+    const attacker = placement(
+      playerA,
+      "a",
+      "stat_quickstart_attacker",
+      0,
+      0,
+      "attacker"
+    );
+    const support = {
+      cardInstanceId: asCardInstanceId("stat:a:cinder_tally_relic:support"),
+      defId: asCardDefId("cinder_tally_relic"),
+      ownerId: playerA,
+      position: { row: 0, col: 1, layer: "support" }
+    } satisfies BoardPlacement;
+    const target = placement(playerB, "b", "stat_training_target", 0, 3, "target");
+    const result = resolve({
+      playerA: combatant(playerA, board(attacker, support)),
+      playerB: combatant(playerB, board(target)),
+      maxDurationMs: 100
+    });
+
+    expect(firstMove(result.events)).toMatchObject({
+      from: { row: 0, col: 0, layer: "ground" },
+      to: { row: 0, col: 1, layer: "ground" }
+    });
   });
 });

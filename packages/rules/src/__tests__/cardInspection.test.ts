@@ -340,7 +340,7 @@ describe("card inspection helpers", () => {
     ).toMatchObject({
       value: "1 RNG",
       description:
-        "Maximum Manhattan distance for basic attacks. Units outside range move one ground tile toward their selected target when their attack timer is ready."
+        "Maximum hex distance for basic attacks. Units outside range move one neighboring ground hex toward their selected target when their attack timer is ready."
     });
   });
 

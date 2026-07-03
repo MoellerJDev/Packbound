@@ -3,6 +3,7 @@ import {
   COMBAT_TICK_MS,
   MAX_COMBAT_EVENTS,
   asUnitInstanceId,
+  hexDistance,
   type BoardPlacement,
   type BoardPosition,
   type CardDefinition,
@@ -75,8 +76,7 @@ export const addWarning = (
   state.warnings.push({ code, message });
 };
 
-export const distance = (a: BoardPosition, b: BoardPosition): number =>
-  Math.abs(a.row - b.row) + Math.abs(a.col - b.col);
+export const distance = (a: BoardPosition, b: BoardPosition): number => hexDistance(a, b);
 
 export const hasKeyword = (unit: MutableUnit, keyword: string): boolean =>
   unit.keywords.includes(keyword);

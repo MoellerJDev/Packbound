@@ -2,6 +2,8 @@ import type { ContentCatalog } from "@packbound/content";
 import {
   BOARD_COLS,
   BOARD_ROWS,
+  HEX_OFFSET_MODE,
+  isHexOffsetRow,
   type BoardLayer,
   type BoardState,
   type CardDefId,
@@ -38,6 +40,8 @@ export type BoardGridCardSummary = {
 export type BoardGridCellSummary = {
   readonly row: number;
   readonly col: number;
+  readonly isOffsetRow: boolean;
+  readonly rowOffset: 0 | 1;
   readonly ground?: BoardGridCardSummary;
   readonly support?: BoardGridCardSummary;
   readonly air?: BoardGridCardSummary;
@@ -45,9 +49,16 @@ export type BoardGridCellSummary = {
   readonly cards: readonly BoardGridCardSummary[];
 };
 
+export type BoardGridLayoutSummary = {
+  readonly topology: "offset-hex";
+  readonly offsetMode: typeof HEX_OFFSET_MODE;
+  readonly offsetRows: "odd";
+};
+
 export type BoardGridSummary = {
   readonly rows: number;
   readonly cols: number;
+  readonly layout: BoardGridLayoutSummary;
   readonly cells: readonly BoardGridCellSummary[];
 };
 
@@ -108,6 +119,8 @@ const buildCellSummary = (
   return {
     row,
     col,
+    isOffsetRow: isHexOffsetRow(row),
+    rowOffset: isHexOffsetRow(row) ? 1 : 0,
     ...(ground ? { ground } : {}),
     ...(support ? { support } : {}),
     ...(air ? { air } : {}),
@@ -150,6 +163,11 @@ export const buildBoardGridSummary = (
   return {
     rows: BOARD_ROWS,
     cols: BOARD_COLS,
+    layout: {
+      topology: "offset-hex",
+      offsetMode: HEX_OFFSET_MODE,
+      offsetRows: "odd"
+    },
     cells
   };
 };

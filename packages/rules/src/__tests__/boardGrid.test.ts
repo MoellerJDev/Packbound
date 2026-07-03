@@ -62,8 +62,23 @@ describe("board grid summaries", () => {
 
     expect(summary.rows).toBe(4);
     expect(summary.cols).toBe(7);
+    expect(summary.layout).toEqual({
+      topology: "offset-hex",
+      offsetMode: "odd-r",
+      offsetRows: "odd"
+    });
     expect(summary.cells).toHaveLength(28);
-    expect(summary.cells[0]).toEqual({ row: 0, col: 0, cards: [] });
+    expect(summary.cells[0]).toEqual({
+      row: 0,
+      col: 0,
+      isOffsetRow: false,
+      rowOffset: 0,
+      cards: []
+    });
+    expect(requireCell(summary, 1, 0)).toMatchObject({
+      isOffsetRow: true,
+      rowOffset: 1
+    });
     expect(summary).toEqual(buildBoardGridSummary({ placements: [] }, sampleCatalog));
     expect(JSON.parse(JSON.stringify(summary))).toEqual(summary);
   });

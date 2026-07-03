@@ -402,6 +402,40 @@ test("priority lab alternates priority, resolves the stack, and records combat",
   expect(errors.consoleErrors).toEqual([]);
 });
 
+test("renderer lab loads Pixi battlefield canvas and replay controls", async ({
+  page
+}) => {
+  const errors = captureBrowserErrors(page);
+
+  await page.goto("/?scenario=renderer-lab");
+
+  await expect(page.getByRole("heading", { name: "Packbound" })).toBeVisible();
+  await expect(page.getByTestId("hex-arena")).toBeVisible();
+
+  const rendererLab = page.locator(".renderer-lab-section");
+  await expect(
+    rendererLab.getByRole("heading", { name: "Pixi Renderer Lab" })
+  ).toBeVisible();
+  await expect(
+    rendererLab.getByText("The React Hex Arena remains above as the debug fallback.")
+  ).toBeVisible();
+  await expect(rendererLab.getByText("Shared field units")).toBeVisible();
+  await expect(rendererLab.getByText("Replay events")).toBeVisible();
+  await expect(rendererLab.getByText("move, attack, damage, destroyed")).toBeVisible();
+  await expect(rendererLab.getByText("Selected halo")).toBeVisible();
+
+  const rendererHost = page.getByTestId("pixi-renderer-host");
+  await expect(rendererHost).toBeVisible();
+  await expect(rendererHost.locator("canvas")).toHaveCount(1);
+
+  await expect(rendererLab.getByRole("button", { name: "Play Replay" })).toBeVisible();
+  await rendererLab.getByRole("button", { name: "Play Replay" }).click();
+  await expect(rendererLab.getByRole("button", { name: "Reset Replay" })).toBeVisible();
+
+  expect(errors.pageErrors).toEqual([]);
+  expect(errors.consoleErrors).toEqual([]);
+});
+
 test("upgrade lab can perform and inspect a duplicate upgrade", async ({ page }) => {
   const errors = captureBrowserErrors(page);
 

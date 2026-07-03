@@ -451,6 +451,72 @@ h4 {
   color: #ffffff;
 }
 
+.renderer-lab-section {
+  background: #0c161c;
+  border: 1px solid #233842;
+  border-radius: 8px;
+  box-shadow: 0 18px 44px rgb(11 21 26 / 0.2);
+  color: #eef6f0;
+  margin-bottom: 18px;
+  padding: 16px;
+}
+
+.renderer-lab-header {
+  align-items: end;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  margin-bottom: 14px;
+}
+
+.renderer-lab-header h2 {
+  font-size: 1.35rem;
+  margin-bottom: 6px;
+}
+
+.renderer-lab-section .muted {
+  color: #b8c8c3;
+}
+
+.renderer-lab-shell {
+  align-items: stretch;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1.55fr) minmax(280px, 0.8fr);
+}
+
+.pixi-renderer-host {
+  background:
+    radial-gradient(circle at 50% 45%, rgb(60 99 108 / 0.22), transparent 44%),
+    linear-gradient(180deg, #101f27, #081015);
+  border: 1px solid #2b4650;
+  border-radius: 8px;
+  height: min(68vh, 680px);
+  min-height: 540px;
+  overflow: hidden;
+  position: relative;
+}
+
+.pixi-renderer-host canvas {
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
+.renderer-lab-panel {
+  background: #f6fbf8;
+  border: 1px solid #cddbd4;
+  border-radius: 8px;
+  color: #1f2b32;
+  max-height: 680px;
+  overflow: auto;
+  padding: 14px;
+}
+
+.renderer-lab-panel h3:first-child {
+  margin-top: 0;
+}
+
 .debug-grid {
   display: grid;
   gap: 16px;
@@ -1356,8 +1422,15 @@ pre {
   }
 
   .battlefield-header,
-  .battlefield-layout {
+  .battlefield-layout,
+  .renderer-lab-header,
+  .renderer-lab-shell {
     grid-template-columns: 1fr;
+  }
+
+  .pixi-renderer-host {
+    height: 520px;
+    min-height: 460px;
   }
 
   .battlefield-run-strip {

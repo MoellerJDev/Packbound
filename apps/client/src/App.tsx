@@ -51,11 +51,14 @@ import { CombatModelFactsView } from "./components/CombatModelFactsView";
 import { CombatSummaryView } from "./components/CombatSummaryView";
 import { EngagementPreviewPanel } from "./components/EngagementPreviewPanel";
 import { PriorityLabPanel } from "./components/PriorityLabPanel";
+import { PixiBattlefieldRenderer } from "./components/pixi/PixiBattlefieldRenderer";
+import { buildPixiBattlefieldModel } from "./components/pixi/pixiBattlefieldModel";
 import { RawDebugDetails } from "./components/RawDebugDetails";
 import { TraitSummaryView } from "./components/TraitSummaryView";
 import { UpgradeBadge, UpgradeProgressBadge } from "./components/upgradeBadges";
 import {
   DEBUG_PRIORITY_SCENARIO_ID,
+  DEBUG_RENDERER_SCENARIO_ID,
   applyDebugScenario,
   debugScenarioFromSearch
 } from "./debugScenarios";
@@ -154,6 +157,10 @@ export function App() {
   const [selectedEngagementRef, setSelectedEngagementRef] = useState<
     BoardSelectedCardRef | undefined
   >();
+  const [rendererReplay, setRendererReplay] = useState({
+    key: 0,
+    play: false
+  });
   const phase = getRunPhase(run);
   const rewardChoices = useMemo(() => getCurrentRewardChoices(run, sampleCatalog), [run]);
   const rewardOfferExplanations = useMemo(
@@ -274,6 +281,18 @@ export function App() {
     priorityMatch.skirmishes.length,
     priorityMatch.turnNumber
   ]);
+  const rendererLabCombat = useMemo(() => {
+    if (!opponentSetup || !currentEncounter) {
+      return undefined;
+    }
+
+    return resolveCombat({
+      catalog: sampleCatalog,
+      seed: `client-debug-renderer-combat:${run.seed}:${run.currentRound}:${currentEncounter.id}`,
+      playerA: playerSetup,
+      playerB: opponentSetup
+    });
+  }, [currentEncounter, opponentSetup, playerSetup, run.currentRound, run.seed]);
   const latestCombatSummary = run.combatHistory.at(-1);
   const latestOpenedPack = run.openedPacks.at(-1);
   const latestRewardHistoryEntry = run.rewardHistory.at(-1);
@@ -298,6 +317,18 @@ export function App() {
           })
         : undefined,
     [lastRecordedCombat]
+  );
+  const rendererLabCombatDisplaySummary = useMemo(
+    () =>
+      rendererLabCombat
+        ? buildCombatDisplaySummary({
+            catalog: sampleCatalog,
+            combatResult: rendererLabCombat,
+            perspectiveSide: "playerA",
+            maxLines: 10
+          })
+        : undefined,
+    [rendererLabCombat]
   );
   const defaultAllyCardRef = useMemo<AllySelectedCardRef | undefined>(() => {
     const placement = firstUnitOrEchoPlacement(run.board.placements);
@@ -333,6 +364,15 @@ export function App() {
         : {})
     });
   }, [currentEncounter, effectiveEngagementRef, run.activeCards, run.board]);
+  const pixiBattlefieldModel = useMemo(
+    () =>
+      buildPixiBattlefieldModel({
+        playerBoard: playerBoardGrid,
+        ...(encounterBoardGrid ? { enemyBoard: encounterBoardGrid } : {}),
+        engagementPreview
+      }),
+    [encounterBoardGrid, engagementPreview, playerBoardGrid]
+  );
   const selectedAllyInspection = useMemo(() => {
     if (!effectiveAllyCardRef) {
       return undefined;
@@ -388,6 +428,7 @@ export function App() {
     setSelectedAllyCardRef(undefined);
     setSelectedEnemyCardRef(undefined);
     setSelectedEngagementRef(undefined);
+    setRendererReplay({ key: 0, play: false });
   };
 
   const performLoadoutAction = (
@@ -584,6 +625,14 @@ export function App() {
     setPriorityMatch(createPriorityLabMatch());
   };
 
+  const playRendererReplay = () => {
+    setRendererReplay((current) => ({ key: current.key + 1, play: true }));
+  };
+
+  const resetRendererReplay = () => {
+    setRendererReplay((current) => ({ key: current.key + 1, play: false }));
+  };
+
   return (
     <main className="app-shell">
       <section className="topbar">
@@ -760,6 +809,79 @@ export function App() {
 
         <CombatModelFactsView />
       </section>
+
+      {activeDebugScenarioId === DEBUG_RENDERER_SCENARIO_ID ? (
+        <section className="renderer-lab-section" aria-labelledby="renderer-lab-heading">
+          <div className="renderer-lab-header">
+            <div>
+              <h2 id="renderer-lab-heading">Pixi Renderer Lab</h2>
+              <p className="muted">
+                A single shared battlefield rendered from existing board summaries,
+                engagement preview data, and deterministic combat events. The React Hex
+                Arena remains above as the debug fallback.
+              </p>
+            </div>
+            <div className="button-row">
+              <button
+                type="button"
+                onClick={playRendererReplay}
+                disabled={!rendererLabCombat}
+              >
+                Play Replay
+              </button>
+              <button type="button" className="secondary" onClick={resetRendererReplay}>
+                Reset Replay
+              </button>
+            </div>
+          </div>
+
+          <div className="renderer-lab-shell">
+            <div>
+              <PixiBattlefieldRenderer
+                model={pixiBattlefieldModel}
+                combatEvents={rendererLabCombat?.events ?? []}
+                replayRequestKey={rendererReplay.key}
+                playReplay={rendererReplay.play}
+              />
+            </div>
+            <aside className="renderer-lab-panel">
+              <h3>Renderer Feed</h3>
+              <dl className="run-stats">
+                <div>
+                  <dt>Shared field units</dt>
+                  <dd>{pixiBattlefieldModel.cards.length}</dd>
+                </div>
+                <div>
+                  <dt>Replay events</dt>
+                  <dd>{rendererLabCombat?.events.length ?? 0}</dd>
+                </div>
+                <div>
+                  <dt>Winner</dt>
+                  <dd>{rendererLabCombat?.winner ?? "none"}</dd>
+                </div>
+                <div>
+                  <dt>Visualized</dt>
+                  <dd>move, attack, damage, destroyed</dd>
+                </div>
+              </dl>
+              <h3>Preview Overlays</h3>
+              <ul className="message-list compact">
+                <li>Selected halo, attack range glow, likely target ring.</li>
+                <li>Next-move ghost marker and movement arrow when available.</li>
+                <li>Player side uses cool cyan; enemy side uses ember red.</li>
+              </ul>
+              {rendererLabCombatDisplaySummary ? (
+                <>
+                  <h3>Combat Feed Sample</h3>
+                  <CombatSummaryView summary={rendererLabCombatDisplaySummary} />
+                </>
+              ) : (
+                <p className="muted">No deterministic combat result is available.</p>
+              )}
+            </aside>
+          </div>
+        </section>
+      ) : null}
 
       {activeDebugScenarioId === DEBUG_PRIORITY_SCENARIO_ID ? (
         <PriorityLabPanel

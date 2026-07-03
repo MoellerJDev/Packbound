@@ -25,6 +25,10 @@ source-card context. A later helper now validates that source against the run
 and catalog as a player-owned Spellrail Technique before queueing. The remaining
 blocker is that the source lifecycle is still match-local bookkeeping only; it
 has no cost, `RunState` zone change, or authored card-zone effect resolution.
+Another renderer-only follow-up has added `?scenario=renderer-lab` as an opt-in
+PixiJS shared battlefield and deterministic replay lab. It does not replace the
+default React/CSS Hex Arena yet and has not been manually playtested in this
+report pass.
 
 Top remaining issues:
 
@@ -32,14 +36,15 @@ Top remaining issues:
    metadata from sentence text, and now shows a validated minimal source
    context plus a match-local used-source record for the prototype action. That
    source still has no real card-zone movement, cost, or authored-effect system.
-2. Ally Hex Board and Enemy Hex Board still read as two stacked submitted boards,
-   not one shared tactical arena.
+2. Ally Hex Board and Enemy Hex Board still read as two stacked submitted boards
+   on the default route. The new Pixi renderer lab starts exploring a single
+   shared arena, but it is opt-in and not the default battlefield.
 3. Combat summaries are readable for short fights, but longer fights still need
    grouping, filtering, or a compact timeline.
 
 Recommended next task:
 
-`feat(rules): add encounter action cost and effect contract`
+`docs(playtest): manually evaluate Pixi renderer lab`
 
 ## 2. Environment And Commands
 
@@ -229,14 +234,14 @@ changed to `Unit | board | Ember` with `Return to Pool` as the legal action.
 
 ## 8. Stale Report Items Rechecked
 
-| Old report item                               | Current status       | Current finding                                                                  |
-| --------------------------------------------- | -------------------- | -------------------------------------------------------------------------------- |
-| Hex board has horizontal scroll               | Fixed                | No horizontal page or arena scroll at 1280 x 720.                                |
-| Occupied cells hidden to the right            | Fixed horizontally   | Occupied cells fit width; vertical framing can still hide enemy markers.         |
-| Missing range/target preview                  | Fixed substantially  | Selected, range, target, attack/out-of-range, and next-move markers are present. |
-| Two boards do not feel like one arena         | Still true           | `Ally Hex Board` and `Enemy Hex Board` still read as stacked separate boards.    |
-| Long combat summaries need grouping/filtering | Still true           | Short fights are readable, but the UI still has no grouping/filtering.           |
-| Priority shell is not visible                 | Fixed for developers | Priority lab makes the shell visible with one validated, source-tracked action.  |
+| Old report item                               | Current status       | Current finding                                                                             |
+| --------------------------------------------- | -------------------- | ------------------------------------------------------------------------------------------- |
+| Hex board has horizontal scroll               | Fixed                | No horizontal page or arena scroll at 1280 x 720.                                           |
+| Occupied cells hidden to the right            | Fixed horizontally   | Occupied cells fit width; vertical framing can still hide enemy markers.                    |
+| Missing range/target preview                  | Fixed substantially  | Selected, range, target, attack/out-of-range, and next-move markers are present.            |
+| Two boards do not feel like one arena         | Partially addressed  | Default Hex Arena still stacks boards; `renderer-lab` now prototypes one shared Pixi field. |
+| Long combat summaries need grouping/filtering | Still true           | Short fights are readable, but the UI still has no grouping/filtering.                      |
+| Priority shell is not visible                 | Fixed for developers | Priority lab makes the shell visible with one validated, source-tracked action.             |
 
 ## 9. Bugs Or Confusions
 
@@ -297,6 +302,9 @@ No confirmed gameplay or simulator bugs were found.
 - Duplicate upgrades are generic Unit/Echo combines with +1 ATK/+1 HP per level.
 - The Hex Arena is still React/CSS debug UI, not Pixi, animation, drag/drop, or
   final battlefield rendering.
+- `?scenario=renderer-lab` now exists as an opt-in generated-shape Pixi
+  battlefield and replay lab, but it is not the default renderer, has no art
+  assets, and does not affect rules, targeting, movement, or combat timing.
 - The two-board presentation remains a debug framing, not a finished shared
   arena.
 - Raw debug event details are available behind disclosure, but the compact
@@ -306,23 +314,24 @@ No confirmed gameplay or simulator bugs were found.
 
 Do next:
 
-`feat(rules): add encounter action cost and effect contract`
+`docs(playtest): manually evaluate Pixi renderer lab`
 
 Why: after the prototype action skeleton, action-log readability fix, minimal
-source metadata, source validation, and match-local lifecycle records, the next
-useful rules step is defining how a real encounter card action declares cost and
-effect intent without jumping into full hand/deck/mill, counterspells, enemy AI,
-authored effect execution, or normal run-loop integration.
+source metadata, source validation, match-local lifecycle records, and a first
+Pixi renderer lab, the next useful step is a manual browser pass focused on the
+new canvas battlefield: readability, replay pacing, fallback/debug board
+relationship, and whether the single shared field actually fixes the two-board
+confusion.
 
 Do soon:
 
 - `feat(client): keep selected target and next move visible together in preview labs`
 - `feat(client): group or filter long combat summary events`
-- `feat(client): improve one-arena battlefield framing`
+- `feat(rules): add encounter action cost and effect contract`
 
 Still wait:
 
-- Pixi
+- Pixi as the default renderer
 - Drag/drop
 - Animations
 - Backend

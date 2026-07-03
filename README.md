@@ -102,6 +102,11 @@ pnpm dev
   guidance, board-first selected Unit/Echo range, likely target, attack-now or
   out-of-range markers, next-move previews, display-only trait/teamup summaries,
   and latest reward markers for newly opened pool cards.
+- The debug client also includes an opt-in PixiJS renderer lab at
+  `?scenario=renderer-lab`. It keeps React as the app shell and renders a single
+  shared generated-shape battlefield plus deterministic combat replay from
+  existing board summaries, engagement preview data, and simulator events. The
+  default route still uses the React/CSS Hex Arena debug board.
 - The battlefield explains the current simulator model honestly: attack, health,
   attack speed, odd-r hex range, neighboring-hex movement, distance targeting,
   Guard, Barrier, Quickstart, Airborne, and AntiAir matter today.
@@ -123,6 +128,8 @@ pnpm dev
   for that browser smoke path, while `?scenario=engagement-lab` seeds a
   deterministic out-of-range Cinder Scout preview with a visible next move, and
   `?scenario=priority-lab` shows the encounter priority/stack/phase shell.
+  `?scenario=renderer-lab` mounts the Pixi battlefield canvas and verifies the
+  replay controls without screenshot assertions.
 - Property-based invariant tests cover generated seeds, legal loadout action
   sequences, card instance preservation, replay determinism, and mutation safety.
 - Core state uses plain objects so future server validation, async ghost PvP,

@@ -14,6 +14,7 @@
     "@packbound/rules": "workspace:*",
     "@packbound/shared": "workspace:*",
     "@packbound/sim": "workspace:*",
+    "pixi.js": "^8.19.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },

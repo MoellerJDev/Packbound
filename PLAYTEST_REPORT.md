@@ -23,15 +23,15 @@ first abstract encounter main-phase action skeleton,
 `Prototype Pressure Technique`, and Priority Lab now queues it from minimal
 source-card context. A later helper now validates that source against the run
 and catalog as a player-owned Spellrail Technique before queueing. The remaining
-blocker is that the source still has no cost, lifecycle change, or authored
-card-zone effect resolution.
+blocker is that the source lifecycle is still match-local bookkeeping only; it
+has no cost, `RunState` zone change, or authored card-zone effect resolution.
 
 Top remaining issues:
 
 1. Priority lab explains the state machine to developers, separates log
    metadata from sentence text, and now shows a validated minimal source
-   context for the prototype action. That source still has no real card-zone
-   lifecycle, cost, or authored-effect system.
+   context plus a match-local used-source record for the prototype action. That
+   source still has no real card-zone movement, cost, or authored-effect system.
 2. Ally Hex Board and Enemy Hex Board still read as two stacked submitted boards,
    not one shared tactical arena.
 3. Combat summaries are readable for short fights, but longer fights still need
@@ -39,7 +39,7 @@ Top remaining issues:
 
 Recommended next task:
 
-`feat(rules): model encounter action source lifecycle`
+`feat(rules): add encounter action cost and effect contract`
 
 ## 2. Environment And Commands
 
@@ -190,8 +190,9 @@ stability, and outcome are all visible in one panel.
 It is not yet enough to teach a player-facing encounter model. The current lab
 now has one prototype action instead of a debug-only button, and that action can
 carry validated minimal source-card context. The source remains non-mutating
-metadata rather than a costed card-zone lifecycle or authored card effect.
-Stability changes are visible but not explained as a real gameplay decision yet.
+metadata plus match-local lifecycle history rather than a costed card-zone move
+or authored card effect. Stability changes are visible but not explained as a
+real gameplay decision yet.
 
 Priority-lab readability issue found during the manual pass: Action Log metadata
 was visually jammed onto the log sentence. In the browser it read like
@@ -235,7 +236,7 @@ changed to `Unit | board | Ember` with `Return to Pool` as the legal action.
 | Missing range/target preview                  | Fixed substantially  | Selected, range, target, attack/out-of-range, and next-move markers are present. |
 | Two boards do not feel like one arena         | Still true           | `Ally Hex Board` and `Enemy Hex Board` still read as stacked separate boards.    |
 | Long combat summaries need grouping/filtering | Still true           | Short fights are readable, but the UI still has no grouping/filtering.           |
-| Priority shell is not visible                 | Fixed for developers | Priority lab makes the shell visible with one validated prototype action.        |
+| Priority shell is not visible                 | Fixed for developers | Priority lab makes the shell visible with one validated, source-tracked action.  |
 
 ## 9. Bugs Or Confusions
 
@@ -283,8 +284,9 @@ No confirmed gameplay or simulator bugs were found.
 ## 10. Known Limitations
 
 - Priority lab now has one abstract prototype main-phase action with validated
-  run-owned player Spellrail Technique source context, but no real hand/deck/mill
-  sourcing, card movement, costs, enemy-sourced actions, or authored card effects
+  run-owned player Spellrail Technique source context and match-local
+  `usedOnResolve` lifecycle events, but no real hand/deck/mill sourcing,
+  RunState card movement, costs, enemy-sourced actions, or authored card effects
   exist yet.
 - Debug placeholder reducer actions still exist for diagnostics, but the
   browser lab emphasizes the prototype action.
@@ -304,13 +306,13 @@ No confirmed gameplay or simulator bugs were found.
 
 Do next:
 
-`feat(rules): model encounter action source lifecycle`
+`feat(rules): add encounter action cost and effect contract`
 
 Why: after the prototype action skeleton, action-log readability fix, minimal
-source metadata, and source validation, the next useful rules step is proving
-how a queued sourced action records source lifecycle intent without jumping into
-full hand/deck/mill, counterspells, enemy AI, authored effects, or normal
-run-loop integration.
+source metadata, source validation, and match-local lifecycle records, the next
+useful rules step is defining how a real encounter card action declares cost and
+effect intent without jumping into full hand/deck/mill, counterspells, enemy AI,
+authored effect execution, or normal run-loop integration.
 
 Do soon:
 

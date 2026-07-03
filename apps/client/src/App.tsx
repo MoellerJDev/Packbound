@@ -225,6 +225,16 @@ export function App() {
       })[0],
     [run]
   );
+  const availablePriorityPrototypeActionSource = useMemo(
+    () =>
+      listPrototypePressureActionSources({
+        run,
+        catalog: sampleCatalog,
+        actor: "player",
+        match: priorityMatch
+      })[0],
+    [priorityMatch, run]
+  );
 
   const combat = useMemo(() => {
     if (!opponentSetup || !recordReady) {
@@ -537,7 +547,7 @@ export function App() {
   };
 
   const submitPriorityPrototypeAction = () => {
-    if (!priorityPrototypeActionSource) {
+    if (!availablePriorityPrototypeActionSource) {
       return;
     }
 
@@ -547,7 +557,7 @@ export function App() {
         run,
         catalog: sampleCatalog,
         actor: "player",
-        cardInstanceId: priorityPrototypeActionSource.cardInstanceId
+        cardInstanceId: availablePriorityPrototypeActionSource.cardInstanceId
       })
     );
   };
@@ -758,7 +768,12 @@ export function App() {
             priorityMatch.phase === "combat" && priorityLabCombat !== undefined
           }
           prototypeActionSource={priorityPrototypeActionSource}
-          prototypeActionSourceUnavailableText="No valid player Spellrail Technique source."
+          canSubmitPrototypeAction={availablePriorityPrototypeActionSource !== undefined}
+          prototypeActionSourceUnavailableText={
+            priorityPrototypeActionSource
+              ? `${priorityPrototypeActionSource.cardName} is already queued or used this encounter.`
+              : "No valid player Spellrail Technique source."
+          }
           onSubmitPrototypeAction={submitPriorityPrototypeAction}
           onPassPlayer={passPriorityAsPlayer}
           onPassEnemy={passPriorityAsEnemy}

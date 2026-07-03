@@ -16,7 +16,9 @@ export type PrototypePressureActionSourceValidationCode =
   | "wrong_owner"
   | "wrong_zone"
   | "unknown_card_definition"
-  | "wrong_card_type";
+  | "wrong_card_type"
+  | "source_already_queued"
+  | "source_already_used";
 
 export type PrototypePressureActionSourceValidationSuccess = {
   readonly ok: true;
@@ -45,6 +47,7 @@ export type ListPrototypePressureActionSourcesInput = {
   readonly run: RunState;
   readonly catalog: ContentCatalog;
   readonly actor?: EncounterActor;
+  readonly match?: EncounterMatchState;
 };
 
 export type SubmitPrototypePressureActionFromRunInput = {
@@ -65,6 +68,51 @@ const failure = (
   cardInstanceId,
   message
 });
+
+const sourceAlreadyQueued = (
+  match: EncounterMatchState,
+  cardInstanceId: CardInstanceId
+): boolean =>
+  match.stack.some(
+    (item) =>
+      item.action.kind === "main_phase_pressure" &&
+      item.action.source?.cardInstanceId === cardInstanceId &&
+      item.action.sourceLifecycle === "usedOnResolve"
+  );
+
+const sourceAlreadyUsed = (
+  match: EncounterMatchState,
+  cardInstanceId: CardInstanceId
+): boolean =>
+  match.sourceLifecycleEvents.some(
+    (event) =>
+      event.actionKind === "main_phase_pressure" &&
+      event.source.cardInstanceId === cardInstanceId &&
+      event.lifecycle === "usedOnResolve"
+  );
+
+const validateSourceAvailability = (
+  match: EncounterMatchState,
+  cardInstanceId: CardInstanceId
+): PrototypePressureActionSourceValidationFailure | undefined => {
+  if (sourceAlreadyQueued(match, cardInstanceId)) {
+    return failure(
+      "source_already_queued",
+      cardInstanceId,
+      `Card ${cardInstanceId} is already queued for Prototype Pressure Technique.`
+    );
+  }
+
+  if (sourceAlreadyUsed(match, cardInstanceId)) {
+    return failure(
+      "source_already_used",
+      cardInstanceId,
+      `Card ${cardInstanceId} was already used for Prototype Pressure Technique this encounter.`
+    );
+  }
+
+  return undefined;
+};
 
 export const validatePrototypePressureActionSource = ({
   run,
@@ -136,7 +184,8 @@ export const validatePrototypePressureActionSource = ({
 export const listPrototypePressureActionSources = ({
   run,
   catalog,
-  actor = "player"
+  actor = "player",
+  match
 }: ListPrototypePressureActionSourcesInput): readonly EncounterActionSource[] => {
   const sources: EncounterActionSource[] = [];
 
@@ -148,6 +197,9 @@ export const listPrototypePressureActionSources = ({
       cardInstanceId: card.instanceId
     });
     if (result.ok) {
+      if (match && validateSourceAvailability(match, result.source.cardInstanceId)) {
+        continue;
+      }
       sources.push(result.source);
     }
   }
@@ -173,9 +225,18 @@ export const submitPrototypePressureActionFromRun = ({
     throw new Error(result.message);
   }
 
+  const sourceAvailabilityFailure = validateSourceAvailability(
+    match,
+    result.source.cardInstanceId
+  );
+  if (sourceAvailabilityFailure) {
+    throw new Error(sourceAvailabilityFailure.message);
+  }
+
   return submitEncounterAction(match, {
     actor,
     kind: "main_phase_pressure",
-    source: result.source
+    source: result.source,
+    sourceLifecycle: "usedOnResolve"
   });
 };

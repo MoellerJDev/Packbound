@@ -8,6 +8,7 @@ type PriorityLabPanelProps = {
   readonly match: EncounterMatchState;
   readonly canRunCombat: boolean;
   readonly prototypeActionSource: EncounterActionSource | undefined;
+  readonly canSubmitPrototypeAction: boolean;
   readonly prototypeActionSourceUnavailableText?: string;
   readonly onSubmitPrototypeAction: () => void;
   readonly onPassPlayer: () => void;
@@ -59,6 +60,7 @@ export const PriorityLabPanel = ({
   match,
   canRunCombat,
   prototypeActionSource,
+  canSubmitPrototypeAction,
   prototypeActionSourceUnavailableText,
   onSubmitPrototypeAction,
   onPassPlayer,
@@ -123,7 +125,11 @@ export const PriorityLabPanel = ({
           <button
             type="button"
             onClick={onSubmitPrototypeAction}
-            disabled={!playerMainPhasePriority || !prototypeActionSource}
+            disabled={
+              !playerMainPhasePriority ||
+              !prototypeActionSource ||
+              !canSubmitPrototypeAction
+            }
           >
             Queue Prototype Technique
           </button>
@@ -159,6 +165,9 @@ export const PriorityLabPanel = ({
           {prototypeActionSource
             ? sourceContextLabel(prototypeActionSource)
             : (prototypeActionSourceUnavailableText ?? "No valid source selected.")}
+          {prototypeActionSource && !canSubmitPrototypeAction
+            ? ` - ${prototypeActionSourceUnavailableText ?? "Source unavailable."}`
+            : ""}
         </p>
 
         <div className="encounter-loadout">
@@ -180,6 +189,25 @@ export const PriorityLabPanel = ({
             </ol>
           ) : (
             <p className="muted">Empty</p>
+          )}
+
+          <h3>Used Sources</h3>
+          {match.sourceLifecycleEvents.length > 0 ? (
+            <ol className="card-list compact">
+              {match.sourceLifecycleEvents.map((event) => (
+                <li key={event.id}>
+                  <span>
+                    {event.source.cardName} used by {event.actionLabel}
+                  </span>
+                  <small>
+                    Turn {event.turnNumber} | {encounterPhaseLabel(event.phase)} |{" "}
+                    {encounterActorLabel(event.actor)} | {event.lifecycle}
+                  </small>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p className="muted">None</p>
           )}
 
           <h3>Skirmish Records</h3>

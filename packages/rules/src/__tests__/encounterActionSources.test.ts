@@ -260,11 +260,76 @@ describe("encounter prototype pressure action sources", () => {
       cardName: "Sparkfall",
       zone: "spellrail"
     });
+    expect(submitted.stack[0]?.action.sourceLifecycle).toBe("usedOnResolve");
     expect(submitted.actionLog.at(-1)?.text).toBe(
       "Player queued Prototype Pressure Technique from Sparkfall."
     );
     expect(resolved.playerStability).toBe(5);
     expect(resolved.enemyStability).toBe(4);
     expect(resolved.lastResolvedAction?.action.source?.cardName).toBe("Sparkfall");
+    expect(resolved.sourceLifecycleEvents[0]).toMatchObject({
+      lifecycle: "usedOnResolve",
+      actionKind: "main_phase_pressure",
+      actionLabel: "Prototype Pressure Technique",
+      actor: "player",
+      source: {
+        cardInstanceId: sparkfall.instanceId,
+        cardName: "Sparkfall",
+        zone: "spellrail"
+      }
+    });
+  });
+
+  it("blocks the same source while queued and after it has been used", () => {
+    const run = createTestRun();
+    const sparkfall = getSparkfall(run);
+    const match = createEncounterMatch({
+      matchId: "repeat-source",
+      seed: "repeat-source"
+    });
+
+    const submitted = submitPrototypePressureActionFromRun({
+      match,
+      run,
+      catalog: sampleCatalog,
+      actor: "player",
+      cardInstanceId: sparkfall.instanceId
+    });
+    expect(
+      listPrototypePressureActionSources({
+        run,
+        catalog: sampleCatalog,
+        match: submitted
+      })
+    ).toEqual([]);
+
+    const playerPriorityWithStack = passEncounterPriority(submitted, "enemy");
+    expect(() =>
+      submitPrototypePressureActionFromRun({
+        match: playerPriorityWithStack,
+        run,
+        catalog: sampleCatalog,
+        actor: "player",
+        cardInstanceId: sparkfall.instanceId
+      })
+    ).toThrow(/already queued/);
+
+    const resolved = passEncounterPriority(playerPriorityWithStack, "player");
+    expect(
+      listPrototypePressureActionSources({
+        run,
+        catalog: sampleCatalog,
+        match: resolved
+      })
+    ).toEqual([]);
+    expect(() =>
+      submitPrototypePressureActionFromRun({
+        match: resolved,
+        run,
+        catalog: sampleCatalog,
+        actor: "player",
+        cardInstanceId: sparkfall.instanceId
+      })
+    ).toThrow(/already used/);
   });
 });

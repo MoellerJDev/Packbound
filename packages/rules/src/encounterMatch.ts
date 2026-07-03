@@ -24,6 +24,8 @@ export type EncounterOutcome = {
 
 export type EncounterActionKind = "debug_noop" | "debug_pressure" | "main_phase_pressure";
 
+export type EncounterActionSourceLifecycle = "none" | "usedOnResolve";
+
 export type EncounterActionSource = {
   readonly cardInstanceId: CardInstanceId;
   readonly cardDefId: CardDefId;
@@ -36,6 +38,7 @@ export type EncounterQueuedAction = {
   readonly actor: EncounterActor;
   readonly label: string;
   readonly source?: EncounterActionSource;
+  readonly sourceLifecycle?: EncounterActionSourceLifecycle;
 };
 
 export type EncounterStackItem = {
@@ -58,6 +61,20 @@ export type EncounterSkirmishRecord = {
   };
   readonly damageToPlayerA: number;
   readonly damageToPlayerB: number;
+};
+
+export type EncounterSourceLifecycleEvent = {
+  readonly id: string;
+  readonly index: number;
+  readonly lifecycle: Exclude<EncounterActionSourceLifecycle, "none">;
+  readonly source: EncounterActionSource;
+  readonly actionKind: EncounterActionKind;
+  readonly actionLabel: string;
+  readonly actor: EncounterActor;
+  readonly turnNumber: number;
+  readonly phase: EncounterPhase;
+  readonly stackItemId: string;
+  readonly stackItemIndex: number;
 };
 
 export type EncounterLogKind =
@@ -92,6 +109,7 @@ export type EncounterMatchState = {
   readonly stack: readonly EncounterStackItem[];
   readonly actionLog: readonly EncounterActionLogEntry[];
   readonly skirmishes: readonly EncounterSkirmishRecord[];
+  readonly sourceLifecycleEvents: readonly EncounterSourceLifecycleEvent[];
   readonly playerStability: number;
   readonly enemyStability: number;
   readonly outcome: EncounterOutcome;
@@ -114,6 +132,7 @@ export type SubmitEncounterActionInput = {
   readonly kind?: EncounterActionKind;
   readonly label?: string;
   readonly source?: EncounterActionSource;
+  readonly sourceLifecycle?: EncounterActionSourceLifecycle;
 };
 
 export type EncounterCombatResultLike = {
@@ -271,6 +290,7 @@ export const createEncounterMatch = ({
     stack: [],
     actionLog: [],
     skirmishes: [],
+    sourceLifecycleEvents: [],
     playerStability,
     enemyStability,
     outcome: { kind: "inProgress", reason: null },
@@ -321,7 +341,8 @@ export const submitEncounterAction = (
       kind,
       actor,
       label,
-      ...(input.source ? { source: input.source } : {})
+      ...(input.source ? { source: input.source } : {}),
+      ...(input.sourceLifecycle ? { sourceLifecycle: input.sourceLifecycle } : {})
     }
   };
   const submitted: EncounterMatchState = {
@@ -380,6 +401,30 @@ const actionResolutionText = (
   return `${base}.`;
 };
 
+const sourceLifecycleEventForResolution = (
+  state: EncounterMatchState,
+  item: EncounterStackItem
+): EncounterSourceLifecycleEvent | undefined => {
+  if (!item.action.source || item.action.sourceLifecycle !== "usedOnResolve") {
+    return undefined;
+  }
+
+  const index = state.sourceLifecycleEvents.length;
+  return {
+    id: `${state.matchId}:source-lifecycle:${index}:${item.id}`,
+    index,
+    lifecycle: "usedOnResolve",
+    source: item.action.source,
+    actionKind: item.action.kind,
+    actionLabel: item.action.label,
+    actor: item.action.actor,
+    turnNumber: state.turnNumber,
+    phase: state.phase,
+    stackItemId: item.id,
+    stackItemIndex: item.index
+  };
+};
+
 const resolveTopStackItem = (state: EncounterMatchState): EncounterMatchState => {
   const item = state.stack.at(-1);
   if (!item) {
@@ -388,9 +433,13 @@ const resolveTopStackItem = (state: EncounterMatchState): EncounterMatchState =>
 
   const nextStack = state.stack.slice(0, -1);
   const stabilityDelta = stabilityDeltaForAction(item.action);
+  const sourceLifecycleEvent = sourceLifecycleEventForResolution(state, item);
   const resolved: EncounterMatchState = {
     ...state,
     stack: nextStack,
+    sourceLifecycleEvents: sourceLifecycleEvent
+      ? [...state.sourceLifecycleEvents, sourceLifecycleEvent]
+      : state.sourceLifecycleEvents,
     playerStability: state.playerStability + stabilityDelta.player,
     enemyStability: state.enemyStability + stabilityDelta.enemy,
     priorityHolder: state.activeActor,

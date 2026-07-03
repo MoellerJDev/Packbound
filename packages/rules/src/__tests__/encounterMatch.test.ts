@@ -204,17 +204,20 @@ describe("encounter match priority shell", () => {
   it("resolves sourced prototype main-phase pressure without changing semantics", () => {
     const submitted = submitEncounterAction(createMatch(), {
       kind: "main_phase_pressure",
-      source: sparkfallSource
+      source: sparkfallSource,
+      sourceLifecycle: "usedOnResolve"
     });
     const enemyPass = passEncounterPriority(submitted, "enemy");
     const resolved = passEncounterPriority(enemyPass, "player");
+    const lifecycleEvent = resolved.sourceLifecycleEvents[0];
 
     expect(resolved.stack).toEqual([]);
     expect(resolved.lastResolvedAction).toMatchObject({
       action: {
         kind: "main_phase_pressure",
         actor: "player",
-        source: sparkfallSource
+        source: sparkfallSource,
+        sourceLifecycle: "usedOnResolve"
       }
     });
     expect(resolved.playerStability).toBe(5);
@@ -225,6 +228,50 @@ describe("encounter match priority shell", () => {
       actor: "player",
       text: "Resolved Prototype Pressure Technique from Player: Enemy stability -1."
     });
+    expect(lifecycleEvent).toMatchObject({
+      lifecycle: "usedOnResolve",
+      source: sparkfallSource,
+      actionKind: "main_phase_pressure",
+      actionLabel: "Prototype Pressure Technique",
+      actor: "player",
+      turnNumber: 1,
+      phase: "firstMain"
+    });
+    expect(JSON.parse(JSON.stringify(resolved)).sourceLifecycleEvents).toEqual(
+      resolved.sourceLifecycleEvents
+    );
+  });
+
+  it("does not record source lifecycle events for debug or unsourced actions", () => {
+    const resolvedDebug = passEncounterPriority(
+      passEncounterPriority(
+        submitEncounterAction(createMatch(), { kind: "debug_pressure" }),
+        "enemy"
+      ),
+      "player"
+    );
+    const resolvedUnsourcedPrototype = passEncounterPriority(
+      passEncounterPriority(
+        submitEncounterAction(createMatch(), { kind: "main_phase_pressure" }),
+        "enemy"
+      ),
+      "player"
+    );
+    const resolvedSourceWithoutLifecycle = passEncounterPriority(
+      passEncounterPriority(
+        submitEncounterAction(createMatch(), {
+          kind: "main_phase_pressure",
+          source: sparkfallSource,
+          sourceLifecycle: "none"
+        }),
+        "enemy"
+      ),
+      "player"
+    );
+
+    expect(resolvedDebug.sourceLifecycleEvents).toEqual([]);
+    expect(resolvedUnsourcedPrototype.sourceLifecycleEvents).toEqual([]);
+    expect(resolvedSourceWithoutLifecycle.sourceLifecycleEvents).toEqual([]);
   });
 
   it("two passes with an empty stack advances first main to combat", () => {

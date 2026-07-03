@@ -364,6 +364,16 @@ test("priority lab alternates priority, resolves the stack, and records combat",
       "Resolved Prototype Pressure Technique from Player: Enemy stability -1."
     )
   ).toBeVisible();
+  await expect(priorityPanel.getByText("Used Sources")).toBeVisible();
+  await expect(
+    priorityPanel.getByText("Sparkfall used by Prototype Pressure Technique")
+  ).toBeVisible();
+  await expect(
+    priorityPanel.getByText("Sparkfall is already queued or used this encounter.")
+  ).toBeVisible();
+  await expect(
+    priorityPanel.getByRole("button", { name: "Queue Prototype Technique" })
+  ).toBeDisabled();
   const resolvedLogEntry = actionLog.locator(".action-log-entry").filter({
     hasText: "Resolved Prototype Pressure Technique from Player: Enemy stability -1."
   });

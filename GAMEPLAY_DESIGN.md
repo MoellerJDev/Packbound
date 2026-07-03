@@ -190,7 +190,9 @@ the Commander is deployed or being deployed. Recording combat now returns a
 destroyed deployed player Commander to Command Zone and increases Rebind Tax.
 The reward phase now has a minimal Commander upgrade choice prototype with
 `Combat Training` and `Rebind Calibration`. It still does not have authored
-Commander content, Signature Relics, or main-phase Commander actions.
+Commander content, Signature Relics, or main-phase Commander actions. The
+prototype also records a structured lifecycle history for creation, deployment,
+return, destruction replacement, tax changes, and upgrade application.
 
 ### Why Add A Commander Layer?
 
@@ -369,9 +371,9 @@ other encounter actions.
 Do not add a full hand/deck/mill system just to support Commanders. The first
 Commander prototype now proves zone lifecycle, planning deployment, planning
 return, generic Board Charge Rebind Tax enforcement, post-combat destruction
-return, reward-phase upgrade choices, and reducer replay. Next Commander work
-should add encounter main-phase Commander actions or richer lifecycle feedback
-in focused slices.
+return, reward-phase upgrade choices, lifecycle history, and reducer replay.
+Next Commander work should add encounter main-phase Commander actions in focused
+slices.
 
 ### Commander Non-Goals For Now
 

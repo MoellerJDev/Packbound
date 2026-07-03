@@ -1081,7 +1081,7 @@ Expand them only through focused rules/content tasks with tests.
 
 - The current prototype stores one Commander in serializable `RunState` with a
   normal `CardInstance`, `deployCount`, raw `rebindTax`,
-  `rebindTaxDiscount`, and upgrade history.
+  `rebindTaxDiscount`, upgrade history, and structured lifecycle history.
 - Command Zone is a real shared zone value. Starter-created runs currently
   derive a prototype Commander from existing Unit/Echo starter context rather
   than authored Commander content.
@@ -1101,8 +1101,10 @@ Expand them only through focused rules/content tasks with tests.
   client-only UI. The current reward phase can keep pack rewards and Commander
   upgrades as separate one-per-round buckets, and `applyCommanderUpgradeChoice`
   records history on `CommanderState`.
-- Future Commander lifecycle logging should remain structured run/progression
-  metadata, not renderer behavior.
+- Commander lifecycle logging is structured run/progression metadata, not
+  renderer behavior. Entries capture creation, deploy, voluntary return,
+  destruction replacement, upgrade application, and their key before/after tax,
+  deploy, zone, and upgrade values.
 - Signature Relics should be modeled as explicit card instances or linked
   persistent objects with clear ownership, zone, and lifecycle. They should not
   bypass normal Relic, Source, and board validation rules unless a focused rules

@@ -97,6 +97,17 @@ const firstPackRewardChoiceId = (run: RunState): string => {
   return choice.id;
 };
 
+const commanderLifecycleTypes = (run: RunState): readonly string[] =>
+  run.commander?.lifecycleHistory.map((entry) => entry.type) ?? [];
+
+const latestCommanderLifecycleEntry = (run: RunState) => {
+  const entry = run.commander?.lifecycleHistory.at(-1);
+  if (!entry) {
+    throw new Error("Expected a Commander lifecycle entry");
+  }
+  return entry;
+};
+
 const combatResult = (
   events: readonly CombatEvent[],
   overrides: Partial<CombatResultLike> = {}
@@ -147,6 +158,24 @@ describe("command zone commander prototype", () => {
       rebindTax: 0,
       rebindTaxDiscount: 0,
       upgradeHistory: [],
+      lifecycleHistory: [
+        expect.objectContaining({
+          type: "created",
+          source: "starter",
+          label: "Commander initialized in Command Zone.",
+          round: 1,
+          phase: "planning",
+          toZone: "command",
+          deployCountBefore: 0,
+          deployCountAfter: 0,
+          rebindTaxBefore: 0,
+          rebindTaxAfter: 0,
+          effectiveRebindTaxBefore: 0,
+          effectiveRebindTaxAfter: 0,
+          upgradeLevelBefore: 0,
+          upgradeLevelAfter: 0
+        })
+      ],
       card: {
         defId: "sparkcatch_apprentice",
         ownerId: run.playerId,
@@ -191,6 +220,24 @@ describe("command zone commander prototype", () => {
       defId: run.commander?.card.defId,
       zone: "board"
     });
+    expect(commanderLifecycleTypes(deployed)).toEqual(["created", "deployed"]);
+    expect(latestCommanderLifecycleEntry(deployed)).toMatchObject({
+      type: "deployed",
+      source: "planning",
+      label: "Commander deployed from Command Zone.",
+      round: deployed.currentRound,
+      phase: "planning",
+      fromZone: "command",
+      toZone: "board",
+      deployCountBefore: 0,
+      deployCountAfter: 1,
+      rebindTaxBefore: 0,
+      rebindTaxAfter: 0,
+      effectiveRebindTaxBefore: 0,
+      effectiveRebindTaxAfter: 0,
+      upgradeLevelBefore: 0,
+      upgradeLevelAfter: 0
+    });
   });
 
   it("guards Commander deployment by phase and zone", () => {
@@ -215,6 +262,8 @@ describe("command zone commander prototype", () => {
     expect(() => deployCommander(deployed, sampleCatalog, position)).toThrow(
       /already deployed/
     );
+    expect(commanderLifecycleTypes(ready)).toEqual(["created"]);
+    expect(commanderLifecycleTypes(deployed)).toEqual(["created", "deployed"]);
   });
 
   it("returns a deployed Commander to Command Zone during planning and increments tax", () => {
@@ -237,6 +286,24 @@ describe("command zone commander prototype", () => {
       run.commander?.card.instanceId
     );
     expect(deployed.commander?.rebindTax).toBe(0);
+    expect(commanderLifecycleTypes(returned)).toEqual([
+      "created",
+      "deployed",
+      "returned_to_command"
+    ]);
+    expect(latestCommanderLifecycleEntry(returned)).toMatchObject({
+      type: "returned_to_command",
+      source: "planning",
+      label: "Commander returned to Command Zone.",
+      fromZone: "board",
+      toZone: "command",
+      deployCountBefore: 1,
+      deployCountAfter: 1,
+      rebindTaxBefore: 0,
+      rebindTaxAfter: 1,
+      effectiveRebindTaxBefore: 0,
+      effectiveRebindTaxAfter: 1
+    });
   });
 
   it("guards Commander return by phase and zone", () => {
@@ -258,6 +325,8 @@ describe("command zone commander prototype", () => {
     });
     expect(() => returnCommanderToCommand(run)).toThrow(/already in the Command Zone/);
     expect(() => returnCommanderToCommand(ready)).toThrow(/planning/);
+    expect(commanderLifecycleTypes(run)).toEqual(["created"]);
+    expect(commanderLifecycleTypes(ready)).toEqual(["created", "deployed"]);
   });
 
   it("redeploys deterministically when Source Row can pay Rebind Tax", () => {
@@ -284,6 +353,12 @@ describe("command zone commander prototype", () => {
         zone: "board"
       }
     });
+    expect(commanderLifecycleTypes(redeployed)).toEqual([
+      "created",
+      "deployed",
+      "returned_to_command",
+      "deployed"
+    ]);
     expect(JSON.parse(JSON.stringify(redeployed))).toEqual(redeployed);
   });
 
@@ -402,6 +477,29 @@ describe("command zone commander prototype", () => {
     expect(recorded.phase).toBe("reward");
     expect(ready.commander?.card.zone).toBe("board");
     expect(ready.commander?.rebindTax).toBe(0);
+    expect(commanderLifecycleTypes(recorded)).toEqual([
+      "created",
+      "deployed",
+      "destroyed_to_command"
+    ]);
+    expect(latestCommanderLifecycleEntry(recorded)).toMatchObject({
+      type: "destroyed_to_command",
+      source: "combat_result",
+      label: "Commander returned to Command Zone after combat destruction.",
+      phase: "combatReady",
+      fromZone: "board",
+      toZone: "command",
+      deployCountBefore: 1,
+      deployCountAfter: 1,
+      rebindTaxBefore: 0,
+      rebindTaxAfter: 1,
+      effectiveRebindTaxBefore: 0,
+      effectiveRebindTaxAfter: 1,
+      combatEventType: "UnitDestroyed",
+      combatEventIndex: 0,
+      combatEventTimeMs: 200,
+      destructionReason: "combatDamage"
+    });
   });
 
   it("keeps a deployed Commander on board when combat does not destroy it", () => {
@@ -424,6 +522,7 @@ describe("command zone commander prototype", () => {
     expect(recorded.activeCards.map((card) => card.instanceId)).toContain(
       ready.commander?.card.instanceId
     );
+    expect(commanderLifecycleTypes(recorded)).toEqual(["created", "deployed"]);
   });
 
   it("ignores destroyed non-Commander player units and enemy units", () => {
@@ -469,6 +568,7 @@ describe("command zone commander prototype", () => {
     expect(
       recorded.board.placements.map((placement) => placement.cardInstanceId)
     ).toContain(ready.commander?.card.instanceId);
+    expect(commanderLifecycleTypes(recorded)).toEqual(["created", "deployed"]);
   });
 
   it("ignores malformed same-owner Commander destruction events from the enemy side", () => {
@@ -495,6 +595,7 @@ describe("command zone commander prototype", () => {
     expect(
       recorded.board.placements.map((placement) => placement.cardInstanceId)
     ).toContain(ready.commander?.card.instanceId);
+    expect(commanderLifecycleTypes(recorded)).toEqual(["created", "deployed"]);
   });
 
   it("increments Rebind Tax only once for duplicate Commander destruction events", () => {
@@ -511,6 +612,16 @@ describe("command zone commander prototype", () => {
       deployCount: 1,
       rebindTax: 1,
       card: { zone: "command" }
+    });
+    expect(commanderLifecycleTypes(recorded)).toEqual([
+      "created",
+      "deployed",
+      "destroyed_to_command"
+    ]);
+    expect(latestCommanderLifecycleEntry(recorded)).toMatchObject({
+      combatEventIndex: 0,
+      rebindTaxBefore: 0,
+      rebindTaxAfter: 1
     });
   });
 
@@ -529,6 +640,7 @@ describe("command zone commander prototype", () => {
       rebindTax: 0,
       card: { zone: "command" }
     });
+    expect(commanderLifecycleTypes(recorded)).toEqual(["created"]);
   });
 
   it("replays Commander destruction replacement deterministically through run actions", () => {
@@ -551,6 +663,11 @@ describe("command zone commander prototype", () => {
       rebindTax: 1,
       card: { zone: "command" }
     });
+    expect(commanderLifecycleTypes(recorded)).toEqual([
+      "created",
+      "deployed",
+      "destroyed_to_command"
+    ]);
     expect(replayRunActions(ready, sampleCatalog, [recordAction])).toEqual(recorded);
     expect(JSON.parse(JSON.stringify(recorded))).toEqual(recorded);
   });
@@ -579,6 +696,11 @@ describe("command zone commander prototype", () => {
       rebindTax: 1,
       card: { zone: "command" }
     });
+    expect(commanderLifecycleTypes(recorded)).toEqual([
+      "created",
+      "deployed",
+      "destroyed_to_command"
+    ]);
   });
 
   it("exposes Commander upgrade choices only during reward with a Commander", () => {
@@ -622,6 +744,20 @@ describe("command zone commander prototype", () => {
           label: "Combat Training"
         })
       ]
+    });
+    expect(commanderLifecycleTypes(upgraded)).toEqual(["created", "upgraded"]);
+    expect(latestCommanderLifecycleEntry(upgraded)).toMatchObject({
+      type: "upgraded",
+      source: "reward",
+      label: "Commander upgraded: Combat Training.",
+      upgradeId: "combat_training",
+      upgradeLabel: "Combat Training",
+      fromZone: "command",
+      toZone: "command",
+      upgradeLevelBefore: 0,
+      upgradeLevelAfter: 1,
+      rebindTaxDiscountBefore: 0,
+      rebindTaxDiscountAfter: 0
     });
     expect(getCurrentCommanderUpgradeChoices(upgraded)).toEqual([]);
     expect(() =>
@@ -688,6 +824,18 @@ describe("command zone commander prototype", () => {
     ).toMatchObject({
       zone: "board",
       upgradeLevel: 1
+    });
+    expect(commanderLifecycleTypes(upgraded)).toEqual([
+      "created",
+      "deployed",
+      "upgraded"
+    ]);
+    expect(latestCommanderLifecycleEntry(upgraded)).toMatchObject({
+      type: "upgraded",
+      fromZone: "board",
+      toZone: "board",
+      upgradeLevelBefore: 0,
+      upgradeLevelAfter: 1
     });
   });
 
@@ -758,6 +906,17 @@ describe("command zone commander prototype", () => {
     expect(canDeployCommander(nextPlanning, sampleCatalog, commanderPosition)).toEqual({
       ok: true
     });
+    expect(latestCommanderLifecycleEntry(calibrated)).toMatchObject({
+      type: "upgraded",
+      source: "reward",
+      label: "Commander upgraded: Rebind Calibration.",
+      upgradeId: "rebind_calibration",
+      upgradeLabel: "Rebind Calibration",
+      rebindTaxDiscountBefore: 0,
+      rebindTaxDiscountAfter: 1,
+      effectiveRebindTaxBefore: 1,
+      effectiveRebindTaxAfter: 0
+    });
   });
 
   it("replays Commander upgrade choice actions deterministically", () => {
@@ -781,6 +940,7 @@ describe("command zone commander prototype", () => {
       rebindTaxDiscount: 1,
       upgradeHistory: [expect.objectContaining({ upgradeId: "rebind_calibration" })]
     });
+    expect(commanderLifecycleTypes(upgraded)).toEqual(["created", "upgraded"]);
     expect(replayRunActions(ready, sampleCatalog, actions)).toEqual(upgraded);
     expect(JSON.parse(JSON.stringify(toRunActionLog(actions)))).toEqual(
       toRunActionLog(actions)

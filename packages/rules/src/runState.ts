@@ -6,12 +6,14 @@ import {
   type CardInstance,
   type CardInstanceId,
   type CombatWinner,
+  type DestructionReason,
   type PackId,
   type PackOpenResult,
   type PlayerId,
   type RunId,
   type SourceRowState,
-  type SpellrailState
+  type SpellrailState,
+  type Zone
 } from "@packbound/shared";
 
 import {
@@ -100,6 +102,41 @@ export type CommanderUpgradeHistoryEntry = {
   readonly nextRebindTaxDiscount: number;
 };
 
+export type CommanderLifecycleEntryType =
+  "created" | "deployed" | "returned_to_command" | "destroyed_to_command" | "upgraded";
+
+export type CommanderLifecycleSource =
+  "starter" | "planning" | "combat_result" | "reward";
+
+export type CommanderLifecycleHistoryEntry = {
+  readonly id: string;
+  readonly round: number;
+  readonly type: CommanderLifecycleEntryType;
+  readonly label: string;
+  readonly cardInstanceId: CardInstanceId;
+  readonly cardDefId: CardDefId;
+  readonly source: CommanderLifecycleSource;
+  readonly phase: RunPhase;
+  readonly fromZone?: Zone;
+  readonly toZone?: Zone;
+  readonly deployCountBefore: number;
+  readonly deployCountAfter: number;
+  readonly rebindTaxBefore: number;
+  readonly rebindTaxAfter: number;
+  readonly rebindTaxDiscountBefore: number;
+  readonly rebindTaxDiscountAfter: number;
+  readonly effectiveRebindTaxBefore: number;
+  readonly effectiveRebindTaxAfter: number;
+  readonly upgradeLevelBefore: number;
+  readonly upgradeLevelAfter: number;
+  readonly combatEventType?: "UnitDestroyed";
+  readonly combatEventIndex?: number;
+  readonly combatEventTimeMs?: number;
+  readonly destructionReason?: DestructionReason;
+  readonly upgradeId?: CommanderUpgradeId;
+  readonly upgradeLabel?: string;
+};
+
 export type CombatSummary = {
   readonly round: number;
   readonly winner: CombatWinner;
@@ -124,6 +161,7 @@ export type CommanderState = {
   readonly rebindTax: number;
   readonly rebindTaxDiscount: number;
   readonly upgradeHistory: readonly CommanderUpgradeHistoryEntry[];
+  readonly lifecycleHistory: readonly CommanderLifecycleHistoryEntry[];
 };
 
 export type RunState = {
@@ -166,18 +204,52 @@ const emptySpellrail = (): SpellrailState => ({
   maxSlots: DEFAULT_SPELLRAIL_SLOTS
 });
 
+const commanderEffectiveRebindTax = (
+  rebindTax: number,
+  rebindTaxDiscount: number
+): number => Math.max(0, rebindTax - rebindTaxDiscount);
+
+const createdCommanderLifecycleEntry = (
+  card: CardInstance
+): CommanderLifecycleHistoryEntry => ({
+  id: "commander-lifecycle:1:0:created",
+  round: 1,
+  type: "created",
+  label: "Commander initialized in Command Zone.",
+  cardInstanceId: card.instanceId,
+  cardDefId: card.defId,
+  source: "starter",
+  phase: "planning",
+  toZone: "command",
+  deployCountBefore: 0,
+  deployCountAfter: 0,
+  rebindTaxBefore: 0,
+  rebindTaxAfter: 0,
+  rebindTaxDiscountBefore: 0,
+  rebindTaxDiscountAfter: 0,
+  effectiveRebindTaxBefore: commanderEffectiveRebindTax(0, 0),
+  effectiveRebindTaxAfter: commanderEffectiveRebindTax(0, 0),
+  upgradeLevelBefore: card.upgradeLevel,
+  upgradeLevelAfter: card.upgradeLevel
+});
+
 const commanderForStarterKit = (
   starterKit: StarterKit | undefined
-): CommanderState | undefined =>
-  starterKit?.commander
-    ? {
-        card: cardInZone(starterKit.commander, "command"),
-        deployCount: 0,
-        rebindTax: 0,
-        rebindTaxDiscount: 0,
-        upgradeHistory: []
-      }
-    : undefined;
+): CommanderState | undefined => {
+  if (!starterKit?.commander) {
+    return undefined;
+  }
+
+  const card = cardInZone(starterKit.commander, "command");
+  return {
+    card,
+    deployCount: 0,
+    rebindTax: 0,
+    rebindTaxDiscount: 0,
+    upgradeHistory: [],
+    lifecycleHistory: [createdCommanderLifecycleEntry(card)]
+  };
+};
 
 const activeCardsForStarterKit = (
   starterKit: StarterKit | undefined

@@ -39,6 +39,7 @@ import {
   validateRunLoadout,
   type BoardGridCardSummary,
   type CombatResultLike,
+  type CommanderLifecycleHistoryEntry,
   type CommanderUpgradeId,
   type EngagementPreviewSide,
   type EncounterMatchState,
@@ -105,6 +106,51 @@ const cardName = (defId: CardDefId): string =>
 const cardNamesByDefId = new Map(
   sampleCatalog.cards.map((card) => [card.id, card.name] as const)
 );
+
+const formatCommanderLifecycleSource = (
+  source: CommanderLifecycleHistoryEntry["source"]
+): string =>
+  source
+    .split("_")
+    .map((part) => `${part.slice(0, 1).toUpperCase()}${part.slice(1)}`)
+    .join(" ");
+
+const formatCommanderLifecycleMovement = (
+  entry: CommanderLifecycleHistoryEntry
+): string => {
+  if (entry.fromZone && entry.toZone) {
+    return `${entry.fromZone} -> ${entry.toZone}`;
+  }
+  if (entry.toZone) {
+    return `to ${entry.toZone}`;
+  }
+  if (entry.fromZone) {
+    return `from ${entry.fromZone}`;
+  }
+  return "zone unchanged";
+};
+
+const formatCommanderLifecycleDelta = (entry: CommanderLifecycleHistoryEntry): string => {
+  const deltas = [
+    entry.deployCountBefore !== entry.deployCountAfter
+      ? `Deploys ${entry.deployCountBefore} -> ${entry.deployCountAfter}`
+      : "",
+    entry.rebindTaxBefore !== entry.rebindTaxAfter
+      ? `Raw Tax +${entry.rebindTaxBefore} -> +${entry.rebindTaxAfter}`
+      : "",
+    entry.rebindTaxDiscountBefore !== entry.rebindTaxDiscountAfter
+      ? `Discount -${entry.rebindTaxDiscountBefore} -> -${entry.rebindTaxDiscountAfter}`
+      : "",
+    entry.effectiveRebindTaxBefore !== entry.effectiveRebindTaxAfter
+      ? `Effective +${entry.effectiveRebindTaxBefore} -> +${entry.effectiveRebindTaxAfter}`
+      : "",
+    entry.upgradeLevelBefore !== entry.upgradeLevelAfter
+      ? `Level ${entry.upgradeLevelBefore} -> ${entry.upgradeLevelAfter}`
+      : ""
+  ].filter((delta) => delta.length > 0);
+
+  return deltas.length > 0 ? deltas.join(" | ") : "State recorded";
+};
 
 const combatResultForAction = (result: CombatResultLike): CombatResultLike => ({
   winner: result.winner,
@@ -744,6 +790,9 @@ export function App() {
       commanderDeployCheck.ok ? "" : `Deploy Commander: ${commanderDeployCheck.reason}`,
       commanderReturnCheck.ok ? "" : `Return to Command: ${commanderReturnCheck.reason}`
     ].filter((line) => line.length > 0);
+    const recentLifecycleEntries = (commander?.lifecycleHistory ?? [])
+      .slice(-5)
+      .reverse();
 
     return (
       <div className={variant} data-testid="command-zone-panel">
@@ -803,6 +852,27 @@ export function App() {
           Prototype Commander. Effective Rebind Tax is enforced as generic Board Charge
           while deployed.
         </p>
+        <div className="commander-lifecycle" data-testid="commander-lifecycle-panel">
+          <h4>Commander Lifecycle</h4>
+          {recentLifecycleEntries.length > 0 ? (
+            <ol className="message-list compact commander-lifecycle-list">
+              {recentLifecycleEntries.map((entry) => (
+                <li key={entry.id} data-testid="commander-lifecycle-entry">
+                  <span className="commander-lifecycle-primary">{entry.label}</span>
+                  <small className="commander-lifecycle-meta">
+                    Round {entry.round} | {formatCommanderLifecycleSource(entry.source)} |{" "}
+                    Phase {entry.phase} | {formatCommanderLifecycleMovement(entry)}
+                  </small>
+                  <small className="commander-lifecycle-meta">
+                    {formatCommanderLifecycleDelta(entry)}
+                  </small>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p className="muted">No Commander lifecycle events recorded.</p>
+          )}
+        </div>
         <div className="mini-actions">
           <button
             type="button"

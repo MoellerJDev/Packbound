@@ -9,7 +9,7 @@ The rules package now has a minimal, rules-first Commander lifecycle prototype.
 
 - `RunState` can carry one `commander` object with a normal `CardInstance`, a
   `deployCount`, raw `rebindTax`, `rebindTaxDiscount`, and serializable upgrade
-  history.
+  history plus lifecycle history.
 - The shared zone list includes `command`, and starter-created runs derive one
   prototype Commander from an existing starter Unit/Echo definition. This is
   prototype sourcing, not final Commander content.
@@ -33,13 +33,19 @@ The rules package now has a minimal, rules-first Commander lifecycle prototype.
   reward round. `Combat Training` increases only the Commander card's
   `upgradeLevel` by 1, and `Rebind Calibration` adds 1 Rebind Tax discount for
   future deployments.
+- Commander lifecycle history is stored as structured run-state metadata for
+  creation, deployment, voluntary return, combat destruction-to-Command, and
+  upgrade application. Each entry records round, phase, source, zone movement,
+  deploy count, raw/effective Rebind Tax, discount, upgrade level deltas, and
+  relevant destruction event metadata when present.
 - Commander actions are replayable run actions, deterministic, immutable, and
   JSON-serializable.
 - The debug client shows a Command Zone panel on the default route and
   renderer-lab, including Commander name, zone, deploy count, raw/effective
   Rebind Tax, discount, deploy cost, Board Charge after deploy, blocked
   reasons, Inspect, Deploy Commander, and Return to Command controls. It also
-  shows a simple Commander Upgrades panel during reward flow.
+  shows a simple Commander Upgrades panel during reward flow and a compact
+  newest-first Commander Lifecycle trail.
 
 Current Commander prototype limitations:
 
@@ -52,6 +58,9 @@ Current Commander prototype limitations:
 - Combat simulation remains unchanged. Commander destruction-to-Command is a
   run-progression replacement applied while recording combat results, not a
   simulator behavior change.
+- Commander lifecycle history is an audit trail only. It does not yet drive
+  quests, achievements, encounter actions, analytics export, or richer log
+  filtering.
 
 ## Implemented Encounter Shell
 

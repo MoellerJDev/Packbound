@@ -11,7 +11,13 @@ import {
 
 import { validateRunLoadout } from "./loadout";
 import { cardInZone, copyCard, copyPlacement } from "./runCards";
-import type { CommanderState, CommanderUpgradeId, RunState } from "./runState";
+import type {
+  CommanderLifecycleEntryType,
+  CommanderLifecycleSource,
+  CommanderState,
+  CommanderUpgradeId,
+  RunState
+} from "./runState";
 
 export type CommanderActionCheck =
   { readonly ok: true } | { readonly ok: false; readonly reason: string };
@@ -77,6 +83,64 @@ export const getCommanderEffectiveRebindTax = (
 ): number =>
   Math.max(0, (commander?.rebindTax ?? 0) - (commander?.rebindTaxDiscount ?? 0));
 
+type CommanderLifecycleDetails = {
+  readonly type: CommanderLifecycleEntryType;
+  readonly source: CommanderLifecycleSource;
+  readonly label: string;
+  readonly fromZone?: CommanderState["card"]["zone"];
+  readonly toZone?: CommanderState["card"]["zone"];
+  readonly combatEvent?: Extract<CombatEvent, { readonly type: "UnitDestroyed" }>;
+  readonly combatEventIndex?: number;
+  readonly upgradeId?: CommanderUpgradeId;
+  readonly upgradeLabel?: string;
+};
+
+const withCommanderLifecycleEntry = (
+  run: RunState,
+  before: CommanderState,
+  after: CommanderState,
+  details: CommanderLifecycleDetails
+): CommanderState => {
+  const previousHistory = before.lifecycleHistory ?? [];
+  const entry = {
+    id: `commander-lifecycle:${run.currentRound}:${previousHistory.length}:${details.type}`,
+    round: run.currentRound,
+    type: details.type,
+    label: details.label,
+    cardInstanceId: after.card.instanceId,
+    cardDefId: after.card.defId,
+    source: details.source,
+    phase: run.phase,
+    ...(details.fromZone ? { fromZone: details.fromZone } : {}),
+    ...(details.toZone ? { toZone: details.toZone } : {}),
+    deployCountBefore: before.deployCount,
+    deployCountAfter: after.deployCount,
+    rebindTaxBefore: before.rebindTax,
+    rebindTaxAfter: after.rebindTax,
+    rebindTaxDiscountBefore: before.rebindTaxDiscount,
+    rebindTaxDiscountAfter: after.rebindTaxDiscount,
+    effectiveRebindTaxBefore: getCommanderEffectiveRebindTax(before),
+    effectiveRebindTaxAfter: getCommanderEffectiveRebindTax(after),
+    upgradeLevelBefore: before.card.upgradeLevel,
+    upgradeLevelAfter: after.card.upgradeLevel,
+    ...(details.combatEvent
+      ? {
+          combatEventType: details.combatEvent.type,
+          combatEventIndex: details.combatEventIndex,
+          combatEventTimeMs: details.combatEvent.timeMs,
+          destructionReason: details.combatEvent.reason
+        }
+      : {}),
+    ...(details.upgradeId ? { upgradeId: details.upgradeId } : {}),
+    ...(details.upgradeLabel ? { upgradeLabel: details.upgradeLabel } : {})
+  };
+
+  return {
+    ...after,
+    lifecycleHistory: [...previousHistory, entry]
+  };
+};
+
 const hasCommanderUpgradeForRound = (run: RunState, round = run.currentRound): boolean =>
   run.commander?.upgradeHistory.some((entry) => entry.round === round) ?? false;
 
@@ -89,14 +153,26 @@ const nextRunWithCommanderDeployed = (
   position: BoardPosition
 ): RunState => {
   const card = cardInZone(commander.card, "board");
-
-  return {
-    ...run,
-    commander: {
+  const nextCommander = withCommanderLifecycleEntry(
+    run,
+    commander,
+    {
       ...commander,
       card,
       deployCount: commander.deployCount + 1
     },
+    {
+      type: "deployed",
+      source: "planning",
+      label: "Commander deployed from Command Zone.",
+      fromZone: "command",
+      toZone: "board"
+    }
+  );
+
+  return {
+    ...run,
+    commander: nextCommander,
     activeCards: [...run.activeCards.map(copyCard), card],
     board: {
       placements: [
@@ -261,11 +337,10 @@ export const applyCommanderUpgradeChoice = (
     choice.id === "rebind_calibration"
       ? commander.rebindTaxDiscount + 1
       : commander.rebindTaxDiscount;
-
-  return {
-    ...run,
-    phase: hasPackRewardForRound(run) ? "combatResolved" : run.phase,
-    commander: {
+  const nextCommander = withCommanderLifecycleEntry(
+    run,
+    commander,
+    {
       ...commander,
       card,
       rebindTaxDiscount: nextRebindTaxDiscount,
@@ -285,6 +360,21 @@ export const applyCommanderUpgradeChoice = (
         }
       ]
     },
+    {
+      type: "upgraded",
+      source: "reward",
+      label: `Commander upgraded: ${choice.label}.`,
+      fromZone: commander.card.zone,
+      toZone: card.zone,
+      upgradeId: choice.id,
+      upgradeLabel: choice.label
+    }
+  );
+
+  return {
+    ...run,
+    phase: hasPackRewardForRound(run) ? "combatResolved" : run.phase,
+    commander: nextCommander,
     activeCards: run.activeCards.map((activeCard) =>
       activeCard.instanceId === commander.card.instanceId
         ? cardInZone(card, "board")
@@ -324,14 +414,26 @@ export const returnCommanderToCommand = (run: RunState): RunState => {
   assertCan(canReturnCommanderToCommand(run));
 
   const card = cardInZone(deployedCommanderCard(run, commander!), "command");
-
-  return {
-    ...run,
-    commander: {
+  const nextCommander = withCommanderLifecycleEntry(
+    run,
+    commander!,
+    {
       ...commander!,
       card,
       rebindTax: commander!.rebindTax + 1
     },
+    {
+      type: "returned_to_command",
+      source: "planning",
+      label: "Commander returned to Command Zone.",
+      fromZone: "board",
+      toZone: "command"
+    }
+  );
+
+  return {
+    ...run,
+    commander: nextCommander,
     activeCards: run.activeCards
       .filter((activeCard) => activeCard.instanceId !== commander!.card.instanceId)
       .map(copyCard),
@@ -352,27 +454,48 @@ export const applyCommanderCombatLifecycle = (
     return run;
   }
 
-  const commanderWasDestroyed = combatEvents.some(
-    (event) =>
-      event.type === "UnitDestroyed" &&
-      event.cardInstanceId === commander.card.instanceId &&
-      event.ownerId === run.playerId &&
-      event.side === "playerA"
-  );
+  const commanderDestruction = combatEvents
+    .map((event, index) => ({ event, index }))
+    .find(
+      (
+        candidate
+      ): candidate is {
+        readonly event: Extract<CombatEvent, { readonly type: "UnitDestroyed" }>;
+        readonly index: number;
+      } =>
+        candidate.event.type === "UnitDestroyed" &&
+        candidate.event.cardInstanceId === commander.card.instanceId &&
+        candidate.event.ownerId === run.playerId &&
+        candidate.event.side === "playerA"
+    );
 
-  if (!commanderWasDestroyed) {
+  if (!commanderDestruction) {
     return run;
   }
 
   const card = cardInZone(deployedCommanderCard(run, commander), "command");
-
-  return {
-    ...run,
-    commander: {
+  const nextCommander = withCommanderLifecycleEntry(
+    run,
+    commander,
+    {
       ...commander,
       card,
       rebindTax: commander.rebindTax + 1
     },
+    {
+      type: "destroyed_to_command",
+      source: "combat_result",
+      label: "Commander returned to Command Zone after combat destruction.",
+      fromZone: "board",
+      toZone: "command",
+      combatEvent: commanderDestruction.event,
+      combatEventIndex: commanderDestruction.index
+    }
+  );
+
+  return {
+    ...run,
+    commander: nextCommander,
     activeCards: run.activeCards
       .filter((activeCard) => activeCard.instanceId !== commander.card.instanceId)
       .map(copyCard),

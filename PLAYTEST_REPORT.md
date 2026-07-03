@@ -101,6 +101,13 @@ Tax discount and lowers effective future deploy tax. The choices are
 deterministic, serializable, replayable run actions and are visible in the
 default route and renderer-lab debug UI.
 
+Implementation update after this task: `RunState.commander` now records a
+structured lifecycle history for Commander creation, planning deploy, voluntary
+return, combat destruction-to-Command, and reward upgrade application. The
+Command Zone panel shows a compact newest-first Commander Lifecycle trail with
+round, source, phase, zone movement, deploy count, Rebind Tax, discount,
+effective tax, and upgrade-level deltas.
+
 Implementation update after this task: the renderer-lab replay controller and
 Pixi renderer now guard replay command completions with the current reset
 generation and session-scoped busy state. Browser smoke covers `Step -> Reset ->
@@ -115,7 +122,7 @@ default-route confidence. Pixi should stay opt-in until those are addressed.
 
 Recommended next task:
 
-`feat(rules): add Commander lifecycle log metadata`
+`feat(rules): add encounter main-phase Commander action skeleton`
 
 ## 2. Environment And Commands
 
@@ -123,7 +130,7 @@ Recommended next task:
 - Baseline before Commander upgrade prototype:
   `851ee27ec8e19600cc1fe2c1d679109036dc7bf1`
 - Implementation verified: local working tree for
-  `feat(rules): add commander upgrade choices`
+  `feat(rules): add commander lifecycle history`
 - Baseline: `main`, aligned with `origin/main`
 - OS/environment: Windows, PowerShell, Codex desktop workspace
 - Node version: `v24.18.0`
@@ -610,8 +617,8 @@ Note:
 - Rebind Tax is enforced as generic Board Charge while the Commander is deployed
   or being deployed, and Rebind Calibration can discount effective tax. There
   are still no alternate costs or encounter-phase Commander actions.
-- Commander destruction-to-Command replacement is applied after combat is
-  recorded, but there is no player-facing lifecycle log entry yet.
+- Commander lifecycle history is visible in the debug Command Zone panel, but it
+  is still a compact audit trail with no filtering, export, or event grouping.
 - Commander upgrades are implemented only as two mechanical prototype choices.
   Signature Relics, encounter main-phase Commander actions, enemy Commanders,
   authored Commander cards, and authored Commander effects are not implemented.
@@ -629,18 +636,17 @@ Note:
 
 Do next:
 
-`feat(rules): add Commander lifecycle log metadata`
+`feat(rules): add encounter main-phase Commander action skeleton`
 
 Why: Command Zone lifecycle, generic Charge tax, post-combat destruction return,
-and reward-phase Commander upgrades are now real reducer rules. The next narrow
-slice should make Commander deploy, return, destruction replacement, tax change,
-and upgrade application visible as structured run/progression log metadata
-without adding authored Commander content, Signature Relics, hand/deck/mill,
-enemy Commanders, or broad encounter timing.
+reward-phase Commander upgrades, and structured Commander lifecycle history are
+now real reducer/debug-client surfaces. The next narrow slice should let the
+Commander participate in the existing encounter first-main/second-main
+priority shell as a prototype action, without adding authored Commander content,
+Signature Relics, hand/deck/mill, enemy Commanders, or broad encounter timing.
 
 Do soon:
 
-- `feat(rules): add encounter main-phase Commander action skeleton`
 - `feat(client): add Pixi replay scrub/speed controls`
 - `feat(rules): evaluate expanding the canonical board to 6 rows x 10-12 columns`
 - `feat(client): tune Pixi combat effect timing after manual readability pass`

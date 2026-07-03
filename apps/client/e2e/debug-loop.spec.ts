@@ -112,6 +112,13 @@ test("debug loop can inspect, preview, record, reward, and advance", async ({ pa
   await expect(
     commandZonePanel.getByRole("button", { name: "Deploy Commander" })
   ).toBeEnabled();
+  await expect(commandZonePanel.getByTestId("commander-lifecycle-panel")).toBeVisible();
+  await expect(
+    commandZonePanel.getByTestId("commander-lifecycle-entry").first()
+  ).toContainText("Commander initialized in Command Zone.");
+  await expect(
+    commandZonePanel.getByTestId("commander-lifecycle-entry").first()
+  ).toContainText("Round 1 | Starter | Phase planning | to command");
 
   const boardPanel = panel(page, "Board");
   const battlefield = page.locator(".battlefield-section");
@@ -272,6 +279,12 @@ test("debug loop can inspect, preview, record, reward, and advance", async ({ pa
   await expect(
     commanderUpgradePanel.getByTestId("commander-latest-upgrade")
   ).toContainText("Combat Training");
+  await expect(
+    commandZonePanel.getByTestId("commander-lifecycle-entry").first()
+  ).toContainText("Commander upgraded: Combat Training.");
+  await expect(
+    commandZonePanel.getByTestId("commander-lifecycle-entry").first()
+  ).toContainText("Level 0 -> 1");
 
   const rewardPanel = panel(page, "Reward Choices");
   await expect(rewardPanel.getByText(/Cost \d+ gold/).first()).toBeVisible();
@@ -557,6 +570,9 @@ test("renderer lab loads Pixi battlefield canvas and replay controls", async ({
   await expect(
     rendererCommandZone.getByTestId("commander-board-charge-after-deploy")
   ).toHaveText("3 / 3");
+  await expect(
+    rendererCommandZone.getByTestId("commander-lifecycle-entry").first()
+  ).toContainText("Commander initialized in Command Zone.");
   await rendererCommandZone.getByRole("button", { name: "Inspect" }).click();
   await expect(inspector.getByText(/Unit \| command \| Ember/)).toBeVisible();
   await rendererCommandZone.getByRole("button", { name: "Deploy Commander" }).click();
@@ -564,6 +580,12 @@ test("renderer lab loads Pixi battlefield canvas and replay controls", async ({
     "board"
   );
   await expect(rendererCommandZone.getByTestId("commander-deploy-count")).toHaveText("1");
+  await expect(
+    rendererCommandZone.getByTestId("commander-lifecycle-entry").first()
+  ).toContainText("Commander deployed from Command Zone.");
+  await expect(
+    rendererCommandZone.getByTestId("commander-lifecycle-entry").first()
+  ).toContainText("command -> board");
   await expect(rendererHost.locator("canvas")).toHaveCount(1);
   await expect(
     rendererLab
@@ -582,6 +604,12 @@ test("renderer lab loads Pixi battlefield canvas and replay controls", async ({
   await expect(rendererCommandZone.getByTestId("commander-raw-rebind-tax")).toHaveText(
     "+1 Charge"
   );
+  await expect(
+    rendererCommandZone.getByTestId("commander-lifecycle-entry").first()
+  ).toContainText("Commander returned to Command Zone.");
+  await expect(
+    rendererCommandZone.getByTestId("commander-lifecycle-entry").first()
+  ).toContainText("Raw Tax +0 -> +1");
   await expect(rendererCommandZone.getByTestId("commander-deploy-cost")).toHaveText(
     "1 base + 1 tax = 2 Charge"
   );

@@ -328,6 +328,9 @@ test("priority lab alternates priority, resolves the stack, and records combat",
   await expect(priorityPanel.getByText("Enemy stability")).toBeVisible();
   await expect(priorityPanel.getByText("Action Stack")).toBeVisible();
   await expect(priorityPanel.getByText("Action Log")).toBeVisible();
+  await expect(
+    priorityPanel.getByText("Source: Sparkfall (spellrail)", { exact: true })
+  ).toBeVisible();
   const actionLog = priorityPanel.locator(".action-log-list");
   await expect(actionLog.locator(".action-log-meta").first()).toHaveText(
     "Turn 1 | First main | Stack 0"
@@ -337,6 +340,15 @@ test("priority lab alternates priority, resolves the stack, and records combat",
   await expect(
     priorityPanel.getByText("Prototype Pressure Technique", { exact: true })
   ).toBeVisible();
+  await expect(
+    priorityPanel.getByText("Player queued Prototype Pressure Technique from Sparkfall.")
+  ).toBeVisible();
+  await expect(
+    priorityPanel
+      .locator(".card-list.compact li")
+      .filter({ hasText: "Prototype Pressure Technique" })
+      .first()
+  ).toContainText("Source: Sparkfall (spellrail)");
   await expect(priorityPanel.getByRole("button", { name: "Enemy Pass" })).toBeEnabled();
   await expect(
     priorityPanel.getByRole("button", { name: "Pass Priority" })

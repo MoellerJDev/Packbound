@@ -16,6 +16,10 @@ The rules package now includes a minimal serializable encounter match reducer:
   the Priority Lab labels it `Prototype Pressure Technique`, it is legal during
   first main or second main priority, and it deterministically reduces the
   opposing actor's stability by 1 when it resolves.
+- Queued encounter actions can optionally carry minimal source-card context:
+  `cardInstanceId`, `cardDefId`, `cardName`, and `zone`. Priority Lab currently
+  submits the prototype action from a current Spellrail card context without
+  consuming, moving, exhausting, or otherwise mutating that source.
 - Debug placeholder actions still exist for reducer diagnostics and backward
   compatibility with focused tests.
 - Two consecutive passes with a non-empty stack resolve the top action and
@@ -28,8 +32,9 @@ The rules package now includes a minimal serializable encounter match reducer:
 
 Current encounter shell limitations:
 
-- Only one abstract prototype card action exists, and it is not sourced from a
-  hand, deck, mill, card zone, enemy AI, or content-authored card yet.
+- Only one abstract prototype card action exists. Its source context is
+  descriptive metadata only; it is not validated against hand, deck, mill, enemy
+  AI, costs, or content-authored card effects yet.
 - There are no real card timing windows, counterspells, manual blockers, hidden
   intent choices, deck/hand/mill zones, multiplayer networking, backend
   persistence, or new cards attached to this shell yet.

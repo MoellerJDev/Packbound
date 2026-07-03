@@ -18,18 +18,19 @@ Selected Unit/Echo cells, range cells, likely target cells, attack-now or
 out-of-range state, and next-move cells are now represented both in the
 Engagement Preview panel and directly on the hex board.
 
-Implementation update after this report: the follow-up rules task has added a
+Implementation update after this report: follow-up rules tasks have added a
 first abstract encounter main-phase action skeleton,
-`Prototype Pressure Technique`, so the previous debug-only limitation is no
-longer literally true. The remaining blocker is making encounter actions come
-from real card zones and authored card context instead of a single lab-only
-prototype.
+`Prototype Pressure Technique`, and Priority Lab now queues it from minimal
+source-card context. The remaining blocker is that this source context is
+descriptive metadata only; it does not yet validate, consume, move, exhaust, or
+resolve authored card-zone effects.
 
 Top remaining issues:
 
-1. Priority lab explains the state machine to developers and now separates log
-   metadata from sentence text, but the prototype action is still abstract and
-   not sourced from card context.
+1. Priority lab explains the state machine to developers, separates log
+   metadata from sentence text, and now shows a minimal source context for the
+   prototype action. That source is still metadata only, not a real card-zone or
+   authored-effect system.
 2. Ally Hex Board and Enemy Hex Board still read as two stacked submitted boards,
    not one shared tactical arena.
 3. Combat summaries are readable for short fights, but longer fights still need
@@ -37,7 +38,7 @@ Top remaining issues:
 
 Recommended next task:
 
-`feat(rules): source encounter actions from minimal card context`
+`feat(rules): validate encounter action source context`
 
 ## 2. Environment And Commands
 
@@ -186,10 +187,10 @@ priority holder, consecutive passes, LIFO stack, action log, skirmish records,
 stability, and outcome are all visible in one panel.
 
 It is not yet enough to teach a player-facing encounter model. The current lab
-now has one prototype action instead of a debug-only button, but that action is
-still abstract, not sourced from a card zone, and not attached to authored card
-content. Stability changes are visible but not explained as a real gameplay
-decision yet.
+now has one prototype action instead of a debug-only button, and that action can
+carry minimal source-card context. The source remains descriptive metadata
+rather than a validated card-zone action, cost, or authored card effect.
+Stability changes are visible but not explained as a real gameplay decision yet.
 
 Priority-lab readability issue found during the manual pass: Action Log metadata
 was visually jammed onto the log sentence. In the browser it read like
@@ -280,8 +281,9 @@ No confirmed gameplay or simulator bugs were found.
 
 ## 10. Known Limitations
 
-- Priority lab now has one abstract prototype main-phase action, but no real
-  hand/deck/mill/card-zone source exists yet.
+- Priority lab now has one abstract prototype main-phase action with minimal
+  source-card context, but no real hand/deck/mill source validation, card
+  movement, costs, or authored card effects exist yet.
 - Debug placeholder reducer actions still exist for diagnostics, but the
   browser lab emphasizes the prototype action.
 - Combat skirmishes still use the existing deterministic simulator result.
@@ -300,12 +302,13 @@ No confirmed gameplay or simulator bugs were found.
 
 Do next:
 
-`feat(rules): source encounter actions from minimal card context`
+`feat(rules): validate encounter action source context`
 
-Why: after the prototype action skeleton and action-log readability fix, the
-next useful rules step is proving how an encounter action is sourced from a
-minimal card-like context without jumping into full hand/deck/mill,
-counterspells, enemy AI, or normal run-loop integration.
+Why: after the prototype action skeleton, action-log readability fix, and
+minimal source metadata, the next useful rules step is proving that sourced
+encounter actions can validate ownership, zone, and phase legality without
+jumping into full hand/deck/mill, counterspells, enemy AI, or normal run-loop
+integration.
 
 Do soon:
 

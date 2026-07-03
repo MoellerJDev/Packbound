@@ -76,9 +76,10 @@ pnpm dev
 - Encounters now have a minimal serializable match shell for future multi-turn
   play: first main, combat skirmish, second main, end, alternating active actors,
   true alternating priority, a LIFO action stack, and stability-based outcomes.
-  The first real action is an abstract `Prototype Pressure Technique`
-  main-phase skeleton, while debug placeholders remain for diagnostics. Combat
-  skirmishes still use the deterministic simulator result.
+  The first real action is a `Prototype Pressure Technique` main-phase skeleton
+  that can carry minimal source-card context, while debug placeholders remain
+  for diagnostics. Combat skirmishes still use the deterministic simulator
+  result.
 - The debug loop now awards deterministic combat gold, shows current gold, and
   makes reward pack choices spend their content-defined costs. Reward choices
   now show deterministic pack-cost and run-relevance explanations for traits,

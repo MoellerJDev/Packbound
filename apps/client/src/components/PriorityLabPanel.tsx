@@ -1,8 +1,13 @@
-import type { EncounterActor, EncounterMatchState } from "@packbound/rules";
+import type {
+  EncounterActionSource,
+  EncounterActor,
+  EncounterMatchState
+} from "@packbound/rules";
 
 type PriorityLabPanelProps = {
   readonly match: EncounterMatchState;
   readonly canRunCombat: boolean;
+  readonly prototypeActionSource: EncounterActionSource | undefined;
   readonly onSubmitPrototypeAction: () => void;
   readonly onPassPlayer: () => void;
   readonly onPassEnemy: () => void;
@@ -46,9 +51,13 @@ const encounterOutcomeLabel = (outcome: EncounterMatchState["outcome"]): string 
   return outcome.reason ? `${outcome.kind} (${outcome.reason})` : outcome.kind;
 };
 
+const sourceContextLabel = (source: EncounterActionSource): string =>
+  `${source.cardName} (${source.zone})`;
+
 export const PriorityLabPanel = ({
   match,
   canRunCombat,
+  prototypeActionSource,
   onSubmitPrototypeAction,
   onPassPlayer,
   onPassEnemy,
@@ -143,6 +152,12 @@ export const PriorityLabPanel = ({
             Reset Encounter Lab
           </button>
         </div>
+        <p className="muted">
+          Source:{" "}
+          {prototypeActionSource
+            ? sourceContextLabel(prototypeActionSource)
+            : "none selected"}
+        </p>
 
         <div className="encounter-loadout">
           <h3>Action Stack</h3>
@@ -152,6 +167,9 @@ export const PriorityLabPanel = ({
                 <li key={item.id}>
                   <span>{item.action.label}</span>
                   <small>
+                    {item.action.source
+                      ? `Source: ${sourceContextLabel(item.action.source)} | `
+                      : ""}
                     #{item.index} | {encounterActorLabel(item.action.actor)} |{" "}
                     {item.action.kind}
                   </small>

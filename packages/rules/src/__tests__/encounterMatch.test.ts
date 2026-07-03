@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { asCardDefId, asCardInstanceId } from "@packbound/shared";
+
 import {
   advanceEncounterPhase,
   createEncounterMatch,
@@ -15,6 +17,13 @@ const createMatch = (): EncounterMatchState =>
     matchId: "test-match",
     seed: "encounter-test-seed"
   });
+
+const sparkfallSource = {
+  cardInstanceId: asCardInstanceId("test-match:sparkfall:spellrail:0"),
+  cardDefId: asCardDefId("sparkfall"),
+  cardName: "Sparkfall",
+  zone: "spellrail" as const
+};
 
 const combatResult = (
   winner: EncounterCombatResultLike["winner"]
@@ -110,6 +119,33 @@ describe("encounter match priority shell", () => {
     expect(state.actionLog.at(-1)?.text).not.toContain("Debug");
   });
 
+  it("stores prototype action source card context on the stack and submission log", () => {
+    const state = submitEncounterAction(createMatch(), {
+      kind: "main_phase_pressure",
+      source: sparkfallSource
+    });
+    const item = state.stack[0];
+
+    if (!item) {
+      throw new Error("Expected a queued stack item.");
+    }
+
+    expect(item.action).toEqual({
+      kind: "main_phase_pressure",
+      actor: "player",
+      label: "Prototype Pressure Technique",
+      source: sparkfallSource
+    });
+    expect(state.actionLog.at(-1)).toMatchObject({
+      kind: "action_submitted",
+      actor: "player",
+      text: "Player queued Prototype Pressure Technique from Sparkfall."
+    });
+    expect(JSON.parse(JSON.stringify(state)).stack[0].action.source).toEqual(
+      sparkfallSource
+    );
+  });
+
   it("passing priority alternates the holder", () => {
     const state = passEncounterPriority(createMatch(), "player");
 
@@ -155,6 +191,32 @@ describe("encounter match priority shell", () => {
     });
     expect(resolved.priorityHolder).toBe("player");
     expect(resolved.consecutivePasses).toBe(0);
+    expect(resolved.playerStability).toBe(5);
+    expect(resolved.enemyStability).toBe(4);
+    expect(resolved.outcome.kind).toBe("inProgress");
+    expect(resolved.actionLog.at(-1)).toMatchObject({
+      kind: "action_resolved",
+      actor: "player",
+      text: "Resolved Prototype Pressure Technique from Player: Enemy stability -1."
+    });
+  });
+
+  it("resolves sourced prototype main-phase pressure without changing semantics", () => {
+    const submitted = submitEncounterAction(createMatch(), {
+      kind: "main_phase_pressure",
+      source: sparkfallSource
+    });
+    const enemyPass = passEncounterPriority(submitted, "enemy");
+    const resolved = passEncounterPriority(enemyPass, "player");
+
+    expect(resolved.stack).toEqual([]);
+    expect(resolved.lastResolvedAction).toMatchObject({
+      action: {
+        kind: "main_phase_pressure",
+        actor: "player",
+        source: sparkfallSource
+      }
+    });
     expect(resolved.playerStability).toBe(5);
     expect(resolved.enemyStability).toBe(4);
     expect(resolved.outcome.kind).toBe("inProgress");

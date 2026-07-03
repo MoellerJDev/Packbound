@@ -32,6 +32,7 @@ import {
   type BoardGridCardSummary,
   type CombatResultLike,
   type EngagementPreviewSide,
+  type EncounterActionSource,
   type EncounterMatchState,
   type LoadoutAction,
   type RunState,
@@ -215,6 +216,23 @@ export function App() {
   );
   const recordReady = canRecordCombat(run, sampleCatalog);
   const editable = canEditLoadout(run);
+  const priorityPrototypeActionSource = useMemo<EncounterActionSource | undefined>(() => {
+    const spellrailTechnique =
+      run.spellrail.cards.find(
+        (card) => sampleCatalog.cardsById.get(card.defId)?.cardType === "Technique"
+      ) ?? run.spellrail.cards[0];
+
+    if (!spellrailTechnique) {
+      return undefined;
+    }
+
+    return {
+      cardInstanceId: spellrailTechnique.instanceId,
+      cardDefId: spellrailTechnique.defId,
+      cardName: cardName(spellrailTechnique.defId),
+      zone: spellrailTechnique.zone
+    };
+  }, [run.spellrail.cards]);
 
   const combat = useMemo(() => {
     if (!opponentSetup || !recordReady) {
@@ -530,7 +548,10 @@ export function App() {
     setPriorityMatch((currentMatch) =>
       submitEncounterAction(currentMatch, {
         actor: "player",
-        kind: "main_phase_pressure"
+        kind: "main_phase_pressure",
+        ...(priorityPrototypeActionSource
+          ? { source: priorityPrototypeActionSource }
+          : {})
       })
     );
   };
@@ -740,6 +761,7 @@ export function App() {
           canRunCombat={
             priorityMatch.phase === "combat" && priorityLabCombat !== undefined
           }
+          prototypeActionSource={priorityPrototypeActionSource}
           onSubmitPrototypeAction={submitPriorityPrototypeAction}
           onPassPlayer={passPriorityAsPlayer}
           onPassEnemy={passPriorityAsEnemy}

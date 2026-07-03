@@ -1,4 +1,11 @@
-import type { CombatEvent, CombatWinner, SimulationWarning } from "@packbound/shared";
+import type {
+  CardDefId,
+  CardInstanceId,
+  CombatEvent,
+  CombatWinner,
+  SimulationWarning,
+  Zone
+} from "@packbound/shared";
 
 export type EncounterActor = "player" | "enemy";
 
@@ -17,10 +24,18 @@ export type EncounterOutcome = {
 
 export type EncounterActionKind = "debug_noop" | "debug_pressure" | "main_phase_pressure";
 
+export type EncounterActionSource = {
+  readonly cardInstanceId: CardInstanceId;
+  readonly cardDefId: CardDefId;
+  readonly cardName: string;
+  readonly zone: Zone;
+};
+
 export type EncounterQueuedAction = {
   readonly kind: EncounterActionKind;
   readonly actor: EncounterActor;
   readonly label: string;
+  readonly source?: EncounterActionSource;
 };
 
 export type EncounterStackItem = {
@@ -98,6 +113,7 @@ export type SubmitEncounterActionInput = {
   readonly actor?: EncounterActor;
   readonly kind?: EncounterActionKind;
   readonly label?: string;
+  readonly source?: EncounterActionSource;
 };
 
 export type EncounterCombatResultLike = {
@@ -152,6 +168,10 @@ const actionSubmissionText = (action: EncounterQueuedAction): string => {
   const actor = actorLabel(action.actor);
 
   if (action.kind === "main_phase_pressure") {
+    if (action.source) {
+      return `${actor} queued ${action.label} from ${action.source.cardName}.`;
+    }
+
     return `${actor} queued ${action.label} as a prototype card action.`;
   }
 
@@ -300,7 +320,8 @@ export const submitEncounterAction = (
     action: {
       kind,
       actor,
-      label
+      label,
+      ...(input.source ? { source: input.source } : {})
     }
   };
   const submitted: EncounterMatchState = {

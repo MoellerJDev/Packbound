@@ -507,7 +507,9 @@ neighboring ground hex toward that target. Occupied ground cells block movement,
 while support and terrain layers do not. This is a deliberately small
 engagement model, not full pathfinding or a shared TFT-style arena rewrite.
 The debug client previews selected Unit/Echo range cells, likely target, and
-next movement step from the same discrete data for planning clarity only.
+next movement step from the same discrete data for planning clarity only. Those
+preview badges explain intent before combat but do not alter target choice,
+range, movement, damage, or timing.
 
 ### Future Board Resources
 

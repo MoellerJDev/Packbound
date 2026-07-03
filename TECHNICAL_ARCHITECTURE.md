@@ -89,8 +89,9 @@ visualization of discrete board positions and layers, not the final Pixi
 battlefield renderer. It uses fixed-size pointy-top odd-r hex tiles and
 inspectable tokens without canvas/WebGL. Its Ally and Enemy Inspectors render
 stat and combat-model facts from rules/simulator helper data, including
-selected Unit/Echo engagement previews, so the UI does not claim unimplemented
-behavior.
+selected Unit/Echo engagement previews. The preview overlay is React/CSS only:
+range, selected, target, attack-now, out-of-range, blocked, and next-move
+markers are debug visualization states, not simulation state.
 
 ### `apps/server`
 
@@ -185,7 +186,10 @@ mutating card definitions.
 Current engagement preview rules also live in this package. The helper is pure
 and serializable, reuses shared odd-r hex topology and simulator-compatible
 targeting/movement ordering, and returns only UI-facing range cells, likely
-target, next step, and explanation data without changing simulation behavior.
+target, next step, blocked movement, and explanation data without changing
+simulation behavior. Debug scenarios may seed showcase boards such as
+`?scenario=engagement-lab`, but they still use existing cards and normal combat
+resolution.
 
 ### `packages/sim`
 

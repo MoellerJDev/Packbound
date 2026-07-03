@@ -84,18 +84,21 @@ test("debug loop can inspect, preview, record, reward, and advance", async ({ pa
     engagementPreview.getByRole("heading", { name: "Engagement Preview" })
   ).toBeVisible();
   await expect(engagementPreview.getByText("Ember Scraprunner").first()).toBeVisible();
-  await expect(engagementPreview.getByText(/1 hex away, in range/)).toBeVisible();
-  await expect(engagementPreview.getByText("2 ATK")).toBeVisible();
-  await expect(engagementPreview.getByText("1 HP")).toBeVisible();
-  await expect(engagementPreview.getByText("1.3 AS")).toBeVisible();
-  await expect(engagementPreview.getByText("1 RNG")).toBeVisible();
+  await expect(
+    engagementPreview.getByText("Ember Scraprunner can attack Ember Scraprunner now.")
+  ).toBeVisible();
+  await expect(engagementPreview.getByText("Distance 1, range 1.")).toBeVisible();
+  await expect(engagementPreview.getByText("Attack now")).toBeVisible();
   await expect(hexArena.getByText("Odd-r hex").first()).toBeVisible();
   await expect(hexArena.getByText("Pointy-top")).toBeVisible();
   await expect(hexArena.getByTestId("board-card").first()).toBeVisible();
   await expect(hexArena.locator('[data-range-preview="true"]').first()).toBeVisible();
   await expect(hexArena.locator('[data-selected-preview="true"]').first()).toBeVisible();
   await expect(hexArena.locator('[data-likely-target="true"]').first()).toBeVisible();
-  await expect(hexArena.getByText("In range").first()).toBeVisible();
+  await expect(hexArena.locator(".board-preview-marker.selected").first()).toBeVisible();
+  await expect(
+    hexArena.locator(".board-preview-marker.target.in-range").first()
+  ).toBeVisible();
   await expectNoHorizontalScroll(hexArenaViewport);
   const occupiedCardsInViewport = await hexArena.getByTestId("board-card").evaluateAll(
     (cards) =>
@@ -165,7 +168,9 @@ test("debug loop can inspect, preview, record, reward, and advance", async ({ pa
   await expect(enemyInspector).toBeVisible();
   await expect(enemyGridPanel.locator('[data-selected-preview="true"]')).toBeVisible();
   await expect(playerGridPanel.locator('[data-likely-target="true"]')).toBeVisible();
-  await expect(engagementPreview.getByText(/1 hex away, in range/)).toBeVisible();
+  await expect(
+    engagementPreview.getByText("Ember Scraprunner can attack Ember Scraprunner now.")
+  ).toBeVisible();
   await expectNoHorizontalScroll(hexArenaViewport);
 
   await page.getByRole("button", { name: "Ready Combat" }).click();
@@ -208,6 +213,75 @@ test("debug loop can inspect, preview, record, reward, and advance", async ({ pa
   const runStatePanel = panel(page, "Run State");
   await expect(runStatePanel.getByText("2 / 3")).toBeVisible();
   await expect(runStatePanel.getByText(/Next:/)).toBeVisible();
+
+  expect(errors.pageErrors).toEqual([]);
+  expect(errors.consoleErrors).toEqual([]);
+});
+
+test("engagement lab shows out-of-range target and next-move preview", async ({
+  page
+}) => {
+  const errors = captureBrowserErrors(page);
+
+  await page.goto("/?scenario=engagement-lab");
+
+  await expect(page.getByRole("heading", { name: "Packbound" })).toBeVisible();
+
+  const battlefield = page.locator(".battlefield-section");
+  const hexArena = page.getByTestId("hex-arena");
+  const hexArenaViewport = page.getByTestId("hex-arena-viewport");
+  const engagementPreview = hexArena.getByTestId("engagement-preview");
+  const playerGridPanel = battlefield.locator(".battlefield-board-side.ally");
+  const enemyGridPanel = battlefield.locator(".battlefield-board-side.enemy");
+  const allyInspector = battlefield.locator(".battlefield-inspector.ally");
+
+  await expect(hexArena.getByRole("heading", { name: "Hex Arena" })).toBeVisible();
+  await expect(
+    engagementPreview.getByRole("heading", { name: "Engagement Preview" })
+  ).toBeVisible();
+  await expect(
+    engagementPreview.getByText("Cinder Scout cannot attack yet.")
+  ).toBeVisible();
+  await expect(
+    engagementPreview.getByText("Target is 3 hexes away, range 1.")
+  ).toBeVisible();
+  await expect(engagementPreview.getByText("Next move: r1 c0 to r1 c1.")).toBeVisible();
+  await expect(engagementPreview.getByText("Closing")).toBeVisible();
+  await expect(
+    engagementPreview.getByText("Likely target: nearest valid enemy.")
+  ).toBeVisible();
+
+  await expect(
+    allyInspector.getByRole("heading", { name: "Cinder Scout" })
+  ).toBeVisible();
+  await expect(
+    playerGridPanel.getByRole("button", { name: /Inspect Cinder Scout ground r1 c0/ })
+  ).toBeVisible();
+  await expect(
+    playerGridPanel.getByRole("button", {
+      name: /Inspect Sparkcatch Apprentice ground r1 c2/
+    })
+  ).toBeVisible();
+  await expect(
+    enemyGridPanel.getByRole("button", { name: /Inspect Ember Scraprunner ground r0 c3/ })
+  ).toBeVisible();
+  await expect(hexArena.locator('[data-range-preview="true"]').first()).toBeVisible();
+  await expect(hexArena.locator('[data-selected-preview="true"]').first()).toBeVisible();
+  await expect(hexArena.locator('[data-likely-target="true"]').first()).toBeVisible();
+  await expect(
+    hexArena.locator('[data-target-out-of-range="true"]').first()
+  ).toBeVisible();
+  await expect(hexArena.locator('[data-next-move="true"]').first()).toBeVisible();
+  await expect(hexArena.locator(".board-preview-marker.selected").first()).toBeVisible();
+  await expect(
+    hexArena.locator(".board-preview-marker.target.out-of-range").first()
+  ).toBeVisible();
+  await expect(hexArena.locator(".board-preview-marker.move").first()).toBeVisible();
+  await expectNoHorizontalScroll(hexArenaViewport);
+
+  await page.getByRole("button", { name: "Ready Combat" }).click();
+  await page.getByRole("button", { name: "Record Combat" }).click();
+  await expect(panel(page, "Last Recorded Combat").getByText(/Winner:/)).toBeVisible();
 
   expect(errors.pageErrors).toEqual([]);
   expect(errors.consoleErrors).toEqual([]);

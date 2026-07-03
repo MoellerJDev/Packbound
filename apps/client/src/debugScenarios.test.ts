@@ -3,13 +3,17 @@ import { describe, expect, it } from "vitest";
 import { sampleCatalog } from "@packbound/content";
 import {
   applyRunAction,
+  buildEngagementPreview,
   createRunFromStarterKit,
   getUpgradeableCardGroups,
   type RunState
 } from "@packbound/rules";
-import { asCardInstanceId, asPlayerId } from "@packbound/shared";
+import { asCardInstanceId, asPlayerId, positionKey } from "@packbound/shared";
 
 import {
+  DEBUG_ENGAGEMENT_MELEE_CARD_DEF_ID,
+  DEBUG_ENGAGEMENT_RANGED_CARD_DEF_ID,
+  DEBUG_ENGAGEMENT_SCENARIO_ID,
   DEBUG_UPGRADE_CARD_DEF_ID,
   DEBUG_UPGRADE_SCENARIO_ID,
   applyDebugScenario,
@@ -33,6 +37,9 @@ describe("debug upgrade scenarios", () => {
   it("reads the upgrade lab URL scenario deterministically", () => {
     expect(debugScenarioFromSearch("?scenario=upgrade-lab")).toBe(
       DEBUG_UPGRADE_SCENARIO_ID
+    );
+    expect(debugScenarioFromSearch("?scenario=engagement-lab")).toBe(
+      DEBUG_ENGAGEMENT_SCENARIO_ID
     );
     expect(debugScenarioFromSearch("?scenario=unknown")).toBeUndefined();
     expect(debugScenarioFromSearch("")).toBeUndefined();
@@ -80,6 +87,66 @@ describe("debug upgrade scenarios", () => {
         eligible: true
       }
     ]);
+    expect(JSON.parse(JSON.stringify(scenarioRun))).toEqual(scenarioRun);
+  });
+
+  it("sets up a deterministic engagement lab with an out-of-range melee preview", () => {
+    const run = createBaseRun();
+    const scenarioRun = applyDebugScenario(run, DEBUG_ENGAGEMENT_SCENARIO_ID);
+    const meleePlacement = scenarioRun.board.placements[0];
+    const rangedPlacement = scenarioRun.board.placements[1];
+
+    if (!meleePlacement || !rangedPlacement) {
+      throw new Error("Engagement lab did not create both board placements.");
+    }
+
+    expect(run.board.placements).toHaveLength(1);
+    expect(scenarioRun.currentEncounterId).toBe("early_ember_pressure");
+    expect(scenarioRun.board.placements).toEqual([
+      {
+        cardInstanceId: asCardInstanceId(
+          `${run.runId}:debug-scenario:engagement-lab:cinder_scout:0`
+        ),
+        defId: DEBUG_ENGAGEMENT_MELEE_CARD_DEF_ID,
+        ownerId: run.playerId,
+        position: { row: 1, col: 0, layer: "ground" }
+      },
+      {
+        cardInstanceId: asCardInstanceId(
+          `${run.runId}:debug-scenario:engagement-lab:sparkcatch_apprentice:1`
+        ),
+        defId: DEBUG_ENGAGEMENT_RANGED_CARD_DEF_ID,
+        ownerId: run.playerId,
+        position: { row: 1, col: 2, layer: "ground" }
+      }
+    ]);
+    expect(scenarioRun.activeCards.map((card) => card.instanceId)).toEqual([
+      meleePlacement?.cardInstanceId,
+      rangedPlacement?.cardInstanceId
+    ]);
+
+    const preview = buildEngagementPreview({
+      catalog: sampleCatalog,
+      playerBoard: scenarioRun.board,
+      enemyBoard: sampleCatalog.encountersById.get("early_ember_pressure")?.loadout
+        .board ?? { placements: [] },
+      playerActiveCards: scenarioRun.activeCards,
+      selectedCardInstanceId: meleePlacement.cardInstanceId,
+      selectedSide: "playerA"
+    });
+
+    expect(preview.selected).toMatchObject({
+      name: "Cinder Scout",
+      position: { row: 1, col: 0, layer: "ground" },
+      range: 1
+    });
+    expect(preview.likelyTarget).toMatchObject({
+      name: "Ember Scraprunner",
+      distance: 3,
+      inRange: false
+    });
+    expect(preview.nextMove?.to).toEqual({ row: 1, col: 1, layer: "ground" });
+    expect(preview.rangeCells.map(positionKey)).toContain("ground:1:1");
     expect(JSON.parse(JSON.stringify(scenarioRun))).toEqual(scenarioRun);
   });
 });

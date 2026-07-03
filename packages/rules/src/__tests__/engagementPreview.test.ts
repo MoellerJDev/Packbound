@@ -81,12 +81,34 @@ describe("engagement preview", () => {
       to: pos(0, 1),
       reason: "Target is out of range."
     });
+    expect(result.targetingReason).toBe("Nearest valid target.");
     expect(result.explanation).toContain(
       "Out of range: would move one hex toward r0 c1."
     );
   });
 
-  it("reports an in-range target for a selected ranged unit", () => {
+  it("reports an in-range target for a selected melee unit without movement", () => {
+    const attacker = placement("ally:runner", "ember_scraprunner", 0, 2);
+    const target = placement("enemy:runner", "ember_scraprunner", 0, 3);
+
+    const result = preview(attacker, board(attacker), board(target));
+
+    expect(result.selected).toMatchObject({
+      name: "Ember Scraprunner",
+      range: 1,
+      identity: "Melee"
+    });
+    expect(result.likelyTarget).toMatchObject({
+      name: "Ember Scraprunner",
+      distance: 1,
+      inRange: true
+    });
+    expect(result.nextMove).toBeUndefined();
+    expect(result.targetingReason).toBe("Nearest valid target.");
+    expect(result.explanation).toContain("In range: can attack this target now.");
+  });
+
+  it("reports an in-range target for a selected ranged unit from farther away", () => {
     const attacker = placement("ally:sparkcatch", "sparkcatch_apprentice", 0, 1);
     const target = placement("enemy:runner", "ember_scraprunner", 0, 3);
 
@@ -103,6 +125,7 @@ describe("engagement preview", () => {
       inRange: true
     });
     expect(result.nextMove).toBeUndefined();
+    expect(result.targetingReason).toBe("Nearest valid target.");
     expect(result.explanation).toContain("In range: can attack this target now.");
   });
 

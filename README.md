@@ -91,9 +91,9 @@ pnpm dev
 - The debug client now opens on a battlefield-first compact CSS Hex Arena with
   Ally and Enemy Inspectors, inspectable fixed-size hex tokens, compact
   ATK/HP/AS/RNG chips, Source Row resource totals, phase-aware next-action
-  guidance, selected Unit/Echo range, likely target, next-move previews,
-  display-only trait/teamup summaries, and latest reward markers for newly
-  opened pool cards.
+  guidance, board-first selected Unit/Echo range, likely target, attack-now or
+  out-of-range markers, next-move previews, display-only trait/teamup summaries,
+  and latest reward markers for newly opened pool cards.
 - The battlefield explains the current simulator model honestly: attack, health,
   attack speed, odd-r hex range, neighboring-hex movement, distance targeting,
   Guard, Barrier, Quickstart, Airborne, and AntiAir matter today.
@@ -112,7 +112,8 @@ pnpm dev
   scroll without screenshots, traces, videos, or broad UI snapshots. The
   debug-only
   `?scenario=upgrade-lab` URL seeds 3 deterministic Cinder Scout pool copies
-  for that browser smoke path.
+  for that browser smoke path, while `?scenario=engagement-lab` seeds a
+  deterministic out-of-range Cinder Scout preview with a visible next move.
 - Property-based invariant tests cover generated seeds, legal loadout action
   sequences, card instance preservation, replay determinism, and mutation safety.
 - Core state uses plain objects so future server validation, async ghost PvP,

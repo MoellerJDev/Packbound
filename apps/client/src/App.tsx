@@ -502,6 +502,27 @@ const sameCoordinate = (
 const formatCoordinate = (position: Pick<BoardPosition, "row" | "col">): string =>
   `r${position.row} c${position.col}`;
 
+const hexNoun = (count: number): string => (count === 1 ? "hex" : "hexes");
+
+const previewReasonText = (reason: string | undefined): string => {
+  switch (reason) {
+    case "Nearest valid target.":
+      return "nearest valid enemy.";
+    case "Guard is prioritized.":
+      return "Guard enemy is prioritized.";
+    case "AntiAir prioritizes Airborne targets.":
+      return "AntiAir prioritizes Airborne targets.";
+    case "Airborne attacker prioritizes lowest health before distance.":
+      return "Airborne attacker prioritizes lowest health before distance.";
+    case "No valid target.":
+      return "no valid target.";
+    case undefined:
+      return "current targeting rules.";
+    default:
+      return reason;
+  }
+};
+
 const previewSideForRef = (
   ref: BoardSelectedCardRef | undefined
 ): EngagementPreviewSide | undefined =>
@@ -511,39 +532,67 @@ const previewSideForRef = (
       ? "playerB"
       : undefined;
 
-const EngagementPreviewPanel = ({ preview }: { readonly preview: EngagementPreview }) => (
-  <div className="engagement-preview-panel" data-testid="engagement-preview">
-    <h4>Engagement Preview</h4>
-    {preview.selected ? (
-      <>
-        <div className="engagement-preview-title">
-          <strong>{preview.selected.name}</strong>
-          <span>{preview.selected.identity}</span>
-        </div>
-        <div className="engagement-preview-chips">
-          <span>{preview.selected.attack} ATK</span>
-          <span>{preview.selected.health} HP</span>
-          <span>{preview.selected.attackSpeed} AS</span>
-          <span>{preview.selected.range} RNG</span>
-        </div>
+const EngagementPreviewPanel = ({ preview }: { readonly preview: EngagementPreview }) => {
+  if (!preview.selected) {
+    return (
+      <div className="engagement-preview-panel" data-testid="engagement-preview">
+        <h4>Engagement Preview</h4>
+        <p>{preview.explanation[0] ?? "Select a board Unit or Echo."}</p>
+      </div>
+    );
+  }
+
+  const target = preview.likelyTarget;
+  const statusLabel = target?.inRange ? "Attack now" : target ? "Closing" : "No target";
+  const headline = target
+    ? target.inRange
+      ? preview.selected.identity === "Ranged" && target.distance > 1
+        ? `${preview.selected.name} can attack from ${target.distance} ${hexNoun(
+            target.distance
+          )} away.`
+        : `${preview.selected.name} can attack ${target.name} now.`
+      : `${preview.selected.name} cannot attack yet.`
+    : `${preview.selected.name} has no valid target.`;
+
+  return (
+    <div className="engagement-preview-panel" data-testid="engagement-preview">
+      <div className="engagement-preview-header">
+        <h4>Engagement Preview</h4>
+        <span
+          className={`engagement-preview-status ${
+            target?.inRange ? "in-range" : target ? "out-of-range" : "no-target"
+          }`}
+        >
+          {statusLabel}
+        </span>
+      </div>
+      <div className="engagement-preview-title">
+        <strong>{preview.selected.name}</strong>
+        <span>{preview.selected.identity}</span>
+        <span>Range {preview.selected.range}</span>
+      </div>
+      <p className="engagement-preview-headline">{headline}</p>
+      {target ? (
         <p>
-          {preview.likelyTarget
-            ? `${preview.likelyTarget.name}: ${preview.likelyTarget.distance} hex${
-                preview.likelyTarget.distance === 1 ? "" : "es"
-              } away, ${preview.likelyTarget.inRange ? "in range" : "out of range"}.`
-            : (preview.targetingReason ?? "No valid target.")}
+          {target.inRange
+            ? `Distance ${target.distance}, range ${preview.selected.range}.`
+            : `Target is ${target.distance} ${hexNoun(target.distance)} away, range ${
+                preview.selected.range
+              }.`}
         </p>
-        {preview.nextMove ? (
-          <p>Next move: {formatCoordinate(preview.nextMove.to)}.</p>
-        ) : preview.blockedMovementReason ? (
-          <p>{preview.blockedMovementReason}</p>
-        ) : null}
-      </>
-    ) : (
-      <p>{preview.explanation[0] ?? "Select a board Unit or Echo."}</p>
-    )}
-  </div>
-);
+      ) : null}
+      {preview.nextMove ? (
+        <p>
+          Next move: {formatCoordinate(preview.nextMove.from)} to{" "}
+          {formatCoordinate(preview.nextMove.to)}.
+        </p>
+      ) : preview.blockedMovementReason ? (
+        <p>{preview.blockedMovementReason}</p>
+      ) : null}
+      <p>Likely target: {previewReasonText(preview.targetingReason)}</p>
+    </div>
+  );
+};
 
 const BoardGridView = ({
   boardSide,
@@ -566,6 +615,7 @@ const BoardGridView = ({
     (count, cell) => count + cell.cards.length,
     0
   );
+  const hasEngagementPreview = engagementPreview.selected !== undefined;
   const rows = Array.from({ length: summary.rows }, (_, row) =>
     summary.cells.filter((cell) => cell.row === row)
   );
@@ -573,7 +623,9 @@ const BoardGridView = ({
   return (
     <div className="board-grid-wrap">
       <div
-        className={`board-grid hex-board-grid offset-${summary.layout.offsetMode}`}
+        className={`board-grid hex-board-grid offset-${summary.layout.offsetMode} ${
+          hasEngagementPreview ? "has-preview" : ""
+        }`}
         aria-label={`${summary.layout.offsetMode} offset hex board`}
       >
         {rows.map((rowCells, row) => (
@@ -598,6 +650,15 @@ const BoardGridView = ({
                 engagementPreview.selected?.side === boardSide &&
                 engagementPreview.nextMove !== undefined &&
                 sameCoordinate(engagementPreview.nextMove.to, coordinate);
+              const isBlockedSelectedCell =
+                isSelectedCell && engagementPreview.blockedMovementReason !== undefined;
+              const isTargetInRangeCell =
+                isLikelyTargetCell && engagementPreview.likelyTarget?.inRange === true;
+              const isTargetOutOfRangeCell =
+                isLikelyTargetCell && engagementPreview.likelyTarget?.inRange === false;
+              const isPreviewFocusCell =
+                isRangeCell || isSelectedCell || isLikelyTargetCell || isNextMoveCell;
+              const isPreviewQuietCell = hasEngagementPreview && !isPreviewFocusCell;
 
               return (
                 <div
@@ -610,30 +671,51 @@ const BoardGridView = ({
                   } ${isSelectedCell ? "preview-selected" : ""} ${
                     isLikelyTargetCell ? "preview-target" : ""
                   } ${
-                    isLikelyTargetCell && engagementPreview.likelyTarget?.inRange
-                      ? "preview-target-in-range"
+                    isTargetInRangeCell ? "preview-target-in-range" : ""
+                  } ${isTargetOutOfRangeCell ? "preview-target-out-of-range" : ""} ${
+                    isNextMoveCell ? "preview-next-move" : ""
+                  } ${isBlockedSelectedCell ? "preview-blocked" : ""} ${
+                    hasEngagementPreview
+                      ? isPreviewQuietCell
+                        ? "preview-quiet"
+                        : "preview-active"
                       : ""
-                  } ${isNextMoveCell ? "preview-next-move" : ""}`}
+                  }`}
                   data-occupied={cell.cards.length > 0 ? "true" : "false"}
                   data-range-preview={isRangeCell ? "true" : "false"}
                   data-selected-preview={isSelectedCell ? "true" : "false"}
                   data-likely-target={isLikelyTargetCell ? "true" : "false"}
+                  data-target-in-range={isTargetInRangeCell ? "true" : "false"}
+                  data-target-out-of-range={isTargetOutOfRangeCell ? "true" : "false"}
                   data-next-move={isNextMoveCell ? "true" : "false"}
+                  data-preview-quiet={isPreviewQuietCell ? "true" : "false"}
                 >
                   <div className="board-grid-coordinate">
                     r{cell.row} c{cell.col}
                   </div>
+                  {isSelectedCell ? (
+                    <span className="board-preview-marker selected">Selected</span>
+                  ) : null}
+                  {isRangeCell &&
+                  !isSelectedCell &&
+                  !isLikelyTargetCell &&
+                  !isNextMoveCell ? (
+                    <span className="board-preview-marker range">Range</span>
+                  ) : null}
                   {isLikelyTargetCell ? (
                     <span
                       className={`board-preview-marker target ${
-                        engagementPreview.likelyTarget?.inRange ? "in-range" : ""
+                        isTargetInRangeCell ? "in-range" : "out-of-range"
                       }`}
                     >
-                      {engagementPreview.likelyTarget?.inRange ? "In range" : "Target"}
+                      {isTargetInRangeCell ? "Attack" : "Out of range"}
                     </span>
                   ) : null}
                   {isNextMoveCell ? (
-                    <span className="board-preview-marker move">Move</span>
+                    <span className="board-preview-marker move">Next move</span>
+                  ) : null}
+                  {isBlockedSelectedCell ? (
+                    <span className="board-preview-marker blocked">Blocked</span>
                   ) : null}
                   {cell.cards.length > 0 ? (
                     cell.cards.map((card) => (

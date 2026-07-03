@@ -84,10 +84,12 @@ Responsibilities:
 - Debug views
 
 The client may call `packages/rules` and `packages/sim`, but it must not duplicate gameplay logic.
-The current React/HTML battlefield is a debug visualization of discrete board
-positions and layers, not the final Pixi battlefield renderer. Its Ally and
-Enemy Inspectors render stat and combat-model facts from rules/simulator helper
-data so the UI does not claim unimplemented behavior.
+The current React/HTML battlefield is a compact CSS Hex Arena debug
+visualization of discrete board positions and layers, not the final Pixi
+battlefield renderer. It uses fixed-size pointy-top odd-r hex tiles and
+inspectable tokens without canvas/WebGL. Its Ally and Enemy Inspectors render
+stat and combat-model facts from rules/simulator helper data so the UI does not
+claim unimplemented behavior.
 
 ### `apps/server`
 

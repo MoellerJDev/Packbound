@@ -88,10 +88,11 @@ pnpm dev
 - The debug client includes a card inspection panel for readable card details,
   clearer normalized ability text, legal loadout actions, and blocked-action
   reasons, including upgrade progress and why duplicates may be blocked.
-- The debug client now opens on a battlefield-first board view with Ally and
-  Enemy Inspectors, compact ATK/HP/AS/RNG chips, Source Row resource totals,
-  phase-aware next-action guidance, display-only trait/teamup summaries, and
-  latest reward markers for newly opened pool cards.
+- The debug client now opens on a battlefield-first compact CSS Hex Arena with
+  Ally and Enemy Inspectors, inspectable fixed-size hex tokens, compact
+  ATK/HP/AS/RNG chips, Source Row resource totals, phase-aware next-action
+  guidance, display-only trait/teamup summaries, and latest reward markers for
+  newly opened pool cards.
 - The battlefield explains the current simulator model honestly: attack, health,
   attack speed, odd-r hex range, neighboring-hex movement, distance targeting,
   Guard, Barrier, Quickstart, Airborne, and AntiAir matter today.
@@ -104,11 +105,12 @@ pnpm dev
   allowing the debug client and integration tests to share the same action path.
 - `pnpm test:browser` runs minimal Playwright smoke tests for the battlefield
   debug loop and duplicate-upgrade regressions, not visual polish or full
-  end-to-end coverage. It checks the visible Battlefield, Ally Inspector, Enemy
-  Inspector, stat text, reward flow, and upgrade-lab path without screenshots,
-  traces, videos, or broad UI snapshots. The debug-only `?scenario=upgrade-lab`
-  URL seeds 3 deterministic Cinder Scout pool copies for that browser smoke
-  path.
+  end-to-end coverage. It checks the visible Battlefield, compact Hex Arena,
+  Ally Inspector, Enemy Inspector, starter token visibility, stat text, reward
+  flow, upgrade-lab path, and no horizontal arena scroll without screenshots,
+  traces, videos, or broad UI snapshots. The debug-only
+  `?scenario=upgrade-lab` URL seeds 3 deterministic Cinder Scout pool copies
+  for that browser smoke path.
 - Property-based invariant tests cover generated seeds, legal loadout action
   sequences, card instance preservation, replay determinism, and mutation safety.
 - Core state uses plain objects so future server validation, async ghost PvP,

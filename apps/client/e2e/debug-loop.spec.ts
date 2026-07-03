@@ -21,6 +21,15 @@ const captureBrowserErrors = (page: Page) => {
   return { consoleErrors, pageErrors };
 };
 
+const expectNoHorizontalScroll = async (locator: Locator) => {
+  const metrics = await locator.evaluate((element) => ({
+    clientWidth: element.clientWidth,
+    scrollWidth: element.scrollWidth
+  }));
+
+  expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.clientWidth + 4);
+};
+
 test("debug loop can inspect, preview, record, reward, and advance", async ({ page }) => {
   const errors = captureBrowserErrors(page);
 
@@ -52,6 +61,8 @@ test("debug loop can inspect, preview, record, reward, and advance", async ({ pa
 
   const boardPanel = panel(page, "Board");
   const battlefield = page.locator(".battlefield-section");
+  const hexArena = page.getByTestId("hex-arena");
+  const hexArenaViewport = page.getByTestId("hex-arena-viewport");
   const playerGridPanel = battlefield.locator(".battlefield-board-side.ally");
   const enemyGridPanel = battlefield.locator(".battlefield-board-side.enemy");
   const allyInspector = battlefield.locator(".battlefield-inspector.ally");
@@ -66,6 +77,27 @@ test("debug loop can inspect, preview, record, reward, and advance", async ({ pa
   await expect(allyInspector.getByText("1.3 AS").first()).toBeVisible();
   await expect(allyInspector.getByText("1 RNG").first()).toBeVisible();
   await expect(boardPanel.getByRole("button", { name: "Inspect" }).first()).toBeVisible();
+  await expect(hexArena.getByRole("heading", { name: "Hex Arena" })).toBeVisible();
+  await expect(hexArena.getByText("Engagement Line")).toBeVisible();
+  await expect(hexArena.getByText("Odd-r hex").first()).toBeVisible();
+  await expect(hexArena.getByText("Pointy-top")).toBeVisible();
+  await expect(hexArena.getByTestId("board-card").first()).toBeVisible();
+  await expectNoHorizontalScroll(hexArenaViewport);
+  const occupiedCardsInViewport = await hexArena.getByTestId("board-card").evaluateAll(
+    (cards) =>
+      cards.filter((card) => {
+        const rect = card.getBoundingClientRect();
+        return (
+          rect.width > 0 &&
+          rect.height > 0 &&
+          rect.right > 0 &&
+          rect.bottom > 0 &&
+          rect.left < window.innerWidth &&
+          rect.top < window.innerHeight
+        );
+      }).length
+  );
+  expect(occupiedCardsInViewport).toBeGreaterThan(0);
   await expect(
     playerGridPanel.getByRole("heading", { name: "Ally Hex Board" })
   ).toBeVisible();
@@ -84,7 +116,6 @@ test("debug loop can inspect, preview, record, reward, and advance", async ({ pa
   await expect(playerGridPanel.getByText("1 HP").first()).toBeVisible();
   await expect(playerGridPanel.getByText("1.3 AS").first()).toBeVisible();
   await expect(playerGridPanel.getByText("1 RNG").first()).toBeVisible();
-  await expect(playerGridPanel.getByText("Melee").first()).toBeVisible();
   await playerGridPanel
     .getByRole("button", { name: /Inspect Ember Scraprunner ground r0 c2/ })
     .click();

@@ -1,4 +1,4 @@
-import { type CSSProperties, type ReactNode, useMemo, useState } from "react";
+import { type ReactNode, useMemo, useState } from "react";
 
 import { sampleCatalog } from "@packbound/content";
 import {
@@ -450,10 +450,6 @@ const CombatModelFactsView = () => (
   </div>
 );
 
-const boardGridStyle = (cols: number): CSSProperties => ({
-  gridTemplateColumns: `repeat(${cols}, minmax(112px, 1fr))`
-});
-
 type BoardPlacementSummary = RunState["board"]["placements"][number];
 
 const firstUnitOrEchoPlacement = (
@@ -466,6 +462,25 @@ const firstUnitOrEchoPlacement = (
 
 const cardTypeClass = (card: BoardGridCardSummary): string =>
   `card-${card.cardType.toLowerCase()}`;
+
+const compactCardName = (name: string): string => {
+  if (name.length <= 16) {
+    return name;
+  }
+
+  const words = name.split(/\s+/).filter(Boolean);
+  if (words.length > 1) {
+    return `${words[0]} ${words
+      .slice(1)
+      .map((word) => word[0])
+      .join("")}.`;
+  }
+
+  return `${name.slice(0, 13)}.`;
+};
+
+const boardStatChips = (card: BoardGridCardSummary): readonly string[] =>
+  card.combatStats?.chips.slice(0, 4) ?? [];
 
 const BoardGridView = ({
   summary,
@@ -498,7 +513,6 @@ const BoardGridView = ({
           <div
             key={`row:${row}`}
             className={`board-grid-row ${rowCells[0]?.isOffsetRow ? "offset" : ""}`}
-            style={boardGridStyle(summary.cols)}
           >
             {rowCells.map((cell) => (
               <div
@@ -506,46 +520,46 @@ const BoardGridView = ({
                 className={`board-grid-cell ${
                   cell.cards.length === 0 ? "empty" : "occupied"
                 } ${cell.isOffsetRow ? "offset-row" : ""}`}
+                data-occupied={cell.cards.length > 0 ? "true" : "false"}
               >
                 <div className="board-grid-coordinate">
                   r{cell.row} c{cell.col}
                 </div>
                 {cell.cards.length > 0 ? (
                   cell.cards.map((card) => (
-                    <div
+                    <button
                       key={card.cardInstanceId}
+                      type="button"
+                      data-testid="board-card"
                       className={`board-grid-layer ${card.layer} ${cardTypeClass(card)} ${
                         selectedCardInstanceId === card.cardInstanceId ? "selected" : ""
                       }`}
+                      aria-label={`Inspect ${card.name} ${card.layer} r${cell.row} c${cell.col}`}
+                      title={`${card.name} | ${card.cardType} | ${card.layer} | r${cell.row} c${cell.col}`}
+                      onClick={() => onInspect(card)}
                     >
-                      <span className="board-grid-layer-label">{card.layer}</span>
-                      <span className="board-grid-card-name">{card.name}</span>
-                      <span className="board-grid-card-type">{card.cardType}</span>
-                      {card.combatStats ? (
+                      <span className="board-grid-layer-label">
+                        {card.layer} {card.cardType}
+                      </span>
+                      <span className="board-grid-card-name">
+                        {compactCardName(card.name)}
+                      </span>
+                      {boardStatChips(card).length > 0 ? (
                         <div
                           className="board-stat-chips"
                           aria-label={`${card.name} combat stats`}
                         >
-                          {card.combatStats.chips.map((chip) => (
+                          {boardStatChips(card).map((chip) => (
                             <span key={chip} className="stat-chip compact">
                               {chip}
                             </span>
                           ))}
                         </div>
                       ) : null}
-                      {card.keywords.length > 0 ? (
-                        <span className="board-keywords">{card.keywords.join(", ")}</span>
+                      {renderCardMeta ? (
+                        <span className="board-grid-meta">{renderCardMeta(card)}</span>
                       ) : null}
-                      {renderCardMeta ? renderCardMeta(card) : null}
-                      <button
-                        type="button"
-                        className="secondary"
-                        aria-label={`Inspect ${card.name} ${card.layer} r${cell.row} c${cell.col}`}
-                        onClick={() => onInspect(card)}
-                      >
-                        Inspect
-                      </button>
-                    </div>
+                    </button>
                   ))
                 ) : (
                   <span className="board-grid-empty">Empty</span>
@@ -845,11 +859,6 @@ export function App() {
   const renderPlayerGridCardMeta = (card: BoardGridCardSummary): ReactNode => (
     <>
       <UpgradeBadge level={card.upgradeLevel ?? 0} />
-      <UpgradeProgressBadge
-        group={upgradeProgressByCardId.get(card.cardInstanceId)}
-        cardInstanceId={card.cardInstanceId}
-        zone="active"
-      />
       {card.definitionMissing ? (
         <span className="missing-def-badge">missing def</span>
       ) : null}
@@ -983,66 +992,76 @@ export function App() {
             />
           </aside>
 
-          <div className="battlefield-board">
-            <div className="battlefield-board-side enemy">
-              <div className="board-side-heading">
-                <h3>Enemy Hex Board</h3>
-                <span>{currentEncounter?.kind ?? "none"}</span>
-              </div>
-              <div className="board-orientation" aria-label="Enemy board orientation">
-                <span>Enemy side</span>
+          <div className="battlefield-board" data-testid="hex-arena">
+            <div className="hex-arena-heading">
+              <h3>Hex Arena</h3>
+              <div className="hex-arena-badges" aria-label="Hex arena topology">
                 <span>Odd-r hex</span>
-                <span>Odd rows offset</span>
-                <span>Backline r0</span>
-                <span>Frontline r3</span>
+                <span>Pointy-top</span>
               </div>
-              {encounterBoardGrid ? (
+            </div>
+
+            <div className="hex-arena-viewport" data-testid="hex-arena-viewport">
+              <div className="battlefield-board-side enemy">
+                <div className="board-side-heading">
+                  <h3>Enemy Hex Board</h3>
+                  <span>{currentEncounter?.kind ?? "none"}</span>
+                </div>
+                <div className="board-orientation" aria-label="Enemy board orientation">
+                  <span>Enemy side</span>
+                  <span>Odd-r hex</span>
+                  <span>Odd rows offset</span>
+                  <span>Backline r0</span>
+                  <span>Frontline r3</span>
+                </div>
+                {encounterBoardGrid ? (
+                  <BoardGridView
+                    summary={encounterBoardGrid}
+                    emptyText="No enemy board cards are placed."
+                    onInspect={(card) => inspectEncounterBoard(card.cardInstanceId)}
+                    renderCardMeta={renderEncounterGridCardMeta}
+                    selectedCardInstanceId={
+                      effectiveEnemyCardRef?.type === "encounterBoard"
+                        ? effectiveEnemyCardRef.cardInstanceId
+                        : undefined
+                    }
+                  />
+                ) : (
+                  <p className="muted">No current encounter board to show.</p>
+                )}
+              </div>
+
+              <div className="battlefield-vs">Engagement Line</div>
+
+              <div className="battlefield-board-side ally">
+                <div className="board-side-heading">
+                  <h3>Ally Hex Board</h3>
+                  <span>{resourceSummary.boardChargeText} Charge</span>
+                </div>
+                <div className="board-orientation" aria-label="Ally board orientation">
+                  <span>Your side</span>
+                  <span>Odd-r hex</span>
+                  <span>Odd rows offset</span>
+                  <span>Frontline r0</span>
+                  <span>Backline r3</span>
+                </div>
                 <BoardGridView
-                  summary={encounterBoardGrid}
-                  emptyText="No enemy board cards are placed."
-                  onInspect={(card) => inspectEncounterBoard(card.cardInstanceId)}
-                  renderCardMeta={renderEncounterGridCardMeta}
+                  summary={playerBoardGrid}
+                  emptyText="No player board cards are placed."
+                  onInspect={(card) =>
+                    setSelectedAllyCardRef({
+                      type: "run",
+                      cardInstanceId: card.cardInstanceId
+                    })
+                  }
+                  renderCardMeta={renderPlayerGridCardMeta}
                   selectedCardInstanceId={
-                    effectiveEnemyCardRef?.type === "encounterBoard"
-                      ? effectiveEnemyCardRef.cardInstanceId
+                    effectiveAllyCardRef?.type === "run"
+                      ? effectiveAllyCardRef.cardInstanceId
                       : undefined
                   }
                 />
-              ) : (
-                <p className="muted">No current encounter board to show.</p>
-              )}
-            </div>
-
-            <div className="battlefield-vs">vs</div>
-
-            <div className="battlefield-board-side ally">
-              <div className="board-side-heading">
-                <h3>Ally Hex Board</h3>
-                <span>{resourceSummary.boardChargeText} Charge</span>
               </div>
-              <div className="board-orientation" aria-label="Ally board orientation">
-                <span>Your side</span>
-                <span>Odd-r hex</span>
-                <span>Odd rows offset</span>
-                <span>Frontline r0</span>
-                <span>Backline r3</span>
-              </div>
-              <BoardGridView
-                summary={playerBoardGrid}
-                emptyText="No player board cards are placed."
-                onInspect={(card) =>
-                  setSelectedAllyCardRef({
-                    type: "run",
-                    cardInstanceId: card.cardInstanceId
-                  })
-                }
-                renderCardMeta={renderPlayerGridCardMeta}
-                selectedCardInstanceId={
-                  effectiveAllyCardRef?.type === "run"
-                    ? effectiveAllyCardRef.cardInstanceId
-                    : undefined
-                }
-              />
             </div>
           </div>
 

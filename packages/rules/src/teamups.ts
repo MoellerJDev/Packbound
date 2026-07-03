@@ -12,6 +12,7 @@ import type {
   Zone
 } from "@packbound/shared";
 
+import { uniqueActiveCardEntriesForRun } from "./runCards";
 import type { RunState } from "./runState";
 
 export type TraitContributor = {
@@ -38,11 +39,6 @@ export type TraitSummary = {
   readonly activeTraits: readonly TraitCount[];
   readonly nearTraits: readonly TraitCount[];
   readonly allTraitCounts: readonly TraitCount[];
-};
-
-type ActiveCardEntry = {
-  readonly card: CardInstance;
-  readonly zone: Zone | "board";
 };
 
 const thresholdCounts = (trait: TraitDefinition): readonly number[] =>
@@ -77,50 +73,6 @@ const copyContributor = (contributor: TraitContributor): TraitContributor => ({
   ...contributor
 });
 
-const uniqueActiveCardsForRun = (run: RunState): readonly ActiveCardEntry[] => {
-  const entries: ActiveCardEntry[] = [];
-  const seenInstanceIds = new Set<CardInstanceId>();
-
-  const addCard = (card: CardInstance, zone: Zone | "board"): void => {
-    if (seenInstanceIds.has(card.instanceId)) {
-      return;
-    }
-    seenInstanceIds.add(card.instanceId);
-    entries.push({ card, zone });
-  };
-
-  for (const card of run.activeCards) {
-    addCard(card, "board");
-  }
-
-  for (const placement of run.board.placements) {
-    if (seenInstanceIds.has(placement.cardInstanceId)) {
-      continue;
-    }
-    addCard(
-      {
-        instanceId: placement.cardInstanceId,
-        defId: placement.defId,
-        ownerId: placement.ownerId,
-        zone: "board",
-        modifiers: [],
-        upgradeLevel: 0
-      },
-      "board"
-    );
-  }
-
-  for (const card of run.sourceRow.cards) {
-    addCard(card, "sourceRow");
-  }
-
-  for (const card of run.spellrail.cards) {
-    addCard(card, "spellrail");
-  }
-
-  return entries.sort((a, b) => a.card.instanceId.localeCompare(b.card.instanceId));
-};
-
 const contributorForCard = (
   card: CardInstance,
   def: CardDefinition,
@@ -152,7 +104,7 @@ export const buildRunTraitSummary = (
 ): TraitSummary => {
   const contributorMap = new Map<string, TraitContributor[]>();
 
-  for (const entry of uniqueActiveCardsForRun(run)) {
+  for (const entry of uniqueActiveCardEntriesForRun(run)) {
     const def = catalog.cardsById.get(entry.card.defId);
     if (!def) {
       continue;

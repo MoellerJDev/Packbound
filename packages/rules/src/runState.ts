@@ -1,7 +1,6 @@
 import {
   asPlayerId,
   asRunId,
-  type BoardPlacement,
   type BoardState,
   type CardDefId,
   type CardInstance,
@@ -14,6 +13,15 @@ import {
   type SourceRowState,
   type SpellrailState
 } from "@packbound/shared";
+
+import {
+  cardFromBoardPlacement,
+  cardInZone,
+  copyBoard,
+  copyCard,
+  copySourceRow,
+  copySpellrail
+} from "./runCards";
 
 export const DEFAULT_RUN_RULES_VERSION = "packbound-run-mvp-0";
 export const DEFAULT_MAX_ROUNDS = 3;
@@ -133,42 +141,6 @@ const emptySpellrail = (): SpellrailState => ({
   maxSlots: DEFAULT_SPELLRAIL_SLOTS
 });
 
-const copyPlacement = (placement: BoardPlacement): BoardPlacement => ({
-  ...placement,
-  position: { ...placement.position }
-});
-
-const copyBoard = (board: BoardState): BoardState => ({
-  placements: board.placements.map(copyPlacement)
-});
-
-const copyCard = (card: CardInstance): CardInstance => ({
-  ...card,
-  modifiers: card.modifiers.map((modifier) => ({
-    ...modifier,
-    ...(modifier.metadata ? { metadata: { ...modifier.metadata } } : {})
-  }))
-});
-
-const copySourceRow = (sourceRow: SourceRowState): SourceRowState => ({
-  maxSlots: sourceRow.maxSlots,
-  cards: sourceRow.cards.map(copyCard)
-});
-
-const copySpellrail = (spellrail: SpellrailState): SpellrailState => ({
-  maxSlots: spellrail.maxSlots,
-  cards: spellrail.cards.map(copyCard)
-});
-
-const placementToActiveCard = (placement: BoardPlacement): CardInstance => ({
-  instanceId: placement.cardInstanceId,
-  defId: placement.defId,
-  ownerId: placement.ownerId,
-  zone: "board",
-  modifiers: [],
-  upgradeLevel: 0
-});
-
 const activeCardsForStarterKit = (
   starterKit: StarterKit | undefined
 ): readonly CardInstance[] => {
@@ -177,13 +149,10 @@ const activeCardsForStarterKit = (
   }
 
   if (starterKit.activeCards) {
-    return starterKit.activeCards.map((card) => ({
-      ...copyCard(card),
-      zone: "board"
-    }));
+    return starterKit.activeCards.map((card) => cardInZone(card, "board"));
   }
 
-  return starterKit.board.placements.map(placementToActiveCard);
+  return starterKit.board.placements.map(cardFromBoardPlacement);
 };
 
 export const getRunPhase = (run: RunState): RunPhase =>

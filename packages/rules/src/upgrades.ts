@@ -7,6 +7,7 @@ import type {
   CardType
 } from "@packbound/shared";
 
+import { copyCard, uniqueActiveCardEntriesForRun } from "./runCards";
 import type { RunState } from "./runState";
 
 export const UPGRADE_COPIES_REQUIRED = 3;
@@ -44,14 +45,6 @@ export type UpgradeProgressGroup = {
   readonly progressText: string;
   readonly blockedReason?: string;
 };
-
-const copyCard = (card: CardInstance): CardInstance => ({
-  ...card,
-  modifiers: card.modifiers.map((modifier) => ({
-    ...modifier,
-    ...(modifier.metadata ? { metadata: { ...modifier.metadata } } : {})
-  }))
-});
 
 const sortedMatchingPoolCards = (
   run: RunState,
@@ -129,40 +122,8 @@ const eligibleGroup = (
 const upgradeKey = (defId: CardDefId, upgradeLevel: number): string =>
   `${defId}|${upgradeLevel}`;
 
-const activeCardsForProgress = (run: RunState): readonly CardInstance[] => {
-  const boardPlacementIds = new Set(
-    run.board.placements.map((placement) => placement.cardInstanceId)
-  );
-  const activeById = new Map<CardInstanceId, CardInstance>();
-
-  for (const card of run.activeCards) {
-    activeById.set(card.instanceId, copyCard(card));
-  }
-  for (const placement of run.board.placements) {
-    if (activeById.has(placement.cardInstanceId)) {
-      continue;
-    }
-    activeById.set(placement.cardInstanceId, {
-      instanceId: placement.cardInstanceId,
-      defId: placement.defId,
-      ownerId: placement.ownerId,
-      zone: "board",
-      modifiers: [],
-      upgradeLevel: 0
-    });
-  }
-  for (const card of [...run.sourceRow.cards, ...run.spellrail.cards]) {
-    activeById.set(card.instanceId, copyCard(card));
-  }
-
-  return [...activeById.values()]
-    .map((card) =>
-      card.zone === "board" || boardPlacementIds.has(card.instanceId)
-        ? { ...card, zone: "board" as const }
-        : card
-    )
-    .sort((a, b) => a.instanceId.localeCompare(b.instanceId));
-};
+const activeCardsForProgress = (run: RunState): readonly CardInstance[] =>
+  uniqueActiveCardEntriesForRun(run).map((entry) => copyCard(entry.card));
 
 const addProgressCard = (
   groups: Map<string, CardInstance[]>,

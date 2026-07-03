@@ -3,12 +3,12 @@ import {
   chargeCostTotal,
   type CardDefId,
   type CardDefinition,
-  type CardInstance,
   type CardType,
   type PackDefinition,
   type PackId
 } from "@packbound/shared";
 
+import { ownedRunCards } from "./runCards";
 import { buildLoadoutResourceSummary } from "./runClarity";
 import type { RewardChoice, RunState } from "./runState";
 import { buildRunTraitSummary, type TraitCount } from "./teamups";
@@ -238,26 +238,6 @@ const sourceFixingPressure = (run: RunState, catalog: ContentCatalog): boolean =
 const sourceRowIsFull = (run: RunState): boolean =>
   run.sourceRow.cards.length >= run.sourceRow.maxSlots;
 
-const ownedCards = (run: RunState): readonly CardInstance[] => {
-  const byId = new Map<string, CardInstance>();
-  for (const card of [
-    ...run.pool,
-    ...run.activeCards,
-    ...run.sourceRow.cards,
-    ...run.spellrail.cards,
-    ...run.ashes,
-    ...run.void
-  ]) {
-    if (!byId.has(card.instanceId)) {
-      byId.set(card.instanceId, card);
-    }
-  }
-
-  return [...byId.values()].sort((left, right) =>
-    left.instanceId.localeCompare(right.instanceId)
-  );
-};
-
 const upgradeRelevantCardTypes: readonly CardType[] = ["Unit", "Echo"];
 
 const duplicatePotentialCards = (
@@ -270,7 +250,7 @@ const duplicatePotentialCards = (
   const seen = new Set<CardDefId>();
   const results: CardDefinition[] = [];
 
-  for (const card of ownedCards(run)) {
+  for (const card of ownedRunCards(run)) {
     if (groupedDefIds.has(card.defId) || seen.has(card.defId)) {
       continue;
     }

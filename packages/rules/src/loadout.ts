@@ -2,7 +2,6 @@ import type { ContentCatalog } from "@packbound/content";
 import {
   BOARD_COLS,
   BOARD_ROWS,
-  type BoardPlacement,
   type BoardPosition,
   type BoardState,
   type CardInstance,
@@ -15,6 +14,12 @@ import {
   type ValidationResult
 } from "@packbound/shared";
 
+import {
+  activeCardForBoardPlacement,
+  cardInZone,
+  copyCard,
+  copyPlacement
+} from "./runCards";
 import type { RunState } from "./runState";
 import { validatePlanningState } from "./validation";
 
@@ -39,33 +44,6 @@ export type LoadoutAction =
 
 export type LoadoutActionCheck =
   { readonly ok: true } | { readonly ok: false; readonly reason: string };
-
-const copyCard = (card: CardInstance): CardInstance => ({
-  ...card,
-  modifiers: card.modifiers.map((modifier) => ({
-    ...modifier,
-    ...(modifier.metadata ? { metadata: { ...modifier.metadata } } : {})
-  }))
-});
-
-const copyPlacement = (placement: BoardPlacement): BoardPlacement => ({
-  ...placement,
-  position: { ...placement.position }
-});
-
-const cardInZone = (card: CardInstance, zone: CardInstance["zone"]): CardInstance => ({
-  ...copyCard(card),
-  zone
-});
-
-const boardFallbackCard = (placement: BoardPlacement): CardInstance => ({
-  instanceId: placement.cardInstanceId,
-  defId: placement.defId,
-  ownerId: placement.ownerId,
-  zone: "board",
-  modifiers: [],
-  upgradeLevel: 0
-});
 
 const assertCanEditLoadout = (run: RunState): void => {
   if (run.status !== "active" || run.phase !== "planning") {
@@ -95,13 +73,6 @@ const activeCardsWithout = (
   cardInstanceId: CardInstanceId
 ): readonly CardInstance[] =>
   run.activeCards.filter((card) => card.instanceId !== cardInstanceId).map(copyCard);
-
-const findActiveBoardCard = (run: RunState, placement: BoardPlacement): CardInstance => {
-  const activeCard = run.activeCards.find(
-    (candidate) => candidate.instanceId === placement.cardInstanceId
-  );
-  return activeCard ? copyCard(activeCard) : boardFallbackCard(placement);
-};
 
 const ok = (): LoadoutActionCheck => ({ ok: true });
 
@@ -161,7 +132,7 @@ export const removeCardFromBoard = (
     ...run,
     pool: [
       ...run.pool.map(copyCard),
-      cardInZone(findActiveBoardCard(run, placement), "pool")
+      cardInZone(activeCardForBoardPlacement(run, placement), "pool")
     ],
     activeCards: activeCardsWithout(run, cardInstanceId),
     board: {

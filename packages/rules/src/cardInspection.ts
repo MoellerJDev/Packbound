@@ -26,6 +26,7 @@ import {
   type LoadoutAction
 } from "./loadout";
 import { buildCombatStatSummary, type CombatStatSummary } from "./combatStats";
+import { cardFromBoardPlacement, findRunCard, isCardActiveInRun } from "./runCards";
 import type { RunState } from "./runState";
 import {
   MAX_CARD_UPGRADE_LEVEL,
@@ -87,38 +88,6 @@ export type InspectEncounterCardInput = {
 
 const unique = (values: readonly string[]): readonly string[] =>
   [...new Set(values)].filter((value) => value.length > 0);
-
-const activeCardFromPlacement = (placement: BoardPlacement): CardInstance => ({
-  instanceId: placement.cardInstanceId,
-  defId: placement.defId,
-  ownerId: placement.ownerId,
-  zone: "board",
-  modifiers: [],
-  upgradeLevel: 0
-});
-
-const findRunCard = (
-  run: RunState,
-  cardInstanceId: CardInstanceId
-): CardInstance | undefined => {
-  const placement = run.board.placements.find(
-    (candidate) => candidate.cardInstanceId === cardInstanceId
-  );
-  if (placement) {
-    return (
-      run.activeCards.find((card) => card.instanceId === cardInstanceId) ??
-      activeCardFromPlacement(placement)
-    );
-  }
-
-  return [
-    ...run.pool,
-    ...run.sourceRow.cards,
-    ...run.spellrail.cards,
-    ...run.ashes,
-    ...run.void
-  ].find((card) => card.instanceId === cardInstanceId);
-};
 
 export const formatAspects = (aspects: readonly Aspect[]): string =>
   aspects.length > 0 ? aspects.join(", ") : "None";
@@ -460,12 +429,7 @@ const legalActionInfo = (
     return { legalActions: [], blockedReasons: [] };
   }
 
-  const active =
-    run.board.placements.some(
-      (placement) => placement.cardInstanceId === card.instanceId
-    ) ||
-    run.sourceRow.cards.some((candidate) => candidate.instanceId === card.instanceId) ||
-    run.spellrail.cards.some((candidate) => candidate.instanceId === card.instanceId);
+  const active = isCardActiveInRun(run, card.instanceId);
 
   if (active) {
     if (run.status !== "active" || run.phase !== "planning") {
@@ -597,7 +561,7 @@ export const inspectEncounterCard = ({
   defId
 }: InspectEncounterCardInput): CardInspection | undefined => {
   const encounterCard =
-    card ?? (placement ? activeCardFromPlacement(placement) : undefined);
+    card ?? (placement ? cardFromBoardPlacement(placement) : undefined);
   const resolvedDefId = defId ?? encounterCard?.defId ?? placement?.defId;
   if (!resolvedDefId) {
     return undefined;

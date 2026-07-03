@@ -109,7 +109,7 @@ describe("debug upgrade scenarios", () => {
         ),
         defId: DEBUG_ENGAGEMENT_MELEE_CARD_DEF_ID,
         ownerId: run.playerId,
-        position: { row: 1, col: 0, layer: "ground" }
+        position: { row: 2, col: 1, layer: "ground" }
       },
       {
         cardInstanceId: asCardInstanceId(
@@ -117,7 +117,7 @@ describe("debug upgrade scenarios", () => {
         ),
         defId: DEBUG_ENGAGEMENT_RANGED_CARD_DEF_ID,
         ownerId: run.playerId,
-        position: { row: 1, col: 2, layer: "ground" }
+        position: { row: 2, col: 3, layer: "ground" }
       }
     ]);
     expect(scenarioRun.activeCards.map((card) => card.instanceId)).toEqual([
@@ -137,7 +137,7 @@ describe("debug upgrade scenarios", () => {
 
     expect(preview.selected).toMatchObject({
       name: "Cinder Scout",
-      position: { row: 1, col: 0, layer: "ground" },
+      position: { row: 2, col: 1, layer: "ground" },
       range: 1
     });
     expect(preview.likelyTarget).toMatchObject({
@@ -145,8 +145,31 @@ describe("debug upgrade scenarios", () => {
       distance: 3,
       inRange: false
     });
-    expect(preview.nextMove?.to).toEqual({ row: 1, col: 1, layer: "ground" });
-    expect(preview.rangeCells.map(positionKey)).toContain("ground:1:1");
+    expect(preview.nextMove?.to).toEqual({ row: 2, col: 2, layer: "ground" });
+    expect(preview.rangeCells.map(positionKey)).toContain("ground:2:2");
+
+    const rangedPreview = buildEngagementPreview({
+      catalog: sampleCatalog,
+      playerBoard: scenarioRun.board,
+      enemyBoard: sampleCatalog.encountersById.get("early_ember_pressure")?.loadout
+        .board ?? { placements: [] },
+      playerActiveCards: scenarioRun.activeCards,
+      selectedCardInstanceId: rangedPlacement.cardInstanceId,
+      selectedSide: "playerA"
+    });
+
+    expect(rangedPreview.selected).toMatchObject({
+      name: "Sparkcatch Apprentice",
+      position: { row: 2, col: 3, layer: "ground" },
+      range: 2,
+      identity: "Ranged"
+    });
+    expect(rangedPreview.likelyTarget).toMatchObject({
+      name: "Ember Scraprunner",
+      distance: 2,
+      inRange: true
+    });
+    expect(rangedPreview.nextMove).toBeUndefined();
     expect(JSON.parse(JSON.stringify(scenarioRun))).toEqual(scenarioRun);
   });
 });

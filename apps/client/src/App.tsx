@@ -507,6 +507,7 @@ const hexNoun = (count: number): string => (count === 1 ? "hex" : "hexes");
 const previewReasonText = (reason: string | undefined): string => {
   switch (reason) {
     case "Nearest valid target.":
+    case "Nearest valid enemy.":
       return "nearest valid enemy.";
     case "Guard is prioritized.":
       return "Guard enemy is prioritized.";
@@ -543,7 +544,11 @@ const EngagementPreviewPanel = ({ preview }: { readonly preview: EngagementPrevi
   }
 
   const target = preview.likelyTarget;
-  const statusLabel = target?.inRange ? "Attack now" : target ? "Closing" : "No target";
+  const statusLabel = target?.inRange
+    ? "Attack now"
+    : target
+      ? "Out of range"
+      : "No target";
   const headline = target
     ? target.inRange
       ? preview.selected.identity === "Ranged" && target.distance > 1
@@ -688,6 +693,7 @@ const BoardGridView = ({
                   data-target-in-range={isTargetInRangeCell ? "true" : "false"}
                   data-target-out-of-range={isTargetOutOfRangeCell ? "true" : "false"}
                   data-next-move={isNextMoveCell ? "true" : "false"}
+                  data-movement-blocked={isBlockedSelectedCell ? "true" : "false"}
                   data-preview-quiet={isPreviewQuietCell ? "true" : "false"}
                 >
                   <div className="board-grid-coordinate">
@@ -703,13 +709,22 @@ const BoardGridView = ({
                     <span className="board-preview-marker range">Range</span>
                   ) : null}
                   {isLikelyTargetCell ? (
-                    <span
-                      className={`board-preview-marker target ${
-                        isTargetInRangeCell ? "in-range" : "out-of-range"
-                      }`}
-                    >
-                      {isTargetInRangeCell ? "Attack" : "Out of range"}
-                    </span>
+                    <>
+                      <span
+                        className={`board-preview-marker target-label ${
+                          isTargetInRangeCell ? "in-range" : "out-of-range"
+                        }`}
+                      >
+                        Target
+                      </span>
+                      <span
+                        className={`board-preview-marker target-status ${
+                          isTargetInRangeCell ? "in-range" : "out-of-range"
+                        }`}
+                      >
+                        {isTargetInRangeCell ? "Attack" : "Out of range"}
+                      </span>
+                    </>
                   ) : null}
                   {isNextMoveCell ? (
                     <span className="board-preview-marker move">Next move</span>

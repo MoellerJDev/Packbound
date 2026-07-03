@@ -846,18 +846,18 @@ h4 {
 }
 
 .board-grid.has-preview .board-grid-cell.preview-quiet.empty {
-  background: #f6f8f6;
-  box-shadow: inset 0 0 0 1px #edf2ee;
-  color: #c1c8c4;
+  background: #fafbf9;
+  box-shadow: inset 0 0 0 1px #f1f4f0;
+  color: #cbd2cd;
 }
 
 .board-grid.has-preview .board-grid-cell.preview-quiet.occupied {
-  background: #f6f3e8;
-  box-shadow: inset 0 0 0 1px #d9d2ba;
+  background: #f8f6ed;
+  box-shadow: inset 0 0 0 1px #e3ddc8;
 }
 
 .board-grid.has-preview .board-grid-cell.preview-quiet.occupied .board-grid-layer {
-  opacity: 0.66;
+  opacity: 0.5;
 }
 
 .board-grid.has-preview .board-grid-cell.preview-quiet .board-grid-coordinate,
@@ -866,10 +866,11 @@ h4 {
 }
 
 .board-grid-cell.preview-range {
-  background: #d8f1df;
+  background: #c3edcf;
   box-shadow:
-    inset 0 0 0 3px #4da768,
-    inset 0 0 0 7px rgb(255 255 255 / 0.54);
+    inset 0 0 0 4px #208348,
+    inset 0 0 0 8px rgb(255 255 255 / 0.5),
+    0 0 0 1px rgb(32 131 72 / 0.28);
 }
 
 .board-grid-cell.preview-range.occupied .board-grid-layer {
@@ -877,46 +878,51 @@ h4 {
 }
 
 .board-grid-cell.preview-selected {
-  background: #fff0bc;
+  background: #ffe38b;
   box-shadow:
-    inset 0 0 0 3px #e2a900,
-    inset 0 0 0 7px rgb(255 255 255 / 0.62),
-    0 0 0 2px rgb(226 169 0 / 0.16);
+    inset 0 0 0 4px #a86f00,
+    inset 0 0 0 8px rgb(255 255 255 / 0.56),
+    0 0 0 2px rgb(168 111 0 / 0.2);
 }
 
 .board-grid-cell.preview-target {
-  background: #f9e2dc;
+  background: #ffd4c8;
   box-shadow:
-    inset 0 0 0 3px #c84635,
-    inset 0 0 0 7px rgb(255 255 255 / 0.52);
+    inset 0 0 0 4px #ad2f20,
+    inset 0 0 0 8px rgb(255 255 255 / 0.48),
+    0 0 0 2px rgb(173 47 32 / 0.2);
 }
 
 .board-grid-cell.preview-target.preview-target-in-range {
-  background: #d5f2dd;
+  background: #b7ecc5;
   box-shadow:
-    inset 0 0 0 3px #187a3d,
-    inset 0 0 0 7px rgb(255 255 255 / 0.52);
+    inset 0 0 0 4px #146d35,
+    inset 0 0 0 8px rgb(255 255 255 / 0.48),
+    0 0 0 2px rgb(20 109 53 / 0.2);
 }
 
 .board-grid-cell.preview-target.preview-target-out-of-range {
-  background: #fbded6;
+  background: #ffc7bb;
   box-shadow:
-    inset 0 0 0 3px #cb3f2d,
-    inset 0 0 0 7px rgb(255 255 255 / 0.5);
+    inset 0 0 0 4px #b83225,
+    inset 0 0 0 8px rgb(255 255 255 / 0.46),
+    0 0 0 2px rgb(184 50 37 / 0.2);
 }
 
 .board-grid-cell.preview-next-move {
-  background: #dce6ff;
+  background: #c9d8ff;
   box-shadow:
-    inset 0 0 0 3px #315fc6,
-    inset 0 0 0 7px rgb(255 255 255 / 0.5);
+    inset 0 0 0 4px #254fb8,
+    inset 0 0 0 8px rgb(255 255 255 / 0.48),
+    0 0 0 2px rgb(37 79 184 / 0.2);
 }
 
 .board-grid-cell.preview-blocked {
-  background: #f4e5d7;
+  background: #f0d7c2;
   box-shadow:
-    inset 0 0 0 3px #8f6040,
-    inset 0 0 0 7px rgb(255 255 255 / 0.48);
+    inset 0 0 0 4px #7b5135,
+    inset 0 0 0 8px rgb(255 255 255 / 0.46),
+    0 0 0 2px rgb(123 81 53 / 0.2);
 }
 
 .board-grid-cell.preview-target .board-grid-layer,
@@ -941,18 +947,23 @@ h4 {
   z-index: 2;
 }
 
+.board-grid.has-preview .board-grid-cell.preview-active .board-grid-coordinate {
+  top: 24%;
+}
+
 .board-preview-marker {
   border-radius: 999px;
   color: #fbfcfa;
-  font-size: 0.45rem;
+  font-size: 0.48rem;
   font-weight: 900;
   left: 50%;
   line-height: 1;
   max-width: calc(var(--hex-w) - 8px);
   overflow: hidden;
-  padding: 2px 4px;
+  padding: 3px 5px;
   pointer-events: none;
   position: absolute;
+  text-align: center;
   text-overflow: ellipsis;
   text-transform: uppercase;
   transform: translateX(-50%);
@@ -970,17 +981,34 @@ h4 {
   bottom: 10%;
 }
 
-.board-preview-marker.target {
+.board-preview-marker.target-label {
   background: #ac3528;
-  bottom: 9%;
+  top: 6%;
 }
 
-.board-preview-marker.target.in-range {
+.board-preview-marker.target-status {
+  background: #ac3528;
+  bottom: 8%;
+}
+
+.board-preview-marker.target-label.in-range,
+.board-preview-marker.target-status.in-range {
   background: #146d35;
 }
 
-.board-preview-marker.target.out-of-range {
+.board-preview-marker.target-label.out-of-range,
+.board-preview-marker.target-status.out-of-range {
   background: #b83225;
+}
+
+.board-preview-marker.target-status.out-of-range {
+  border-radius: 5px;
+  bottom: 5%;
+  font-size: 0.42rem;
+  line-height: 0.9;
+  max-width: calc(var(--hex-w) - 6px);
+  padding: 2px 3px;
+  white-space: normal;
 }
 
 .board-preview-marker.move {

@@ -81,7 +81,7 @@ describe("engagement preview", () => {
       to: pos(0, 1),
       reason: "Target is out of range."
     });
-    expect(result.targetingReason).toBe("Nearest valid target.");
+    expect(result.targetingReason).toBe("Nearest valid enemy.");
     expect(result.explanation).toContain(
       "Out of range: would move one hex toward r0 c1."
     );
@@ -104,7 +104,7 @@ describe("engagement preview", () => {
       inRange: true
     });
     expect(result.nextMove).toBeUndefined();
-    expect(result.targetingReason).toBe("Nearest valid target.");
+    expect(result.targetingReason).toBe("Nearest valid enemy.");
     expect(result.explanation).toContain("In range: can attack this target now.");
   });
 
@@ -125,7 +125,7 @@ describe("engagement preview", () => {
       inRange: true
     });
     expect(result.nextMove).toBeUndefined();
-    expect(result.targetingReason).toBe("Nearest valid target.");
+    expect(result.targetingReason).toBe("Nearest valid enemy.");
     expect(result.explanation).toContain("In range: can attack this target now.");
   });
 
@@ -187,11 +187,9 @@ describe("engagement preview", () => {
       inRange: false
     });
     expect(result.nextMove).toBeUndefined();
-    expect(result.blockedMovementReason).toBe(
-      "Movement blocked by occupied ground hex or board edge."
-    );
+    expect(result.blockedMovementReason).toBe("Movement blocked by occupied ground hex.");
     expect(result.explanation).toContain(
-      "Out of range: movement blocked by occupied ground hex or board edge."
+      "Out of range: Movement blocked by occupied ground hex."
     );
   });
 

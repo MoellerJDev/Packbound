@@ -3,6 +3,7 @@ import {
   BOARD_COLS,
   BOARD_ROWS,
   hexDistance,
+  hexNeighbors,
   hexStepToward,
   positionKey,
   type BoardPosition,
@@ -176,7 +177,7 @@ const targetingReason = (
     return "Airborne attacker prioritizes lowest health before distance.";
   }
 
-  return "Nearest valid target.";
+  return "Nearest valid enemy.";
 };
 
 const selectLikelyTarget = (
@@ -236,6 +237,29 @@ const occupiedGroundPositionKeys = (
       )
       .map((unit) => positionKey(unit.position))
   );
+
+const blockedMovementText = (
+  movingUnit: PreviewUnit,
+  target: PreviewUnit,
+  occupiedGround: ReadonlySet<string>
+): string => {
+  const currentDistance = hexDistance(movingUnit.position, target.position);
+  const closerNeighbors = hexNeighbors(movingUnit.position).filter(
+    (position) => hexDistance(position, target.position) < currentDistance
+  );
+
+  if (closerNeighbors.length === 0) {
+    return "Movement blocked by board edge.";
+  }
+
+  const blockedByGround = closerNeighbors.every((position) =>
+    occupiedGround.has(positionKey(position))
+  );
+
+  return blockedByGround
+    ? "Movement blocked by occupied ground hex."
+    : "Movement blocked by occupied ground hex or board edge.";
+};
 
 const coordinateText = (position: Pick<BoardPosition, "row" | "col">): string =>
   `r${position.row} c${position.col}`;
@@ -343,12 +367,14 @@ export const buildEngagementPreview = ({
     };
   }
 
+  const occupiedGround = occupiedGroundPositionKeys(allUnits, selected);
   const nextStep = hexStepToward(
     selected.position,
     target.position,
-    occupiedGroundPositionKeys(allUnits, selected),
+    occupiedGround,
     inBoardBounds
   );
+  const blockedReason = blockedMovementText(selected, target, occupiedGround);
 
   return {
     selected: selectedPreview,
@@ -363,14 +389,14 @@ export const buildEngagementPreview = ({
           }
         }
       : {
-          blockedMovementReason: "Movement blocked by occupied ground hex or board edge."
+          blockedMovementReason: blockedReason
         }),
     targetingReason: targetResult.reason,
     explanation: [
       ...explanation,
       nextStep
         ? `Out of range: would move one hex toward ${coordinateText(nextStep)}.`
-        : "Out of range: movement blocked by occupied ground hex or board edge."
+        : `Out of range: ${blockedReason}`
     ]
   };
 };

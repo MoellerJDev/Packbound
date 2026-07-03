@@ -89,8 +89,8 @@ export const applyEngagementLabScenario = (run: RunState): RunState => {
     currentEncounterId: DEBUG_ENGAGEMENT_ENCOUNTER_ID,
     board: {
       placements: [
-        engagementLabPlacement(melee, 1, 0),
-        engagementLabPlacement(ranged, 1, 2)
+        engagementLabPlacement(melee, 2, 1),
+        engagementLabPlacement(ranged, 2, 3)
       ]
     },
     activeCards: [melee, ranged]

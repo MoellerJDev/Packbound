@@ -10,6 +10,7 @@ import {
   buildRunTraitSummary,
   buildCombatantSetupForEncounter,
   buildCombatantSetupForRun,
+  buildEncounterCombatChargeProfileForRun,
   canApplyReward,
   canDeployCommander,
   canEditLoadout,
@@ -45,6 +46,7 @@ import {
   type CommanderLifecycleHistoryEntry,
   type CommanderUpgradeId,
   type EngagementPreviewSide,
+  type EncounterCombatChargeProfile,
   type EncounterMatchState,
   type LoadoutAction,
   type RunState,
@@ -182,17 +184,34 @@ const createDebugRun = (starterKitId: string): RunState =>
   );
 
 const firstStarterKitId = sampleCatalog.starterKits[0]?.id ?? "ember_scrappers";
-const PRIORITY_LAB_MIN_PLAYER_COMBAT_CHARGE = 2;
-const priorityLabPlayerCombatChargeForRun = (run: RunState): number =>
-  Math.max(
-    PRIORITY_LAB_MIN_PLAYER_COMBAT_CHARGE,
-    Math.ceil(buildLoadoutResourceSummary(run, sampleCatalog).combatChargePerSecond)
+const PRIORITY_LAB_TARGET_PLAYER_COMBAT_CHARGE = 2;
+type PriorityLabCombatChargeSetup = {
+  readonly profile: EncounterCombatChargeProfile;
+  readonly debugTopUp: number;
+  readonly playerCombatCharge: number;
+};
+const priorityLabCombatChargeSetupForRun = (
+  run: RunState
+): PriorityLabCombatChargeSetup => {
+  const profile = buildEncounterCombatChargeProfileForRun(run, sampleCatalog);
+  const debugTopUp = Math.max(
+    0,
+    PRIORITY_LAB_TARGET_PLAYER_COMBAT_CHARGE - profile.startingCombatCharge
   );
-const createPriorityLabMatch = (playerCombatCharge = 0): EncounterMatchState =>
+
+  return {
+    profile,
+    debugTopUp,
+    playerCombatCharge: profile.startingCombatCharge + debugTopUp
+  };
+};
+const createPriorityLabMatch = (
+  chargeSetup: PriorityLabCombatChargeSetup
+): EncounterMatchState =>
   createEncounterMatch({
     matchId: "debug-priority-lab",
     seed: "client-debug-priority-lab",
-    playerCombatCharge
+    playerCombatCharge: chargeSetup.playerCombatCharge
   });
 
 type RecordedCombatDebug = {
@@ -254,7 +273,7 @@ export function App() {
   const [selectedStarterKitId, setSelectedStarterKitId] = useState(firstStarterKitId);
   const [run, setRun] = useState(() => createDebugRun(firstStarterKitId));
   const [priorityMatch, setPriorityMatch] = useState(() =>
-    createPriorityLabMatch(priorityLabPlayerCombatChargeForRun(run))
+    createPriorityLabMatch(priorityLabCombatChargeSetupForRun(run))
   );
   const [lastRecordedCombat, setLastRecordedCombat] = useState<
     RecordedCombatDebug | undefined
@@ -312,6 +331,10 @@ export function App() {
   const validation = useMemo(() => validateRunLoadout(run, sampleCatalog), [run]);
   const resourceSummary = useMemo(
     () => buildLoadoutResourceSummary(run, sampleCatalog),
+    [run]
+  );
+  const priorityLabCombatChargeSetup = useMemo(
+    () => priorityLabCombatChargeSetupForRun(run),
     [run]
   );
   const traitSummary = useMemo(() => buildRunTraitSummary(run, sampleCatalog), [run]);
@@ -685,11 +708,10 @@ export function App() {
 
   const resetRun = (starterKitId = selectedStarterKitId) => {
     const nextRun = createDebugRun(starterKitId);
+    const nextPriorityChargeSetup = priorityLabCombatChargeSetupForRun(nextRun);
     setSelectedStarterKitId(starterKitId);
     setRun(nextRun);
-    setPriorityMatch(
-      createPriorityLabMatch(priorityLabPlayerCombatChargeForRun(nextRun))
-    );
+    setPriorityMatch(createPriorityLabMatch(nextPriorityChargeSetup));
     setLastRecordedCombat(undefined);
     setSelectedAllyCardRef(undefined);
     setSelectedEnemyCardRef(undefined);
@@ -1171,7 +1193,7 @@ export function App() {
   };
 
   const resetPriorityLab = () => {
-    setPriorityMatch(createPriorityLabMatch(priorityLabPlayerCombatChargeForRun(run)));
+    setPriorityMatch(createPriorityLabMatch(priorityLabCombatChargeSetup));
   };
 
   const playRendererReplay = () => {
@@ -1754,6 +1776,8 @@ export function App() {
       {activeDebugScenarioId === DEBUG_PRIORITY_SCENARIO_ID ? (
         <PriorityLabPanel
           match={priorityMatch}
+          combatChargeProfile={priorityLabCombatChargeSetup.profile}
+          debugCombatChargeTopUp={priorityLabCombatChargeSetup.debugTopUp}
           canRunCombat={
             priorityMatch.phase === "combat" && priorityLabCombat !== undefined
           }

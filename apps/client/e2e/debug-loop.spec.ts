@@ -422,11 +422,31 @@ test("priority lab alternates priority, resolves the stack, and records combat",
   ).toBeVisible();
   await expect(priorityPanel.getByText("Enemy stability", { exact: true })).toBeVisible();
   await expect(
-    priorityPanel.getByText("Player Combat Charge", { exact: true })
+    priorityPanel.getByText("Current Player Combat Charge", { exact: true })
   ).toBeVisible();
   await expect(priorityPanel.getByTestId("priority-player-combat-charge")).toHaveText(
     "2"
   );
+  await expect(
+    priorityPanel.getByText("Source-derived starting Combat Charge", { exact: true })
+  ).toBeVisible();
+  await expect(
+    priorityPanel.getByTestId("priority-source-derived-combat-charge")
+  ).toHaveText("1");
+  await expect(
+    priorityPanel.getByTestId("priority-source-combat-charge-rate")
+  ).toHaveText("0.35");
+  await expect(
+    priorityPanel.getByTestId("priority-debug-combat-charge-top-up")
+  ).toHaveText("+1");
+  await expect(priorityPanel.getByTestId("priority-combat-charge-profile")).toHaveText(
+    "1 Source contributes 0.35 Combat Charge/sec, rounded up to 1 starting Combat Charge."
+  );
+  await expect(
+    priorityPanel.getByText(
+      "Priority Lab debug top-up adds +1 Combat Charge for this scenario."
+    )
+  ).toBeVisible();
   await expect(priorityPanel.getByTestId("priority-enemy-combat-charge")).toHaveText("0");
   await expect(priorityPanel.getByText("Action Stack")).toBeVisible();
   await expect(priorityPanel.getByText("Action Log")).toBeVisible();

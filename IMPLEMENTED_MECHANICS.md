@@ -84,6 +84,10 @@ The rules package now includes a minimal serializable encounter match reducer:
   and source-used-on-resolve lifecycle. Combat Charge is paid on submission and
   source lifecycle is still recorded on resolution; neither path moves or
   consumes `RunState` cards.
+- Encounter setup can build a serializable Combat Charge profile from the run's
+  Source Row. It sums valid Source cards' `combatChargePerSecond`, rounds the
+  total to four decimals, and uses `Math.ceil(total)` as starting match-local
+  player Combat Charge.
 - Contract targets currently support only no target or match-local Stability
   targets. The prototype pressure actions derive and store the opposing actor's
   Stability target when they are submitted.
@@ -96,6 +100,9 @@ The rules package now includes a minimal serializable encounter match reducer:
 - Submitted actions enter a LIFO action stack and pass priority to the opponent.
 - Encounter match state tracks `playerCombatCharge`, `enemyCombatCharge`, and
   serializable cost payment events.
+- Priority Lab initializes player Combat Charge from the Source Row-derived
+  profile. Its extra charge for exercising both current paid actions is an
+  explicitly labeled lab-only debug top-up, not hidden rules behavior.
 - `main_phase_pressure` is the first real encounter main-phase action skeleton:
   the Priority Lab labels it `Prototype Pressure Technique`, it is legal during
   first main or second main priority, pays 1 match-local Combat Charge when
@@ -137,8 +144,9 @@ Current encounter shell limitations:
   but they are not connected to hand, deck, mill, enemy AI, RunState zone
   changes, target selection UI, or content-authored card effects yet.
 - The action contract is not a full authored effect engine. It has no Combat
-  Charge sourcing from `RunState`, refunds, arbitrary unit/board/card targeting,
-  effect graphs, interrupts, or RunState mutation hooks.
+  Charge refunds, real-time generation, Source exhaustion, cross-encounter
+  persistence, arbitrary unit/board/card targeting, effect graphs, interrupts,
+  or RunState mutation hooks.
 - There are no real card timing windows, counterspells, manual blockers, hidden
   intent choices, deck/hand/mill zones, multiplayer networking, backend
   persistence, or new cards attached to this shell yet.

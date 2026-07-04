@@ -136,6 +136,14 @@ seeds enough player Combat Charge to exercise both actions, and paid cost events
 show before/after charge totals separately from source-used-on-resolve events.
 This does not spend or exhaust `RunState` Sources yet.
 
+Implementation update after this task: encounter Combat Charge setup now has a
+rules-layer Source Row bridge. `buildEncounterCombatChargeProfileForRun` sums
+valid Source Row Combat Charge/sec and rounds up to deterministic starting
+match-local player Combat Charge. Priority Lab now shows the source-derived
+starting charge, Source Row Combat Charge/sec, current match-local charge, and
+an explicitly labeled +1 debug top-up used only so the lab can queue both
+current paid actions.
+
 Implementation update after this task: the renderer-lab replay controller and
 Pixi renderer now guard replay command completions with the current reset
 generation and session-scoped busy state. Browser smoke covers `Step -> Reset ->
@@ -163,6 +171,8 @@ Recommended next task:
   `8ef4e4def59ae048ee214a6e5bf96674ed4025b4`
 - Baseline before encounter action paid-cost prototype:
   `89f9c31addcac041d9d9298107ad06ce8bf29369`
+- Baseline before encounter charge Source Row bridge:
+  `c8e65e86b7af7a980d42a6b421edc14432d5f6fc`
 - Implementation verified: local working tree for
   `feat(rules): add commander encounter action skeleton`
 - Baseline: `main`, aligned with `origin/main`
@@ -449,10 +459,13 @@ Lab shows this directly:
 The lab is no longer debug-action-only in the UI. It now has one Spellrail
 Technique prototype action and one deployed-Commander prototype action, both
 with minimal source context, contract timing/target/effect metadata, and
-match-local source lifecycle. Known limitation: these are still abstract
-prototype actions with only match-local paid cost, no hand/deck/mill sourcing,
-target selection, RunState card movement, enemy action choice, refunds, or
-authored effect system.
+match-local source lifecycle. The action economy is now easier to read because
+Priority Lab separates `Source-derived starting Combat Charge: 1`, `Source Row
+Combat Charge/sec: 0.35`, `Priority Lab debug top-up: +1`, and current player
+Combat Charge. Known limitation: these are still abstract prototype actions with
+only starting-charge setup from Source Row, no hand/deck/mill sourcing, target
+selection, RunState card movement, enemy action choice, real-time charge
+generation, refunds, or authored effect system.
 
 ## 8. `?scenario=upgrade-lab`
 
@@ -684,10 +697,11 @@ Note:
   deployed Commander. They now use a minimal static contract for timing, labels,
   source-used-on-resolve lifecycle, explicit Stability target metadata, and
   match-local Stability effects. They pay match-local Combat Charge on
-  submission, but still have no target selection UI, hand/deck/mill, source card
-  movement, RunState mutation on resolution, refunds, enemy AI, interrupts,
-  counterspells, arbitrary unit/board/card targeting, or authored card effect
-  resolution.
+  submission from Source Row-derived starting charge, with a Priority Lab-only
+  debug top-up to exercise both actions. They still have no target selection UI,
+  hand/deck/mill, source card movement, RunState mutation on resolution,
+  real-time charge generation, refunds, enemy AI, interrupts, counterspells,
+  arbitrary unit/board/card targeting, or authored card effect resolution.
 - Combat simulation remains deterministic and unchanged.
 - Traits/teamups remain display-only.
 - Duplicate upgrades remain generic +1 ATK/+1 HP combines.
@@ -715,7 +729,7 @@ Do soon:
 - `feat(client): tune Pixi combat effect timing after manual readability pass`
 - `feat(client): keep selected target and next move visible together in preview labs`
 - `feat(client): group or filter long combat summary events`
-- `feat(rules): source encounter Combat Charge from RunState`
+- `feat(rules): add encounter resource persistence and refresh rules`
 
 Still wait:
 

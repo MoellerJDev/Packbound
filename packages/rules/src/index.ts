@@ -7,6 +7,7 @@ export * from "./engagementPreview";
 export * from "./encounterActionContracts";
 export * from "./encounterActionSources";
 export * from "./encounterMatch";
+export * from "./encounterResources";
 export * from "./encounters";
 export * from "./instances";
 export * from "./loadout";

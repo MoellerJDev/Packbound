@@ -210,6 +210,13 @@ work: source context, resolved Stability target metadata, Stability changes, and
 source lifecycle events are match-local and do not move cards, alter Commander
 lifecycle history, or mutate run zones.
 
+Encounter resource setup is a separate rules-layer bridge. It reads the
+`RunState` Source Row plus catalog, sums valid Source cards'
+`combatChargePerSecond`, returns a serializable resource profile, and lets the
+client or future encounter setup pass `startingCombatCharge` into
+`createEncounterMatch`. The match reducer still stores only match-local Combat
+Charge and does not import `RunState` or content catalog data.
+
 Encounter action definitions live as static rules-layer contracts. They declare
 action kind, label, timing, source lifecycle, target requirement, costs, and
 effects for the current prototype actions. Combat Charge costs are paid from
@@ -217,8 +224,8 @@ match-local actor charge on submission and recorded as serializable cost payment
 events. Source-used-on-resolve remains a separate resolution-time lifecycle
 event. Effects currently mutate only match-local Stability through stored target
 metadata. The contract registry is deliberately not an authored card-effect
-engine, does not source or exhaust Combat Charge from `RunState`, does not
-select arbitrary unit/board/card targets, and does not mutate `RunState`.
+engine, does not exhaust or refund Source Row charge, does not select arbitrary
+unit/board/card targets, and does not mutate `RunState`.
 
 ### `packages/sim`
 

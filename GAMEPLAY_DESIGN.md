@@ -381,9 +381,13 @@ target on the stack, so resolution reads the action's intent instead of only
 inferring an opponent from the acting player. The current prototype also proves
 the first paid encounter-action bridge: Prototype Pressure Technique and
 Commander Rally pay a small match-local Combat Charge cost when submitted,
-separate from their source-used-on-resolve lifecycle. This keeps future actions
-from becoming one-off reducer switches while still avoiding hand/deck/mill,
-arbitrary unit/board/card targets, counterspells, refunds, or RunState mutation.
+separate from their source-used-on-resolve lifecycle. Encounter setup can now
+derive starting player Combat Charge from the run's Source Row by rounding up
+the installed Sources' total Combat Charge/sec, so the action economy is
+beginning to point back to pack-and-loadout choices without adding real-time
+ticking or Source exhaustion. This keeps future actions from becoming one-off
+reducer switches while still avoiding hand/deck/mill, arbitrary unit/board/card
+targets, counterspells, refunds, or RunState mutation.
 
 The prototype still supports Commander deploy/return only through planning-window
 run actions. Later, Commander deployment, Rebind, voluntary return, Signature
@@ -395,9 +399,9 @@ Do not add a full hand/deck/mill system just to support Commanders. The first
 Commander prototype now proves zone lifecycle, planning deployment, planning
 return, generic Board Charge Rebind Tax enforcement, post-combat destruction
 return, reward-phase upgrade choices, lifecycle history, reducer replay, and one
-match-local Commander encounter action with a paid Combat Charge cost. Next
-Commander work should add richer target types, more complete cost sourcing, or
-authored ability hooks in focused slices.
+match-local Commander encounter action with a Source Row-derived paid Combat
+Charge setup. Next Commander work should add richer target types, fuller
+encounter resource lifecycle rules, or authored ability hooks in focused slices.
 
 ### Commander Non-Goals For Now
 

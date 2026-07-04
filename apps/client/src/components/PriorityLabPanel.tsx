@@ -5,11 +5,14 @@ import {
   describeEncounterActionTarget,
   type EncounterActionSource,
   type EncounterActor,
+  type EncounterCombatChargeProfile,
   type EncounterMatchState
 } from "@packbound/rules";
 
 type PriorityLabPanelProps = {
   readonly match: EncounterMatchState;
+  readonly combatChargeProfile: EncounterCombatChargeProfile;
+  readonly debugCombatChargeTopUp: number;
   readonly canRunCombat: boolean;
   readonly prototypeActionSource: EncounterActionSource | undefined;
   readonly canSubmitPrototypeAction: boolean;
@@ -68,6 +71,8 @@ const sourceContextLabel = (source: EncounterActionSource): string =>
 
 export const PriorityLabPanel = ({
   match,
+  combatChargeProfile,
+  debugCombatChargeTopUp,
   canRunCombat,
   prototypeActionSource,
   canSubmitPrototypeAction,
@@ -149,11 +154,31 @@ export const PriorityLabPanel = ({
             <dd>{match.enemyStability}</dd>
           </div>
           <div>
-            <dt>Player Combat Charge</dt>
+            <dt>Current Player Combat Charge</dt>
             <dd data-testid="priority-player-combat-charge">
               {match.playerCombatCharge}
             </dd>
           </div>
+          <div>
+            <dt>Source-derived starting Combat Charge</dt>
+            <dd data-testid="priority-source-derived-combat-charge">
+              {combatChargeProfile.startingCombatCharge}
+            </dd>
+          </div>
+          <div>
+            <dt>Source Row Combat Charge/sec</dt>
+            <dd data-testid="priority-source-combat-charge-rate">
+              {combatChargeProfile.combatChargePerSecond}
+            </dd>
+          </div>
+          {debugCombatChargeTopUp > 0 ? (
+            <div>
+              <dt>Priority Lab debug top-up</dt>
+              <dd data-testid="priority-debug-combat-charge-top-up">
+                +{debugCombatChargeTopUp}
+              </dd>
+            </div>
+          ) : null}
           <div>
             <dt>Enemy Combat Charge</dt>
             <dd data-testid="priority-enemy-combat-charge">{match.enemyCombatCharge}</dd>
@@ -202,6 +227,14 @@ export const PriorityLabPanel = ({
             Reset Encounter Lab
           </button>
         </div>
+        <p className="muted">
+          <span data-testid="priority-combat-charge-profile">
+            {combatChargeProfile.explanation}
+          </span>
+          {debugCombatChargeTopUp > 0
+            ? ` Priority Lab debug top-up adds +${debugCombatChargeTopUp} Combat Charge for this scenario.`
+            : ""}
+        </p>
         <p className="muted">
           Source:{" "}
           {prototypeActionSource

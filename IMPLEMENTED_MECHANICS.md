@@ -44,7 +44,8 @@ The rules package now has a minimal, rules-first Commander lifecycle prototype.
   and is once per encounter through match-local source lifecycle state.
 - Encounter actions now use a minimal static cost/effect contract in the rules
   layer. The contract declares action kind, label, timing, source lifecycle,
-  costs, and match-local effects for the current prototype actions.
+  target requirement, costs, and match-local effects for the current prototype
+  actions.
 - Planning/reward Commander actions are replayable run actions, deterministic,
   immutable, and JSON-serializable. Commander Rally is deterministic and
   JSON-serializable as match-local encounter state.
@@ -83,8 +84,11 @@ The rules package now includes a minimal serializable encounter match reducer:
   lifecycle. This is the one real cost-like behavior today; it records
   match-local source lifecycle events and does not move or consume `RunState`
   cards.
-- Contract effects currently support match-local Stability deltas only. The two
-  prototype real actions reduce the opposing actor's Stability by 1.
+- Contract targets currently support only no target or match-local Stability
+  targets. The prototype pressure actions derive and store the opposing actor's
+  Stability target when they are submitted.
+- Contract effects currently support target-based match-local Stability deltas
+  only. The two prototype real actions reduce their stored Stability target by 1.
 - Encounters start in `firstMain` with the active actor holding priority.
 - Empty-stack double passes advance `firstMain` to `combat`, `secondMain` to
   `end`, and `end` into the next turn.
@@ -93,11 +97,12 @@ The rules package now includes a minimal serializable encounter match reducer:
 - `main_phase_pressure` is the first real encounter main-phase action skeleton:
   the Priority Lab labels it `Prototype Pressure Technique`, it is legal during
   first main or second main priority, and it deterministically reduces the
-  opposing actor's stability by 1 when it resolves.
+  stored opposing Stability target by 1 when it resolves.
 - `commander_rally` is the first Commander-sourced encounter action skeleton:
   the Priority Lab labels it `Commander Rally`, validates that the run player's
   Commander is deployed on the board, queues it through the same stack/pass flow,
-  resolves for enemy stability -1, and records its source as used when resolved.
+  resolves against the stored enemy Stability target for -1, and records its
+  source as used when resolved.
 - Queued encounter actions can optionally carry minimal source-card context:
   `cardInstanceId`, `cardDefId`, `cardName`, and `zone`. Priority Lab currently
   submits the prototype action through a rules helper that validates the source
@@ -107,6 +112,10 @@ The rules package now includes a minimal serializable encounter match reducer:
   serializable source lifecycle event and prevents that same source from being
   queued again during the encounter. This still does not consume, move, exhaust,
   or otherwise mutate that source in `RunState`.
+- Queued encounter actions can also carry minimal target context. Current
+  submitted pressure actions store a JSON-serializable Stability target such as
+  `Enemy Stability` or `Player Stability`; resolution validates and applies
+  effects through that stored target metadata.
 - Debug placeholder actions still exist for reducer diagnostics and backward
   compatibility with focused tests.
 - Two consecutive passes with a non-empty stack resolve the top action and
@@ -123,10 +132,11 @@ Current encounter shell limitations:
   source and one deployed Commander source. Their sources are validated against
   the current player run and catalog and record match-local lifecycle events,
   but they are not connected to hand, deck, mill, enemy AI, paid resource costs,
-  RunState zone changes, targeting choices, or content-authored card effects yet.
+  RunState zone changes, target selection UI, or content-authored card effects
+  yet.
 - The action contract is not a full authored effect engine. It has no Combat
-  Charge payment, arbitrary targeting, effect graphs, interrupts, or RunState
-  mutation hooks.
+  Charge payment, arbitrary unit/board/card targeting, effect graphs,
+  interrupts, or RunState mutation hooks.
 - There are no real card timing windows, counterspells, manual blockers, hidden
   intent choices, deck/hand/mill zones, multiplayer networking, backend
   persistence, or new cards attached to this shell yet.

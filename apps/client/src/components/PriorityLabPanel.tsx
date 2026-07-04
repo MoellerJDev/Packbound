@@ -1,6 +1,8 @@
 import {
+  defaultTargetForEncounterAction,
   describeEncounterActionCosts,
   describeEncounterActionEffects,
+  describeEncounterActionTarget,
   type EncounterActionSource,
   type EncounterActor,
   type EncounterMatchState
@@ -100,8 +102,14 @@ export const PriorityLabPanel = ({
     "main_phase_pressure",
     "player"
   );
+  const prototypeTargetText = describeEncounterActionTarget(
+    defaultTargetForEncounterAction("main_phase_pressure", "player")
+  );
   const commanderCostText = describeEncounterActionCosts("commander_rally", "Commander");
   const commanderEffectText = describeEncounterActionEffects("commander_rally", "player");
+  const commanderTargetText = describeEncounterActionTarget(
+    defaultTargetForEncounterAction("commander_rally", "player")
+  );
 
   return (
     <section className="debug-grid" aria-labelledby="priority-lab-heading">
@@ -201,6 +209,9 @@ export const PriorityLabPanel = ({
             <strong>Cost:</strong> {prototypeCostText}
           </span>
           <span>
+            <strong>Target:</strong> {prototypeTargetText}
+          </span>
+          <span>
             <strong>Effect:</strong> {prototypeEffectText}
           </span>
         </div>
@@ -243,6 +254,9 @@ export const PriorityLabPanel = ({
               <strong>Cost:</strong> {commanderCostText}
             </span>
             <span>
+              <strong>Target:</strong> {commanderTargetText}
+            </span>
+            <span>
               <strong>Effect:</strong> {commanderEffectText}
             </span>
           </div>
@@ -258,6 +272,9 @@ export const PriorityLabPanel = ({
                   <small>
                     {item.action.source
                       ? `Source: ${sourceContextLabel(item.action.source)} | `
+                      : ""}
+                    {item.action.target
+                      ? `Target: ${describeEncounterActionTarget(item.action.target)} | `
                       : ""}
                     #{item.index} | {encounterActorLabel(item.action.actor)} |{" "}
                     {item.action.kind}

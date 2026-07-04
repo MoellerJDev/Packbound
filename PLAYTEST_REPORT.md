@@ -122,6 +122,13 @@ lifecycle, labels, and opposing Stability -1 effects through the contract
 registry. Priority Lab now shows contract-driven Cost and Effect text for both
 actions.
 
+Implementation update after this task: encounter action contracts now also
+declare minimal target requirements. The prototype pressure actions derive and
+store explicit `Enemy Stability` or `Player Stability` target metadata on queued
+stack items, and resolution applies target-based Stability deltas through that
+stored metadata. This is still Stability-only targeting, not unit, board-cell,
+card, or target-selection UI.
+
 Implementation update after this task: the renderer-lab replay controller and
 Pixi renderer now guard replay command completions with the current reset
 generation and session-scoped busy state. Browser smoke covers `Step -> Reset ->
@@ -136,7 +143,7 @@ default-route confidence. Pixi should stay opt-in until those are addressed.
 
 Recommended next task:
 
-`feat(rules): add encounter action targeting contract`
+`feat(rules): add encounter action paid-cost prototype`
 
 ## 2. Environment And Commands
 
@@ -145,6 +152,8 @@ Recommended next task:
   `851ee27ec8e19600cc1fe2c1d679109036dc7bf1`
 - Baseline before Commander encounter action skeleton:
   `d0cc4bfab678d39ab65c5fb7de3b14fc9ca0e76e`
+- Baseline before encounter action targeting contract:
+  `8ef4e4def59ae048ee214a6e5bf96674ed4025b4`
 - Implementation verified: local working tree for
   `feat(rules): add commander encounter action skeleton`
 - Baseline: `main`, aligned with `origin/main`
@@ -422,17 +431,18 @@ now render separately. For example:
 The action text is now backed by a minimal encounter action contract. Priority
 Lab shows this directly:
 
-- Prototype Pressure Technique: `Cost: Uses Sparkfall on resolve.` and
-  `Effect: Enemy Stability -1.`
-- Commander Rally: `Cost: Uses Commander on resolve.` and
-  `Effect: Enemy Stability -1.`
+- Prototype Pressure Technique: `Cost: Uses Sparkfall on resolve.`,
+  `Target: Enemy Stability`, and `Effect: Enemy Stability -1.`
+- Commander Rally: `Cost: Uses Commander on resolve.`,
+  `Target: Enemy Stability`, and `Effect: Enemy Stability -1.`
 
 The lab is no longer debug-action-only in the UI. It now has one Spellrail
 Technique prototype action and one deployed-Commander prototype action, both
-with minimal source context, contract timing/effect metadata, and match-local
-source lifecycle. Known limitation: these are still abstract prototype actions
-with no paid resource cost, hand/deck/mill sourcing, targeting choice, RunState
-card movement, enemy action choice, or authored effect system.
+with minimal source context, contract timing/target/effect metadata, and
+match-local source lifecycle. Known limitation: these are still abstract
+prototype actions with no paid resource cost, hand/deck/mill sourcing, target
+selection, RunState card movement, enemy action choice, or authored effect
+system.
 
 ## 8. `?scenario=upgrade-lab`
 
@@ -662,10 +672,11 @@ Note:
 - Priority Lab has two real prototype actions with source context:
   `Prototype Pressure Technique` from Sparkfall and `Commander Rally` from a
   deployed Commander. They now use a minimal static contract for timing, labels,
-  source-used-on-resolve lifecycle, and match-local Stability effects. They still
-  have no paid resource cost, targeting choice, hand/deck/mill, source card
-  movement, RunState mutation on resolution, enemy AI, interrupts, counterspells,
-  or authored card effect resolution.
+  source-used-on-resolve lifecycle, explicit Stability target metadata, and
+  match-local Stability effects. They still have no paid resource cost, target
+  selection UI, hand/deck/mill, source card movement, RunState mutation on
+  resolution, enemy AI, interrupts, counterspells, arbitrary unit/board/card
+  targeting, or authored card effect resolution.
 - Combat simulation remains deterministic and unchanged.
 - Traits/teamups remain display-only.
 - Duplicate upgrades remain generic +1 ATK/+1 HP combines.
@@ -675,15 +686,16 @@ Note:
 
 Do next:
 
-`feat(rules): add encounter action targeting contract`
+`feat(rules): add encounter action paid-cost prototype`
 
 Why: Priority Lab now has two source-validated, stack-resolving prototype
 actions: `Prototype Pressure Technique` from Spellrail and `Commander Rally`
 from the deployed Commander, and both now share a minimal cost/effect contract.
-The next narrow slice should add explicit target metadata and validation so
-future authored Technique, Commander, or Signature Relic actions can say what
-they affect without adding hand/deck/mill, enemy Commanders, broad timing,
-counterspells, or a full authored effect engine.
+The target contract now makes their Stability targets explicit and serializable.
+The next narrow slice should make one action pay a real match-local resource
+cost, likely a small Combat Charge prototype, without adding hand/deck/mill,
+enemy Commanders, broad timing, counterspells, arbitrary targeting, RunState
+mutation, or a full authored effect engine.
 
 Do soon:
 
@@ -692,7 +704,7 @@ Do soon:
 - `feat(client): tune Pixi combat effect timing after manual readability pass`
 - `feat(client): keep selected target and next move visible together in preview labs`
 - `feat(client): group or filter long combat summary events`
-- `feat(rules): add encounter action paid-cost prototype`
+- `feat(rules): add encounter action unit/board target prototype`
 
 Still wait:
 

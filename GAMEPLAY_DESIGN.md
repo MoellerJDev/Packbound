@@ -193,10 +193,10 @@ The reward phase now has a minimal Commander upgrade choice prototype with
 Commander content or Signature Relics. The encounter shell now has one
 match-local main-phase Commander action skeleton, `Commander Rally`, but not an
 authored Commander ability system. Encounter actions now sit behind a minimal
-static cost/effect contract for timing, labels, source lifecycle, and
-match-local Stability effects. The prototype also records a structured lifecycle
-history for creation, deployment, return, destruction replacement, tax changes,
-and upgrade application.
+static contract for timing, labels, source lifecycle, Stability target
+requirements, and match-local Stability effects. The prototype also records a
+structured lifecycle history for creation, deployment, return, destruction
+replacement, tax changes, and upgrade application.
 
 ### Why Add A Commander Layer?
 
@@ -374,10 +374,14 @@ and marks that Commander source used for the encounter. It does not mutate
 
 The current encounter action contract is the next bridge toward authored
 Techniques, Commander actions, and future Signature Relics. It declares action
-labels, timing, source-used-on-resolve lifecycle, and simple match-local
-Stability effects without becoming a full effect DSL. This keeps future actions
-from becoming one-off reducer switches while still avoiding hand/deck/mill,
-Combat Charge payment, targeting, counterspells, or RunState mutation.
+labels, timing, source-used-on-resolve lifecycle, minimal Stability target
+requirements, and simple match-local Stability effects without becoming a full
+effect DSL. Submitted prototype actions now store their resolved Stability
+target on the stack, so resolution reads the action's intent instead of only
+inferring an opponent from the acting player. This keeps future actions from
+becoming one-off reducer switches while still avoiding hand/deck/mill, Combat
+Charge payment, arbitrary unit/board/card targets, counterspells, or RunState
+mutation.
 
 The prototype still supports Commander deploy/return only through planning-window
 run actions. Later, Commander deployment, Rebind, voluntary return, Signature
@@ -389,8 +393,8 @@ Do not add a full hand/deck/mill system just to support Commanders. The first
 Commander prototype now proves zone lifecycle, planning deployment, planning
 return, generic Board Charge Rebind Tax enforcement, post-combat destruction
 return, reward-phase upgrade choices, lifecycle history, reducer replay, and one
-match-local Commander encounter action. Next Commander work should add targeting,
-paid costs, or authored ability hooks in focused slices.
+match-local Commander encounter action. Next Commander work should add paid
+costs, richer target types, or authored ability hooks in focused slices.
 
 ### Commander Non-Goals For Now
 

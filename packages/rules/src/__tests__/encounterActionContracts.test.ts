@@ -1,13 +1,16 @@
 import { describe, expect, it } from "vitest";
 import {
   canUseEncounterActionDuringPhase,
+  defaultTargetForEncounterAction,
   describeEncounterActionCosts,
   describeEncounterActionEffects,
+  describeEncounterActionTarget,
   ENCOUNTER_ACTION_KINDS,
   getEncounterActionDefinition,
   labelForEncounterAction,
   resolveEncounterActionEffects,
-  sourceLifecycleForEncounterAction
+  sourceLifecycleForEncounterAction,
+  validateEncounterActionTarget
 } from "../encounterActionContracts";
 
 describe("encounter action contracts", () => {
@@ -23,6 +26,7 @@ describe("encounter action contracts", () => {
       const definition = getEncounterActionDefinition(kind);
       expect(definition.kind).toBe(kind);
       expect(definition.label.length).toBeGreaterThan(0);
+      expect(definition.targetRequirement).toBeDefined();
     }
   });
 
@@ -65,6 +69,7 @@ describe("encounter action contracts", () => {
 
   it("describes current costs and effects from contract data", () => {
     expect(describeEncounterActionCosts("debug_noop")).toBe("No cost.");
+    expect(describeEncounterActionTarget(undefined)).toBe("None");
     expect(describeEncounterActionEffects("debug_noop", "player")).toBe("No effect.");
     expect(describeEncounterActionCosts("main_phase_pressure", "Sparkfall")).toBe(
       "Uses Sparkfall on resolve."
@@ -78,6 +83,57 @@ describe("encounter action contracts", () => {
     expect(describeEncounterActionEffects("commander_rally", "player")).toBe(
       "Enemy Stability -1."
     );
+  });
+
+  it("derives and validates default Stability targets", () => {
+    expect(defaultTargetForEncounterAction("debug_noop", "player")).toBeUndefined();
+    expect(defaultTargetForEncounterAction("main_phase_pressure", "player")).toEqual({
+      type: "stability",
+      actor: "enemy",
+      label: "Enemy Stability"
+    });
+    expect(defaultTargetForEncounterAction("commander_rally", "player")).toEqual({
+      type: "stability",
+      actor: "enemy",
+      label: "Enemy Stability"
+    });
+    expect(defaultTargetForEncounterAction("debug_pressure", "enemy")).toEqual({
+      type: "stability",
+      actor: "player",
+      label: "Player Stability"
+    });
+    expect(
+      validateEncounterActionTarget("main_phase_pressure", "player", {
+        type: "stability",
+        actor: "enemy",
+        label: "Enemy Stability"
+      })
+    ).toEqual({
+      type: "stability",
+      actor: "enemy",
+      label: "Enemy Stability"
+    });
+    expect(
+      describeEncounterActionTarget({
+        type: "stability",
+        actor: "enemy",
+        label: "Enemy Stability"
+      })
+    ).toBe("Enemy Stability");
+    expect(() =>
+      validateEncounterActionTarget("main_phase_pressure", "player", {
+        type: "stability",
+        actor: "player",
+        label: "Player Stability"
+      })
+    ).toThrow(/Prototype Pressure Technique must target Enemy Stability/);
+    expect(() =>
+      validateEncounterActionTarget("debug_noop", "player", {
+        type: "stability",
+        actor: "enemy",
+        label: "Enemy Stability"
+      })
+    ).toThrow(/Debug no-op does not use a target/);
   });
 
   it("evaluates stability effects for either actor deterministically", () => {
@@ -100,6 +156,32 @@ describe("encounter action contracts", () => {
       enemyStabilityDelta: 0,
       playerStabilityDelta: -1
     });
+
+    expect(
+      resolveEncounterActionEffects({
+        actor: "player",
+        kind: "main_phase_pressure",
+        target: {
+          type: "stability",
+          actor: "enemy",
+          label: "Enemy Stability"
+        }
+      })
+    ).toEqual({
+      enemyStabilityDelta: -1,
+      playerStabilityDelta: 0
+    });
+    expect(() =>
+      resolveEncounterActionEffects({
+        actor: "player",
+        kind: "main_phase_pressure",
+        target: {
+          type: "stability",
+          actor: "player",
+          label: "Player Stability"
+        }
+      })
+    ).toThrow(/must target Enemy Stability/);
   });
 
   it("keeps the static registry JSON-serializable", () => {

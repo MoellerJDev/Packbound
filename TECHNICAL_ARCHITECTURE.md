@@ -206,15 +206,17 @@ stack submission without giving the match reducer ownership of `RunState`.
 `submitPrototypePressureActionFromRun` validates a Spellrail Technique source,
 and `submitCommanderRallyActionFromRun` validates the run player's deployed
 Commander source. Once queued, resolution remains pure `EncounterMatchState`
-work: Stability changes and source lifecycle events are match-local and do not
-move cards, alter Commander lifecycle history, or mutate run zones.
+work: source context, resolved Stability target metadata, Stability changes, and
+source lifecycle events are match-local and do not move cards, alter Commander
+lifecycle history, or mutate run zones.
 
 Encounter action definitions live as static rules-layer contracts. They declare
-action kind, label, timing, source lifecycle, costs, and effects for the current
-prototype actions. The only implemented cost-like behavior is
-source-used-on-resolve, and effects currently mutate only match-local
-Stability. The contract registry is deliberately not an authored card-effect
-engine, does not pay Combat Charge, does not choose targets, and does not mutate
+action kind, label, timing, source lifecycle, target requirement, costs, and
+effects for the current prototype actions. The only implemented cost-like
+behavior is source-used-on-resolve, and effects currently mutate only
+match-local Stability through stored target metadata. The contract registry is
+deliberately not an authored card-effect engine, does not pay Combat Charge,
+does not select arbitrary unit/board/card targets, and does not mutate
 `RunState`.
 
 ### `packages/sim`

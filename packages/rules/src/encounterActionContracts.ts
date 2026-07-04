@@ -16,6 +16,23 @@ export type EncounterActionTiming = "anyPriority" | "mainPhase";
 
 export type EncounterActionSourceLifecycle = "none" | "usedOnResolve";
 
+export type EncounterActionTargetRequirement =
+  | {
+      readonly type: "none";
+    }
+  | {
+      readonly type: "opponentStability";
+    }
+  | {
+      readonly type: "selfStability";
+    };
+
+export type EncounterActionTarget = {
+  readonly type: "stability";
+  readonly actor: EncounterActionActor;
+  readonly label: string;
+};
+
 export type EncounterActionCost =
   | {
       readonly type: "none";
@@ -29,11 +46,7 @@ export type EncounterActionEffect =
       readonly type: "none";
     }
   | {
-      readonly type: "opponentStabilityDelta";
-      readonly amount: number;
-    }
-  | {
-      readonly type: "selfStabilityDelta";
+      readonly type: "targetStabilityDelta";
       readonly amount: number;
     };
 
@@ -41,6 +54,7 @@ export type EncounterActionDefinition = {
   readonly kind: EncounterActionKind;
   readonly label: string;
   readonly timing: EncounterActionTiming;
+  readonly targetRequirement: EncounterActionTargetRequirement;
   readonly costs: readonly EncounterActionCost[];
   readonly effects: readonly EncounterActionEffect[];
   readonly sourceLifecycleOnResolve: EncounterActionSourceLifecycle;
@@ -50,6 +64,7 @@ export type EncounterActionDefinition = {
 export type EncounterActionEffectInput = {
   readonly kind: EncounterActionKind;
   readonly actor: EncounterActionActor;
+  readonly target?: EncounterActionTarget;
 };
 
 export type EncounterActionEffectResult = {
@@ -59,8 +74,10 @@ export type EncounterActionEffectResult = {
 
 const NO_COST = [{ type: "none" }] as const;
 const NO_EFFECT = [{ type: "none" }] as const;
-const OPPONENT_STABILITY_MINUS_ONE = [
-  { type: "opponentStabilityDelta", amount: -1 }
+const NO_TARGET = { type: "none" } as const;
+const OPPONENT_STABILITY_TARGET = { type: "opponentStability" } as const;
+const TARGET_STABILITY_MINUS_ONE = [
+  { type: "targetStabilityDelta", amount: -1 }
 ] as const;
 const SOURCE_USED_ON_RESOLVE = [{ type: "sourceUsedOnResolve" }] as const;
 
@@ -69,6 +86,7 @@ const ENCOUNTER_ACTION_DEFINITIONS_BY_KIND = {
     kind: "debug_noop",
     label: "Debug no-op",
     timing: "anyPriority",
+    targetRequirement: NO_TARGET,
     costs: NO_COST,
     effects: NO_EFFECT,
     sourceLifecycleOnResolve: "none",
@@ -78,8 +96,9 @@ const ENCOUNTER_ACTION_DEFINITIONS_BY_KIND = {
     kind: "debug_pressure",
     label: "Debug pressure",
     timing: "anyPriority",
+    targetRequirement: OPPONENT_STABILITY_TARGET,
     costs: NO_COST,
-    effects: OPPONENT_STABILITY_MINUS_ONE,
+    effects: TARGET_STABILITY_MINUS_ONE,
     sourceLifecycleOnResolve: "none",
     includeEffectSummaryInResolutionLog: false
   },
@@ -87,8 +106,9 @@ const ENCOUNTER_ACTION_DEFINITIONS_BY_KIND = {
     kind: "main_phase_pressure",
     label: "Prototype Pressure Technique",
     timing: "mainPhase",
+    targetRequirement: OPPONENT_STABILITY_TARGET,
     costs: SOURCE_USED_ON_RESOLVE,
-    effects: OPPONENT_STABILITY_MINUS_ONE,
+    effects: TARGET_STABILITY_MINUS_ONE,
     sourceLifecycleOnResolve: "usedOnResolve",
     includeEffectSummaryInResolutionLog: true
   },
@@ -96,8 +116,9 @@ const ENCOUNTER_ACTION_DEFINITIONS_BY_KIND = {
     kind: "commander_rally",
     label: "Commander Rally",
     timing: "mainPhase",
+    targetRequirement: OPPONENT_STABILITY_TARGET,
     costs: SOURCE_USED_ON_RESOLVE,
-    effects: OPPONENT_STABILITY_MINUS_ONE,
+    effects: TARGET_STABILITY_MINUS_ONE,
     sourceLifecycleOnResolve: "usedOnResolve",
     includeEffectSummaryInResolutionLog: true
   }
@@ -114,6 +135,18 @@ export const labelForEncounterAction = (
   kind: EncounterActionKind,
   override?: string
 ): string => override ?? getEncounterActionDefinition(kind).label;
+
+const actorLabel = (actor: EncounterActionActor): string =>
+  actor === "player" ? "Player" : "Enemy";
+
+const opponentOf = (actor: EncounterActionActor): EncounterActionActor =>
+  actor === "player" ? "enemy" : "player";
+
+const stabilityTargetForActor = (actor: EncounterActionActor): EncounterActionTarget => ({
+  type: "stability",
+  actor,
+  label: `${actorLabel(actor)} Stability`
+});
 
 const phaseAllowsPriority = (phase: EncounterActionPhase): boolean =>
   phase === "start" || phase === "firstMain" || phase === "secondMain" || phase === "end";
@@ -141,11 +174,64 @@ export const encounterActionConsumesSourceOnResolve = (
   kind: EncounterActionKind
 ): boolean => sourceLifecycleForEncounterAction(kind) === "usedOnResolve";
 
+export const defaultTargetForEncounterAction = (
+  kind: EncounterActionKind,
+  actor: EncounterActionActor
+): EncounterActionTarget | undefined => {
+  const definition = getEncounterActionDefinition(kind);
+
+  switch (definition.targetRequirement.type) {
+    case "none":
+      return undefined;
+    case "opponentStability":
+      return stabilityTargetForActor(opponentOf(actor));
+    case "selfStability":
+      return stabilityTargetForActor(actor);
+  }
+};
+
+export const describeEncounterActionTarget = (
+  target: EncounterActionTarget | undefined
+): string => target?.label ?? "None";
+
+export const validateEncounterActionTarget = (
+  kind: EncounterActionKind,
+  actor: EncounterActionActor,
+  target: EncounterActionTarget | undefined
+): EncounterActionTarget | undefined => {
+  const definition = getEncounterActionDefinition(kind);
+  const expected = defaultTargetForEncounterAction(kind, actor);
+  const label = definition.label;
+
+  if (!expected) {
+    if (target) {
+      throw new Error(`${label} does not use a target.`);
+    }
+    return undefined;
+  }
+
+  if (!target) {
+    throw new Error(`${label} requires ${expected.label}.`);
+  }
+
+  if (target.type !== expected.type || target.actor !== expected.actor) {
+    throw new Error(`${label} must target ${expected.label}.`);
+  }
+
+  return expected;
+};
+
 export const resolveEncounterActionEffects = ({
   kind,
-  actor
+  actor,
+  target
 }: EncounterActionEffectInput): EncounterActionEffectResult => {
   const definition = getEncounterActionDefinition(kind);
+  const validatedTarget = validateEncounterActionTarget(
+    kind,
+    actor,
+    target ?? defaultTargetForEncounterAction(kind, actor)
+  );
   let playerStabilityDelta = 0;
   let enemyStabilityDelta = 0;
 
@@ -153,15 +239,13 @@ export const resolveEncounterActionEffects = ({
     switch (effect.type) {
       case "none":
         break;
-      case "opponentStabilityDelta":
-        if (actor === "player") {
-          enemyStabilityDelta += effect.amount;
-        } else {
-          playerStabilityDelta += effect.amount;
+      case "targetStabilityDelta":
+        if (!validatedTarget || validatedTarget.type !== "stability") {
+          throw new Error(
+            `${definition.label} cannot apply a target Stability effect without a Stability target.`
+          );
         }
-        break;
-      case "selfStabilityDelta":
-        if (actor === "player") {
+        if (validatedTarget.actor === "player") {
           playerStabilityDelta += effect.amount;
         } else {
           enemyStabilityDelta += effect.amount;
@@ -202,9 +286,14 @@ const formatSignedDelta = (delta: number): string =>
 
 export const describeEncounterActionEffects = (
   kind: EncounterActionKind,
-  actor: EncounterActionActor
+  actor: EncounterActionActor,
+  target?: EncounterActionTarget
 ): string => {
-  const effectResult = resolveEncounterActionEffects({ kind, actor });
+  const effectResult = resolveEncounterActionEffects({
+    kind,
+    actor,
+    ...(target ? { target } : {})
+  });
   const parts: string[] = [];
 
   if (effectResult.enemyStabilityDelta !== 0) {

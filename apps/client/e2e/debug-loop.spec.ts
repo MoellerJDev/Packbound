@@ -430,6 +430,9 @@ test("priority lab alternates priority, resolves the stack, and records combat",
     "Cost: Uses Sparkfall on resolve."
   );
   await expect(priorityPanel.getByTestId("prototype-action-contract")).toContainText(
+    "Target: Enemy Stability"
+  );
+  await expect(priorityPanel.getByTestId("prototype-action-contract")).toContainText(
     "Effect: Enemy Stability -1."
   );
   const commanderActionSection = priorityPanel.getByTestId("commander-action-section");
@@ -445,6 +448,9 @@ test("priority lab alternates priority, resolves the stack, and records combat",
   await expect(
     commanderActionSection.getByTestId("commander-action-contract")
   ).toContainText("Cost: Uses Commander on resolve.");
+  await expect(
+    commanderActionSection.getByTestId("commander-action-contract")
+  ).toContainText("Target: Enemy Stability");
   await expect(
     commanderActionSection.getByTestId("commander-action-contract")
   ).toContainText("Effect: Enemy Stability -1.");
@@ -483,6 +489,12 @@ test("priority lab alternates priority, resolves the stack, and records combat",
       .filter({ hasText: "Commander Rally" })
       .first()
   ).toContainText("Source: Sparkcatch Apprentice (board)");
+  await expect(
+    priorityPanel
+      .locator(".card-list.compact li")
+      .filter({ hasText: "Commander Rally" })
+      .first()
+  ).toContainText("Target: Enemy Stability");
   await expect(commanderActionSection.getByTestId("commander-action-status")).toHaveText(
     "Commander Rally requires player priority."
   );
@@ -518,6 +530,12 @@ test("priority lab alternates priority, resolves the stack, and records combat",
       .filter({ hasText: "Prototype Pressure Technique" })
       .first()
   ).toContainText("Source: Sparkfall (spellrail)");
+  await expect(
+    priorityPanel
+      .locator(".card-list.compact li")
+      .filter({ hasText: "Prototype Pressure Technique" })
+      .first()
+  ).toContainText("Target: Enemy Stability");
   await expect(priorityPanel.getByRole("button", { name: "Enemy Pass" })).toBeEnabled();
   await expect(
     priorityPanel.getByRole("button", { name: "Pass Priority" })

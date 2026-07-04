@@ -29,6 +29,12 @@ import { createRunFromStarterKit } from "../starterKits";
 const playerId = asPlayerId("source-validation-player");
 const wrongOwnerId = asPlayerId("source-validation-wrong-owner");
 
+const enemyStabilityTarget = {
+  type: "stability",
+  actor: "enemy",
+  label: "Enemy Stability"
+} as const;
+
 const createTestRun = (): RunState =>
   createRunFromStarterKit({
     seed: "source-validation",
@@ -289,6 +295,7 @@ describe("encounter prototype pressure action sources", () => {
       zone: "spellrail"
     });
     expect(submitted.stack[0]?.action.sourceLifecycle).toBe("usedOnResolve");
+    expect(submitted.stack[0]?.action.target).toEqual(enemyStabilityTarget);
     expect(submitted.actionLog.at(-1)?.text).toBe(
       "Player queued Prototype Pressure Technique from Sparkfall."
     );
@@ -580,7 +587,8 @@ describe("encounter Commander Rally action sources", () => {
         cardName: "Sparkcatch Apprentice",
         zone: "board"
       },
-      sourceLifecycle: "usedOnResolve"
+      sourceLifecycle: "usedOnResolve",
+      target: enemyStabilityTarget
     });
     expect(submitted.actionLog.at(-1)?.text).toBe(
       "Player queued Commander Rally from Sparkcatch Apprentice."

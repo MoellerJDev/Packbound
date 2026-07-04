@@ -32,6 +32,18 @@ const commanderSource = {
   zone: "board" as const
 };
 
+const enemyStabilityTarget = {
+  type: "stability",
+  actor: "enemy",
+  label: "Enemy Stability"
+} as const;
+
+const playerStabilityTarget = {
+  type: "stability",
+  actor: "player",
+  label: "Player Stability"
+} as const;
+
 const combatResult = (
   winner: EncounterCombatResultLike["winner"]
 ): EncounterCombatResultLike => ({
@@ -91,7 +103,8 @@ describe("encounter match priority shell", () => {
     expect(item.action).toEqual({
       kind: "debug_pressure",
       actor: "player",
-      label: "Debug pressure"
+      label: "Debug pressure",
+      target: enemyStabilityTarget
     });
     expect(state.priorityHolder).toBe("enemy");
     expect(state.consecutivePasses).toBe(0);
@@ -114,7 +127,8 @@ describe("encounter match priority shell", () => {
     expect(item.action).toEqual({
       kind: "main_phase_pressure",
       actor: "player",
-      label: "Prototype Pressure Technique"
+      label: "Prototype Pressure Technique",
+      target: enemyStabilityTarget
     });
     expect(state.priorityHolder).toBe("enemy");
     expect(state.consecutivePasses).toBe(0);
@@ -142,7 +156,8 @@ describe("encounter match priority shell", () => {
       actor: "player",
       label: "Prototype Pressure Technique",
       source: sparkfallSource,
-      sourceLifecycle: "usedOnResolve"
+      sourceLifecycle: "usedOnResolve",
+      target: enemyStabilityTarget
     });
     expect(state.actionLog.at(-1)).toMatchObject({
       kind: "action_submitted",
@@ -174,7 +189,7 @@ describe("encounter match priority shell", () => {
 
     expect(resolved.stack).toEqual([]);
     expect(resolved.lastResolvedAction).toMatchObject({
-      action: { kind: "debug_pressure", actor: "player" }
+      action: { kind: "debug_pressure", actor: "player", target: enemyStabilityTarget }
     });
     expect(resolved.priorityHolder).toBe("player");
     expect(resolved.consecutivePasses).toBe(0);
@@ -195,7 +210,11 @@ describe("encounter match priority shell", () => {
 
     expect(resolved.stack).toEqual([]);
     expect(resolved.lastResolvedAction).toMatchObject({
-      action: { kind: "main_phase_pressure", actor: "player" }
+      action: {
+        kind: "main_phase_pressure",
+        actor: "player",
+        target: enemyStabilityTarget
+      }
     });
     expect(resolved.priorityHolder).toBe("player");
     expect(resolved.consecutivePasses).toBe(0);
@@ -224,7 +243,8 @@ describe("encounter match priority shell", () => {
         kind: "main_phase_pressure",
         actor: "player",
         source: sparkfallSource,
-        sourceLifecycle: "usedOnResolve"
+        sourceLifecycle: "usedOnResolve",
+        target: enemyStabilityTarget
       }
     });
     expect(resolved.playerStability).toBe(5);
@@ -266,7 +286,8 @@ describe("encounter match priority shell", () => {
       actor: "player",
       label: "Commander Rally",
       source: commanderSource,
-      sourceLifecycle: "usedOnResolve"
+      sourceLifecycle: "usedOnResolve",
+      target: enemyStabilityTarget
     });
     expect(submitted.priorityHolder).toBe("enemy");
     expect(submitted.actionLog.at(-1)).toMatchObject({
@@ -287,7 +308,8 @@ describe("encounter match priority shell", () => {
         kind: "commander_rally",
         actor: "player",
         source: commanderSource,
-        sourceLifecycle: "usedOnResolve"
+        sourceLifecycle: "usedOnResolve",
+        target: enemyStabilityTarget
       }
     });
     expect(resolved.playerStability).toBe(5);
@@ -350,6 +372,47 @@ describe("encounter match priority shell", () => {
     expect(resolvedDebugWithSource.sourceLifecycleEvents).toEqual([]);
     expect(resolvedUnsourcedPrototype.sourceLifecycleEvents).toEqual([]);
     expect(resolvedSourceWithoutLifecycle.sourceLifecycleEvents).toEqual([]);
+  });
+
+  it("rejects explicit targets that disagree with the action contract", () => {
+    expect(() =>
+      submitEncounterAction(createMatch(), {
+        kind: "main_phase_pressure",
+        target: playerStabilityTarget
+      })
+    ).toThrow(/Prototype Pressure Technique must target Enemy Stability/);
+    expect(() =>
+      submitEncounterAction(createMatch(), {
+        kind: "debug_noop",
+        target: enemyStabilityTarget
+      })
+    ).toThrow(/Debug no-op does not use a target/);
+  });
+
+  it("resolves enemy pressure against the stored player Stability target", () => {
+    const submitted = submitEncounterAction(
+      createEncounterMatch({
+        matchId: "enemy-action-match",
+        seed: "enemy-action-seed",
+        activeActor: "enemy"
+      }),
+      { kind: "debug_pressure" }
+    );
+    const resolved = passEncounterPriority(
+      passEncounterPriority(submitted, "player"),
+      "enemy"
+    );
+
+    expect(submitted.stack[0]?.action.target).toEqual(playerStabilityTarget);
+    expect(resolved.lastResolvedAction).toMatchObject({
+      action: {
+        kind: "debug_pressure",
+        actor: "enemy",
+        target: playerStabilityTarget
+      }
+    });
+    expect(resolved.playerStability).toBe(4);
+    expect(resolved.enemyStability).toBe(5);
   });
 
   it("two passes with an empty stack advances first main to combat", () => {

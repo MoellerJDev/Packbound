@@ -9,12 +9,15 @@ import type {
 
 import {
   canUseEncounterActionDuringPhase,
+  defaultTargetForEncounterAction,
   getEncounterActionDefinition,
   labelForEncounterAction,
   resolveEncounterActionEffects,
   sourceLifecycleForEncounterAction,
+  validateEncounterActionTarget,
   type EncounterActionKind,
-  type EncounterActionSourceLifecycle
+  type EncounterActionSourceLifecycle,
+  type EncounterActionTarget
 } from "./encounterActionContracts";
 
 export type EncounterActor = "player" | "enemy";
@@ -32,7 +35,11 @@ export type EncounterOutcome = {
   readonly reason: EncounterOutcomeReason | null;
 };
 
-export type { EncounterActionKind, EncounterActionSourceLifecycle };
+export type {
+  EncounterActionKind,
+  EncounterActionSourceLifecycle,
+  EncounterActionTarget
+};
 
 export type EncounterActionSource = {
   readonly cardInstanceId: CardInstanceId;
@@ -47,6 +54,7 @@ export type EncounterQueuedAction = {
   readonly label: string;
   readonly source?: EncounterActionSource;
   readonly sourceLifecycle?: EncounterActionSourceLifecycle;
+  readonly target?: EncounterActionTarget;
 };
 
 export type EncounterStackItem = {
@@ -141,6 +149,7 @@ export type SubmitEncounterActionInput = {
   readonly label?: string;
   readonly source?: EncounterActionSource;
   readonly sourceLifecycle?: EncounterActionSourceLifecycle;
+  readonly target?: EncounterActionTarget;
 };
 
 export type EncounterCombatResultLike = {
@@ -330,6 +339,11 @@ export const submitEncounterAction = (
   const sourceLifecycle =
     input.sourceLifecycle ??
     (input.source ? sourceLifecycleForEncounterAction(kind) : "none");
+  const target = validateEncounterActionTarget(
+    kind,
+    actor,
+    input.target ?? defaultTargetForEncounterAction(kind, actor)
+  );
 
   const item: EncounterStackItem = {
     id: `${state.matchId}:stack:${state.nextActionIndex}:${kind}`,
@@ -339,7 +353,8 @@ export const submitEncounterAction = (
       actor,
       label,
       ...(input.source ? { source: input.source } : {}),
-      ...(sourceLifecycle !== "none" || input.sourceLifecycle ? { sourceLifecycle } : {})
+      ...(sourceLifecycle !== "none" || input.sourceLifecycle ? { sourceLifecycle } : {}),
+      ...(target ? { target } : {})
     }
   };
   const submitted: EncounterMatchState = {
@@ -362,7 +377,8 @@ const stabilityDeltaForAction = (
 ): { readonly player: number; readonly enemy: number } => {
   const result = resolveEncounterActionEffects({
     kind: action.kind,
-    actor: action.actor
+    actor: action.actor,
+    ...(action.target ? { target: action.target } : {})
   });
 
   return {

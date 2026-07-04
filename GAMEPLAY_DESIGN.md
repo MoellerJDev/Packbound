@@ -402,9 +402,10 @@ return, generic Board Charge Rebind Tax enforcement, post-combat destruction
 return, reward-phase upgrade choices, lifecycle history, reducer replay, and one
 match-local Commander encounter action with a Source Row-derived paid Combat
 Charge setup. The encounter shell now also proves one serialized enemy
-board-card target snapshot through `Target Probe`. Next Commander or encounter
-work should add richer effect contracts, fuller encounter resource lifecycle
-rules, target selection UI, or authored ability hooks in focused slices.
+board-card target snapshot through `Target Probe` and a debug UI selector for
+valid enemy board-card targets. Next Commander or encounter work should add
+richer effect contracts, fuller encounter resource lifecycle rules, board-cell
+or Pixi click targeting, or authored ability hooks in focused slices.
 
 ### Commander Non-Goals For Now
 

@@ -5,7 +5,7 @@ import {
   describeEncounterActionTarget,
   describeEncounterActionTargetRequirement,
   type EncounterActionSource,
-  type EncounterActionTarget,
+  type EncounterBoardCardActionTarget,
   type EncounterActor,
   type EncounterCombatChargeProfile,
   type EncounterMatchState
@@ -24,9 +24,15 @@ type PriorityLabPanelProps = {
   readonly commanderActionSource: EncounterActionSource | undefined;
   readonly canSubmitCommanderAction: boolean;
   readonly commanderActionUnavailableText: string | undefined;
-  readonly targetProbeTarget: EncounterActionTarget | undefined;
+  readonly targetProbeTargets: readonly EncounterBoardCardActionTarget[];
+  readonly selectedTargetProbeTarget: EncounterBoardCardActionTarget | undefined;
+  readonly selectedTargetProbeCardInstanceId:
+    EncounterBoardCardActionTarget["cardInstanceId"] | undefined;
   readonly canSubmitTargetProbeAction: boolean;
   readonly targetProbeUnavailableText: string | undefined;
+  readonly onSelectTargetProbeTarget: (
+    cardInstanceId: EncounterBoardCardActionTarget["cardInstanceId"]
+  ) => void;
   readonly onSubmitCommanderAction: () => void;
   readonly onSubmitTargetProbeAction: () => void;
   readonly onSubmitPrototypeAction: () => void;
@@ -88,9 +94,12 @@ export const PriorityLabPanel = ({
   commanderActionSource,
   canSubmitCommanderAction,
   commanderActionUnavailableText,
-  targetProbeTarget,
+  targetProbeTargets,
+  selectedTargetProbeTarget,
+  selectedTargetProbeCardInstanceId,
   canSubmitTargetProbeAction,
   targetProbeUnavailableText,
+  onSelectTargetProbeTarget,
   onSubmitCommanderAction,
   onSubmitTargetProbeAction,
   onSubmitPrototypeAction,
@@ -131,9 +140,11 @@ export const PriorityLabPanel = ({
   const targetProbeEffectText = describeEncounterActionEffects(
     "target_probe",
     "player",
-    targetProbeTarget
+    selectedTargetProbeTarget
   );
-  const targetProbeTargetText = describeEncounterActionTarget(targetProbeTarget);
+  const selectedTargetProbeText = describeEncounterActionTarget(
+    selectedTargetProbeTarget
+  );
 
   return (
     <section className="debug-grid" aria-labelledby="priority-lab-heading">
@@ -289,20 +300,54 @@ export const PriorityLabPanel = ({
               onClick={onSubmitTargetProbeAction}
               disabled={
                 !playerMainPhasePriority ||
-                !targetProbeTarget ||
+                !selectedTargetProbeTarget ||
                 !canSubmitTargetProbeAction
               }
             >
               Queue Target Probe
             </button>
           </div>
+          <div data-testid="target-probe-target-controls">
+            <p className="muted">Target Probe Target</p>
+            <p className="muted" data-testid="target-probe-selected-target">
+              {selectedTargetProbeTarget
+                ? `Selected target: ${selectedTargetProbeText}`
+                : "Selected target: None"}
+            </p>
+            <p className="muted">Available targets</p>
+            {targetProbeTargets.length > 0 ? (
+              <div
+                role="radiogroup"
+                aria-label="Target Probe Target"
+                data-testid="target-probe-target-options"
+              >
+                {targetProbeTargets.map((target) => {
+                  const targetText = describeEncounterActionTarget(target);
+                  return (
+                    <label key={target.cardInstanceId} className="inline-option">
+                      <input
+                        type="radio"
+                        name="target-probe-target"
+                        checked={
+                          target.cardInstanceId === selectedTargetProbeCardInstanceId
+                        }
+                        onChange={() => onSelectTargetProbeTarget(target.cardInstanceId)}
+                      />
+                      <span>Target: {targetText}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="muted">No enemy board-card targets available.</p>
+            )}
+          </div>
           <p className="muted" data-testid="target-probe-status">
-            {targetProbeTarget
-              ? `Target: ${targetProbeTargetText}`
-              : (targetProbeUnavailableText ?? "No valid enemy board-card target.")}
-            {targetProbeTarget && !canSubmitTargetProbeAction
-              ? ` - ${targetProbeUnavailableText ?? "Target Probe unavailable."}`
-              : ""}
+            {targetProbeTargets.length === 0
+              ? (targetProbeUnavailableText ?? "No valid enemy board-card target.")
+              : selectedTargetProbeTarget && !canSubmitTargetProbeAction
+                ? (targetProbeUnavailableText ?? "Target Probe unavailable.")
+                : "Target Probe can queue the selected enemy board card."}
           </p>
           <div
             className="encounter-action-contract"

@@ -972,6 +972,15 @@ h4 {
   margin-top: 8px;
 }
 
+.inline-option {
+  align-items: center;
+  color: #26333d;
+  display: flex;
+  font-size: 0.84rem;
+  gap: 8px;
+  margin-top: 6px;
+}
+
 .encounter-action-contract {
   color: #44515a;
   display: flex;

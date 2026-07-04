@@ -467,8 +467,23 @@ test("priority lab alternates priority, resolves the stack, and records combat",
   await expect(
     targetProbeSection.getByText("Target Probe", { exact: true })
   ).toBeVisible();
+  await expect(
+    targetProbeSection.getByText("Target Probe Target", { exact: true })
+  ).toBeVisible();
+  await expect(
+    targetProbeSection.getByText("Available targets", { exact: true })
+  ).toBeVisible();
+  const targetProbeOption = targetProbeSection.getByRole("radio", {
+    name: "Target: Ember Scraprunner (enemy ground r0 c3)"
+  });
+  await expect(targetProbeOption).toBeVisible();
+  await expect(targetProbeOption).toBeChecked();
+  await targetProbeOption.click();
+  await expect(targetProbeSection.getByTestId("target-probe-selected-target")).toHaveText(
+    "Selected target: Ember Scraprunner (enemy ground r0 c3)"
+  );
   await expect(targetProbeSection.getByTestId("target-probe-status")).toHaveText(
-    "Target: Ember Scraprunner (enemy ground r0 c3)"
+    "Target Probe can queue the selected enemy board card."
   );
   await expect(
     targetProbeSection.getByTestId("target-probe-action-contract")

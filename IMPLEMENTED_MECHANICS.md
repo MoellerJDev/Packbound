@@ -119,7 +119,8 @@ The rules package now includes a minimal serializable encounter match reducer:
   Stability target for -1, and records its source as used when resolved.
 - `target_probe` is the first board-card target prototype: the Priority Lab
   labels it `Target Probe`, lists the current encounter's enemy board cards,
-  queues the first enemy board-card target through the same stack/pass flow,
+  lets the player select one listed enemy board-card target, queues that selected
+  target through the same stack/pass flow,
   pays 1 match-local Combat Charge when queued, and resolves with no effect while
   logging the target label. It is a rules/UI probe, not an authored card effect.
 - Queued encounter actions can optionally carry minimal source-card context:
@@ -152,8 +153,8 @@ Current encounter shell limitations:
   Technique source, one deployed Commander source, and one enemy board-card
   target probe. Their sources/targets are validated against the current run,
   encounter board, and catalog, but they are not connected to hand, deck, mill,
-  enemy AI, RunState zone changes, target selection UI, or content-authored card
-  effects yet.
+  enemy AI, RunState zone changes, Pixi click targeting, board-cell targeting UI,
+  or content-authored card effects yet.
 - The action contract is not a full authored effect engine. It has no Combat
   Charge refunds, real-time generation, Source exhaustion, cross-encounter
   persistence, board-card damage/effect resolution, board-cell UI targeting,

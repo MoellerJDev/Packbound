@@ -131,10 +131,12 @@ stored metadata.
 Implementation update after this task: encounter action targets now also support
 prototype board-card target snapshots. Priority Lab exposes `Target Probe`, a
 main-phase no-source action that costs 1 match-local Combat Charge, targets the
-current encounter's first enemy board card, enters the normal stack/pass flow,
-and resolves with `No effect` while logging the target label. This proves
-serializable board-card target metadata for future authored actions. It is not
-unit damage, board-cell targeting, target selection UI, or a full effect engine.
+selected current encounter enemy board card, enters the normal stack/pass flow,
+and resolves with `No effect` while logging the target label. The Priority Lab
+debug UI now lists available enemy board-card targets, shows the selected target,
+and queues the probe against that selection. This proves serializable board-card
+target metadata for future authored actions. It is not unit damage, Pixi click
+targeting, board-cell targeting UI, or a full effect engine.
 
 Implementation update after this task: encounter actions now have a minimal
 match-local Combat Charge paid-cost prototype. `Prototype Pressure Technique`
@@ -165,7 +167,7 @@ default-route confidence. Pixi should stay opt-in until those are addressed.
 
 Recommended next task:
 
-`feat(client): add Priority Lab target selection controls`
+`feat(rules): add encounter board-card effect skeleton`
 
 ## 2. Environment And Commands
 
@@ -428,11 +430,12 @@ Current Priority Lab flow covered by browser smoke and reflected in this report:
 
 1. Initial state: turn 1, first main, active actor Player, priority holder
    Player, stability 5/5, empty stack.
-2. The Target Probe section showed `Ember Scraprunner (enemy ground r0 c3)`,
-   `Cost: Pay 1 Combat Charge.`, `Target: Enemy board card`, and
-   `Effect: No effect.` Browser smoke keeps this as contract/visibility
-   coverage so the existing two-action priority flow does not need extra debug
-   charge.
+2. The Target Probe section showed `Target Probe Target`,
+   `Selected target: Ember Scraprunner (enemy ground r0 c3)`, `Available
+targets`, `Cost: Pay 1 Combat Charge.`, `Target: Enemy board card`, and
+   `Effect: No effect.` Browser smoke selects the visible enemy target and keeps
+   this as contract/visibility coverage so the existing two-action priority flow
+   does not need extra debug charge.
 3. The Commander Action section showed Sparkcatch Apprentice in `command` and
    blocked `Queue Commander Rally` with
    `Commander must be deployed to use Commander Rally.`
@@ -479,9 +482,10 @@ is now easier to read because Priority Lab separates `Source-derived starting
 Combat Charge: 1`, `Source Row Combat Charge/sec: 0.35`,
 `Priority Lab debug top-up: +1`, and current player Combat Charge. Known
 limitation: these are still abstract prototype actions with only starting-charge
-setup from Source Row, no hand/deck/mill sourcing, target selection UI, RunState
-card movement, enemy action choice, real-time charge generation, refunds,
-board-card damage/effects, or authored effect system.
+setup from Source Row, no hand/deck/mill sourcing, Pixi click targeting,
+board-cell targeting UI, RunState card movement, enemy action choice, real-time
+charge generation, refunds, board-card damage/effects, or authored effect
+system.
 
 ## 8. `?scenario=upgrade-lab`
 
@@ -717,10 +721,10 @@ Note:
   Stability effects, no-effect resolution, and Combat Charge payment. They pay
   match-local Combat Charge on submission from Source Row-derived starting
   charge, with a Priority Lab-only debug top-up to exercise the two paid source
-  actions. They still have no target selection UI, hand/deck/mill, source card
-  movement, RunState mutation on resolution, real-time charge generation,
-  refunds, enemy AI, interrupts, counterspells, board-card damage/effects,
-  board-cell targeting UI, or authored card effect resolution.
+  actions. They still have no Pixi click targeting, board-cell targeting UI,
+  hand/deck/mill, source card movement, RunState mutation on resolution,
+  real-time charge generation, refunds, enemy AI, interrupts, counterspells,
+  board-card damage/effects, or authored card effect resolution.
 - Combat simulation remains deterministic and unchanged.
 - Traits/teamups remain display-only.
 - Duplicate upgrades remain generic +1 ATK/+1 HP combines.
@@ -730,14 +734,14 @@ Note:
 
 Do next:
 
-`feat(client): add Priority Lab target selection controls`
+`feat(rules): add encounter board-card effect skeleton`
 
-Why: Priority Lab now proves a serialized enemy board-card target snapshot
-through `Target Probe`, but it still uses the first available enemy target rather
-than a player-visible target picker. The next narrow slice should let the lab
-choose among valid board-card targets and show blocked reasons without adding
-Pixi click targeting, hand/deck/mill, enemy Commanders, broad timing,
-counterspells, RunState mutation, or a full authored effect engine.
+Why: Priority Lab now proves selectable serialized enemy board-card target
+snapshots through `Target Probe`, but the selected target still has no gameplay
+effect. The next narrow slice should add a minimal target-based board-card effect
+contract without adding Pixi click targeting, hand/deck/mill, enemy Commanders,
+broad timing, counterspells, broad RunState mutation, or a full authored effect
+engine.
 
 Do soon:
 

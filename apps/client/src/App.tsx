@@ -293,6 +293,8 @@ export function App() {
   const [rendererPlacementCardId, setRendererPlacementCardId] = useState<
     CardInstanceId | undefined
   >();
+  const [selectedTargetProbeCardInstanceId, setSelectedTargetProbeCardInstanceId] =
+    useState<CardInstanceId | undefined>();
   const phase = getRunPhase(run);
   const rewardChoices = useMemo(() => getCurrentRewardChoices(run, sampleCatalog), [run]);
   const commanderUpgradeChoices = useMemo(
@@ -447,7 +449,10 @@ export function App() {
         : [],
     [currentEncounter]
   );
-  const priorityTargetProbeTarget = priorityTargetProbeTargets[0];
+  const selectedTargetProbeTarget =
+    priorityTargetProbeTargets.find(
+      (target) => target.cardInstanceId === selectedTargetProbeCardInstanceId
+    ) ?? priorityTargetProbeTargets[0];
   const prototypeActionCombatChargeCost =
     combatChargeCostForEncounterAction("main_phase_pressure");
   const commanderActionCombatChargeCost =
@@ -475,7 +480,7 @@ export function App() {
       ? undefined
       : commanderCostUnavailableText
     : priorityCommanderActionValidation.message;
-  const targetProbeUnavailableText = priorityTargetProbeTarget
+  const targetProbeUnavailableText = selectedTargetProbeTarget
     ? canPayTargetProbeAction
       ? undefined
       : targetProbeCostUnavailableText
@@ -742,6 +747,7 @@ export function App() {
     setSelectedEnemyCardRef(undefined);
     setSelectedEngagementRef(undefined);
     setRendererPlacementCardId(undefined);
+    setSelectedTargetProbeCardInstanceId(undefined);
     setRendererReplay((current) => resetPixiReplay(current));
   };
 
@@ -1162,10 +1168,15 @@ export function App() {
     setSelectedEnemyCardRef(undefined);
     setSelectedEngagementRef(undefined);
     setRendererPlacementCardId(undefined);
+    setSelectedTargetProbeCardInstanceId(undefined);
     setRendererReplay((current) => resetPixiReplay(current));
     setRun((currentRun) =>
       applyRunAction(currentRun, sampleCatalog, { type: "advanceRunAfterCombat" })
     );
+  };
+
+  const selectPriorityTargetProbeTarget = (cardInstanceId: CardInstanceId) => {
+    setSelectedTargetProbeCardInstanceId(cardInstanceId);
   };
 
   const submitPriorityPrototypeAction = () => {
@@ -1200,7 +1211,7 @@ export function App() {
   };
 
   const submitPriorityTargetProbeAction = () => {
-    if (!priorityTargetProbeTarget || !currentEncounter) {
+    if (!selectedTargetProbeTarget || !currentEncounter) {
       return;
     }
 
@@ -1210,7 +1221,7 @@ export function App() {
         catalog: sampleCatalog,
         board: currentEncounter.loadout.board,
         actor: "player",
-        cardInstanceId: priorityTargetProbeTarget.cardInstanceId
+        cardInstanceId: selectedTargetProbeTarget.cardInstanceId
       })
     );
   };
@@ -1234,6 +1245,7 @@ export function App() {
   };
 
   const resetPriorityLab = () => {
+    setSelectedTargetProbeCardInstanceId(undefined);
     setPriorityMatch(createPriorityLabMatch(priorityLabCombatChargeSetup));
   };
 
@@ -1834,11 +1846,14 @@ export function App() {
             priorityCommanderActionSource !== undefined && canPayCommanderAction
           }
           commanderActionUnavailableText={priorityCommanderActionUnavailableText}
-          targetProbeTarget={priorityTargetProbeTarget}
+          targetProbeTargets={priorityTargetProbeTargets}
+          selectedTargetProbeTarget={selectedTargetProbeTarget}
+          selectedTargetProbeCardInstanceId={selectedTargetProbeTarget?.cardInstanceId}
           canSubmitTargetProbeAction={
-            priorityTargetProbeTarget !== undefined && canPayTargetProbeAction
+            selectedTargetProbeTarget !== undefined && canPayTargetProbeAction
           }
           targetProbeUnavailableText={targetProbeUnavailableText}
+          onSelectTargetProbeTarget={selectPriorityTargetProbeTarget}
           onSubmitCommanderAction={submitPriorityCommanderAction}
           onSubmitTargetProbeAction={submitPriorityTargetProbeAction}
           onSubmitPrototypeAction={submitPriorityPrototypeAction}

@@ -80,10 +80,10 @@ The rules package now includes a minimal serializable encounter match reducer:
   `commander_rally`.
 - Contract timing drives legality. Debug actions use `anyPriority`, while
   `Prototype Pressure Technique` and `Commander Rally` use main-phase timing.
-- Contract costs currently support only `none` and source-used-on-resolve
-  lifecycle. This is the one real cost-like behavior today; it records
-  match-local source lifecycle events and does not move or consume `RunState`
-  cards.
+- Contract costs currently support `none`, match-local Combat Charge payment,
+  and source-used-on-resolve lifecycle. Combat Charge is paid on submission and
+  source lifecycle is still recorded on resolution; neither path moves or
+  consumes `RunState` cards.
 - Contract targets currently support only no target or match-local Stability
   targets. The prototype pressure actions derive and store the opposing actor's
   Stability target when they are submitted.
@@ -94,15 +94,18 @@ The rules package now includes a minimal serializable encounter match reducer:
   `end`, and `end` into the next turn.
 - The active actor alternates on each new turn.
 - Submitted actions enter a LIFO action stack and pass priority to the opponent.
+- Encounter match state tracks `playerCombatCharge`, `enemyCombatCharge`, and
+  serializable cost payment events.
 - `main_phase_pressure` is the first real encounter main-phase action skeleton:
   the Priority Lab labels it `Prototype Pressure Technique`, it is legal during
-  first main or second main priority, and it deterministically reduces the
-  stored opposing Stability target by 1 when it resolves.
+  first main or second main priority, pays 1 match-local Combat Charge when
+  queued, and deterministically reduces the stored opposing Stability target by
+  1 when it resolves.
 - `commander_rally` is the first Commander-sourced encounter action skeleton:
   the Priority Lab labels it `Commander Rally`, validates that the run player's
   Commander is deployed on the board, queues it through the same stack/pass flow,
-  resolves against the stored enemy Stability target for -1, and records its
-  source as used when resolved.
+  pays 1 match-local Combat Charge when queued, resolves against the stored enemy
+  Stability target for -1, and records its source as used when resolved.
 - Queued encounter actions can optionally carry minimal source-card context:
   `cardInstanceId`, `cardDefId`, `cardName`, and `zone`. Priority Lab currently
   submits the prototype action through a rules helper that validates the source
@@ -131,12 +134,11 @@ Current encounter shell limitations:
 - Only two abstract prototype main-phase actions exist: one Spellrail Technique
   source and one deployed Commander source. Their sources are validated against
   the current player run and catalog and record match-local lifecycle events,
-  but they are not connected to hand, deck, mill, enemy AI, paid resource costs,
-  RunState zone changes, target selection UI, or content-authored card effects
-  yet.
+  but they are not connected to hand, deck, mill, enemy AI, RunState zone
+  changes, target selection UI, or content-authored card effects yet.
 - The action contract is not a full authored effect engine. It has no Combat
-  Charge payment, arbitrary unit/board/card targeting, effect graphs,
-  interrupts, or RunState mutation hooks.
+  Charge sourcing from `RunState`, refunds, arbitrary unit/board/card targeting,
+  effect graphs, interrupts, or RunState mutation hooks.
 - There are no real card timing windows, counterspells, manual blockers, hidden
   intent choices, deck/hand/mill zones, multiplayer networking, backend
   persistence, or new cards attached to this shell yet.

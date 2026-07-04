@@ -212,12 +212,13 @@ lifecycle history, or mutate run zones.
 
 Encounter action definitions live as static rules-layer contracts. They declare
 action kind, label, timing, source lifecycle, target requirement, costs, and
-effects for the current prototype actions. The only implemented cost-like
-behavior is source-used-on-resolve, and effects currently mutate only
-match-local Stability through stored target metadata. The contract registry is
-deliberately not an authored card-effect engine, does not pay Combat Charge,
-does not select arbitrary unit/board/card targets, and does not mutate
-`RunState`.
+effects for the current prototype actions. Combat Charge costs are paid from
+match-local actor charge on submission and recorded as serializable cost payment
+events. Source-used-on-resolve remains a separate resolution-time lifecycle
+event. Effects currently mutate only match-local Stability through stored target
+metadata. The contract registry is deliberately not an authored card-effect
+engine, does not source or exhaust Combat Charge from `RunState`, does not
+select arbitrary unit/board/card targets, and does not mutate `RunState`.
 
 ### `packages/sim`
 

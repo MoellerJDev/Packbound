@@ -18,6 +18,13 @@ const createMatch = (): EncounterMatchState =>
     seed: "encounter-test-seed"
   });
 
+const createChargedMatch = (playerCombatCharge = 2): EncounterMatchState =>
+  createEncounterMatch({
+    matchId: "charged-test-match",
+    seed: "charged-encounter-test-seed",
+    playerCombatCharge
+  });
+
 const sparkfallSource = {
   cardInstanceId: asCardInstanceId("test-match:sparkfall:spellrail:0"),
   cardDefId: asCardDefId("sparkfall"),
@@ -81,6 +88,9 @@ describe("encounter match priority shell", () => {
     expect(state.priorityHolder).toBe("player");
     expect(state.consecutivePasses).toBe(0);
     expect(state.stack).toEqual([]);
+    expect(state.playerCombatCharge).toBe(0);
+    expect(state.enemyCombatCharge).toBe(0);
+    expect(state.costPaymentEvents).toEqual([]);
     expect(state.outcome).toEqual({ kind: "inProgress", reason: null });
     expect(state.actionLog[0]).toMatchObject({
       kind: "match_started",
@@ -115,7 +125,7 @@ describe("encounter match priority shell", () => {
   });
 
   it("submits a prototype main-phase pressure action during first main", () => {
-    const state = submitEncounterAction(createMatch(), {
+    const state = submitEncounterAction(createChargedMatch(), {
       kind: "main_phase_pressure"
     });
     const item = state.stack[0];
@@ -132,6 +142,19 @@ describe("encounter match priority shell", () => {
     });
     expect(state.priorityHolder).toBe("enemy");
     expect(state.consecutivePasses).toBe(0);
+    expect(state.playerCombatCharge).toBe(1);
+    expect(state.costPaymentEvents[0]).toMatchObject({
+      actor: "player",
+      actionKind: "main_phase_pressure",
+      actionLabel: "Prototype Pressure Technique",
+      amount: 1,
+      combatChargeBefore: 2,
+      combatChargeAfter: 1,
+      turnNumber: 1,
+      phase: "firstMain",
+      stackItemId: item.id,
+      stackItemIndex: item.index
+    });
     expect(state.actionLog.at(-1)).toMatchObject({
       kind: "action_submitted",
       actor: "player",
@@ -141,7 +164,7 @@ describe("encounter match priority shell", () => {
   });
 
   it("stores prototype action source card context on the stack and submission log", () => {
-    const state = submitEncounterAction(createMatch(), {
+    const state = submitEncounterAction(createChargedMatch(), {
       kind: "main_phase_pressure",
       source: sparkfallSource
     });
@@ -166,6 +189,9 @@ describe("encounter match priority shell", () => {
     });
     expect(JSON.parse(JSON.stringify(state)).stack[0].action.source).toEqual(
       sparkfallSource
+    );
+    expect(JSON.parse(JSON.stringify(state)).costPaymentEvents).toEqual(
+      state.costPaymentEvents
     );
   });
 
@@ -202,7 +228,7 @@ describe("encounter match priority shell", () => {
   });
 
   it("resolves prototype main-phase pressure after two passes", () => {
-    const submitted = submitEncounterAction(createMatch(), {
+    const submitted = submitEncounterAction(createChargedMatch(), {
       kind: "main_phase_pressure"
     });
     const enemyPass = passEncounterPriority(submitted, "enemy");
@@ -229,7 +255,7 @@ describe("encounter match priority shell", () => {
   });
 
   it("resolves sourced prototype main-phase pressure without changing semantics", () => {
-    const submitted = submitEncounterAction(createMatch(), {
+    const submitted = submitEncounterAction(createChargedMatch(), {
       kind: "main_phase_pressure",
       source: sparkfallSource
     });
@@ -270,7 +296,7 @@ describe("encounter match priority shell", () => {
   });
 
   it("submits and resolves Commander Rally from a Commander source", () => {
-    const submitted = submitEncounterAction(createMatch(), {
+    const submitted = submitEncounterAction(createChargedMatch(), {
       kind: "commander_rally",
       source: commanderSource,
       sourceLifecycle: "usedOnResolve"
@@ -290,6 +316,8 @@ describe("encounter match priority shell", () => {
       target: enemyStabilityTarget
     });
     expect(submitted.priorityHolder).toBe("enemy");
+    expect(submitted.playerCombatCharge).toBe(1);
+    expect(submitted.costPaymentEvents).toHaveLength(1);
     expect(submitted.actionLog.at(-1)).toMatchObject({
       kind: "action_submitted",
       actor: "player",
@@ -351,14 +379,14 @@ describe("encounter match priority shell", () => {
     );
     const resolvedUnsourcedPrototype = passEncounterPriority(
       passEncounterPriority(
-        submitEncounterAction(createMatch(), { kind: "main_phase_pressure" }),
+        submitEncounterAction(createChargedMatch(), { kind: "main_phase_pressure" }),
         "enemy"
       ),
       "player"
     );
     const resolvedSourceWithoutLifecycle = passEncounterPriority(
       passEncounterPriority(
-        submitEncounterAction(createMatch(), {
+        submitEncounterAction(createChargedMatch(), {
           kind: "main_phase_pressure",
           source: sparkfallSource,
           sourceLifecycle: "none"
@@ -387,6 +415,41 @@ describe("encounter match priority shell", () => {
         target: enemyStabilityTarget
       })
     ).toThrow(/Debug no-op does not use a target/);
+  });
+
+  it("blocks paid actions when Combat Charge is insufficient without mutating state", () => {
+    const match = createMatch();
+
+    expect(() => submitEncounterAction(match, { kind: "main_phase_pressure" })).toThrow(
+      /Prototype Pressure Technique requires 1 Combat Charge, but Player has 0/
+    );
+    expect(() => submitEncounterAction(match, { kind: "commander_rally" })).toThrow(
+      /Commander Rally requires 1 Combat Charge, but Player has 0/
+    );
+    expect(match).toEqual(createMatch());
+  });
+
+  it("charges the enemy actor from enemy Combat Charge for paid actions", () => {
+    const submitted = submitEncounterAction(
+      createEncounterMatch({
+        matchId: "enemy-paid-match",
+        seed: "enemy-paid-seed",
+        activeActor: "enemy",
+        enemyCombatCharge: 1
+      }),
+      { kind: "main_phase_pressure" }
+    );
+
+    expect(submitted.enemyCombatCharge).toBe(0);
+    expect(submitted.playerCombatCharge).toBe(0);
+    expect(submitted.stack[0]?.action.target).toEqual(playerStabilityTarget);
+    expect(submitted.costPaymentEvents[0]).toMatchObject({
+      actor: "enemy",
+      actionKind: "main_phase_pressure",
+      amount: 1,
+      combatChargeBefore: 1,
+      combatChargeAfter: 0
+    });
   });
 
   it("resolves enemy pressure against the stored player Stability target", () => {
@@ -557,7 +620,7 @@ describe("encounter match priority shell", () => {
 
   it("keeps prototype main-phase actions deterministic and JSON serializable", () => {
     const runSequence = () => {
-      const submitted = submitEncounterAction(createMatch(), {
+      const submitted = submitEncounterAction(createChargedMatch(), {
         kind: "main_phase_pressure"
       });
       const resolved = passEncounterPriority(

@@ -9,6 +9,7 @@ import type {
 
 import {
   canUseEncounterActionDuringPhase,
+  combatChargeCostForEncounterAction,
   defaultTargetForEncounterAction,
   getEncounterActionDefinition,
   labelForEncounterAction,
@@ -93,6 +94,21 @@ export type EncounterSourceLifecycleEvent = {
   readonly stackItemIndex: number;
 };
 
+export type EncounterCostPaymentEvent = {
+  readonly id: string;
+  readonly index: number;
+  readonly actor: EncounterActor;
+  readonly actionKind: EncounterActionKind;
+  readonly actionLabel: string;
+  readonly amount: number;
+  readonly combatChargeBefore: number;
+  readonly combatChargeAfter: number;
+  readonly turnNumber: number;
+  readonly phase: EncounterPhase;
+  readonly stackItemId: string;
+  readonly stackItemIndex: number;
+};
+
 export type EncounterLogKind =
   | "match_started"
   | "action_submitted"
@@ -125,7 +141,10 @@ export type EncounterMatchState = {
   readonly stack: readonly EncounterStackItem[];
   readonly actionLog: readonly EncounterActionLogEntry[];
   readonly skirmishes: readonly EncounterSkirmishRecord[];
+  readonly costPaymentEvents: readonly EncounterCostPaymentEvent[];
   readonly sourceLifecycleEvents: readonly EncounterSourceLifecycleEvent[];
+  readonly playerCombatCharge: number;
+  readonly enemyCombatCharge: number;
   readonly playerStability: number;
   readonly enemyStability: number;
   readonly outcome: EncounterOutcome;
@@ -141,6 +160,8 @@ export type CreateEncounterMatchInput = {
   readonly activeActor?: EncounterActor;
   readonly playerStability?: number;
   readonly enemyStability?: number;
+  readonly playerCombatCharge?: number;
+  readonly enemyCombatCharge?: number;
 };
 
 export type SubmitEncounterActionInput = {
@@ -162,6 +183,7 @@ export type EncounterCombatResultLike = {
 };
 
 const DEFAULT_STABILITY = 5;
+const DEFAULT_COMBAT_CHARGE = 0;
 
 const opponentOf = (actor: EncounterActor): EncounterActor =>
   actor === "player" ? "enemy" : "player";
@@ -180,6 +202,55 @@ const assertCanSubmitActionKind = (
   if (!canUseEncounterActionDuringPhase(kind, state.phase)) {
     throw new Error(`${label} can only be queued during main phases.`);
   }
+};
+
+const combatChargeForActor = (
+  state: EncounterMatchState,
+  actor: EncounterActor
+): number => (actor === "player" ? state.playerCombatCharge : state.enemyCombatCharge);
+
+const assertCanPayEncounterActionCosts = (
+  state: EncounterMatchState,
+  actor: EncounterActor,
+  kind: EncounterActionKind,
+  label: string
+): void => {
+  const cost = combatChargeCostForEncounterAction(kind);
+  const available = combatChargeForActor(state, actor);
+
+  if (available < cost) {
+    throw new Error(
+      `${label} requires ${cost} Combat Charge, but ${actorLabel(actor)} has ${available}.`
+    );
+  }
+};
+
+const costPaymentEventForSubmission = (
+  state: EncounterMatchState,
+  item: EncounterStackItem,
+  amount: number
+): EncounterCostPaymentEvent | undefined => {
+  if (amount <= 0) {
+    return undefined;
+  }
+
+  const combatChargeBefore = combatChargeForActor(state, item.action.actor);
+  const index = state.costPaymentEvents.length;
+
+  return {
+    id: `${state.matchId}:cost-payment:${index}:${item.id}`,
+    index,
+    actor: item.action.actor,
+    actionKind: item.action.kind,
+    actionLabel: item.action.label,
+    amount,
+    combatChargeBefore,
+    combatChargeAfter: combatChargeBefore - amount,
+    turnNumber: state.turnNumber,
+    phase: state.phase,
+    stackItemId: item.id,
+    stackItemIndex: item.index
+  };
 };
 
 const actionSubmissionText = (action: EncounterQueuedAction): string => {
@@ -280,7 +351,9 @@ export const createEncounterMatch = ({
   phase = "firstMain",
   activeActor = "player",
   playerStability = DEFAULT_STABILITY,
-  enemyStability = DEFAULT_STABILITY
+  enemyStability = DEFAULT_STABILITY,
+  playerCombatCharge = DEFAULT_COMBAT_CHARGE,
+  enemyCombatCharge = DEFAULT_COMBAT_CHARGE
 }: CreateEncounterMatchInput): EncounterMatchState => {
   const base: EncounterMatchState = {
     matchId,
@@ -293,7 +366,10 @@ export const createEncounterMatch = ({
     stack: [],
     actionLog: [],
     skirmishes: [],
+    costPaymentEvents: [],
     sourceLifecycleEvents: [],
+    playerCombatCharge,
+    enemyCombatCharge,
     playerStability,
     enemyStability,
     outcome: { kind: "inProgress", reason: null },
@@ -344,6 +420,7 @@ export const submitEncounterAction = (
     actor,
     input.target ?? defaultTargetForEncounterAction(kind, actor)
   );
+  assertCanPayEncounterActionCosts(state, actor, kind, label);
 
   const item: EncounterStackItem = {
     id: `${state.matchId}:stack:${state.nextActionIndex}:${kind}`,
@@ -357,8 +434,21 @@ export const submitEncounterAction = (
       ...(target ? { target } : {})
     }
   };
+  const combatChargeCost = combatChargeCostForEncounterAction(kind);
+  const costPaymentEvent = costPaymentEventForSubmission(state, item, combatChargeCost);
   const submitted: EncounterMatchState = {
     ...state,
+    playerCombatCharge:
+      actor === "player"
+        ? state.playerCombatCharge - combatChargeCost
+        : state.playerCombatCharge,
+    enemyCombatCharge:
+      actor === "enemy"
+        ? state.enemyCombatCharge - combatChargeCost
+        : state.enemyCombatCharge,
+    costPaymentEvents: costPaymentEvent
+      ? [...state.costPaymentEvents, costPaymentEvent]
+      : state.costPaymentEvents,
     priorityHolder: opponentOf(actor),
     consecutivePasses: 0,
     stack: [...state.stack, item],

@@ -16,6 +16,7 @@ import {
   canPlaceCardOnBoard,
   canRecordCombat,
   canReturnCommanderToCommand,
+  combatChargeCostForEncounterAction,
   createEncounterMatch,
   createRunFromStarterKit,
   describeUpgradeProgressGroup,
@@ -181,10 +182,17 @@ const createDebugRun = (starterKitId: string): RunState =>
   );
 
 const firstStarterKitId = sampleCatalog.starterKits[0]?.id ?? "ember_scrappers";
-const createPriorityLabMatch = (): EncounterMatchState =>
+const PRIORITY_LAB_MIN_PLAYER_COMBAT_CHARGE = 2;
+const priorityLabPlayerCombatChargeForRun = (run: RunState): number =>
+  Math.max(
+    PRIORITY_LAB_MIN_PLAYER_COMBAT_CHARGE,
+    Math.ceil(buildLoadoutResourceSummary(run, sampleCatalog).combatChargePerSecond)
+  );
+const createPriorityLabMatch = (playerCombatCharge = 0): EncounterMatchState =>
   createEncounterMatch({
     matchId: "debug-priority-lab",
-    seed: "client-debug-priority-lab"
+    seed: "client-debug-priority-lab",
+    playerCombatCharge
   });
 
 type RecordedCombatDebug = {
@@ -245,7 +253,9 @@ export function App() {
   const isRendererLab = activeDebugScenarioId === DEBUG_RENDERER_SCENARIO_ID;
   const [selectedStarterKitId, setSelectedStarterKitId] = useState(firstStarterKitId);
   const [run, setRun] = useState(() => createDebugRun(firstStarterKitId));
-  const [priorityMatch, setPriorityMatch] = useState(createPriorityLabMatch);
+  const [priorityMatch, setPriorityMatch] = useState(() =>
+    createPriorityLabMatch(priorityLabPlayerCombatChargeForRun(run))
+  );
   const [lastRecordedCombat, setLastRecordedCombat] = useState<
     RecordedCombatDebug | undefined
   >();
@@ -400,8 +410,27 @@ export function App() {
   const priorityCommanderActionSource = priorityCommanderActionValidation.ok
     ? priorityCommanderActionValidation.source
     : undefined;
+  const prototypeActionCombatChargeCost =
+    combatChargeCostForEncounterAction("main_phase_pressure");
+  const commanderActionCombatChargeCost =
+    combatChargeCostForEncounterAction("commander_rally");
+  const canPayPrototypeAction =
+    priorityMatch.playerCombatCharge >= prototypeActionCombatChargeCost;
+  const canPayCommanderAction =
+    priorityMatch.playerCombatCharge >= commanderActionCombatChargeCost;
+  const prototypeCostUnavailableText = `Prototype Pressure Technique requires ${prototypeActionCombatChargeCost} Combat Charge, but Player has ${priorityMatch.playerCombatCharge}.`;
+  const commanderCostUnavailableText = `Commander Rally requires ${commanderActionCombatChargeCost} Combat Charge, but Player has ${priorityMatch.playerCombatCharge}.`;
+  const prototypeActionUnavailableText = availablePriorityPrototypeActionSource
+    ? canPayPrototypeAction
+      ? undefined
+      : prototypeCostUnavailableText
+    : priorityPrototypeActionSource
+      ? `${priorityPrototypeActionSource.cardName} is already queued or used this encounter.`
+      : "No valid player Spellrail Technique source.";
   const priorityCommanderActionUnavailableText = priorityCommanderActionValidation.ok
-    ? undefined
+    ? canPayCommanderAction
+      ? undefined
+      : commanderCostUnavailableText
     : priorityCommanderActionValidation.message;
 
   const combat = useMemo(() => {
@@ -655,9 +684,12 @@ export function App() {
   );
 
   const resetRun = (starterKitId = selectedStarterKitId) => {
+    const nextRun = createDebugRun(starterKitId);
     setSelectedStarterKitId(starterKitId);
-    setRun(createDebugRun(starterKitId));
-    setPriorityMatch(createPriorityLabMatch());
+    setRun(nextRun);
+    setPriorityMatch(
+      createPriorityLabMatch(priorityLabPlayerCombatChargeForRun(nextRun))
+    );
     setLastRecordedCombat(undefined);
     setSelectedAllyCardRef(undefined);
     setSelectedEnemyCardRef(undefined);
@@ -1139,7 +1171,7 @@ export function App() {
   };
 
   const resetPriorityLab = () => {
-    setPriorityMatch(createPriorityLabMatch());
+    setPriorityMatch(createPriorityLabMatch(priorityLabPlayerCombatChargeForRun(run)));
   };
 
   const playRendererReplay = () => {
@@ -1726,16 +1758,16 @@ export function App() {
             priorityMatch.phase === "combat" && priorityLabCombat !== undefined
           }
           prototypeActionSource={priorityPrototypeActionSource}
-          canSubmitPrototypeAction={availablePriorityPrototypeActionSource !== undefined}
-          prototypeActionSourceUnavailableText={
-            priorityPrototypeActionSource
-              ? `${priorityPrototypeActionSource.cardName} is already queued or used this encounter.`
-              : "No valid player Spellrail Technique source."
+          canSubmitPrototypeAction={
+            availablePriorityPrototypeActionSource !== undefined && canPayPrototypeAction
           }
+          prototypeActionSourceUnavailableText={prototypeActionUnavailableText}
           commanderName={commanderDefinition?.name ?? "No Commander"}
           commanderZone={run.commander?.card.zone ?? "none"}
           commanderActionSource={priorityCommanderActionSource}
-          canSubmitCommanderAction={priorityCommanderActionSource !== undefined}
+          canSubmitCommanderAction={
+            priorityCommanderActionSource !== undefined && canPayCommanderAction
+          }
           commanderActionUnavailableText={priorityCommanderActionUnavailableText}
           onSubmitCommanderAction={submitPriorityCommanderAction}
           onSubmitPrototypeAction={submitPriorityPrototypeAction}

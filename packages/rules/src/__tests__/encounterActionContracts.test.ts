@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   canUseEncounterActionDuringPhase,
+  combatChargeCostForEncounterAction,
   defaultTargetForEncounterAction,
   describeEncounterActionCosts,
   describeEncounterActionEffects,
@@ -49,6 +50,22 @@ describe("encounter action contracts", () => {
     expect(sourceLifecycleForEncounterAction("commander_rally")).toBe("usedOnResolve");
   });
 
+  it("declares Combat Charge costs for the prototype real actions", () => {
+    expect(combatChargeCostForEncounterAction("debug_noop")).toBe(0);
+    expect(combatChargeCostForEncounterAction("debug_pressure")).toBe(0);
+    expect(combatChargeCostForEncounterAction("main_phase_pressure")).toBe(1);
+    expect(combatChargeCostForEncounterAction("commander_rally")).toBe(1);
+
+    expect(getEncounterActionDefinition("main_phase_pressure").costs).toEqual([
+      { type: "combatCharge", amount: 1 },
+      { type: "sourceUsedOnResolve" }
+    ]);
+    expect(getEncounterActionDefinition("commander_rally").costs).toEqual([
+      { type: "combatCharge", amount: 1 },
+      { type: "sourceUsedOnResolve" }
+    ]);
+  });
+
   it("uses contract timing for current legal phases", () => {
     expect(canUseEncounterActionDuringPhase("debug_noop", "start")).toBe(true);
     expect(canUseEncounterActionDuringPhase("debug_noop", "firstMain")).toBe(true);
@@ -72,10 +89,10 @@ describe("encounter action contracts", () => {
     expect(describeEncounterActionTarget(undefined)).toBe("None");
     expect(describeEncounterActionEffects("debug_noop", "player")).toBe("No effect.");
     expect(describeEncounterActionCosts("main_phase_pressure", "Sparkfall")).toBe(
-      "Uses Sparkfall on resolve."
+      "Pay 1 Combat Charge. Uses Sparkfall on resolve."
     );
     expect(describeEncounterActionCosts("commander_rally", "Commander")).toBe(
-      "Uses Commander on resolve."
+      "Pay 1 Combat Charge. Uses Commander on resolve."
     );
     expect(describeEncounterActionEffects("main_phase_pressure", "player")).toBe(
       "Enemy Stability -1."

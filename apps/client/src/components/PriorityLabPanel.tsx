@@ -13,7 +13,7 @@ type PriorityLabPanelProps = {
   readonly canRunCombat: boolean;
   readonly prototypeActionSource: EncounterActionSource | undefined;
   readonly canSubmitPrototypeAction: boolean;
-  readonly prototypeActionSourceUnavailableText?: string;
+  readonly prototypeActionSourceUnavailableText?: string | undefined;
   readonly commanderName: string;
   readonly commanderZone: string;
   readonly commanderActionSource: EncounterActionSource | undefined;
@@ -147,6 +147,16 @@ export const PriorityLabPanel = ({
           <div>
             <dt>Enemy stability</dt>
             <dd>{match.enemyStability}</dd>
+          </div>
+          <div>
+            <dt>Player Combat Charge</dt>
+            <dd data-testid="priority-player-combat-charge">
+              {match.playerCombatCharge}
+            </dd>
+          </div>
+          <div>
+            <dt>Enemy Combat Charge</dt>
+            <dd data-testid="priority-enemy-combat-charge">{match.enemyCombatCharge}</dd>
           </div>
           <div>
             <dt>Outcome</dt>
@@ -297,6 +307,27 @@ export const PriorityLabPanel = ({
                   <small>
                     Turn {event.turnNumber} | {encounterPhaseLabel(event.phase)} |{" "}
                     {encounterActorLabel(event.actor)} | {event.lifecycle}
+                  </small>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p className="muted">None</p>
+          )}
+
+          <h3>Paid Costs</h3>
+          {match.costPaymentEvents.length > 0 ? (
+            <ol className="card-list compact">
+              {match.costPaymentEvents.map((event) => (
+                <li key={event.id}>
+                  <span>
+                    {event.actionLabel}: paid {event.amount} Combat Charge
+                  </span>
+                  <small>
+                    Turn {event.turnNumber} | {encounterPhaseLabel(event.phase)} |{" "}
+                    {encounterActorLabel(event.actor)} | {event.combatChargeBefore}
+                    {" -> "}
+                    {event.combatChargeAfter}
                   </small>
                 </li>
               ))}

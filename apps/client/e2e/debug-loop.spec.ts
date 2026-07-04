@@ -421,13 +421,20 @@ test("priority lab alternates priority, resolves the stack, and records combat",
     priorityPanel.getByText("Player stability", { exact: true })
   ).toBeVisible();
   await expect(priorityPanel.getByText("Enemy stability", { exact: true })).toBeVisible();
+  await expect(
+    priorityPanel.getByText("Player Combat Charge", { exact: true })
+  ).toBeVisible();
+  await expect(priorityPanel.getByTestId("priority-player-combat-charge")).toHaveText(
+    "2"
+  );
+  await expect(priorityPanel.getByTestId("priority-enemy-combat-charge")).toHaveText("0");
   await expect(priorityPanel.getByText("Action Stack")).toBeVisible();
   await expect(priorityPanel.getByText("Action Log")).toBeVisible();
   await expect(
     priorityPanel.getByText("Source: Sparkfall (spellrail)", { exact: true })
   ).toBeVisible();
   await expect(priorityPanel.getByTestId("prototype-action-contract")).toContainText(
-    "Cost: Uses Sparkfall on resolve."
+    "Cost: Pay 1 Combat Charge. Uses Sparkfall on resolve."
   );
   await expect(priorityPanel.getByTestId("prototype-action-contract")).toContainText(
     "Target: Enemy Stability"
@@ -447,7 +454,7 @@ test("priority lab alternates priority, resolves the stack, and records combat",
   );
   await expect(
     commanderActionSection.getByTestId("commander-action-contract")
-  ).toContainText("Cost: Uses Commander on resolve.");
+  ).toContainText("Cost: Pay 1 Combat Charge. Uses Commander on resolve.");
   await expect(
     commanderActionSection.getByTestId("commander-action-contract")
   ).toContainText("Target: Enemy Stability");
@@ -480,9 +487,16 @@ test("priority lab alternates priority, resolves the stack, and records combat",
   await commanderActionSection
     .getByRole("button", { name: "Queue Commander Rally" })
     .click();
+  await expect(priorityPanel.getByTestId("priority-player-combat-charge")).toHaveText(
+    "1"
+  );
   await expect(
     priorityPanel.getByText("Player queued Commander Rally from Sparkcatch Apprentice.")
   ).toBeVisible();
+  await expect(
+    priorityPanel.getByText("Commander Rally: paid 1 Combat Charge")
+  ).toBeVisible();
+  await expect(priorityPanel.getByText("Player | 2 -> 1")).toBeVisible();
   await expect(
     priorityPanel
       .locator(".card-list.compact li")
@@ -518,12 +532,19 @@ test("priority lab alternates priority, resolves the stack, and records combat",
   ).toBeDisabled();
 
   await priorityPanel.getByRole("button", { name: "Queue Prototype Technique" }).click();
+  await expect(priorityPanel.getByTestId("priority-player-combat-charge")).toHaveText(
+    "0"
+  );
   await expect(
     priorityPanel.getByText("Prototype Pressure Technique", { exact: true })
   ).toBeVisible();
   await expect(
     priorityPanel.getByText("Player queued Prototype Pressure Technique from Sparkfall.")
   ).toBeVisible();
+  await expect(
+    priorityPanel.getByText("Prototype Pressure Technique: paid 1 Combat Charge")
+  ).toBeVisible();
+  await expect(priorityPanel.getByText("Player | 1 -> 0")).toBeVisible();
   await expect(
     priorityPanel
       .locator(".card-list.compact li")

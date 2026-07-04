@@ -38,6 +38,10 @@ export type EncounterActionCost =
       readonly type: "none";
     }
   | {
+      readonly type: "combatCharge";
+      readonly amount: number;
+    }
+  | {
       readonly type: "sourceUsedOnResolve";
     };
 
@@ -76,10 +80,14 @@ const NO_COST = [{ type: "none" }] as const;
 const NO_EFFECT = [{ type: "none" }] as const;
 const NO_TARGET = { type: "none" } as const;
 const OPPONENT_STABILITY_TARGET = { type: "opponentStability" } as const;
+const COMBAT_CHARGE_ONE = { type: "combatCharge", amount: 1 } as const;
 const TARGET_STABILITY_MINUS_ONE = [
   { type: "targetStabilityDelta", amount: -1 }
 ] as const;
-const SOURCE_USED_ON_RESOLVE = [{ type: "sourceUsedOnResolve" }] as const;
+const COMBAT_CHARGE_ONE_AND_SOURCE_USED_ON_RESOLVE = [
+  COMBAT_CHARGE_ONE,
+  { type: "sourceUsedOnResolve" }
+] as const;
 
 const ENCOUNTER_ACTION_DEFINITIONS_BY_KIND = {
   debug_noop: {
@@ -107,7 +115,7 @@ const ENCOUNTER_ACTION_DEFINITIONS_BY_KIND = {
     label: "Prototype Pressure Technique",
     timing: "mainPhase",
     targetRequirement: OPPONENT_STABILITY_TARGET,
-    costs: SOURCE_USED_ON_RESOLVE,
+    costs: COMBAT_CHARGE_ONE_AND_SOURCE_USED_ON_RESOLVE,
     effects: TARGET_STABILITY_MINUS_ONE,
     sourceLifecycleOnResolve: "usedOnResolve",
     includeEffectSummaryInResolutionLog: true
@@ -117,7 +125,7 @@ const ENCOUNTER_ACTION_DEFINITIONS_BY_KIND = {
     label: "Commander Rally",
     timing: "mainPhase",
     targetRequirement: OPPONENT_STABILITY_TARGET,
-    costs: SOURCE_USED_ON_RESOLVE,
+    costs: COMBAT_CHARGE_ONE_AND_SOURCE_USED_ON_RESOLVE,
     effects: TARGET_STABILITY_MINUS_ONE,
     sourceLifecycleOnResolve: "usedOnResolve",
     includeEffectSummaryInResolutionLog: true
@@ -173,6 +181,12 @@ export const sourceLifecycleForEncounterAction = (
 export const encounterActionConsumesSourceOnResolve = (
   kind: EncounterActionKind
 ): boolean => sourceLifecycleForEncounterAction(kind) === "usedOnResolve";
+
+export const combatChargeCostForEncounterAction = (kind: EncounterActionKind): number =>
+  getEncounterActionDefinition(kind).costs.reduce(
+    (total, cost) => total + (cost.type === "combatCharge" ? cost.amount : 0),
+    0
+  );
 
 export const defaultTargetForEncounterAction = (
   kind: EncounterActionKind,
@@ -274,6 +288,8 @@ export const describeEncounterActionCosts = (
   return costs
     .map((cost) => {
       switch (cost.type) {
+        case "combatCharge":
+          return `Pay ${cost.amount} Combat Charge.`;
         case "sourceUsedOnResolve":
           return `Uses ${sourceLabel} on resolve.`;
       }

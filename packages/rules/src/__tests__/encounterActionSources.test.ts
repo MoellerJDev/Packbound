@@ -43,6 +43,13 @@ const createTestRun = (): RunState =>
     playerId
   });
 
+const createChargedMatch = (matchId: string, playerCombatCharge = 2) =>
+  createEncounterMatch({
+    matchId,
+    seed: matchId,
+    playerCombatCharge
+  });
+
 const getSparkfall = (run: RunState): CardInstance => {
   const card = run.spellrail.cards.find(
     (candidate) => sampleCatalog.cardsById.get(candidate.defId)?.name === "Sparkfall"
@@ -272,10 +279,7 @@ describe("encounter prototype pressure action sources", () => {
   it("queues a validated source and preserves prototype resolution semantics", () => {
     const run = createTestRun();
     const sparkfall = getSparkfall(run);
-    const match = createEncounterMatch({
-      matchId: "source-submit",
-      seed: "source-submit"
-    });
+    const match = createChargedMatch("source-submit");
 
     const submitted = submitPrototypePressureActionFromRun({
       match,
@@ -296,6 +300,13 @@ describe("encounter prototype pressure action sources", () => {
     });
     expect(submitted.stack[0]?.action.sourceLifecycle).toBe("usedOnResolve");
     expect(submitted.stack[0]?.action.target).toEqual(enemyStabilityTarget);
+    expect(submitted.playerCombatCharge).toBe(1);
+    expect(submitted.costPaymentEvents[0]).toMatchObject({
+      actionKind: "main_phase_pressure",
+      amount: 1,
+      combatChargeBefore: 2,
+      combatChargeAfter: 1
+    });
     expect(submitted.actionLog.at(-1)?.text).toBe(
       "Player queued Prototype Pressure Technique from Sparkfall."
     );
@@ -318,10 +329,7 @@ describe("encounter prototype pressure action sources", () => {
   it("blocks the same source while queued and after it has been used", () => {
     const run = createTestRun();
     const sparkfall = getSparkfall(run);
-    const match = createEncounterMatch({
-      matchId: "repeat-source",
-      seed: "repeat-source"
-    });
+    const match = createChargedMatch("repeat-source");
 
     const submitted = submitPrototypePressureActionFromRun({
       match,
@@ -367,15 +375,45 @@ describe("encounter prototype pressure action sources", () => {
       })
     ).toThrow(/already used/);
   });
+
+  it("surfaces paid-cost failures during submit after source validation succeeds", () => {
+    const run = createTestRun();
+    const sparkfall = getSparkfall(run);
+    const match = createEncounterMatch({
+      matchId: "source-submit-no-charge",
+      seed: "source-submit-no-charge"
+    });
+
+    const validation = validatePrototypePressureActionSource({
+      run,
+      catalog: sampleCatalog,
+      actor: "player",
+      cardInstanceId: sparkfall.instanceId
+    });
+
+    expect(validation.ok).toBe(true);
+    expect(() =>
+      submitPrototypePressureActionFromRun({
+        match,
+        run,
+        catalog: sampleCatalog,
+        actor: "player",
+        cardInstanceId: sparkfall.instanceId
+      })
+    ).toThrow(/Prototype Pressure Technique requires 1 Combat Charge, but Player has 0/);
+    expect(match).toEqual(
+      createEncounterMatch({
+        matchId: "source-submit-no-charge",
+        seed: "source-submit-no-charge"
+      })
+    );
+  });
 });
 
 describe("encounter Commander Rally action sources", () => {
   it("accepts a deployed player Commander during first main with player priority", () => {
     const run = deployTestCommander(createTestRun());
-    const match = createEncounterMatch({
-      matchId: "commander-rally-source",
-      seed: "commander-rally-source"
-    });
+    const match = createChargedMatch("commander-rally-source");
 
     const result = validateCommanderRallyActionSource({
       run,
@@ -409,10 +447,7 @@ describe("encounter Commander Rally action sources", () => {
 
   it("rejects a Commander that is still in Command Zone", () => {
     const run = createTestRun();
-    const match = createEncounterMatch({
-      matchId: "commander-rally-command-zone",
-      seed: "commander-rally-command-zone"
-    });
+    const match = createChargedMatch("commander-rally-command-zone");
 
     const result = validateCommanderRallyActionSource({
       run,
@@ -441,10 +476,7 @@ describe("encounter Commander Rally action sources", () => {
       ...deployed,
       board: { placements: [] }
     };
-    const match = createEncounterMatch({
-      matchId: "commander-rally-missing-placement",
-      seed: "commander-rally-missing-placement"
-    });
+    const match = createChargedMatch("commander-rally-missing-placement");
 
     const result = validateCommanderRallyActionSource({
       run,
@@ -458,10 +490,7 @@ describe("encounter Commander Rally action sources", () => {
 
   it("rejects unsupported actors, wrong phases, and missing player priority", () => {
     const run = deployTestCommander(createTestRun());
-    const firstMain = createEncounterMatch({
-      matchId: "commander-rally-guards",
-      seed: "commander-rally-guards"
-    });
+    const firstMain = createChargedMatch("commander-rally-guards");
     const combat = createEncounterMatch({
       matchId: "commander-rally-combat",
       seed: "commander-rally-combat",
@@ -509,10 +538,7 @@ describe("encounter Commander Rally action sources", () => {
 
   it("rejects wrong owner, unknown definitions, and non-Unit Commander definitions", () => {
     const deployed = deployTestCommander(createTestRun());
-    const match = createEncounterMatch({
-      matchId: "commander-rally-definition-guards",
-      seed: "commander-rally-definition-guards"
-    });
+    const match = createChargedMatch("commander-rally-definition-guards");
 
     expectCommanderFailureCode(
       validateCommanderRallyActionSource({
@@ -566,10 +592,7 @@ describe("encounter Commander Rally action sources", () => {
 
   it("queues, resolves, and prevents reusing Commander Rally in one encounter", () => {
     const run = deployTestCommander(createTestRun());
-    const match = createEncounterMatch({
-      matchId: "commander-rally-repeat-source",
-      seed: "commander-rally-repeat-source"
-    });
+    const match = createChargedMatch("commander-rally-repeat-source");
 
     const submitted = submitCommanderRallyActionFromRun({
       match,
@@ -589,6 +612,13 @@ describe("encounter Commander Rally action sources", () => {
       },
       sourceLifecycle: "usedOnResolve",
       target: enemyStabilityTarget
+    });
+    expect(submitted.playerCombatCharge).toBe(1);
+    expect(submitted.costPaymentEvents[0]).toMatchObject({
+      actionKind: "commander_rally",
+      amount: 1,
+      combatChargeBefore: 2,
+      combatChargeAfter: 1
     });
     expect(submitted.actionLog.at(-1)?.text).toBe(
       "Player queued Commander Rally from Sparkcatch Apprentice."
@@ -653,5 +683,30 @@ describe("encounter Commander Rally action sources", () => {
       })
     ).toThrow(/already used/);
     expect(JSON.parse(JSON.stringify(resolved))).toEqual(resolved);
+  });
+
+  it("surfaces Commander Rally paid-cost failures during submit", () => {
+    const run = deployTestCommander(createTestRun());
+    const match = createEncounterMatch({
+      matchId: "commander-rally-no-charge",
+      seed: "commander-rally-no-charge"
+    });
+
+    const validation = validateCommanderRallyActionSource({
+      run,
+      catalog: sampleCatalog,
+      match,
+      actor: "player"
+    });
+
+    expect(validation.ok).toBe(true);
+    expect(() =>
+      submitCommanderRallyActionFromRun({
+        match,
+        run,
+        catalog: sampleCatalog,
+        actor: "player"
+      })
+    ).toThrow(/Commander Rally requires 1 Combat Charge, but Player has 0/);
   });
 });

@@ -417,13 +417,21 @@ test("priority lab alternates priority, resolves the stack, and records combat",
   await expect(priorityPanel.getByText("First main", { exact: true })).toBeVisible();
   await expect(priorityPanel.getByText("Active actor")).toBeVisible();
   await expect(priorityPanel.getByText("Priority holder")).toBeVisible();
-  await expect(priorityPanel.getByText("Player stability")).toBeVisible();
-  await expect(priorityPanel.getByText("Enemy stability")).toBeVisible();
+  await expect(
+    priorityPanel.getByText("Player stability", { exact: true })
+  ).toBeVisible();
+  await expect(priorityPanel.getByText("Enemy stability", { exact: true })).toBeVisible();
   await expect(priorityPanel.getByText("Action Stack")).toBeVisible();
   await expect(priorityPanel.getByText("Action Log")).toBeVisible();
   await expect(
     priorityPanel.getByText("Source: Sparkfall (spellrail)", { exact: true })
   ).toBeVisible();
+  await expect(priorityPanel.getByTestId("prototype-action-contract")).toContainText(
+    "Cost: Uses Sparkfall on resolve."
+  );
+  await expect(priorityPanel.getByTestId("prototype-action-contract")).toContainText(
+    "Effect: Enemy Stability -1."
+  );
   const commanderActionSection = priorityPanel.getByTestId("commander-action-section");
   await expect(commanderActionSection).toBeVisible();
   await expect(commanderActionSection.getByText("Commander Action")).toBeVisible();
@@ -434,6 +442,12 @@ test("priority lab alternates priority, resolves the stack, and records combat",
   await expect(commanderActionSection.getByTestId("commander-action-status")).toHaveText(
     "Commander must be deployed to use Commander Rally."
   );
+  await expect(
+    commanderActionSection.getByTestId("commander-action-contract")
+  ).toContainText("Cost: Uses Commander on resolve.");
+  await expect(
+    commanderActionSection.getByTestId("commander-action-contract")
+  ).toContainText("Effect: Enemy Stability -1.");
   await expect(
     commanderActionSection.getByRole("button", { name: "Queue Commander Rally" })
   ).toBeDisabled();

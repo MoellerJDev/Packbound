@@ -4,6 +4,7 @@ export * from "./commander";
 export * from "./combatStats";
 export * from "./economy";
 export * from "./engagementPreview";
+export * from "./encounterActionContracts";
 export * from "./encounterActionSources";
 export * from "./encounterMatch";
 export * from "./encounters";

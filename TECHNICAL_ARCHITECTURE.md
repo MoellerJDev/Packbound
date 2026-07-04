@@ -209,6 +209,14 @@ Commander source. Once queued, resolution remains pure `EncounterMatchState`
 work: Stability changes and source lifecycle events are match-local and do not
 move cards, alter Commander lifecycle history, or mutate run zones.
 
+Encounter action definitions live as static rules-layer contracts. They declare
+action kind, label, timing, source lifecycle, costs, and effects for the current
+prototype actions. The only implemented cost-like behavior is
+source-used-on-resolve, and effects currently mutate only match-local
+Stability. The contract registry is deliberately not an authored card-effect
+engine, does not pay Combat Charge, does not choose targets, and does not mutate
+`RunState`.
+
 ### `packages/sim`
 
 Pure deterministic combat simulator.
@@ -1112,7 +1120,8 @@ Expand them only through focused rules/content tasks with tests.
 - The current encounter action bridge validates deployed Commander context for
   `Commander Rally` and then queues a match-local action. This is deliberately
   separate from Commander lifecycle run actions; resolving Rally does not mutate
-  `RunState`.
+  `RunState`. The action itself is described by the same static encounter action
+  contract registry used by the Spellrail prototype action.
 - Commander lifecycle logging is structured run/progression metadata, not
   renderer behavior. Entries capture creation, deploy, voluntary return,
   destruction replacement, upgrade application, and their key before/after tax,

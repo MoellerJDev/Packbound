@@ -8,6 +8,11 @@ import {
   type EncounterActor,
   type EncounterMatchState
 } from "./encounterMatch";
+import {
+  encounterActionConsumesSourceOnResolve,
+  labelForEncounterAction,
+  sourceLifecycleForEncounterAction
+} from "./encounterActionContracts";
 import { findRunCard } from "./runCards";
 import type { RunState } from "./runState";
 
@@ -109,6 +114,12 @@ export type SubmitCommanderRallyActionFromRunInput = {
   readonly actor?: EncounterActor;
 };
 
+const PROTOTYPE_PRESSURE_ACTION_KIND =
+  "main_phase_pressure" satisfies EncounterActionKind;
+const COMMANDER_RALLY_ACTION_KIND = "commander_rally" satisfies EncounterActionKind;
+const PROTOTYPE_PRESSURE_LABEL = labelForEncounterAction(PROTOTYPE_PRESSURE_ACTION_KIND);
+const COMMANDER_RALLY_LABEL = labelForEncounterAction(COMMANDER_RALLY_ACTION_KIND);
+
 const failure = (
   code: PrototypePressureActionSourceValidationCode,
   cardInstanceId: CardInstanceId,
@@ -140,7 +151,7 @@ const sourceAlreadyQueued = (
     (item) =>
       item.action.kind === actionKind &&
       item.action.source?.cardInstanceId === cardInstanceId &&
-      item.action.sourceLifecycle === "usedOnResolve"
+      item.action.sourceLifecycle === sourceLifecycleForEncounterAction(actionKind)
   );
 
 const sourceAlreadyUsed = (
@@ -152,26 +163,32 @@ const sourceAlreadyUsed = (
     (event) =>
       event.actionKind === actionKind &&
       event.source.cardInstanceId === cardInstanceId &&
-      event.lifecycle === "usedOnResolve"
+      event.lifecycle === sourceLifecycleForEncounterAction(actionKind)
   );
 
 const validateSourceAvailability = (
   match: EncounterMatchState,
   cardInstanceId: CardInstanceId
 ): PrototypePressureActionSourceValidationFailure | undefined => {
-  if (sourceAlreadyQueued(match, cardInstanceId, "main_phase_pressure")) {
+  if (
+    encounterActionConsumesSourceOnResolve(PROTOTYPE_PRESSURE_ACTION_KIND) &&
+    sourceAlreadyQueued(match, cardInstanceId, PROTOTYPE_PRESSURE_ACTION_KIND)
+  ) {
     return failure(
       "source_already_queued",
       cardInstanceId,
-      `Card ${cardInstanceId} is already queued for Prototype Pressure Technique.`
+      `Card ${cardInstanceId} is already queued for ${PROTOTYPE_PRESSURE_LABEL}.`
     );
   }
 
-  if (sourceAlreadyUsed(match, cardInstanceId, "main_phase_pressure")) {
+  if (
+    encounterActionConsumesSourceOnResolve(PROTOTYPE_PRESSURE_ACTION_KIND) &&
+    sourceAlreadyUsed(match, cardInstanceId, PROTOTYPE_PRESSURE_ACTION_KIND)
+  ) {
     return failure(
       "source_already_used",
       cardInstanceId,
-      `Card ${cardInstanceId} was already used for Prototype Pressure Technique this encounter.`
+      `Card ${cardInstanceId} was already used for ${PROTOTYPE_PRESSURE_LABEL} this encounter.`
     );
   }
 
@@ -182,18 +199,24 @@ const validateCommanderSourceAvailability = (
   match: EncounterMatchState,
   cardInstanceId: CardInstanceId
 ): CommanderRallyActionSourceValidationFailure | undefined => {
-  if (sourceAlreadyQueued(match, cardInstanceId, "commander_rally")) {
+  if (
+    encounterActionConsumesSourceOnResolve(COMMANDER_RALLY_ACTION_KIND) &&
+    sourceAlreadyQueued(match, cardInstanceId, COMMANDER_RALLY_ACTION_KIND)
+  ) {
     return commanderFailure(
       "source_already_queued",
-      "Commander Rally is already queued for this Commander.",
+      `${COMMANDER_RALLY_LABEL} is already queued for this Commander.`,
       cardInstanceId
     );
   }
 
-  if (sourceAlreadyUsed(match, cardInstanceId, "commander_rally")) {
+  if (
+    encounterActionConsumesSourceOnResolve(COMMANDER_RALLY_ACTION_KIND) &&
+    sourceAlreadyUsed(match, cardInstanceId, COMMANDER_RALLY_ACTION_KIND)
+  ) {
     return commanderFailure(
       "source_already_used",
-      "Commander Rally was already used this encounter.",
+      `${COMMANDER_RALLY_LABEL} was already used this encounter.`,
       cardInstanceId
     );
   }
@@ -211,7 +234,7 @@ export const validatePrototypePressureActionSource = ({
     return failure(
       "unsupported_actor",
       cardInstanceId,
-      `Card ${cardInstanceId} cannot source Prototype Pressure Technique for ${actor}; run-sourced encounter actions currently support player actions only.`
+      `Card ${cardInstanceId} cannot source ${PROTOTYPE_PRESSURE_LABEL} for ${actor}; run-sourced encounter actions currently support player actions only.`
     );
   }
 
@@ -236,7 +259,7 @@ export const validatePrototypePressureActionSource = ({
     return failure(
       "wrong_zone",
       cardInstanceId,
-      `Card ${cardInstanceId} is in ${card.zone}, but Prototype Pressure Technique requires a spellrail source.`
+      `Card ${cardInstanceId} is in ${card.zone}, but ${PROTOTYPE_PRESSURE_LABEL} requires a spellrail source.`
     );
   }
 
@@ -253,7 +276,7 @@ export const validatePrototypePressureActionSource = ({
     return failure(
       "wrong_card_type",
       cardInstanceId,
-      `Card ${cardInstanceId} references ${def.cardType}, but Prototype Pressure Technique requires a Technique source.`
+      `Card ${cardInstanceId} references ${def.cardType}, but ${PROTOTYPE_PRESSURE_LABEL} requires a Technique source.`
     );
   }
 
@@ -303,7 +326,7 @@ export const validateCommanderRallyActionSource = ({
   if (actor !== "player") {
     return commanderFailure(
       "unsupported_actor",
-      "Commander Rally currently supports player Commanders only."
+      `${COMMANDER_RALLY_LABEL} currently supports player Commanders only.`
     );
   }
 
@@ -311,7 +334,7 @@ export const validateCommanderRallyActionSource = ({
   if (!commander) {
     return commanderFailure(
       "missing_commander",
-      "Run has no Commander for Commander Rally."
+      `Run has no Commander for ${COMMANDER_RALLY_LABEL}.`
     );
   }
 
@@ -327,7 +350,7 @@ export const validateCommanderRallyActionSource = ({
   if (commanderCard.zone !== "board") {
     return commanderFailure(
       "wrong_zone",
-      "Commander must be deployed to use Commander Rally.",
+      `Commander must be deployed to use ${COMMANDER_RALLY_LABEL}.`,
       commanderCard.instanceId
     );
   }
@@ -338,7 +361,7 @@ export const validateCommanderRallyActionSource = ({
   if (!placement) {
     return commanderFailure(
       "missing_board_placement",
-      "Commander Rally requires the deployed Commander to have a matching board placement.",
+      `${COMMANDER_RALLY_LABEL} requires the deployed Commander to have a matching board placement.`,
       commanderCard.instanceId
     );
   }
@@ -355,7 +378,7 @@ export const validateCommanderRallyActionSource = ({
   if (def.cardType !== "Unit" && def.cardType !== "Echo") {
     return commanderFailure(
       "wrong_card_type",
-      `Commander ${commanderCard.instanceId} references ${def.cardType}, but Commander Rally requires a Unit or Echo source.`,
+      `Commander ${commanderCard.instanceId} references ${def.cardType}, but ${COMMANDER_RALLY_LABEL} requires a Unit or Echo source.`,
       commanderCard.instanceId
     );
   }
@@ -363,7 +386,7 @@ export const validateCommanderRallyActionSource = ({
   if (match.phase !== "firstMain" && match.phase !== "secondMain") {
     return commanderFailure(
       "wrong_phase",
-      "Commander Rally can only be used during main phases.",
+      `${COMMANDER_RALLY_LABEL} can only be used during main phases.`,
       commanderCard.instanceId
     );
   }
@@ -371,7 +394,7 @@ export const validateCommanderRallyActionSource = ({
   if (match.priorityHolder !== "player") {
     return commanderFailure(
       "priority_required",
-      "Commander Rally requires player priority.",
+      `${COMMANDER_RALLY_LABEL} requires player priority.`,
       commanderCard.instanceId
     );
   }
@@ -439,9 +462,9 @@ export const submitPrototypePressureActionFromRun = ({
 
   return submitEncounterAction(match, {
     actor,
-    kind: "main_phase_pressure",
+    kind: PROTOTYPE_PRESSURE_ACTION_KIND,
     source: result.source,
-    sourceLifecycle: "usedOnResolve"
+    sourceLifecycle: sourceLifecycleForEncounterAction(PROTOTYPE_PRESSURE_ACTION_KIND)
   });
 };
 
@@ -464,8 +487,8 @@ export const submitCommanderRallyActionFromRun = ({
 
   return submitEncounterAction(match, {
     actor,
-    kind: "commander_rally",
+    kind: COMMANDER_RALLY_ACTION_KIND,
     source: result.source,
-    sourceLifecycle: "usedOnResolve"
+    sourceLifecycle: sourceLifecycleForEncounterAction(COMMANDER_RALLY_ACTION_KIND)
   });
 };

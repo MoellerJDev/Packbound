@@ -1,7 +1,9 @@
-import type {
-  EncounterActionSource,
-  EncounterActor,
-  EncounterMatchState
+import {
+  describeEncounterActionCosts,
+  describeEncounterActionEffects,
+  type EncounterActionSource,
+  type EncounterActor,
+  type EncounterMatchState
 } from "@packbound/rules";
 
 type PriorityLabPanelProps = {
@@ -90,6 +92,16 @@ export const PriorityLabPanel = ({
   const priorityPhase = match.phase !== "combat" && !complete;
   const visibleStack = [...match.stack].reverse();
   const visibleLog = match.actionLog.slice(-10);
+  const prototypeCostText = describeEncounterActionCosts(
+    "main_phase_pressure",
+    prototypeActionSource?.cardName ?? "source"
+  );
+  const prototypeEffectText = describeEncounterActionEffects(
+    "main_phase_pressure",
+    "player"
+  );
+  const commanderCostText = describeEncounterActionCosts("commander_rally", "Commander");
+  const commanderEffectText = describeEncounterActionEffects("commander_rally", "player");
 
   return (
     <section className="debug-grid" aria-labelledby="priority-lab-heading">
@@ -181,6 +193,17 @@ export const PriorityLabPanel = ({
             ? ` - ${prototypeActionSourceUnavailableText ?? "Source unavailable."}`
             : ""}
         </p>
+        <div
+          className="encounter-action-contract"
+          data-testid="prototype-action-contract"
+        >
+          <span>
+            <strong>Cost:</strong> {prototypeCostText}
+          </span>
+          <span>
+            <strong>Effect:</strong> {prototypeEffectText}
+          </span>
+        </div>
 
         <div className="encounter-action-section" data-testid="commander-action-section">
           <h3>Commander Action</h3>
@@ -212,6 +235,17 @@ export const PriorityLabPanel = ({
               ? `Source: ${sourceContextLabel(commanderActionSource)}`
               : (commanderActionUnavailableText ?? "Commander Rally unavailable.")}
           </p>
+          <div
+            className="encounter-action-contract"
+            data-testid="commander-action-contract"
+          >
+            <span>
+              <strong>Cost:</strong> {commanderCostText}
+            </span>
+            <span>
+              <strong>Effect:</strong> {commanderEffectText}
+            </span>
+          </div>
         </div>
 
         <div className="encounter-loadout">

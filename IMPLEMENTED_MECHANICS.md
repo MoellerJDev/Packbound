@@ -42,6 +42,9 @@ The rules package now has a minimal, rules-first Commander lifecycle prototype.
   `commander_rally` / `Commander Rally`, during first main or second main when
   the player has priority. This action is sourced from the deployed Commander
   and is once per encounter through match-local source lifecycle state.
+- Encounter actions now use a minimal static cost/effect contract in the rules
+  layer. The contract declares action kind, label, timing, source lifecycle,
+  costs, and match-local effects for the current prototype actions.
 - Planning/reward Commander actions are replayable run actions, deterministic,
   immutable, and JSON-serializable. Commander Rally is deterministic and
   JSON-serializable as match-local encounter state.
@@ -71,6 +74,17 @@ Current Commander prototype limitations:
 
 The rules package now includes a minimal serializable encounter match reducer:
 
+- Encounter action definitions are static, JSON-serializable contracts. Current
+  contracts cover `debug_noop`, `debug_pressure`, `main_phase_pressure`, and
+  `commander_rally`.
+- Contract timing drives legality. Debug actions use `anyPriority`, while
+  `Prototype Pressure Technique` and `Commander Rally` use main-phase timing.
+- Contract costs currently support only `none` and source-used-on-resolve
+  lifecycle. This is the one real cost-like behavior today; it records
+  match-local source lifecycle events and does not move or consume `RunState`
+  cards.
+- Contract effects currently support match-local Stability deltas only. The two
+  prototype real actions reduce the opposing actor's Stability by 1.
 - Encounters start in `firstMain` with the active actor holding priority.
 - Empty-stack double passes advance `firstMain` to `combat`, `secondMain` to
   `end`, and `end` into the next turn.
@@ -108,8 +122,11 @@ Current encounter shell limitations:
 - Only two abstract prototype main-phase actions exist: one Spellrail Technique
   source and one deployed Commander source. Their sources are validated against
   the current player run and catalog and record match-local lifecycle events,
-  but they are not connected to hand, deck, mill, enemy AI, costs, RunState zone
-  changes, or content-authored card effects yet.
+  but they are not connected to hand, deck, mill, enemy AI, paid resource costs,
+  RunState zone changes, targeting choices, or content-authored card effects yet.
+- The action contract is not a full authored effect engine. It has no Combat
+  Charge payment, arbitrary targeting, effect graphs, interrupts, or RunState
+  mutation hooks.
 - There are no real card timing windows, counterspells, manual blockers, hidden
   intent choices, deck/hand/mill zones, multiplayer networking, backend
   persistence, or new cards attached to this shell yet.

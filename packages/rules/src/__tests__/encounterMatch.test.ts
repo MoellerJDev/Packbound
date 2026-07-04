@@ -141,7 +141,8 @@ describe("encounter match priority shell", () => {
       kind: "main_phase_pressure",
       actor: "player",
       label: "Prototype Pressure Technique",
-      source: sparkfallSource
+      source: sparkfallSource,
+      sourceLifecycle: "usedOnResolve"
     });
     expect(state.actionLog.at(-1)).toMatchObject({
       kind: "action_submitted",
@@ -211,8 +212,7 @@ describe("encounter match priority shell", () => {
   it("resolves sourced prototype main-phase pressure without changing semantics", () => {
     const submitted = submitEncounterAction(createMatch(), {
       kind: "main_phase_pressure",
-      source: sparkfallSource,
-      sourceLifecycle: "usedOnResolve"
+      source: sparkfallSource
     });
     const enemyPass = passEncounterPriority(submitted, "enemy");
     const resolved = passEncounterPriority(enemyPass, "player");
@@ -317,6 +317,16 @@ describe("encounter match priority shell", () => {
       ),
       "player"
     );
+    const resolvedDebugWithSource = passEncounterPriority(
+      passEncounterPriority(
+        submitEncounterAction(createMatch(), {
+          kind: "debug_pressure",
+          source: sparkfallSource
+        }),
+        "enemy"
+      ),
+      "player"
+    );
     const resolvedUnsourcedPrototype = passEncounterPriority(
       passEncounterPriority(
         submitEncounterAction(createMatch(), { kind: "main_phase_pressure" }),
@@ -337,6 +347,7 @@ describe("encounter match priority shell", () => {
     );
 
     expect(resolvedDebug.sourceLifecycleEvents).toEqual([]);
+    expect(resolvedDebugWithSource.sourceLifecycleEvents).toEqual([]);
     expect(resolvedUnsourcedPrototype.sourceLifecycleEvents).toEqual([]);
     expect(resolvedSourceWithoutLifecycle.sourceLifecycleEvents).toEqual([]);
   });

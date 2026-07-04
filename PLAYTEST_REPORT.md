@@ -115,6 +115,13 @@ during first main or second main with player priority, resolves through pass/pas
 priority, reduces enemy Stability by 1, and records the Commander source as used
 for that encounter. This is match-local and does not mutate `RunState`.
 
+Implementation update after this task: encounter actions now use a minimal
+static cost/effect contract in the rules layer. `Prototype Pressure Technique`
+and `Commander Rally` declare main-phase timing, source-used-on-resolve
+lifecycle, labels, and opposing Stability -1 effects through the contract
+registry. Priority Lab now shows contract-driven Cost and Effect text for both
+actions.
+
 Implementation update after this task: the renderer-lab replay controller and
 Pixi renderer now guard replay command completions with the current reset
 generation and session-scoped busy state. Browser smoke covers `Step -> Reset ->
@@ -129,7 +136,7 @@ default-route confidence. Pixi should stay opt-in until those are addressed.
 
 Recommended next task:
 
-`feat(rules): add encounter action cost and effect contract`
+`feat(rules): add encounter action targeting contract`
 
 ## 2. Environment And Commands
 
@@ -181,13 +188,13 @@ Build warning observed and not fixed in this task:
 
 ## 3. Scenarios Covered
 
-| Scenario                   | Manual result | Notes                                                                                   |
-| -------------------------- | ------------- | --------------------------------------------------------------------------------------- |
-| Default route `/`          | Pass          | React/CSS Hex Arena remains default; full run loop still works.                         |
-| `?scenario=renderer-lab`   | Lab pass      | Pixi readability is manually validated; reset/play stall is fixed in smoke coverage.    |
-| `?scenario=engagement-lab` | Pass          | Out-of-range melee and in-range ranged previews are understandable.                     |
-| `?scenario=priority-lab`   | Pass          | Commander Rally, Prototype Technique, source lifecycle, stack, log, skirmish flow work. |
-| `?scenario=upgrade-lab`    | Pass          | Duplicate combine and Lv 1 pool-card inspection work.                                   |
+| Scenario                   | Manual result | Notes                                                                                                  |
+| -------------------------- | ------------- | ------------------------------------------------------------------------------------------------------ |
+| Default route `/`          | Pass          | React/CSS Hex Arena remains default; full run loop still works.                                        |
+| `?scenario=renderer-lab`   | Lab pass      | Pixi readability is manually validated; reset/play stall is fixed in smoke coverage.                   |
+| `?scenario=engagement-lab` | Pass          | Out-of-range melee and in-range ranged previews are understandable.                                    |
+| `?scenario=priority-lab`   | Pass          | Commander Rally, Prototype Technique, contract text, source lifecycle, stack, log, skirmish flow work. |
+| `?scenario=upgrade-lab`    | Pass          | Duplicate combine and Lv 1 pool-card inspection work.                                                  |
 
 Browser console result: no warnings or errors captured across the manual pass.
 
@@ -412,12 +419,20 @@ now render separately. For example:
 - `Player queued Prototype Pressure Technique from Sparkfall.`
 - `Turn 1 | First main | Stack 1`
 
+The action text is now backed by a minimal encounter action contract. Priority
+Lab shows this directly:
+
+- Prototype Pressure Technique: `Cost: Uses Sparkfall on resolve.` and
+  `Effect: Enemy Stability -1.`
+- Commander Rally: `Cost: Uses Commander on resolve.` and
+  `Effect: Enemy Stability -1.`
+
 The lab is no longer debug-action-only in the UI. It now has one Spellrail
 Technique prototype action and one deployed-Commander prototype action, both
-with minimal source context and match-local source lifecycle. Known limitation:
-these are still abstract prototype actions with no cost payment, hand/deck/mill
-sourcing, RunState card movement, enemy action choice, or authored effect
-system.
+with minimal source context, contract timing/effect metadata, and match-local
+source lifecycle. Known limitation: these are still abstract prototype actions
+with no paid resource cost, hand/deck/mill sourcing, targeting choice, RunState
+card movement, enemy action choice, or authored effect system.
 
 ## 8. `?scenario=upgrade-lab`
 
@@ -646,7 +661,9 @@ Note:
   run-progression state by this Commander-specific replacement.
 - Priority Lab has two real prototype actions with source context:
   `Prototype Pressure Technique` from Sparkfall and `Commander Rally` from a
-  deployed Commander. They still have no real cost, hand/deck/mill, source card
+  deployed Commander. They now use a minimal static contract for timing, labels,
+  source-used-on-resolve lifecycle, and match-local Stability effects. They still
+  have no paid resource cost, targeting choice, hand/deck/mill, source card
   movement, RunState mutation on resolution, enemy AI, interrupts, counterspells,
   or authored card effect resolution.
 - Combat simulation remains deterministic and unchanged.
@@ -658,14 +675,15 @@ Note:
 
 Do next:
 
-`feat(rules): add encounter action cost and effect contract`
+`feat(rules): add encounter action targeting contract`
 
 Why: Priority Lab now has two source-validated, stack-resolving prototype
 actions: `Prototype Pressure Technique` from Spellrail and `Commander Rally`
-from the deployed Commander. The next narrow slice should give encounter actions
-a minimal deterministic cost/effect contract so future authored Technique or
-Commander actions can differ without adding hand/deck/mill, Signature Relics,
-enemy Commanders, or broad timing.
+from the deployed Commander, and both now share a minimal cost/effect contract.
+The next narrow slice should add explicit target metadata and validation so
+future authored Technique, Commander, or Signature Relic actions can say what
+they affect without adding hand/deck/mill, enemy Commanders, broad timing,
+counterspells, or a full authored effect engine.
 
 Do soon:
 
@@ -674,7 +692,7 @@ Do soon:
 - `feat(client): tune Pixi combat effect timing after manual readability pass`
 - `feat(client): keep selected target and next move visible together in preview labs`
 - `feat(client): group or filter long combat summary events`
-- `feat(rules): add encounter action cost and effect contract`
+- `feat(rules): add encounter action paid-cost prototype`
 
 Still wait:
 

@@ -7,6 +7,16 @@ import type {
   Zone
 } from "@packbound/shared";
 
+import {
+  canUseEncounterActionDuringPhase,
+  getEncounterActionDefinition,
+  labelForEncounterAction,
+  resolveEncounterActionEffects,
+  sourceLifecycleForEncounterAction,
+  type EncounterActionKind,
+  type EncounterActionSourceLifecycle
+} from "./encounterActionContracts";
+
 export type EncounterActor = "player" | "enemy";
 
 export type EncounterPhase =
@@ -22,10 +32,7 @@ export type EncounterOutcome = {
   readonly reason: EncounterOutcomeReason | null;
 };
 
-export type EncounterActionKind =
-  "debug_noop" | "debug_pressure" | "main_phase_pressure" | "commander_rally";
-
-export type EncounterActionSourceLifecycle = "none" | "usedOnResolve";
+export type { EncounterActionKind, EncounterActionSourceLifecycle };
 
 export type EncounterActionSource = {
   readonly cardInstanceId: CardInstanceId;
@@ -153,38 +160,15 @@ const opponentOf = (actor: EncounterActor): EncounterActor =>
 const actorLabel = (actor: EncounterActor): string =>
   actor === "player" ? "Player" : "Enemy";
 
-const actionLabel = (kind: EncounterActionKind, label?: string): string => {
-  if (label) {
-    return label;
-  }
-
-  switch (kind) {
-    case "debug_noop":
-      return "Debug no-op";
-    case "debug_pressure":
-      return "Debug pressure";
-    case "main_phase_pressure":
-      return "Prototype Pressure Technique";
-    case "commander_rally":
-      return "Commander Rally";
-  }
-};
-
 const phaseAllowsPriority = (phase: EncounterPhase): boolean =>
   phase === "start" || phase === "firstMain" || phase === "secondMain" || phase === "end";
-
-const phaseAllowsMainPhaseAction = (phase: EncounterPhase): boolean =>
-  phase === "firstMain" || phase === "secondMain";
 
 const assertCanSubmitActionKind = (
   state: EncounterMatchState,
   kind: EncounterActionKind,
   label: string
 ): void => {
-  if (
-    (kind === "main_phase_pressure" || kind === "commander_rally") &&
-    !phaseAllowsMainPhaseAction(state.phase)
-  ) {
+  if (!canUseEncounterActionDuringPhase(kind, state.phase)) {
     throw new Error(`${label} can only be queued during main phases.`);
   }
 };
@@ -341,8 +325,11 @@ export const submitEncounterAction = (
   }
 
   const kind = input.kind ?? "debug_noop";
-  const label = actionLabel(kind, input.label);
+  const label = labelForEncounterAction(kind, input.label);
   assertCanSubmitActionKind(state, kind, label);
+  const sourceLifecycle =
+    input.sourceLifecycle ??
+    (input.source ? sourceLifecycleForEncounterAction(kind) : "none");
 
   const item: EncounterStackItem = {
     id: `${state.matchId}:stack:${state.nextActionIndex}:${kind}`,
@@ -352,7 +339,7 @@ export const submitEncounterAction = (
       actor,
       label,
       ...(input.source ? { source: input.source } : {}),
-      ...(input.sourceLifecycle ? { sourceLifecycle: input.sourceLifecycle } : {})
+      ...(sourceLifecycle !== "none" || input.sourceLifecycle ? { sourceLifecycle } : {})
     }
   };
   const submitted: EncounterMatchState = {
@@ -373,16 +360,15 @@ export const submitEncounterAction = (
 const stabilityDeltaForAction = (
   action: EncounterQueuedAction
 ): { readonly player: number; readonly enemy: number } => {
-  switch (action.kind) {
-    case "debug_noop":
-      return { player: 0, enemy: 0 };
-    case "debug_pressure":
-    case "main_phase_pressure":
-    case "commander_rally":
-      return action.actor === "player"
-        ? { player: 0, enemy: -1 }
-        : { player: -1, enemy: 0 };
-  }
+  const result = resolveEncounterActionEffects({
+    kind: action.kind,
+    actor: action.actor
+  });
+
+  return {
+    player: result.playerStabilityDelta,
+    enemy: result.enemyStabilityDelta
+  };
 };
 
 const stabilityDeltaText = (delta: {
@@ -404,11 +390,9 @@ const actionResolutionText = (
   delta: { readonly player: number; readonly enemy: number }
 ): string => {
   const base = `Resolved ${item.action.label} from ${actorLabel(item.action.actor)}`;
+  const definition = getEncounterActionDefinition(item.action.kind);
 
-  if (
-    item.action.kind === "main_phase_pressure" ||
-    item.action.kind === "commander_rally"
-  ) {
+  if (definition.includeEffectSummaryInResolutionLog) {
     return `${base}: ${stabilityDeltaText(delta)}`;
   }
 

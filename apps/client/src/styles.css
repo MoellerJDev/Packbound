@@ -972,6 +972,19 @@ h4 {
   margin-top: 8px;
 }
 
+.encounter-action-contract {
+  color: #44515a;
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.82rem;
+  gap: 6px 14px;
+  margin-top: 6px;
+}
+
+.encounter-action-contract strong {
+  color: #26333d;
+}
+
 .board-grid-wrap {
   display: flex;
   justify-content: center;

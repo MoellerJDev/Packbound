@@ -425,7 +425,7 @@ test("priority lab alternates priority, resolves the stack, and records combat",
     priorityPanel.getByText("Current Player Combat Charge", { exact: true })
   ).toBeVisible();
   await expect(priorityPanel.getByTestId("priority-player-combat-charge")).toHaveText(
-    "2"
+    "3"
   );
   await expect(
     priorityPanel.getByText("Source-derived starting Combat Charge", { exact: true })
@@ -438,13 +438,13 @@ test("priority lab alternates priority, resolves the stack, and records combat",
   ).toHaveText("0.35");
   await expect(
     priorityPanel.getByTestId("priority-debug-combat-charge-top-up")
-  ).toHaveText("+1");
+  ).toHaveText("+2");
   await expect(priorityPanel.getByTestId("priority-combat-charge-profile")).toHaveText(
     "1 Source contributes 0.35 Combat Charge/sec, rounded up to 1 starting Combat Charge."
   );
   await expect(
     priorityPanel.getByText(
-      "Priority Lab debug top-up adds +1 Combat Charge for this scenario."
+      "Priority Lab debug top-up adds +2 Combat Charge for this scenario."
     )
   ).toBeVisible();
   await expect(priorityPanel.getByTestId("priority-enemy-combat-charge")).toHaveText("0");
@@ -493,10 +493,44 @@ test("priority lab alternates priority, resolves the stack, and records combat",
   ).toContainText("Target: Enemy board card");
   await expect(
     targetProbeSection.getByTestId("target-probe-action-contract")
-  ).toContainText("Effect: No effect.");
+  ).toContainText("Effect: Mark target as probed.");
+  const queueTargetProbe = targetProbeSection.getByRole("button", {
+    name: "Queue Target Probe"
+  });
+  await expect(queueTargetProbe).toBeEnabled();
+  await queueTargetProbe.click();
+  await expect(priorityPanel.getByTestId("priority-player-combat-charge")).toHaveText(
+    "2"
+  );
   await expect(
-    targetProbeSection.getByRole("button", { name: "Queue Target Probe" })
-  ).toBeEnabled();
+    priorityPanel.getByText(
+      "Player queued Target Probe targeting Ember Scraprunner (enemy ground r0 c3)."
+    )
+  ).toBeVisible();
+  await expect(
+    priorityPanel.getByText("Target Probe: paid 1 Combat Charge")
+  ).toBeVisible();
+  await expect(priorityPanel.getByText("Player | 3 -> 2")).toBeVisible();
+  await expect(
+    priorityPanel
+      .locator(".card-list.compact li")
+      .filter({ hasText: "Target Probe" })
+      .first()
+  ).toContainText("Target: Ember Scraprunner (enemy ground r0 c3)");
+  await priorityPanel.getByRole("button", { name: "Enemy Pass" }).click();
+  await priorityPanel.getByRole("button", { name: "Pass Priority" }).click();
+  await expect(
+    priorityPanel.getByText(
+      "Resolved Target Probe from Player targeting Ember Scraprunner (enemy ground r0 c3): Marked target as probed."
+    )
+  ).toBeVisible();
+  await expect(priorityPanel.getByText("Target Effects")).toBeVisible();
+  await expect(priorityPanel.getByTestId("target-effects-list")).toContainText(
+    "Target Probe: probed Ember Scraprunner (enemy ground r0 c3)"
+  );
+  await expect(priorityPanel.getByTestId("target-effects-list")).toContainText(
+    "Turn 1 | First main | Player | markBoardCardTarget"
+  );
   const commanderActionSection = priorityPanel.getByTestId("commander-action-section");
   await expect(commanderActionSection).toBeVisible();
   await expect(commanderActionSection.getByText("Commander Action")).toBeVisible();

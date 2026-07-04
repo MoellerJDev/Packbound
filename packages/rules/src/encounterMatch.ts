@@ -19,7 +19,9 @@ import {
   validateEncounterActionTarget,
   type EncounterActionKind,
   type EncounterActionSourceLifecycle,
-  type EncounterActionTarget
+  type EncounterActionTarget,
+  type EncounterBoardCardActionTarget,
+  type EncounterBoardCardEffectMark
 } from "./encounterActionContracts";
 
 export type EncounterActor = "player" | "enemy";
@@ -110,6 +112,21 @@ export type EncounterCostPaymentEvent = {
   readonly stackItemIndex: number;
 };
 
+export type EncounterBoardCardEffectEvent = {
+  readonly id: string;
+  readonly index: number;
+  readonly actor: EncounterActor;
+  readonly actionKind: EncounterActionKind;
+  readonly actionLabel: string;
+  readonly effectType: "markBoardCardTarget";
+  readonly mark: EncounterBoardCardEffectMark;
+  readonly target: EncounterBoardCardActionTarget;
+  readonly turnNumber: number;
+  readonly phase: EncounterPhase;
+  readonly stackItemId: string;
+  readonly stackItemIndex: number;
+};
+
 export type EncounterLogKind =
   | "match_started"
   | "action_submitted"
@@ -144,6 +161,7 @@ export type EncounterMatchState = {
   readonly skirmishes: readonly EncounterSkirmishRecord[];
   readonly costPaymentEvents: readonly EncounterCostPaymentEvent[];
   readonly sourceLifecycleEvents: readonly EncounterSourceLifecycleEvent[];
+  readonly boardCardEffectEvents: readonly EncounterBoardCardEffectEvent[];
   readonly playerCombatCharge: number;
   readonly enemyCombatCharge: number;
   readonly playerStability: number;
@@ -375,6 +393,7 @@ export const createEncounterMatch = ({
     skirmishes: [],
     costPaymentEvents: [],
     sourceLifecycleEvents: [],
+    boardCardEffectEvents: [],
     playerCombatCharge,
     enemyCombatCharge,
     playerStability,
@@ -469,25 +488,17 @@ export const submitEncounterAction = (
   });
 };
 
-const stabilityDeltaForAction = (
-  action: EncounterQueuedAction
-): { readonly player: number; readonly enemy: number } => {
-  const result = resolveEncounterActionEffects({
+const actionEffectsForAction = (action: EncounterQueuedAction) =>
+  resolveEncounterActionEffects({
     kind: action.kind,
     actor: action.actor,
     ...(action.target ? { target: action.target } : {})
   });
 
-  return {
-    player: result.playerStabilityDelta,
-    enemy: result.enemyStabilityDelta
-  };
-};
-
 const stabilityDeltaText = (delta: {
   readonly player: number;
   readonly enemy: number;
-}): string => {
+}): string | undefined => {
   if (delta.enemy < 0) {
     return `Enemy stability ${delta.enemy}.`;
   }
@@ -495,12 +506,39 @@ const stabilityDeltaText = (delta: {
     return `Player stability ${delta.player}.`;
   }
 
-  return "No effect.";
+  return undefined;
+};
+
+const boardCardEffectText = (mark: EncounterBoardCardEffectMark): string => {
+  switch (mark) {
+    case "probed":
+      return "Marked target as probed.";
+  }
+};
+
+const actionEffectSummaryText = (effects: {
+  readonly playerStabilityDelta: number;
+  readonly enemyStabilityDelta: number;
+  readonly boardCardEffects: readonly { readonly mark: EncounterBoardCardEffectMark }[];
+}): string => {
+  const parts = [
+    stabilityDeltaText({
+      player: effects.playerStabilityDelta,
+      enemy: effects.enemyStabilityDelta
+    }),
+    ...effects.boardCardEffects.map((effect) => boardCardEffectText(effect.mark))
+  ].filter((part): part is string => Boolean(part));
+
+  return parts.length > 0 ? parts.join(" ") : "No effect.";
 };
 
 const actionResolutionText = (
   item: EncounterStackItem,
-  delta: { readonly player: number; readonly enemy: number }
+  effects: {
+    readonly playerStabilityDelta: number;
+    readonly enemyStabilityDelta: number;
+    readonly boardCardEffects: readonly { readonly mark: EncounterBoardCardEffectMark }[];
+  }
 ): string => {
   const base = `Resolved ${item.action.label} from ${actorLabel(item.action.actor)}`;
   const definition = getEncounterActionDefinition(item.action.kind);
@@ -510,11 +548,23 @@ const actionResolutionText = (
       : "";
 
   if (definition.includeEffectSummaryInResolutionLog) {
-    return `${base}${targetText}: ${stabilityDeltaText(delta)}`;
+    return `${base}${targetText}: ${actionEffectSummaryText(effects)}`;
   }
 
   return `${base}.`;
 };
+
+const copyBoardCardTarget = (
+  target: EncounterBoardCardActionTarget
+): EncounterBoardCardActionTarget => ({
+  type: "boardCard",
+  side: target.side,
+  cardInstanceId: target.cardInstanceId,
+  defId: target.defId,
+  ownerId: target.ownerId,
+  position: { ...target.position },
+  label: target.label
+});
 
 const sourceLifecycleEventForResolution = (
   state: EncounterMatchState,
@@ -540,6 +590,29 @@ const sourceLifecycleEventForResolution = (
   };
 };
 
+const boardCardEffectEventsForResolution = (
+  state: EncounterMatchState,
+  item: EncounterStackItem,
+  effects: ReturnType<typeof actionEffectsForAction>
+): readonly EncounterBoardCardEffectEvent[] =>
+  effects.boardCardEffects.map((effect, offset) => {
+    const index = state.boardCardEffectEvents.length + offset;
+    return {
+      id: `${state.matchId}:board-card-effect:${index}:${item.id}`,
+      index,
+      actor: item.action.actor,
+      actionKind: item.action.kind,
+      actionLabel: item.action.label,
+      effectType: effect.effectType,
+      mark: effect.mark,
+      target: copyBoardCardTarget(effect.target),
+      turnNumber: state.turnNumber,
+      phase: state.phase,
+      stackItemId: item.id,
+      stackItemIndex: item.index
+    };
+  });
+
 const resolveTopStackItem = (state: EncounterMatchState): EncounterMatchState => {
   const item = state.stack.at(-1);
   if (!item) {
@@ -547,16 +620,25 @@ const resolveTopStackItem = (state: EncounterMatchState): EncounterMatchState =>
   }
 
   const nextStack = state.stack.slice(0, -1);
-  const stabilityDelta = stabilityDeltaForAction(item.action);
+  const actionEffects = actionEffectsForAction(item.action);
   const sourceLifecycleEvent = sourceLifecycleEventForResolution(state, item);
+  const boardCardEffectEvents = boardCardEffectEventsForResolution(
+    state,
+    item,
+    actionEffects
+  );
   const resolved: EncounterMatchState = {
     ...state,
     stack: nextStack,
     sourceLifecycleEvents: sourceLifecycleEvent
       ? [...state.sourceLifecycleEvents, sourceLifecycleEvent]
       : state.sourceLifecycleEvents,
-    playerStability: state.playerStability + stabilityDelta.player,
-    enemyStability: state.enemyStability + stabilityDelta.enemy,
+    boardCardEffectEvents:
+      boardCardEffectEvents.length > 0
+        ? [...state.boardCardEffectEvents, ...boardCardEffectEvents]
+        : state.boardCardEffectEvents,
+    playerStability: state.playerStability + actionEffects.playerStabilityDelta,
+    enemyStability: state.enemyStability + actionEffects.enemyStabilityDelta,
     priorityHolder: state.activeActor,
     consecutivePasses: 0,
     lastResolvedAction: item
@@ -565,7 +647,7 @@ const resolveTopStackItem = (state: EncounterMatchState): EncounterMatchState =>
   return appendCompletionLog(
     appendLog(withOutcome(resolved), {
       kind: "action_resolved",
-      text: actionResolutionText(item, stabilityDelta),
+      text: actionResolutionText(item, actionEffects),
       actor: item.action.actor
     })
   );

@@ -162,8 +162,20 @@ describe("encounter action board-card targets", () => {
 
     expect(resolved.playerStability).toBe(5);
     expect(resolved.enemyStability).toBe(5);
+    expect(resolved.boardCardEffectEvents[0]).toMatchObject({
+      actionKind: "target_probe",
+      actionLabel: "Target Probe",
+      effectType: "markBoardCardTarget",
+      mark: "probed",
+      target: {
+        type: "boardCard",
+        side: "playerB",
+        cardInstanceId: placement.cardInstanceId,
+        label: "Ember Scraprunner (enemy ground r0 c3)"
+      }
+    });
     expect(resolved.actionLog.at(-1)?.text).toBe(
-      "Resolved Target Probe from Player targeting Ember Scraprunner (enemy ground r0 c3): No effect."
+      "Resolved Target Probe from Player targeting Ember Scraprunner (enemy ground r0 c3): Marked target as probed."
     );
   });
 });

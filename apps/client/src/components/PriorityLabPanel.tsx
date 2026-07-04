@@ -81,6 +81,15 @@ const encounterOutcomeLabel = (outcome: EncounterMatchState["outcome"]): string 
 const sourceContextLabel = (source: EncounterActionSource): string =>
   `${source.cardName} (${source.zone})`;
 
+const boardCardMarkLabel = (mark: string): string => {
+  switch (mark) {
+    case "probed":
+      return "probed";
+    default:
+      return mark;
+  }
+};
+
 export const PriorityLabPanel = ({
   match,
   combatChargeProfile,
@@ -467,6 +476,26 @@ export const PriorityLabPanel = ({
                     {encounterActorLabel(event.actor)} | {event.combatChargeBefore}
                     {" -> "}
                     {event.combatChargeAfter}
+                  </small>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p className="muted">None</p>
+          )}
+
+          <h3>Target Effects</h3>
+          {match.boardCardEffectEvents.length > 0 ? (
+            <ol className="card-list compact" data-testid="target-effects-list">
+              {match.boardCardEffectEvents.map((event) => (
+                <li key={event.id}>
+                  <span>
+                    {event.actionLabel}: {boardCardMarkLabel(event.mark)}{" "}
+                    {describeEncounterActionTarget(event.target)}
+                  </span>
+                  <small>
+                    Turn {event.turnNumber} | {encounterPhaseLabel(event.phase)} |{" "}
+                    {encounterActorLabel(event.actor)} | {event.effectType}
                   </small>
                 </li>
               ))}

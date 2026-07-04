@@ -91,6 +91,9 @@ describe("encounter action contracts", () => {
     expect(getEncounterActionDefinition("target_probe").costs).toEqual([
       { type: "combatCharge", amount: 1 }
     ]);
+    expect(getEncounterActionDefinition("target_probe").effects).toEqual([
+      { type: "markBoardCardTarget", mark: "probed" }
+    ]);
   });
 
   it("uses contract timing for current legal phases", () => {
@@ -132,7 +135,12 @@ describe("encounter action contracts", () => {
     expect(describeEncounterActionEffects("commander_rally", "player")).toBe(
       "Enemy Stability -1."
     );
-    expect(describeEncounterActionEffects("target_probe", "player")).toBe("No effect.");
+    expect(describeEncounterActionEffects("target_probe", "player")).toBe(
+      "Mark target as probed."
+    );
+    expect(
+      describeEncounterActionEffects("target_probe", "player", enemyBoardCardTarget)
+    ).toBe("Mark target as probed.");
     expect(describeEncounterActionTargetRequirement("target_probe")).toBe(
       "Enemy board card"
     );
@@ -220,7 +228,8 @@ describe("encounter action contracts", () => {
       })
     ).toEqual({
       enemyStabilityDelta: -1,
-      playerStabilityDelta: 0
+      playerStabilityDelta: 0,
+      boardCardEffects: []
     });
 
     expect(
@@ -230,7 +239,8 @@ describe("encounter action contracts", () => {
       })
     ).toEqual({
       enemyStabilityDelta: 0,
-      playerStabilityDelta: -1
+      playerStabilityDelta: -1,
+      boardCardEffects: []
     });
 
     expect(
@@ -245,7 +255,8 @@ describe("encounter action contracts", () => {
       })
     ).toEqual({
       enemyStabilityDelta: -1,
-      playerStabilityDelta: 0
+      playerStabilityDelta: 0,
+      boardCardEffects: []
     });
     expect(() =>
       resolveEncounterActionEffects({
@@ -267,7 +278,14 @@ describe("encounter action contracts", () => {
       })
     ).toEqual({
       enemyStabilityDelta: 0,
-      playerStabilityDelta: 0
+      playerStabilityDelta: 0,
+      boardCardEffects: [
+        {
+          effectType: "markBoardCardTarget",
+          mark: "probed",
+          target: enemyBoardCardTarget
+        }
+      ]
     });
   });
 

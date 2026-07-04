@@ -375,8 +375,8 @@ and marks that Commander source used for the encounter. It does not mutate
 
 The current encounter action contract is the next bridge toward authored
 Techniques, Commander actions, and future Signature Relics. It declares action
-labels, timing, source-used-on-resolve lifecycle, target requirements, and
-simple match-local effects without becoming a full effect DSL. Submitted
+labels, timing, source-used-on-resolve lifecycle, target requirements, Stability
+deltas, and board-card mark events without becoming a full effect DSL. Submitted
 prototype actions now store their resolved Stability target or board-card target
 snapshot on the stack, so resolution reads the action's intent instead of only
 inferring an opponent from the acting player. The current prototype also proves
@@ -402,10 +402,13 @@ return, generic Board Charge Rebind Tax enforcement, post-combat destruction
 return, reward-phase upgrade choices, lifecycle history, reducer replay, and one
 match-local Commander encounter action with a Source Row-derived paid Combat
 Charge setup. The encounter shell now also proves one serialized enemy
-board-card target snapshot through `Target Probe` and a debug UI selector for
-valid enemy board-card targets. Next Commander or encounter work should add
-richer effect contracts, fuller encounter resource lifecycle rules, board-cell
-or Pixi click targeting, or authored ability hooks in focused slices.
+board-card target snapshot through `Target Probe`, a debug UI selector for valid
+enemy board-card targets, and a match-local `probed` board-card effect event.
+That gives future authored targeted Techniques, Commander actions, and Signature
+Relics a small serializable target-effect lane before damage, statuses, or
+RunState mutation exist. Next Commander or encounter work should add richer
+effect contracts, fuller encounter resource lifecycle rules, board-cell or Pixi
+click targeting, or authored ability hooks in focused slices.
 
 ### Commander Non-Goals For Now
 

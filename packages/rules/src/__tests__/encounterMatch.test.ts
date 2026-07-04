@@ -107,6 +107,7 @@ describe("encounter match priority shell", () => {
     expect(state.playerCombatCharge).toBe(0);
     expect(state.enemyCombatCharge).toBe(0);
     expect(state.costPaymentEvents).toEqual([]);
+    expect(state.boardCardEffectEvents).toEqual([]);
     expect(state.outcome).toEqual({ kind: "inProgress", reason: null });
     expect(state.actionLog[0]).toMatchObject({
       kind: "match_started",
@@ -428,10 +429,26 @@ describe("encounter match priority shell", () => {
     expect(resolved.playerStability).toBe(5);
     expect(resolved.enemyStability).toBe(5);
     expect(resolved.sourceLifecycleEvents).toEqual([]);
+    expect(resolved.boardCardEffectEvents).toEqual([
+      {
+        id: "charged-test-match:board-card-effect:0:charged-test-match:stack:0:target_probe",
+        index: 0,
+        actor: "player",
+        actionKind: "target_probe",
+        actionLabel: "Target Probe",
+        effectType: "markBoardCardTarget",
+        mark: "probed",
+        target: enemyBoardCardTarget,
+        turnNumber: 1,
+        phase: "firstMain",
+        stackItemId: item.id,
+        stackItemIndex: item.index
+      }
+    ]);
     expect(resolved.actionLog.at(-1)).toMatchObject({
       kind: "action_resolved",
       actor: "player",
-      text: "Resolved Target Probe from Player targeting Ember Scraprunner (enemy ground r0 c3): No effect."
+      text: "Resolved Target Probe from Player targeting Ember Scraprunner (enemy ground r0 c3): Marked target as probed."
     });
     expect(JSON.parse(JSON.stringify(resolved))).toEqual(resolved);
   });

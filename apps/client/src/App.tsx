@@ -186,7 +186,7 @@ const createDebugRun = (starterKitId: string): RunState =>
   );
 
 const firstStarterKitId = sampleCatalog.starterKits[0]?.id ?? "ember_scrappers";
-const PRIORITY_LAB_TARGET_PLAYER_COMBAT_CHARGE = 2;
+const PRIORITY_LAB_TARGET_PLAYER_COMBAT_CHARGE = 3;
 type PriorityLabCombatChargeSetup = {
   readonly profile: EncounterCombatChargeProfile;
   readonly debugTopUp: number;

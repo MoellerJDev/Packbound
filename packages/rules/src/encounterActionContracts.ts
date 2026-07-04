@@ -88,6 +88,8 @@ export type EncounterActionCost =
       readonly type: "sourceUsedOnResolve";
     };
 
+export type EncounterBoardCardEffectMark = "probed";
+
 export type EncounterActionEffect =
   | {
       readonly type: "none";
@@ -95,6 +97,10 @@ export type EncounterActionEffect =
   | {
       readonly type: "targetStabilityDelta";
       readonly amount: number;
+    }
+  | {
+      readonly type: "markBoardCardTarget";
+      readonly mark: EncounterBoardCardEffectMark;
     };
 
 export type EncounterActionDefinition = {
@@ -114,9 +120,16 @@ export type EncounterActionEffectInput = {
   readonly target?: EncounterActionTarget;
 };
 
+export type EncounterBoardCardEffectResult = {
+  readonly effectType: "markBoardCardTarget";
+  readonly mark: EncounterBoardCardEffectMark;
+  readonly target: EncounterBoardCardActionTarget;
+};
+
 export type EncounterActionEffectResult = {
   readonly playerStabilityDelta: number;
   readonly enemyStabilityDelta: number;
+  readonly boardCardEffects: readonly EncounterBoardCardEffectResult[];
 };
 
 const NO_COST = [{ type: "none" }] as const;
@@ -129,6 +142,7 @@ const COMBAT_CHARGE_ONE_ONLY = [COMBAT_CHARGE_ONE] as const;
 const TARGET_STABILITY_MINUS_ONE = [
   { type: "targetStabilityDelta", amount: -1 }
 ] as const;
+const MARK_TARGET_PROBED = [{ type: "markBoardCardTarget", mark: "probed" }] as const;
 const COMBAT_CHARGE_ONE_AND_SOURCE_USED_ON_RESOLVE = [
   COMBAT_CHARGE_ONE,
   { type: "sourceUsedOnResolve" }
@@ -181,7 +195,7 @@ const ENCOUNTER_ACTION_DEFINITIONS_BY_KIND = {
     timing: "mainPhase",
     targetRequirement: ENEMY_BOARD_CARD_TARGET,
     costs: COMBAT_CHARGE_ONE_ONLY,
-    effects: NO_EFFECT,
+    effects: MARK_TARGET_PROBED,
     sourceLifecycleOnResolve: "none",
     includeEffectSummaryInResolutionLog: true
   }
@@ -404,6 +418,13 @@ export const validateEncounterActionTarget = (
 export const hasOnlyNoEffect = (kind: EncounterActionKind): boolean =>
   getEncounterActionDefinition(kind).effects.every((effect) => effect.type === "none");
 
+const describeBoardCardMark = (mark: EncounterBoardCardEffectMark): string => {
+  switch (mark) {
+    case "probed":
+      return "probed";
+  }
+};
+
 export const resolveEncounterActionEffects = ({
   kind,
   actor,
@@ -417,6 +438,7 @@ export const resolveEncounterActionEffects = ({
   );
   let playerStabilityDelta = 0;
   let enemyStabilityDelta = 0;
+  const boardCardEffects: EncounterBoardCardEffectResult[] = [];
 
   for (const effect of definition.effects) {
     switch (effect.type) {
@@ -434,12 +456,25 @@ export const resolveEncounterActionEffects = ({
           enemyStabilityDelta += effect.amount;
         }
         break;
+      case "markBoardCardTarget":
+        if (!validatedTarget || validatedTarget.type !== "boardCard") {
+          throw new Error(
+            `${definition.label} cannot apply a board-card mark without a board-card target.`
+          );
+        }
+        boardCardEffects.push({
+          effectType: "markBoardCardTarget",
+          mark: effect.mark,
+          target: validatedTarget
+        });
+        break;
     }
   }
 
   return {
     playerStabilityDelta,
-    enemyStabilityDelta
+    enemyStabilityDelta,
+    boardCardEffects
   };
 };
 
@@ -478,20 +513,33 @@ export const describeEncounterActionEffects = (
     return "No effect.";
   }
 
-  const effectResult = resolveEncounterActionEffects({
-    kind,
-    actor,
-    ...(target ? { target } : {})
-  });
+  const definition = getEncounterActionDefinition(kind);
+  const hasBoardCardMark = definition.effects.some(
+    (effect) => effect.type === "markBoardCardTarget"
+  );
+  const effectResult =
+    target || !hasBoardCardMark
+      ? resolveEncounterActionEffects({
+          kind,
+          actor,
+          ...(target ? { target } : {})
+        })
+      : undefined;
   const parts: string[] = [];
 
-  if (effectResult.enemyStabilityDelta !== 0) {
+  if (effectResult?.enemyStabilityDelta) {
     parts.push(`Enemy Stability ${formatSignedDelta(effectResult.enemyStabilityDelta)}.`);
   }
-  if (effectResult.playerStabilityDelta !== 0) {
+  if (effectResult?.playerStabilityDelta) {
     parts.push(
       `Player Stability ${formatSignedDelta(effectResult.playerStabilityDelta)}.`
     );
+  }
+
+  for (const effect of definition.effects) {
+    if (effect.type === "markBoardCardTarget") {
+      parts.push(`Mark target as ${describeBoardCardMark(effect.mark)}.`);
+    }
   }
 
   return parts.length > 0 ? parts.join(" ") : "No effect.";

@@ -94,18 +94,20 @@ The rules package now includes a minimal serializable encounter match reducer:
   store the opposing actor's Stability target when they are submitted. Target
   Probe validates and stores a JSON-serializable enemy board-card target with
   side, card instance id, definition id, owner id, board position, and label.
-- Contract effects currently support target-based match-local Stability deltas
-  plus explicit no-effect actions. The two prototype real actions reduce their
-  stored Stability target by 1. `Target Probe` resolves with no gameplay effect.
+- Contract effects currently support target-based match-local Stability deltas,
+  match-local board-card mark events, and explicit no-effect actions. The two
+  Stability actions reduce their stored Stability target by 1. `Target Probe`
+  marks the selected board-card target as `probed` in encounter match state.
 - Encounters start in `firstMain` with the active actor holding priority.
 - Empty-stack double passes advance `firstMain` to `combat`, `secondMain` to
   `end`, and `end` into the next turn.
 - The active actor alternates on each new turn.
 - Submitted actions enter a LIFO action stack and pass priority to the opponent.
-- Encounter match state tracks `playerCombatCharge`, `enemyCombatCharge`, and
-  serializable cost payment events.
+- Encounter match state tracks `playerCombatCharge`, `enemyCombatCharge`,
+  serializable cost payment events, source lifecycle events, and board-card
+  effect events.
 - Priority Lab initializes player Combat Charge from the Source Row-derived
-  profile. Its extra charge for exercising both current paid actions is an
+  profile. Its extra charge for exercising all three current paid actions is an
   explicitly labeled lab-only debug top-up, not hidden rules behavior.
 - `main_phase_pressure` is the first real encounter main-phase action skeleton:
   the Priority Lab labels it `Prototype Pressure Technique`, it is legal during
@@ -121,8 +123,10 @@ The rules package now includes a minimal serializable encounter match reducer:
   labels it `Target Probe`, lists the current encounter's enemy board cards,
   lets the player select one listed enemy board-card target, queues that selected
   target through the same stack/pass flow,
-  pays 1 match-local Combat Charge when queued, and resolves with no effect while
-  logging the target label. It is a rules/UI probe, not an authored card effect.
+  pays 1 match-local Combat Charge when queued, and resolves by appending a
+  match-local board-card effect event that marks the selected target as
+  `probed`. It is a rules/UI probe, not damage, a status, or an authored card
+  effect.
 - Queued encounter actions can optionally carry minimal source-card context:
   `cardInstanceId`, `cardDefId`, `cardName`, and `zone`. Priority Lab currently
   submits the prototype action through a rules helper that validates the source
@@ -136,7 +140,8 @@ The rules package now includes a minimal serializable encounter match reducer:
   submitted pressure actions store a JSON-serializable Stability target such as
   `Enemy Stability` or `Player Stability`; `Target Probe` stores a board-card
   target snapshot such as `Ember Scraprunner (enemy ground r0 c3)`. Resolution
-  validates target metadata before applying any action effects.
+  validates target metadata before applying any action effects or appending
+  board-card effect events.
 - Debug placeholder actions still exist for reducer diagnostics and backward
   compatibility with focused tests.
 - Two consecutive passes with a non-empty stack resolve the top action and
@@ -154,7 +159,7 @@ Current encounter shell limitations:
   target probe. Their sources/targets are validated against the current run,
   encounter board, and catalog, but they are not connected to hand, deck, mill,
   enemy AI, RunState zone changes, Pixi click targeting, board-cell targeting UI,
-  or content-authored card effects yet.
+  damage, real statuses, or content-authored card effects yet.
 - The action contract is not a full authored effect engine. It has no Combat
   Charge refunds, real-time generation, Source exhaustion, cross-encounter
   persistence, board-card damage/effect resolution, board-cell UI targeting,

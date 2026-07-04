@@ -10,6 +10,12 @@ type PriorityLabPanelProps = {
   readonly prototypeActionSource: EncounterActionSource | undefined;
   readonly canSubmitPrototypeAction: boolean;
   readonly prototypeActionSourceUnavailableText?: string;
+  readonly commanderName: string;
+  readonly commanderZone: string;
+  readonly commanderActionSource: EncounterActionSource | undefined;
+  readonly canSubmitCommanderAction: boolean;
+  readonly commanderActionUnavailableText: string | undefined;
+  readonly onSubmitCommanderAction: () => void;
   readonly onSubmitPrototypeAction: () => void;
   readonly onPassPlayer: () => void;
   readonly onPassEnemy: () => void;
@@ -62,6 +68,12 @@ export const PriorityLabPanel = ({
   prototypeActionSource,
   canSubmitPrototypeAction,
   prototypeActionSourceUnavailableText,
+  commanderName,
+  commanderZone,
+  commanderActionSource,
+  canSubmitCommanderAction,
+  commanderActionUnavailableText,
+  onSubmitCommanderAction,
   onSubmitPrototypeAction,
   onPassPlayer,
   onPassEnemy,
@@ -169,6 +181,38 @@ export const PriorityLabPanel = ({
             ? ` - ${prototypeActionSourceUnavailableText ?? "Source unavailable."}`
             : ""}
         </p>
+
+        <div className="encounter-action-section" data-testid="commander-action-section">
+          <h3>Commander Action</h3>
+          <dl className="run-stats">
+            <div>
+              <dt>Commander</dt>
+              <dd>{commanderName}</dd>
+            </div>
+            <div>
+              <dt>Zone</dt>
+              <dd data-testid="priority-commander-action-zone">{commanderZone}</dd>
+            </div>
+          </dl>
+          <div className="mini-actions">
+            <button
+              type="button"
+              onClick={onSubmitCommanderAction}
+              disabled={
+                !playerMainPhasePriority ||
+                !commanderActionSource ||
+                !canSubmitCommanderAction
+              }
+            >
+              Queue Commander Rally
+            </button>
+          </div>
+          <p className="muted" data-testid="commander-action-status">
+            {commanderActionSource
+              ? `Source: ${sourceContextLabel(commanderActionSource)}`
+              : (commanderActionUnavailableText ?? "Commander Rally unavailable.")}
+          </p>
+        </div>
 
         <div className="encounter-loadout">
           <h3>Action Stack</h3>

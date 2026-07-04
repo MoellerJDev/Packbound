@@ -424,10 +424,72 @@ test("priority lab alternates priority, resolves the stack, and records combat",
   await expect(
     priorityPanel.getByText("Source: Sparkfall (spellrail)", { exact: true })
   ).toBeVisible();
+  const commanderActionSection = priorityPanel.getByTestId("commander-action-section");
+  await expect(commanderActionSection).toBeVisible();
+  await expect(commanderActionSection.getByText("Commander Action")).toBeVisible();
+  await expect(commanderActionSection.getByText("Sparkcatch Apprentice")).toBeVisible();
+  await expect(
+    commanderActionSection.getByTestId("priority-commander-action-zone")
+  ).toHaveText("command");
+  await expect(commanderActionSection.getByTestId("commander-action-status")).toHaveText(
+    "Commander must be deployed to use Commander Rally."
+  );
+  await expect(
+    commanderActionSection.getByRole("button", { name: "Queue Commander Rally" })
+  ).toBeDisabled();
   const actionLog = priorityPanel.locator(".action-log-list");
   await expect(actionLog.locator(".action-log-meta").first()).toHaveText(
     "Turn 1 | First main | Stack 0"
   );
+
+  const priorityCommandZone = panel(page, "Command Zone");
+  await priorityCommandZone.getByRole("button", { name: "Deploy Commander" }).click();
+  await expect(priorityCommandZone.getByTestId("command-zone-location")).toHaveText(
+    "board"
+  );
+  await expect(
+    commanderActionSection.getByTestId("priority-commander-action-zone")
+  ).toHaveText("board");
+  await expect(commanderActionSection.getByTestId("commander-action-status")).toHaveText(
+    "Source: Sparkcatch Apprentice (board)"
+  );
+  await expect(
+    commanderActionSection.getByRole("button", { name: "Queue Commander Rally" })
+  ).toBeEnabled();
+
+  await commanderActionSection
+    .getByRole("button", { name: "Queue Commander Rally" })
+    .click();
+  await expect(
+    priorityPanel.getByText("Player queued Commander Rally from Sparkcatch Apprentice.")
+  ).toBeVisible();
+  await expect(
+    priorityPanel
+      .locator(".card-list.compact li")
+      .filter({ hasText: "Commander Rally" })
+      .first()
+  ).toContainText("Source: Sparkcatch Apprentice (board)");
+  await expect(commanderActionSection.getByTestId("commander-action-status")).toHaveText(
+    "Commander Rally requires player priority."
+  );
+
+  await priorityPanel.getByRole("button", { name: "Enemy Pass" }).click();
+  await expect(commanderActionSection.getByTestId("commander-action-status")).toHaveText(
+    "Commander Rally is already queued for this Commander."
+  );
+  await priorityPanel.getByRole("button", { name: "Pass Priority" }).click();
+  await expect(
+    priorityPanel.getByText("Resolved Commander Rally from Player: Enemy stability -1.")
+  ).toBeVisible();
+  await expect(
+    priorityPanel.getByText("Sparkcatch Apprentice used by Commander Rally")
+  ).toBeVisible();
+  await expect(commanderActionSection.getByTestId("commander-action-status")).toHaveText(
+    "Commander Rally was already used this encounter."
+  );
+  await expect(
+    commanderActionSection.getByRole("button", { name: "Queue Commander Rally" })
+  ).toBeDisabled();
 
   await priorityPanel.getByRole("button", { name: "Queue Prototype Technique" }).click();
   await expect(

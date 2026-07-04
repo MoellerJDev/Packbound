@@ -108,6 +108,13 @@ Command Zone panel shows a compact newest-first Commander Lifecycle trail with
 round, source, phase, zone movement, deploy count, Rebind Tax, discount,
 effective tax, and upgrade-level deltas.
 
+Implementation update after this task: Priority Lab now exposes the first
+Commander-sourced encounter main-phase action skeleton. `Commander Rally`
+requires the player Commander to be deployed, enters the existing priority stack
+during first main or second main with player priority, resolves through pass/pass
+priority, reduces enemy Stability by 1, and records the Commander source as used
+for that encounter. This is match-local and does not mutate `RunState`.
+
 Implementation update after this task: the renderer-lab replay controller and
 Pixi renderer now guard replay command completions with the current reset
 generation and session-scoped busy state. Browser smoke covers `Step -> Reset ->
@@ -122,15 +129,17 @@ default-route confidence. Pixi should stay opt-in until those are addressed.
 
 Recommended next task:
 
-`feat(rules): add encounter main-phase Commander action skeleton`
+`feat(rules): add encounter action cost and effect contract`
 
 ## 2. Environment And Commands
 
 - Commit tested before renderer-lab fix: `b8656401e653ab97f2f7de79aaf637e23f6b7a7d`
 - Baseline before Commander upgrade prototype:
   `851ee27ec8e19600cc1fe2c1d679109036dc7bf1`
+- Baseline before Commander encounter action skeleton:
+  `d0cc4bfab678d39ab65c5fb7de3b14fc9ca0e76e`
 - Implementation verified: local working tree for
-  `feat(rules): add commander lifecycle history`
+  `feat(rules): add commander encounter action skeleton`
 - Baseline: `main`, aligned with `origin/main`
 - OS/environment: Windows, PowerShell, Codex desktop workspace
 - Node version: `v24.18.0`
@@ -172,13 +181,13 @@ Build warning observed and not fixed in this task:
 
 ## 3. Scenarios Covered
 
-| Scenario                   | Manual result | Notes                                                                                |
-| -------------------------- | ------------- | ------------------------------------------------------------------------------------ |
-| Default route `/`          | Pass          | React/CSS Hex Arena remains default; full run loop still works.                      |
-| `?scenario=renderer-lab`   | Lab pass      | Pixi readability is manually validated; reset/play stall is fixed in smoke coverage. |
-| `?scenario=engagement-lab` | Pass          | Out-of-range melee and in-range ranged previews are understandable.                  |
-| `?scenario=priority-lab`   | Pass          | Prototype action, source context, stack, log, skirmish flow work.                    |
-| `?scenario=upgrade-lab`    | Pass          | Duplicate combine and Lv 1 pool-card inspection work.                                |
+| Scenario                   | Manual result | Notes                                                                                   |
+| -------------------------- | ------------- | --------------------------------------------------------------------------------------- |
+| Default route `/`          | Pass          | React/CSS Hex Arena remains default; full run loop still works.                         |
+| `?scenario=renderer-lab`   | Lab pass      | Pixi readability is manually validated; reset/play stall is fixed in smoke coverage.    |
+| `?scenario=engagement-lab` | Pass          | Out-of-range melee and in-range ranged previews are understandable.                     |
+| `?scenario=priority-lab`   | Pass          | Commander Rally, Prototype Technique, source lifecycle, stack, log, skirmish flow work. |
+| `?scenario=upgrade-lab`    | Pass          | Duplicate combine and Lv 1 pool-card inspection work.                                   |
 
 Browser console result: no warnings or errors captured across the manual pass.
 
@@ -373,21 +382,29 @@ shows turn, phase, active actor, priority holder, consecutive passes, player and
 enemy stability, outcome, action buttons, stack, used sources, skirmish records,
 and action log.
 
-Manual flow tested:
+Current Priority Lab flow covered by browser smoke and reflected in this report:
 
 1. Initial state: turn 1, first main, active actor Player, priority holder
    Player, stability 5/5, empty stack.
-2. `Queue Prototype Technique` queued `Prototype Pressure Technique` from
+2. The Commander Action section showed Sparkcatch Apprentice in `command` and
+   blocked `Queue Commander Rally` with
+   `Commander must be deployed to use Commander Rally.`
+3. Deploying the Commander through the existing Command Zone panel updated the
+   Commander Action source to `Sparkcatch Apprentice (board)`.
+4. `Queue Commander Rally` queued `Commander Rally` from Sparkcatch Apprentice
+   and passed priority to Enemy.
+5. Enemy passed priority, then Player passed priority. `Commander Rally`
+   resolved and changed enemy stability from 5 to 4.
+6. Used Sources recorded `Sparkcatch Apprentice used by Commander Rally`, and
+   the Commander Action section reported that Rally was already used this
+   encounter.
+7. `Queue Prototype Technique` then queued `Prototype Pressure Technique` from
    Sparkfall and passed priority to Enemy.
-3. Action Stack showed `Prototype Pressure Technique` with
-   `Source: Sparkfall (spellrail)`.
-4. Enemy passed priority.
-5. Player passed priority.
-6. The action resolved and changed enemy stability from 5 to 4.
-7. Used Sources recorded `Sparkfall used by Prototype Pressure Technique`.
-8. Empty-stack player/enemy passes advanced to combat.
-9. `Run Combat Skirmish` recorded skirmish 1 as a draw and advanced to second
-   main.
+8. The action resolved through the same enemy/player pass sequence and changed
+   enemy stability from 4 to 3.
+9. Used Sources recorded `Sparkfall used by Prototype Pressure Technique`.
+10. Empty-stack player/enemy passes advanced to combat.
+11. `Run Combat Skirmish` recorded skirmish 1 and advanced to second main.
 
 The previous action-log readability issue is fixed. Log sentences and metadata
 now render separately. For example:
@@ -395,10 +412,12 @@ now render separately. For example:
 - `Player queued Prototype Pressure Technique from Sparkfall.`
 - `Turn 1 | First main | Stack 1`
 
-The lab is no longer debug-action-only in the UI. It now has a real prototype
-card-like action with minimal source context. Known limitation: this is still an
-abstract prototype action with no cost payment, hand/deck/mill sourcing,
-RunState card movement, enemy action choice, or authored effect system.
+The lab is no longer debug-action-only in the UI. It now has one Spellrail
+Technique prototype action and one deployed-Commander prototype action, both
+with minimal source context and match-local source lifecycle. Known limitation:
+these are still abstract prototype actions with no cost payment, hand/deck/mill
+sourcing, RunState card movement, enemy action choice, or authored effect
+system.
 
 ## 8. `?scenario=upgrade-lab`
 
@@ -616,17 +635,20 @@ Note:
   existing starter Unit/Echo definitions and has no authored Commander content.
 - Rebind Tax is enforced as generic Board Charge while the Commander is deployed
   or being deployed, and Rebind Calibration can discount effective tax. There
-  are still no alternate costs or encounter-phase Commander actions.
+  are still no alternate costs or encounter-phase Commander deploy/return
+  actions.
 - Commander lifecycle history is visible in the debug Command Zone panel, but it
   is still a compact audit trail with no filtering, export, or event grouping.
 - Commander upgrades are implemented only as two mechanical prototype choices.
-  Signature Relics, encounter main-phase Commander actions, enemy Commanders,
-  authored Commander cards, and authored Commander effects are not implemented.
+  Signature Relics, enemy Commanders, authored Commander cards, and authored
+  Commander effects are not implemented.
 - Normal non-Commander unit death cleanup into Ashes is not implemented in
   run-progression state by this Commander-specific replacement.
-- Priority Lab has one real prototype action with Sparkfall source context, but
-  no real cost, hand/deck/mill, source card movement, enemy AI, interrupts,
-  counterspells, or authored card effect resolution.
+- Priority Lab has two real prototype actions with source context:
+  `Prototype Pressure Technique` from Sparkfall and `Commander Rally` from a
+  deployed Commander. They still have no real cost, hand/deck/mill, source card
+  movement, RunState mutation on resolution, enemy AI, interrupts, counterspells,
+  or authored card effect resolution.
 - Combat simulation remains deterministic and unchanged.
 - Traits/teamups remain display-only.
 - Duplicate upgrades remain generic +1 ATK/+1 HP combines.
@@ -636,14 +658,14 @@ Note:
 
 Do next:
 
-`feat(rules): add encounter main-phase Commander action skeleton`
+`feat(rules): add encounter action cost and effect contract`
 
-Why: Command Zone lifecycle, generic Charge tax, post-combat destruction return,
-reward-phase Commander upgrades, and structured Commander lifecycle history are
-now real reducer/debug-client surfaces. The next narrow slice should let the
-Commander participate in the existing encounter first-main/second-main
-priority shell as a prototype action, without adding authored Commander content,
-Signature Relics, hand/deck/mill, enemy Commanders, or broad encounter timing.
+Why: Priority Lab now has two source-validated, stack-resolving prototype
+actions: `Prototype Pressure Technique` from Spellrail and `Commander Rally`
+from the deployed Commander. The next narrow slice should give encounter actions
+a minimal deterministic cost/effect contract so future authored Technique or
+Commander actions can differ without adding hand/deck/mill, Signature Relics,
+enemy Commanders, or broad timing.
 
 Do soon:
 

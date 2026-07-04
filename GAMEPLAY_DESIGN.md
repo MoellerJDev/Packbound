@@ -190,9 +190,11 @@ the Commander is deployed or being deployed. Recording combat now returns a
 destroyed deployed player Commander to Command Zone and increases Rebind Tax.
 The reward phase now has a minimal Commander upgrade choice prototype with
 `Combat Training` and `Rebind Calibration`. It still does not have authored
-Commander content, Signature Relics, or main-phase Commander actions. The
-prototype also records a structured lifecycle history for creation, deployment,
-return, destruction replacement, tax changes, and upgrade application.
+Commander content or Signature Relics. The encounter shell now has one
+match-local main-phase Commander action skeleton, `Commander Rally`, but not an
+authored Commander ability system. The prototype also records a structured
+lifecycle history for creation, deployment, return, destruction replacement,
+tax changes, and upgrade application.
 
 ### Why Add A Commander Layer?
 
@@ -361,19 +363,25 @@ Commander's identity and pivot when pulls demand it," the layer is working.
 
 ### Relationship To Encounter Main-Phase Actions
 
-The encounter priority shell is a natural future home for Commander actions.
-The current prototype only supports planning-window deploy/return through the
-run-action reducer. Later, Commander deployment, Rebind, voluntary return,
-Signature Relic activation, and some Commander upgrade actions can become
-first-main or second-main decisions that enter the same priority/stack model as
-other encounter actions.
+The encounter priority shell is the natural home for Commander actions. The
+current prototype now proves one small bridge: `Commander Rally` is validated
+from the current deployed player Commander, enters the first-main/second-main
+stack, resolves through normal pass/pass priority, reduces enemy Stability by 1,
+and marks that Commander source used for the encounter. It does not mutate
+`RunState`, add authored abilities, pay costs, or move the Commander.
+
+The prototype still supports Commander deploy/return only through planning-window
+run actions. Later, Commander deployment, Rebind, voluntary return, Signature
+Relic activation, and some Commander upgrade actions can become first-main or
+second-main decisions that enter the same priority/stack model as other
+encounter actions.
 
 Do not add a full hand/deck/mill system just to support Commanders. The first
 Commander prototype now proves zone lifecycle, planning deployment, planning
 return, generic Board Charge Rebind Tax enforcement, post-combat destruction
-return, reward-phase upgrade choices, lifecycle history, and reducer replay.
-Next Commander work should add encounter main-phase Commander actions in focused
-slices.
+return, reward-phase upgrade choices, lifecycle history, reducer replay, and one
+match-local Commander encounter action. Next Commander work should add costs,
+effect contracts, or authored Commander ability hooks in focused slices.
 
 ### Commander Non-Goals For Now
 
@@ -383,7 +391,8 @@ Do not implement these as side effects of unrelated tasks:
   prototype sourcing.
 - Signature Relic content or zones.
 - Commander-specific simulator effects.
-- Encounter main-phase Commander actions.
+- Encounter main-phase Commander deploy/return or a full authored Commander
+  action system.
 - Full hand, deck, mill, Library, Graveyard, or Exile systems.
 - Counterspells or broad instant-speed timing.
 - Enemy Commander AI.

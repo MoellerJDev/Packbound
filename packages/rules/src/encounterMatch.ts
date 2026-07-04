@@ -22,7 +22,8 @@ export type EncounterOutcome = {
   readonly reason: EncounterOutcomeReason | null;
 };
 
-export type EncounterActionKind = "debug_noop" | "debug_pressure" | "main_phase_pressure";
+export type EncounterActionKind =
+  "debug_noop" | "debug_pressure" | "main_phase_pressure" | "commander_rally";
 
 export type EncounterActionSourceLifecycle = "none" | "usedOnResolve";
 
@@ -164,6 +165,8 @@ const actionLabel = (kind: EncounterActionKind, label?: string): string => {
       return "Debug pressure";
     case "main_phase_pressure":
       return "Prototype Pressure Technique";
+    case "commander_rally":
+      return "Commander Rally";
   }
 };
 
@@ -178,7 +181,10 @@ const assertCanSubmitActionKind = (
   kind: EncounterActionKind,
   label: string
 ): void => {
-  if (kind === "main_phase_pressure" && !phaseAllowsMainPhaseAction(state.phase)) {
+  if (
+    (kind === "main_phase_pressure" || kind === "commander_rally") &&
+    !phaseAllowsMainPhaseAction(state.phase)
+  ) {
     throw new Error(`${label} can only be queued during main phases.`);
   }
 };
@@ -186,12 +192,16 @@ const assertCanSubmitActionKind = (
 const actionSubmissionText = (action: EncounterQueuedAction): string => {
   const actor = actorLabel(action.actor);
 
-  if (action.kind === "main_phase_pressure") {
-    if (action.source) {
-      return `${actor} queued ${action.label} from ${action.source.cardName}.`;
-    }
+  if (action.source) {
+    return `${actor} queued ${action.label} from ${action.source.cardName}.`;
+  }
 
+  if (action.kind === "main_phase_pressure") {
     return `${actor} queued ${action.label} as a prototype card action.`;
+  }
+
+  if (action.kind === "commander_rally") {
+    return `${actor} queued ${action.label} as a Commander action.`;
   }
 
   return `${actor} submitted ${action.label}.`;
@@ -368,6 +378,7 @@ const stabilityDeltaForAction = (
       return { player: 0, enemy: 0 };
     case "debug_pressure":
     case "main_phase_pressure":
+    case "commander_rally":
       return action.actor === "player"
         ? { player: 0, enemy: -1 }
         : { player: -1, enemy: 0 };
@@ -394,7 +405,10 @@ const actionResolutionText = (
 ): string => {
   const base = `Resolved ${item.action.label} from ${actorLabel(item.action.actor)}`;
 
-  if (item.action.kind === "main_phase_pressure") {
+  if (
+    item.action.kind === "main_phase_pressure" ||
+    item.action.kind === "commander_rally"
+  ) {
     return `${base}: ${stabilityDeltaText(delta)}`;
   }
 

@@ -201,6 +201,14 @@ skirmish records, and stability-based outcomes. It accepts a combat-result-like
 object for combat skirmishes instead of importing `packages/sim`, preserving the
 one-way package boundary.
 
+Run-sourced encounter action helpers bridge current run state into match-local
+stack submission without giving the match reducer ownership of `RunState`.
+`submitPrototypePressureActionFromRun` validates a Spellrail Technique source,
+and `submitCommanderRallyActionFromRun` validates the run player's deployed
+Commander source. Once queued, resolution remains pure `EncounterMatchState`
+work: Stability changes and source lifecycle events are match-local and do not
+move cards, alter Commander lifecycle history, or mutate run zones.
+
 ### `packages/sim`
 
 Pure deterministic combat simulator.
@@ -1101,6 +1109,10 @@ Expand them only through focused rules/content tasks with tests.
   client-only UI. The current reward phase can keep pack rewards and Commander
   upgrades as separate one-per-round buckets, and `applyCommanderUpgradeChoice`
   records history on `CommanderState`.
+- The current encounter action bridge validates deployed Commander context for
+  `Commander Rally` and then queues a match-local action. This is deliberately
+  separate from Commander lifecycle run actions; resolving Rally does not mutate
+  `RunState`.
 - Commander lifecycle logging is structured run/progression metadata, not
   renderer behavior. Entries capture creation, deploy, voluntary return,
   destruction replacement, upgrade application, and their key before/after tax,

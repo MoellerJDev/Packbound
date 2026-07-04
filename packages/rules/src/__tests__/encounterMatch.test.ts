@@ -25,6 +25,13 @@ const sparkfallSource = {
   zone: "spellrail" as const
 };
 
+const commanderSource = {
+  cardInstanceId: asCardInstanceId("test-match:commander:board:0"),
+  cardDefId: asCardDefId("sparkcatch_apprentice"),
+  cardName: "Sparkcatch Apprentice",
+  zone: "board" as const
+};
+
 const combatResult = (
   winner: EncounterCombatResultLike["winner"]
 ): EncounterCombatResultLike => ({
@@ -242,6 +249,66 @@ describe("encounter match priority shell", () => {
     );
   });
 
+  it("submits and resolves Commander Rally from a Commander source", () => {
+    const submitted = submitEncounterAction(createMatch(), {
+      kind: "commander_rally",
+      source: commanderSource,
+      sourceLifecycle: "usedOnResolve"
+    });
+    const item = submitted.stack[0];
+
+    if (!item) {
+      throw new Error("Expected a queued Commander Rally stack item.");
+    }
+
+    expect(item.action).toEqual({
+      kind: "commander_rally",
+      actor: "player",
+      label: "Commander Rally",
+      source: commanderSource,
+      sourceLifecycle: "usedOnResolve"
+    });
+    expect(submitted.priorityHolder).toBe("enemy");
+    expect(submitted.actionLog.at(-1)).toMatchObject({
+      kind: "action_submitted",
+      actor: "player",
+      text: "Player queued Commander Rally from Sparkcatch Apprentice."
+    });
+
+    const resolved = passEncounterPriority(
+      passEncounterPriority(submitted, "enemy"),
+      "player"
+    );
+    const lifecycleEvent = resolved.sourceLifecycleEvents[0];
+
+    expect(resolved.stack).toEqual([]);
+    expect(resolved.lastResolvedAction).toMatchObject({
+      action: {
+        kind: "commander_rally",
+        actor: "player",
+        source: commanderSource,
+        sourceLifecycle: "usedOnResolve"
+      }
+    });
+    expect(resolved.playerStability).toBe(5);
+    expect(resolved.enemyStability).toBe(4);
+    expect(resolved.actionLog.at(-1)).toMatchObject({
+      kind: "action_resolved",
+      actor: "player",
+      text: "Resolved Commander Rally from Player: Enemy stability -1."
+    });
+    expect(lifecycleEvent).toMatchObject({
+      lifecycle: "usedOnResolve",
+      source: commanderSource,
+      actionKind: "commander_rally",
+      actionLabel: "Commander Rally",
+      actor: "player",
+      turnNumber: 1,
+      phase: "firstMain"
+    });
+    expect(JSON.parse(JSON.stringify(resolved))).toEqual(resolved);
+  });
+
   it("does not record source lifecycle events for debug or unsourced actions", () => {
     const resolvedDebug = passEncounterPriority(
       passEncounterPriority(
@@ -356,6 +423,9 @@ describe("encounter match priority shell", () => {
     expect(() =>
       submitEncounterAction(endPhase, { kind: "main_phase_pressure" })
     ).toThrow(/Prototype Pressure Technique can only be queued during main phases/);
+    expect(() => submitEncounterAction(endPhase, { kind: "commander_rally" })).toThrow(
+      /Commander Rally can only be queued during main phases/
+    );
     expect(() =>
       submitEncounterAction(combatPhase, { kind: "main_phase_pressure" })
     ).toThrow(/Cannot submit an action during combat/);

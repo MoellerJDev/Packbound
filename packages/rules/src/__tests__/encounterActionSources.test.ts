@@ -10,12 +10,18 @@ import {
 } from "@packbound/shared";
 
 import {
+  listCommanderRallyActionSources,
   listPrototypePressureActionSources,
+  submitCommanderRallyActionFromRun,
   submitPrototypePressureActionFromRun,
+  validateCommanderRallyActionSource,
   validatePrototypePressureActionSource,
+  type CommanderRallyActionSourceValidationCode,
+  type CommanderRallyActionSourceValidationResult,
   type PrototypePressureActionSourceValidationCode,
   type PrototypePressureActionSourceValidationResult
 } from "../encounterActionSources";
+import { deployCommander, getDefaultCommanderPosition } from "../commander";
 import { createEncounterMatch, passEncounterPriority } from "../encounterMatch";
 import type { RunState } from "../runState";
 import { createRunFromStarterKit } from "../starterKits";
@@ -41,6 +47,14 @@ const getSparkfall = (run: RunState): CardInstance => {
   return card;
 };
 
+const deployTestCommander = (run: RunState): RunState => {
+  const position = getDefaultCommanderPosition(run, sampleCatalog);
+  if (!position) {
+    throw new Error("Expected a legal Commander deployment position");
+  }
+  return deployCommander(run, sampleCatalog, position);
+};
+
 const expectFailureCode = (
   result: PrototypePressureActionSourceValidationResult,
   code: PrototypePressureActionSourceValidationCode
@@ -50,6 +64,20 @@ const expectFailureCode = (
   }
   expect(result.code).toBe(code);
   expect(result.message).toContain(String(result.cardInstanceId));
+};
+
+const expectCommanderFailureCode = (
+  result: CommanderRallyActionSourceValidationResult,
+  code: CommanderRallyActionSourceValidationCode,
+  messagePattern?: RegExp
+): void => {
+  if (result.ok) {
+    throw new Error(`Expected validation failure, received ${result.source.cardName}.`);
+  }
+  expect(result.code).toBe(code);
+  if (messagePattern) {
+    expect(result.message).toMatch(messagePattern);
+  }
 };
 
 const emptyCardZones = (run: RunState): RunState => ({
@@ -331,5 +359,291 @@ describe("encounter prototype pressure action sources", () => {
         cardInstanceId: sparkfall.instanceId
       })
     ).toThrow(/already used/);
+  });
+});
+
+describe("encounter Commander Rally action sources", () => {
+  it("accepts a deployed player Commander during first main with player priority", () => {
+    const run = deployTestCommander(createTestRun());
+    const match = createEncounterMatch({
+      matchId: "commander-rally-source",
+      seed: "commander-rally-source"
+    });
+
+    const result = validateCommanderRallyActionSource({
+      run,
+      catalog: sampleCatalog,
+      match,
+      actor: "player"
+    });
+
+    if (!result.ok) {
+      throw new Error(`Expected a valid Commander source, received ${result.code}.`);
+    }
+
+    expect(result).toEqual({
+      ok: true,
+      source: {
+        cardInstanceId: run.commander?.card.instanceId,
+        cardDefId: run.commander?.card.defId,
+        cardName: "Sparkcatch Apprentice",
+        zone: "board"
+      }
+    });
+    expect(JSON.parse(JSON.stringify(result))).toEqual(result);
+    expect(
+      listCommanderRallyActionSources({
+        run,
+        catalog: sampleCatalog,
+        match
+      })
+    ).toEqual([result.source]);
+  });
+
+  it("rejects a Commander that is still in Command Zone", () => {
+    const run = createTestRun();
+    const match = createEncounterMatch({
+      matchId: "commander-rally-command-zone",
+      seed: "commander-rally-command-zone"
+    });
+
+    const result = validateCommanderRallyActionSource({
+      run,
+      catalog: sampleCatalog,
+      match,
+      actor: "player"
+    });
+
+    expectCommanderFailureCode(
+      result,
+      "wrong_zone",
+      /Commander must be deployed to use Commander Rally/
+    );
+    expect(
+      listCommanderRallyActionSources({
+        run,
+        catalog: sampleCatalog,
+        match
+      })
+    ).toEqual([]);
+  });
+
+  it("rejects a deployed Commander without a matching board placement", () => {
+    const deployed = deployTestCommander(createTestRun());
+    const run: RunState = {
+      ...deployed,
+      board: { placements: [] }
+    };
+    const match = createEncounterMatch({
+      matchId: "commander-rally-missing-placement",
+      seed: "commander-rally-missing-placement"
+    });
+
+    const result = validateCommanderRallyActionSource({
+      run,
+      catalog: sampleCatalog,
+      match,
+      actor: "player"
+    });
+
+    expectCommanderFailureCode(result, "missing_board_placement", /board placement/);
+  });
+
+  it("rejects unsupported actors, wrong phases, and missing player priority", () => {
+    const run = deployTestCommander(createTestRun());
+    const firstMain = createEncounterMatch({
+      matchId: "commander-rally-guards",
+      seed: "commander-rally-guards"
+    });
+    const combat = createEncounterMatch({
+      matchId: "commander-rally-combat",
+      seed: "commander-rally-combat",
+      phase: "combat"
+    });
+    const enemyPriority = submitPrototypePressureActionFromRun({
+      match: firstMain,
+      run,
+      catalog: sampleCatalog,
+      actor: "player",
+      cardInstanceId: getSparkfall(run).instanceId
+    });
+
+    expectCommanderFailureCode(
+      validateCommanderRallyActionSource({
+        run,
+        catalog: sampleCatalog,
+        match: firstMain,
+        actor: "enemy"
+      }),
+      "unsupported_actor",
+      /player Commanders only/
+    );
+    expectCommanderFailureCode(
+      validateCommanderRallyActionSource({
+        run,
+        catalog: sampleCatalog,
+        match: combat,
+        actor: "player"
+      }),
+      "wrong_phase",
+      /main phases/
+    );
+    expectCommanderFailureCode(
+      validateCommanderRallyActionSource({
+        run,
+        catalog: sampleCatalog,
+        match: enemyPriority,
+        actor: "player"
+      }),
+      "priority_required",
+      /player priority/
+    );
+  });
+
+  it("rejects wrong owner, unknown definitions, and non-Unit Commander definitions", () => {
+    const deployed = deployTestCommander(createTestRun());
+    const match = createEncounterMatch({
+      matchId: "commander-rally-definition-guards",
+      seed: "commander-rally-definition-guards"
+    });
+
+    expectCommanderFailureCode(
+      validateCommanderRallyActionSource({
+        run: {
+          ...deployed,
+          commander: {
+            ...deployed.commander!,
+            card: { ...deployed.commander!.card, ownerId: wrongOwnerId }
+          }
+        },
+        catalog: sampleCatalog,
+        match,
+        actor: "player"
+      }),
+      "wrong_owner",
+      /not the run player/
+    );
+    expectCommanderFailureCode(
+      validateCommanderRallyActionSource({
+        run: {
+          ...deployed,
+          commander: {
+            ...deployed.commander!,
+            card: { ...deployed.commander!.card, defId: asCardDefId("missing") }
+          }
+        },
+        catalog: sampleCatalog,
+        match,
+        actor: "player"
+      }),
+      "unknown_card_definition",
+      /unknown card definition/
+    );
+    expectCommanderFailureCode(
+      validateCommanderRallyActionSource({
+        run: {
+          ...deployed,
+          commander: {
+            ...deployed.commander!,
+            card: { ...deployed.commander!.card, defId: asCardDefId("sparkfall") }
+          }
+        },
+        catalog: sampleCatalog,
+        match,
+        actor: "player"
+      }),
+      "wrong_card_type",
+      /Unit or Echo/
+    );
+  });
+
+  it("queues, resolves, and prevents reusing Commander Rally in one encounter", () => {
+    const run = deployTestCommander(createTestRun());
+    const match = createEncounterMatch({
+      matchId: "commander-rally-repeat-source",
+      seed: "commander-rally-repeat-source"
+    });
+
+    const submitted = submitCommanderRallyActionFromRun({
+      match,
+      run,
+      catalog: sampleCatalog,
+      actor: "player"
+    });
+
+    expect(submitted.stack[0]?.action).toMatchObject({
+      kind: "commander_rally",
+      actor: "player",
+      label: "Commander Rally",
+      source: {
+        cardInstanceId: run.commander?.card.instanceId,
+        cardName: "Sparkcatch Apprentice",
+        zone: "board"
+      },
+      sourceLifecycle: "usedOnResolve"
+    });
+    expect(submitted.actionLog.at(-1)?.text).toBe(
+      "Player queued Commander Rally from Sparkcatch Apprentice."
+    );
+    expect(
+      listCommanderRallyActionSources({
+        run,
+        catalog: sampleCatalog,
+        match: submitted
+      })
+    ).toEqual([]);
+    expect(() =>
+      submitCommanderRallyActionFromRun({
+        match: submitted,
+        run,
+        catalog: sampleCatalog,
+        actor: "player"
+      })
+    ).toThrow(/player priority/);
+
+    const playerPriorityWithStack = passEncounterPriority(submitted, "enemy");
+    expect(() =>
+      submitCommanderRallyActionFromRun({
+        match: playerPriorityWithStack,
+        run,
+        catalog: sampleCatalog,
+        actor: "player"
+      })
+    ).toThrow(/already queued/);
+
+    const resolved = passEncounterPriority(playerPriorityWithStack, "player");
+
+    expect(resolved.playerStability).toBe(5);
+    expect(resolved.enemyStability).toBe(4);
+    expect(resolved.actionLog.at(-1)?.text).toBe(
+      "Resolved Commander Rally from Player: Enemy stability -1."
+    );
+    expect(resolved.sourceLifecycleEvents[0]).toMatchObject({
+      lifecycle: "usedOnResolve",
+      actionKind: "commander_rally",
+      actionLabel: "Commander Rally",
+      actor: "player",
+      source: {
+        cardInstanceId: run.commander?.card.instanceId,
+        cardName: "Sparkcatch Apprentice",
+        zone: "board"
+      }
+    });
+    expect(
+      listCommanderRallyActionSources({
+        run,
+        catalog: sampleCatalog,
+        match: resolved
+      })
+    ).toEqual([]);
+    expect(() =>
+      submitCommanderRallyActionFromRun({
+        match: resolved,
+        run,
+        catalog: sampleCatalog,
+        actor: "player"
+      })
+    ).toThrow(/already used/);
+    expect(JSON.parse(JSON.stringify(resolved))).toEqual(resolved);
   });
 });

@@ -38,8 +38,13 @@ The rules package now has a minimal, rules-first Commander lifecycle prototype.
   upgrade application. Each entry records round, phase, source, zone movement,
   deploy count, raw/effective Rebind Tax, discount, upgrade level deltas, and
   relevant destruction event metadata when present.
-- Commander actions are replayable run actions, deterministic, immutable, and
-  JSON-serializable.
+- The encounter shell can validate and queue one deployed-Commander action,
+  `commander_rally` / `Commander Rally`, during first main or second main when
+  the player has priority. This action is sourced from the deployed Commander
+  and is once per encounter through match-local source lifecycle state.
+- Planning/reward Commander actions are replayable run actions, deterministic,
+  immutable, and JSON-serializable. Commander Rally is deterministic and
+  JSON-serializable as match-local encounter state.
 - The debug client shows a Command Zone panel on the default route and
   renderer-lab, including Commander name, zone, deploy count, raw/effective
   Rebind Tax, discount, deploy cost, Board Charge after deploy, blocked
@@ -52,9 +57,9 @@ Current Commander prototype limitations:
 - There are no authored Commander card definitions yet; the prototype reuses
   existing Unit/Echo definitions from starter context.
 - Commander upgrades are mechanical placeholders only. There are no authored
-  Commander cards, Signature Relics, encounter main-phase Commander actions,
-  enemy Commanders, hand/deck/mill sourcing, counterspells, authored Commander
-  effects, or enemy AI.
+  Commander cards, Signature Relics, encounter-phase Commander deploy/return
+  actions, enemy Commanders, hand/deck/mill sourcing, counterspells, authored
+  Commander effects, or enemy AI.
 - Combat simulation remains unchanged. Commander destruction-to-Command is a
   run-progression replacement applied while recording combat results, not a
   simulator behavior change.
@@ -75,6 +80,10 @@ The rules package now includes a minimal serializable encounter match reducer:
   the Priority Lab labels it `Prototype Pressure Technique`, it is legal during
   first main or second main priority, and it deterministically reduces the
   opposing actor's stability by 1 when it resolves.
+- `commander_rally` is the first Commander-sourced encounter action skeleton:
+  the Priority Lab labels it `Commander Rally`, validates that the run player's
+  Commander is deployed on the board, queues it through the same stack/pass flow,
+  resolves for enemy stability -1, and records its source as used when resolved.
 - Queued encounter actions can optionally carry minimal source-card context:
   `cardInstanceId`, `cardDefId`, `cardName`, and `zone`. Priority Lab currently
   submits the prototype action through a rules helper that validates the source
@@ -96,10 +105,11 @@ The rules package now includes a minimal serializable encounter match reducer:
 
 Current encounter shell limitations:
 
-- Only one abstract prototype card action exists. Its source is validated
-  against the current player run and catalog and records a match-local
-  lifecycle event, but it is not connected to hand, deck, mill, enemy AI, costs,
-  RunState zone changes, or content-authored card effects yet.
+- Only two abstract prototype main-phase actions exist: one Spellrail Technique
+  source and one deployed Commander source. Their sources are validated against
+  the current player run and catalog and record match-local lifecycle events,
+  but they are not connected to hand, deck, mill, enemy AI, costs, RunState zone
+  changes, or content-authored card effects yet.
 - There are no real card timing windows, counterspells, manual blockers, hidden
   intent choices, deck/hand/mill zones, multiplayer networking, backend
   persistence, or new cards attached to this shell yet.

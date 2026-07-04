@@ -961,6 +961,17 @@ h4 {
   margin-top: 14px;
 }
 
+.encounter-action-section {
+  border-top: 1px solid #d5dde3;
+  margin-top: 14px;
+  padding-top: 12px;
+}
+
+.encounter-action-section .mini-actions {
+  justify-content: flex-start;
+  margin-top: 8px;
+}
+
 .board-grid-wrap {
   display: flex;
   justify-content: center;

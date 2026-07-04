@@ -35,7 +35,9 @@ import {
   inspectRunCard,
   listPrototypePressureActionSources,
   recordEncounterCombatSkirmish,
+  submitCommanderRallyActionFromRun,
   submitPrototypePressureActionFromRun,
+  validateCommanderRallyActionSource,
   validateRunLoadout,
   type BoardGridCardSummary,
   type CombatResultLike,
@@ -385,6 +387,22 @@ export function App() {
       })[0],
     [priorityMatch, run]
   );
+  const priorityCommanderActionValidation = useMemo(
+    () =>
+      validateCommanderRallyActionSource({
+        run,
+        catalog: sampleCatalog,
+        match: priorityMatch,
+        actor: "player"
+      }),
+    [priorityMatch, run]
+  );
+  const priorityCommanderActionSource = priorityCommanderActionValidation.ok
+    ? priorityCommanderActionValidation.source
+    : undefined;
+  const priorityCommanderActionUnavailableText = priorityCommanderActionValidation.ok
+    ? undefined
+    : priorityCommanderActionValidation.message;
 
   const combat = useMemo(() => {
     if (!opponentSetup || !recordReady) {
@@ -1087,6 +1105,21 @@ export function App() {
     );
   };
 
+  const submitPriorityCommanderAction = () => {
+    if (!priorityCommanderActionSource) {
+      return;
+    }
+
+    setPriorityMatch((currentMatch) =>
+      submitCommanderRallyActionFromRun({
+        match: currentMatch,
+        run,
+        catalog: sampleCatalog,
+        actor: "player"
+      })
+    );
+  };
+
   const passPriorityAsPlayer = () => {
     setPriorityMatch((currentMatch) => passEncounterPriority(currentMatch, "player"));
   };
@@ -1699,6 +1732,12 @@ export function App() {
               ? `${priorityPrototypeActionSource.cardName} is already queued or used this encounter.`
               : "No valid player Spellrail Technique source."
           }
+          commanderName={commanderDefinition?.name ?? "No Commander"}
+          commanderZone={run.commander?.card.zone ?? "none"}
+          commanderActionSource={priorityCommanderActionSource}
+          canSubmitCommanderAction={priorityCommanderActionSource !== undefined}
+          commanderActionUnavailableText={priorityCommanderActionUnavailableText}
+          onSubmitCommanderAction={submitPriorityCommanderAction}
           onSubmitPrototypeAction={submitPriorityPrototypeAction}
           onPassPlayer={passPriorityAsPlayer}
           onPassEnemy={passPriorityAsEnemy}

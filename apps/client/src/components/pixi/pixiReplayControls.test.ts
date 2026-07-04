@@ -155,6 +155,49 @@ describe("pixi replay controls", () => {
     });
   });
 
+  it("keeps reset/play cycles isolated from stale completions", () => {
+    const initialPlaying = playPixiReplay(createPixiReplayControlsState(), 2);
+    const reset = resetPixiReplay(initialPlaying);
+    const playingAfterReset = playPixiReplay(reset, 2);
+
+    const staleCompletion = completePixiReplayCommand(
+      playingAfterReset,
+      2,
+      1,
+      moveCommand,
+      { cardNameByInstanceId: nameMap },
+      initialPlaying.resetKey
+    );
+    expect(staleCompletion).toBe(playingAfterReset);
+    expect(staleCompletion).toMatchObject({
+      status: "playing",
+      commandIndex: 0,
+      resetKey: 1
+    });
+
+    const currentCompletion = completePixiReplayCommand(
+      playingAfterReset,
+      2,
+      1,
+      moveCommand,
+      { cardNameByInstanceId: nameMap },
+      playingAfterReset.resetKey
+    );
+    expect(currentCompletion).toMatchObject({
+      status: "playing",
+      commandIndex: 1,
+      resetKey: 1
+    });
+
+    const resetAgain = resetPixiReplay(currentCompletion);
+    expect(stepPixiReplay(resetAgain, 2)).toMatchObject({
+      status: "paused",
+      commandIndex: 0,
+      resetKey: 2,
+      stepRequestKey: 1
+    });
+  });
+
   it("keeps step requests inert during automatic playback", () => {
     const playing = playPixiReplay(createPixiReplayControlsState(), 2);
 

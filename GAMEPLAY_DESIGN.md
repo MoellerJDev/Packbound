@@ -193,8 +193,9 @@ The reward phase now has a minimal Commander upgrade choice prototype with
 Commander content or Signature Relics. The encounter shell now has one
 match-local main-phase Commander action skeleton, `Commander Rally`, but not an
 authored Commander ability system. Encounter actions now sit behind a minimal
-static contract for timing, labels, source lifecycle, Stability target
-requirements, and match-local Stability effects. The prototype also records a
+static contract for timing, labels, source lifecycle, Stability and board-card
+target requirements, match-local Stability effects, and explicit no-effect
+target probes. The prototype also records a
 structured lifecycle history for creation, deployment, return, destruction
 replacement, tax changes, and upgrade application.
 
@@ -374,20 +375,20 @@ and marks that Commander source used for the encounter. It does not mutate
 
 The current encounter action contract is the next bridge toward authored
 Techniques, Commander actions, and future Signature Relics. It declares action
-labels, timing, source-used-on-resolve lifecycle, minimal Stability target
-requirements, and simple match-local Stability effects without becoming a full
-effect DSL. Submitted prototype actions now store their resolved Stability
-target on the stack, so resolution reads the action's intent instead of only
+labels, timing, source-used-on-resolve lifecycle, target requirements, and
+simple match-local effects without becoming a full effect DSL. Submitted
+prototype actions now store their resolved Stability target or board-card target
+snapshot on the stack, so resolution reads the action's intent instead of only
 inferring an opponent from the acting player. The current prototype also proves
-the first paid encounter-action bridge: Prototype Pressure Technique and
-Commander Rally pay a small match-local Combat Charge cost when submitted,
-separate from their source-used-on-resolve lifecycle. Encounter setup can now
-derive starting player Combat Charge from the run's Source Row by rounding up
-the installed Sources' total Combat Charge/sec, so the action economy is
+the first paid encounter-action bridge: Prototype Pressure Technique, Commander
+Rally, and Target Probe each pay a small match-local Combat Charge cost when
+submitted, separate from source-used-on-resolve lifecycle. Encounter setup can
+now derive starting player Combat Charge from the run's Source Row by rounding
+up the installed Sources' total Combat Charge/sec, so the action economy is
 beginning to point back to pack-and-loadout choices without adding real-time
 ticking or Source exhaustion. This keeps future actions from becoming one-off
-reducer switches while still avoiding hand/deck/mill, arbitrary unit/board/card
-targets, counterspells, refunds, or RunState mutation.
+reducer switches while still avoiding hand/deck/mill, board-card damage effects,
+board-cell targeting UI, counterspells, refunds, or RunState mutation.
 
 The prototype still supports Commander deploy/return only through planning-window
 run actions. Later, Commander deployment, Rebind, voluntary return, Signature
@@ -400,8 +401,10 @@ Commander prototype now proves zone lifecycle, planning deployment, planning
 return, generic Board Charge Rebind Tax enforcement, post-combat destruction
 return, reward-phase upgrade choices, lifecycle history, reducer replay, and one
 match-local Commander encounter action with a Source Row-derived paid Combat
-Charge setup. Next Commander work should add richer target types, fuller
-encounter resource lifecycle rules, or authored ability hooks in focused slices.
+Charge setup. The encounter shell now also proves one serialized enemy
+board-card target snapshot through `Target Probe`. Next Commander or encounter
+work should add richer effect contracts, fuller encounter resource lifecycle
+rules, target selection UI, or authored ability hooks in focused slices.
 
 ### Commander Non-Goals For Now
 

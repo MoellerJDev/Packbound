@@ -206,9 +206,11 @@ stack submission without giving the match reducer ownership of `RunState`.
 `submitPrototypePressureActionFromRun` validates a Spellrail Technique source,
 and `submitCommanderRallyActionFromRun` validates the run player's deployed
 Commander source. Once queued, resolution remains pure `EncounterMatchState`
-work: source context, resolved Stability target metadata, Stability changes, and
-source lifecycle events are match-local and do not move cards, alter Commander
-lifecycle history, or mutate run zones.
+work: source context, resolved target metadata, Stability changes, and source
+lifecycle events are match-local and do not move cards, alter Commander
+lifecycle history, or mutate run zones. Board-card target helpers separately
+read the run or encounter board plus catalog, then submit a serialized snapshot
+with side, card instance id, definition id, owner id, position, and label.
 
 Encounter resource setup is a separate rules-layer bridge. It reads the
 `RunState` Source Row plus catalog, sums valid Source cards'
@@ -223,9 +225,10 @@ effects for the current prototype actions. Combat Charge costs are paid from
 match-local actor charge on submission and recorded as serializable cost payment
 events. Source-used-on-resolve remains a separate resolution-time lifecycle
 event. Effects currently mutate only match-local Stability through stored target
-metadata. The contract registry is deliberately not an authored card-effect
-engine, does not exhaust or refund Source Row charge, does not select arbitrary
-unit/board/card targets, and does not mutate `RunState`.
+metadata, while `Target Probe` validates and logs a board-card target with no
+gameplay effect. The contract registry is deliberately not an authored
+card-effect engine, does not exhaust or refund Source Row charge, does not apply
+board-card damage/effects, and does not mutate `RunState`.
 
 ### `packages/sim`
 

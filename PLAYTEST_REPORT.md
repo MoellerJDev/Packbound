@@ -126,8 +126,15 @@ Implementation update after this task: encounter action contracts now also
 declare minimal target requirements. The prototype pressure actions derive and
 store explicit `Enemy Stability` or `Player Stability` target metadata on queued
 stack items, and resolution applies target-based Stability deltas through that
-stored metadata. This is still Stability-only targeting, not unit, board-cell,
-card, or target-selection UI.
+stored metadata.
+
+Implementation update after this task: encounter action targets now also support
+prototype board-card target snapshots. Priority Lab exposes `Target Probe`, a
+main-phase no-source action that costs 1 match-local Combat Charge, targets the
+current encounter's first enemy board card, enters the normal stack/pass flow,
+and resolves with `No effect` while logging the target label. This proves
+serializable board-card target metadata for future authored actions. It is not
+unit damage, board-cell targeting, target selection UI, or a full effect engine.
 
 Implementation update after this task: encounter actions now have a minimal
 match-local Combat Charge paid-cost prototype. `Prototype Pressure Technique`
@@ -158,7 +165,7 @@ default-route confidence. Pixi should stay opt-in until those are addressed.
 
 Recommended next task:
 
-`feat(rules): add encounter action unit/board target prototype`
+`feat(client): add Priority Lab target selection controls`
 
 ## 2. Environment And Commands
 
@@ -216,13 +223,13 @@ Build warning observed and not fixed in this task:
 
 ## 3. Scenarios Covered
 
-| Scenario                   | Manual result | Notes                                                                                                  |
-| -------------------------- | ------------- | ------------------------------------------------------------------------------------------------------ |
-| Default route `/`          | Pass          | React/CSS Hex Arena remains default; full run loop still works.                                        |
-| `?scenario=renderer-lab`   | Lab pass      | Pixi readability is manually validated; reset/play stall is fixed in smoke coverage.                   |
-| `?scenario=engagement-lab` | Pass          | Out-of-range melee and in-range ranged previews are understandable.                                    |
-| `?scenario=priority-lab`   | Pass          | Commander Rally, Prototype Technique, contract text, source lifecycle, stack, log, skirmish flow work. |
-| `?scenario=upgrade-lab`    | Pass          | Duplicate combine and Lv 1 pool-card inspection work.                                                  |
+| Scenario                   | Manual result | Notes                                                                                                                                 |
+| -------------------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Default route `/`          | Pass          | React/CSS Hex Arena remains default; full run loop still works.                                                                       |
+| `?scenario=renderer-lab`   | Lab pass      | Pixi readability is manually validated; reset/play stall is fixed in smoke coverage.                                                  |
+| `?scenario=engagement-lab` | Pass          | Out-of-range melee and in-range ranged previews are understandable.                                                                   |
+| `?scenario=priority-lab`   | Pass          | Commander Rally, Prototype Technique, Target Probe, contract text, target metadata, source lifecycle, stack, log, skirmish flow work. |
+| `?scenario=upgrade-lab`    | Pass          | Duplicate combine and Lv 1 pool-card inspection work.                                                                                 |
 
 Browser console result: no warnings or errors captured across the manual pass.
 
@@ -421,25 +428,30 @@ Current Priority Lab flow covered by browser smoke and reflected in this report:
 
 1. Initial state: turn 1, first main, active actor Player, priority holder
    Player, stability 5/5, empty stack.
-2. The Commander Action section showed Sparkcatch Apprentice in `command` and
+2. The Target Probe section showed `Ember Scraprunner (enemy ground r0 c3)`,
+   `Cost: Pay 1 Combat Charge.`, `Target: Enemy board card`, and
+   `Effect: No effect.` Browser smoke keeps this as contract/visibility
+   coverage so the existing two-action priority flow does not need extra debug
+   charge.
+3. The Commander Action section showed Sparkcatch Apprentice in `command` and
    blocked `Queue Commander Rally` with
    `Commander must be deployed to use Commander Rally.`
-3. Deploying the Commander through the existing Command Zone panel updated the
+4. Deploying the Commander through the existing Command Zone panel updated the
    Commander Action source to `Sparkcatch Apprentice (board)`.
-4. `Queue Commander Rally` queued `Commander Rally` from Sparkcatch Apprentice
+5. `Queue Commander Rally` queued `Commander Rally` from Sparkcatch Apprentice
    and passed priority to Enemy.
-5. Enemy passed priority, then Player passed priority. `Commander Rally`
+6. Enemy passed priority, then Player passed priority. `Commander Rally`
    resolved and changed enemy stability from 5 to 4.
-6. Used Sources recorded `Sparkcatch Apprentice used by Commander Rally`, and
+7. Used Sources recorded `Sparkcatch Apprentice used by Commander Rally`, and
    the Commander Action section reported that Rally was already used this
    encounter.
-7. `Queue Prototype Technique` then queued `Prototype Pressure Technique` from
+8. `Queue Prototype Technique` then queued `Prototype Pressure Technique` from
    Sparkfall and passed priority to Enemy.
-8. The action resolved through the same enemy/player pass sequence and changed
+9. The action resolved through the same enemy/player pass sequence and changed
    enemy stability from 4 to 3.
-9. Used Sources recorded `Sparkfall used by Prototype Pressure Technique`.
-10. Empty-stack player/enemy passes advanced to combat.
-11. `Run Combat Skirmish` recorded skirmish 1 and advanced to second main.
+10. Used Sources recorded `Sparkfall used by Prototype Pressure Technique`.
+11. Empty-stack player/enemy passes advanced to combat.
+12. `Run Combat Skirmish` recorded skirmish 1 and advanced to second main.
 
 The previous action-log readability issue is fixed. Log sentences and metadata
 now render separately. For example:
@@ -455,17 +467,21 @@ Lab shows this directly:
   `Target: Enemy Stability`, and `Effect: Enemy Stability -1.`
 - Commander Rally: `Cost: Pay 1 Combat Charge. Uses Commander on resolve.`,
   `Target: Enemy Stability`, and `Effect: Enemy Stability -1.`
+- Target Probe: `Cost: Pay 1 Combat Charge.`, `Target: Enemy board card`, and
+  `Effect: No effect.`
 
 The lab is no longer debug-action-only in the UI. It now has one Spellrail
-Technique prototype action and one deployed-Commander prototype action, both
-with minimal source context, contract timing/target/effect metadata, and
-match-local source lifecycle. The action economy is now easier to read because
-Priority Lab separates `Source-derived starting Combat Charge: 1`, `Source Row
-Combat Charge/sec: 0.35`, `Priority Lab debug top-up: +1`, and current player
-Combat Charge. Known limitation: these are still abstract prototype actions with
-only starting-charge setup from Source Row, no hand/deck/mill sourcing, target
-selection, RunState card movement, enemy action choice, real-time charge
-generation, refunds, or authored effect system.
+Technique prototype action, one deployed-Commander prototype action, and one
+board-card target probe. The source actions have minimal source context,
+contract timing/target/effect metadata, and match-local source lifecycle. Target
+Probe has serialized board-card target metadata but no effect. The action economy
+is now easier to read because Priority Lab separates `Source-derived starting
+Combat Charge: 1`, `Source Row Combat Charge/sec: 0.35`,
+`Priority Lab debug top-up: +1`, and current player Combat Charge. Known
+limitation: these are still abstract prototype actions with only starting-charge
+setup from Source Row, no hand/deck/mill sourcing, target selection UI, RunState
+card movement, enemy action choice, real-time charge generation, refunds,
+board-card damage/effects, or authored effect system.
 
 ## 8. `?scenario=upgrade-lab`
 
@@ -694,14 +710,17 @@ Note:
   run-progression state by this Commander-specific replacement.
 - Priority Lab has two real prototype actions with source context:
   `Prototype Pressure Technique` from Sparkfall and `Commander Rally` from a
-  deployed Commander. They now use a minimal static contract for timing, labels,
-  source-used-on-resolve lifecycle, explicit Stability target metadata, and
-  match-local Stability effects. They pay match-local Combat Charge on
-  submission from Source Row-derived starting charge, with a Priority Lab-only
-  debug top-up to exercise both actions. They still have no target selection UI,
-  hand/deck/mill, source card movement, RunState mutation on resolution,
-  real-time charge generation, refunds, enemy AI, interrupts, counterspells,
-  arbitrary unit/board/card targeting, or authored card effect resolution.
+  deployed Commander. It also has `Target Probe`, a no-source prototype that
+  validates and stores an enemy board-card target snapshot. These actions now
+  use a minimal static contract for timing, labels, source-used-on-resolve
+  lifecycle, Stability targets, board-card target metadata, match-local
+  Stability effects, no-effect resolution, and Combat Charge payment. They pay
+  match-local Combat Charge on submission from Source Row-derived starting
+  charge, with a Priority Lab-only debug top-up to exercise the two paid source
+  actions. They still have no target selection UI, hand/deck/mill, source card
+  movement, RunState mutation on resolution, real-time charge generation,
+  refunds, enemy AI, interrupts, counterspells, board-card damage/effects,
+  board-cell targeting UI, or authored card effect resolution.
 - Combat simulation remains deterministic and unchanged.
 - Traits/teamups remain display-only.
 - Duplicate upgrades remain generic +1 ATK/+1 HP combines.
@@ -711,16 +730,14 @@ Note:
 
 Do next:
 
-`feat(rules): add encounter action unit/board target prototype`
+`feat(client): add Priority Lab target selection controls`
 
-Why: Priority Lab now has two source-validated, stack-resolving prototype
-actions: `Prototype Pressure Technique` from Spellrail and `Commander Rally`
-from the deployed Commander. Both now share a minimal contract for timing,
-source lifecycle, Stability targets, match-local Combat Charge payment, and
-targeted Stability effects. The next narrow slice should expand from
-Stability-only targets to one deterministic unit or board target contract
-without adding hand/deck/mill, enemy Commanders, broad timing, counterspells,
-RunState mutation, or a full authored effect engine.
+Why: Priority Lab now proves a serialized enemy board-card target snapshot
+through `Target Probe`, but it still uses the first available enemy target rather
+than a player-visible target picker. The next narrow slice should let the lab
+choose among valid board-card targets and show blocked reasons without adding
+Pixi click targeting, hand/deck/mill, enemy Commanders, broad timing,
+counterspells, RunState mutation, or a full authored effect engine.
 
 Do soon:
 

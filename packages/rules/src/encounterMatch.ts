@@ -11,6 +11,7 @@ import {
   canUseEncounterActionDuringPhase,
   combatChargeCostForEncounterAction,
   defaultTargetForEncounterAction,
+  describeEncounterActionTarget,
   getEncounterActionDefinition,
   labelForEncounterAction,
   resolveEncounterActionEffects,
@@ -268,6 +269,12 @@ const actionSubmissionText = (action: EncounterQueuedAction): string => {
     return `${actor} queued ${action.label} as a Commander action.`;
   }
 
+  if (action.kind === "target_probe") {
+    return `${actor} queued ${action.label} targeting ${describeEncounterActionTarget(
+      action.target
+    )}.`;
+  }
+
   return `${actor} submitted ${action.label}.`;
 };
 
@@ -488,7 +495,7 @@ const stabilityDeltaText = (delta: {
     return `Player stability ${delta.player}.`;
   }
 
-  return "No stability change.";
+  return "No effect.";
 };
 
 const actionResolutionText = (
@@ -497,9 +504,13 @@ const actionResolutionText = (
 ): string => {
   const base = `Resolved ${item.action.label} from ${actorLabel(item.action.actor)}`;
   const definition = getEncounterActionDefinition(item.action.kind);
+  const targetText =
+    item.action.target && item.action.target.type !== "stability"
+      ? ` targeting ${describeEncounterActionTarget(item.action.target)}`
+      : "";
 
   if (definition.includeEffectSummaryInResolutionLog) {
-    return `${base}: ${stabilityDeltaText(delta)}`;
+    return `${base}${targetText}: ${stabilityDeltaText(delta)}`;
   }
 
   return `${base}.`;

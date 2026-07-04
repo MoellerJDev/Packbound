@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { asCardDefId, asCardInstanceId } from "@packbound/shared";
+import { asCardDefId, asCardInstanceId, asPlayerId } from "@packbound/shared";
 
 import {
   advanceEncounterPhase,
@@ -49,6 +49,22 @@ const playerStabilityTarget = {
   type: "stability",
   actor: "player",
   label: "Player Stability"
+} as const;
+
+const enemyBoardCardTarget = {
+  type: "boardCard",
+  side: "playerB",
+  cardInstanceId: asCardInstanceId("encounter:ember_scraprunner:board:0"),
+  defId: asCardDefId("ember_scraprunner"),
+  ownerId: asPlayerId("encounter:early_ember_pressure"),
+  position: { row: 0, col: 3, layer: "ground" },
+  label: "Ember Scraprunner (enemy ground r0 c3)"
+} as const;
+
+const friendlyBoardCardTarget = {
+  ...enemyBoardCardTarget,
+  side: "playerA",
+  label: "Ember Scraprunner (ally ground r0 c3)"
 } as const;
 
 const combatResult = (
@@ -359,6 +375,67 @@ describe("encounter match priority shell", () => {
     expect(JSON.parse(JSON.stringify(resolved))).toEqual(resolved);
   });
 
+  it("submits and resolves Target Probe with an enemy board-card target", () => {
+    const submitted = submitEncounterAction(createChargedMatch(1), {
+      kind: "target_probe",
+      target: enemyBoardCardTarget
+    });
+    const item = submitted.stack[0];
+
+    if (!item) {
+      throw new Error("Expected a queued Target Probe stack item.");
+    }
+
+    expect(item.action).toEqual({
+      kind: "target_probe",
+      actor: "player",
+      label: "Target Probe",
+      target: enemyBoardCardTarget
+    });
+    expect(submitted.priorityHolder).toBe("enemy");
+    expect(submitted.playerCombatCharge).toBe(0);
+    expect(submitted.costPaymentEvents[0]).toMatchObject({
+      actor: "player",
+      actionKind: "target_probe",
+      actionLabel: "Target Probe",
+      amount: 1,
+      combatChargeBefore: 1,
+      combatChargeAfter: 0,
+      turnNumber: 1,
+      phase: "firstMain",
+      stackItemId: item.id,
+      stackItemIndex: item.index
+    });
+    expect(submitted.actionLog.at(-1)).toMatchObject({
+      kind: "action_submitted",
+      actor: "player",
+      text: "Player queued Target Probe targeting Ember Scraprunner (enemy ground r0 c3)."
+    });
+
+    const resolved = passEncounterPriority(
+      passEncounterPriority(submitted, "enemy"),
+      "player"
+    );
+
+    expect(resolved.stack).toEqual([]);
+    expect(resolved.lastResolvedAction).toMatchObject({
+      action: {
+        kind: "target_probe",
+        actor: "player",
+        target: enemyBoardCardTarget
+      }
+    });
+    expect(resolved.playerStability).toBe(5);
+    expect(resolved.enemyStability).toBe(5);
+    expect(resolved.sourceLifecycleEvents).toEqual([]);
+    expect(resolved.actionLog.at(-1)).toMatchObject({
+      kind: "action_resolved",
+      actor: "player",
+      text: "Resolved Target Probe from Player targeting Ember Scraprunner (enemy ground r0 c3): No effect."
+    });
+    expect(JSON.parse(JSON.stringify(resolved))).toEqual(resolved);
+  });
+
   it("does not record source lifecycle events for debug or unsourced actions", () => {
     const resolvedDebug = passEncounterPriority(
       passEncounterPriority(
@@ -415,6 +492,17 @@ describe("encounter match priority shell", () => {
         target: enemyStabilityTarget
       })
     ).toThrow(/Debug no-op does not use a target/);
+    expect(() =>
+      submitEncounterAction(createChargedMatch(1), {
+        kind: "target_probe"
+      })
+    ).toThrow(/Target Probe requires Enemy board card/);
+    expect(() =>
+      submitEncounterAction(createChargedMatch(1), {
+        kind: "target_probe",
+        target: friendlyBoardCardTarget
+      })
+    ).toThrow(/Target Probe must target an enemy board card/);
   });
 
   it("blocks paid actions when Combat Charge is insufficient without mutating state", () => {
@@ -426,6 +514,9 @@ describe("encounter match priority shell", () => {
     expect(() => submitEncounterAction(match, { kind: "commander_rally" })).toThrow(
       /Commander Rally requires 1 Combat Charge, but Player has 0/
     );
+    expect(() =>
+      submitEncounterAction(match, { kind: "target_probe", target: enemyBoardCardTarget })
+    ).toThrow(/Target Probe requires 1 Combat Charge, but Player has 0/);
     expect(match).toEqual(createMatch());
   });
 

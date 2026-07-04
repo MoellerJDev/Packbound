@@ -76,10 +76,11 @@ Current Commander prototype limitations:
 The rules package now includes a minimal serializable encounter match reducer:
 
 - Encounter action definitions are static, JSON-serializable contracts. Current
-  contracts cover `debug_noop`, `debug_pressure`, `main_phase_pressure`, and
-  `commander_rally`.
+  contracts cover `debug_noop`, `debug_pressure`, `main_phase_pressure`,
+  `commander_rally`, and `target_probe`.
 - Contract timing drives legality. Debug actions use `anyPriority`, while
-  `Prototype Pressure Technique` and `Commander Rally` use main-phase timing.
+  `Prototype Pressure Technique`, `Commander Rally`, and `Target Probe` use
+  main-phase timing.
 - Contract costs currently support `none`, match-local Combat Charge payment,
   and source-used-on-resolve lifecycle. Combat Charge is paid on submission and
   source lifecycle is still recorded on resolution; neither path moves or
@@ -88,11 +89,14 @@ The rules package now includes a minimal serializable encounter match reducer:
   Source Row. It sums valid Source cards' `combatChargePerSecond`, rounds the
   total to four decimals, and uses `Math.ceil(total)` as starting match-local
   player Combat Charge.
-- Contract targets currently support only no target or match-local Stability
-  targets. The prototype pressure actions derive and store the opposing actor's
-  Stability target when they are submitted.
+- Contract targets currently support no target, match-local Stability targets,
+  and prototype board-card target snapshots. The pressure actions derive and
+  store the opposing actor's Stability target when they are submitted. Target
+  Probe validates and stores a JSON-serializable enemy board-card target with
+  side, card instance id, definition id, owner id, board position, and label.
 - Contract effects currently support target-based match-local Stability deltas
-  only. The two prototype real actions reduce their stored Stability target by 1.
+  plus explicit no-effect actions. The two prototype real actions reduce their
+  stored Stability target by 1. `Target Probe` resolves with no gameplay effect.
 - Encounters start in `firstMain` with the active actor holding priority.
 - Empty-stack double passes advance `firstMain` to `combat`, `secondMain` to
   `end`, and `end` into the next turn.
@@ -113,6 +117,11 @@ The rules package now includes a minimal serializable encounter match reducer:
   Commander is deployed on the board, queues it through the same stack/pass flow,
   pays 1 match-local Combat Charge when queued, resolves against the stored enemy
   Stability target for -1, and records its source as used when resolved.
+- `target_probe` is the first board-card target prototype: the Priority Lab
+  labels it `Target Probe`, lists the current encounter's enemy board cards,
+  queues the first enemy board-card target through the same stack/pass flow,
+  pays 1 match-local Combat Charge when queued, and resolves with no effect while
+  logging the target label. It is a rules/UI probe, not an authored card effect.
 - Queued encounter actions can optionally carry minimal source-card context:
   `cardInstanceId`, `cardDefId`, `cardName`, and `zone`. Priority Lab currently
   submits the prototype action through a rules helper that validates the source
@@ -124,8 +133,9 @@ The rules package now includes a minimal serializable encounter match reducer:
   or otherwise mutate that source in `RunState`.
 - Queued encounter actions can also carry minimal target context. Current
   submitted pressure actions store a JSON-serializable Stability target such as
-  `Enemy Stability` or `Player Stability`; resolution validates and applies
-  effects through that stored target metadata.
+  `Enemy Stability` or `Player Stability`; `Target Probe` stores a board-card
+  target snapshot such as `Ember Scraprunner (enemy ground r0 c3)`. Resolution
+  validates target metadata before applying any action effects.
 - Debug placeholder actions still exist for reducer diagnostics and backward
   compatibility with focused tests.
 - Two consecutive passes with a non-empty stack resolve the top action and
@@ -138,15 +148,16 @@ The rules package now includes a minimal serializable encounter match reducer:
 
 Current encounter shell limitations:
 
-- Only two abstract prototype main-phase actions exist: one Spellrail Technique
-  source and one deployed Commander source. Their sources are validated against
-  the current player run and catalog and record match-local lifecycle events,
-  but they are not connected to hand, deck, mill, enemy AI, RunState zone
-  changes, target selection UI, or content-authored card effects yet.
+- Only three abstract prototype main-phase actions exist: one Spellrail
+  Technique source, one deployed Commander source, and one enemy board-card
+  target probe. Their sources/targets are validated against the current run,
+  encounter board, and catalog, but they are not connected to hand, deck, mill,
+  enemy AI, RunState zone changes, target selection UI, or content-authored card
+  effects yet.
 - The action contract is not a full authored effect engine. It has no Combat
   Charge refunds, real-time generation, Source exhaustion, cross-encounter
-  persistence, arbitrary unit/board/card targeting, effect graphs, interrupts,
-  or RunState mutation hooks.
+  persistence, board-card damage/effect resolution, board-cell UI targeting,
+  effect graphs, interrupts, or RunState mutation hooks.
 - There are no real card timing windows, counterspells, manual blockers, hidden
   intent choices, deck/hand/mill zones, multiplayer networking, backend
   persistence, or new cards attached to this shell yet.

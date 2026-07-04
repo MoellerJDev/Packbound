@@ -35,10 +35,12 @@ import {
   getRunNextActionMessage,
   inspectEncounterCard,
   inspectRunCard,
+  listEncounterBoardCardTargets,
   listPrototypePressureActionSources,
   recordEncounterCombatSkirmish,
   submitCommanderRallyActionFromRun,
   submitPrototypePressureActionFromRun,
+  submitTargetProbeActionFromEncounterBoard,
   validateCommanderRallyActionSource,
   validateRunLoadout,
   type BoardGridCardSummary,
@@ -433,16 +435,34 @@ export function App() {
   const priorityCommanderActionSource = priorityCommanderActionValidation.ok
     ? priorityCommanderActionValidation.source
     : undefined;
+  const priorityTargetProbeTargets = useMemo(
+    () =>
+      currentEncounter
+        ? listEncounterBoardCardTargets({
+            catalog: sampleCatalog,
+            board: currentEncounter.loadout.board,
+            side: "playerB",
+            requiredSide: "playerB"
+          })
+        : [],
+    [currentEncounter]
+  );
+  const priorityTargetProbeTarget = priorityTargetProbeTargets[0];
   const prototypeActionCombatChargeCost =
     combatChargeCostForEncounterAction("main_phase_pressure");
   const commanderActionCombatChargeCost =
     combatChargeCostForEncounterAction("commander_rally");
+  const targetProbeActionCombatChargeCost =
+    combatChargeCostForEncounterAction("target_probe");
   const canPayPrototypeAction =
     priorityMatch.playerCombatCharge >= prototypeActionCombatChargeCost;
   const canPayCommanderAction =
     priorityMatch.playerCombatCharge >= commanderActionCombatChargeCost;
+  const canPayTargetProbeAction =
+    priorityMatch.playerCombatCharge >= targetProbeActionCombatChargeCost;
   const prototypeCostUnavailableText = `Prototype Pressure Technique requires ${prototypeActionCombatChargeCost} Combat Charge, but Player has ${priorityMatch.playerCombatCharge}.`;
   const commanderCostUnavailableText = `Commander Rally requires ${commanderActionCombatChargeCost} Combat Charge, but Player has ${priorityMatch.playerCombatCharge}.`;
+  const targetProbeCostUnavailableText = `Target Probe requires ${targetProbeActionCombatChargeCost} Combat Charge, but Player has ${priorityMatch.playerCombatCharge}.`;
   const prototypeActionUnavailableText = availablePriorityPrototypeActionSource
     ? canPayPrototypeAction
       ? undefined
@@ -455,6 +475,11 @@ export function App() {
       ? undefined
       : commanderCostUnavailableText
     : priorityCommanderActionValidation.message;
+  const targetProbeUnavailableText = priorityTargetProbeTarget
+    ? canPayTargetProbeAction
+      ? undefined
+      : targetProbeCostUnavailableText
+    : "No valid enemy board-card target.";
 
   const combat = useMemo(() => {
     if (!opponentSetup || !recordReady) {
@@ -1174,6 +1199,22 @@ export function App() {
     );
   };
 
+  const submitPriorityTargetProbeAction = () => {
+    if (!priorityTargetProbeTarget || !currentEncounter) {
+      return;
+    }
+
+    setPriorityMatch((currentMatch) =>
+      submitTargetProbeActionFromEncounterBoard({
+        match: currentMatch,
+        catalog: sampleCatalog,
+        board: currentEncounter.loadout.board,
+        actor: "player",
+        cardInstanceId: priorityTargetProbeTarget.cardInstanceId
+      })
+    );
+  };
+
   const passPriorityAsPlayer = () => {
     setPriorityMatch((currentMatch) => passEncounterPriority(currentMatch, "player"));
   };
@@ -1793,7 +1834,13 @@ export function App() {
             priorityCommanderActionSource !== undefined && canPayCommanderAction
           }
           commanderActionUnavailableText={priorityCommanderActionUnavailableText}
+          targetProbeTarget={priorityTargetProbeTarget}
+          canSubmitTargetProbeAction={
+            priorityTargetProbeTarget !== undefined && canPayTargetProbeAction
+          }
+          targetProbeUnavailableText={targetProbeUnavailableText}
           onSubmitCommanderAction={submitPriorityCommanderAction}
+          onSubmitTargetProbeAction={submitPriorityTargetProbeAction}
           onSubmitPrototypeAction={submitPriorityPrototypeAction}
           onPassPlayer={passPriorityAsPlayer}
           onPassEnemy={passPriorityAsEnemy}

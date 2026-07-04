@@ -462,6 +462,26 @@ test("priority lab alternates priority, resolves the stack, and records combat",
   await expect(priorityPanel.getByTestId("prototype-action-contract")).toContainText(
     "Effect: Enemy Stability -1."
   );
+  const targetProbeSection = priorityPanel.getByTestId("target-probe-action-section");
+  await expect(targetProbeSection).toBeVisible();
+  await expect(
+    targetProbeSection.getByText("Target Probe", { exact: true })
+  ).toBeVisible();
+  await expect(targetProbeSection.getByTestId("target-probe-status")).toHaveText(
+    "Target: Ember Scraprunner (enemy ground r0 c3)"
+  );
+  await expect(
+    targetProbeSection.getByTestId("target-probe-action-contract")
+  ).toContainText("Cost: Pay 1 Combat Charge.");
+  await expect(
+    targetProbeSection.getByTestId("target-probe-action-contract")
+  ).toContainText("Target: Enemy board card");
+  await expect(
+    targetProbeSection.getByTestId("target-probe-action-contract")
+  ).toContainText("Effect: No effect.");
+  await expect(
+    targetProbeSection.getByRole("button", { name: "Queue Target Probe" })
+  ).toBeEnabled();
   const commanderActionSection = priorityPanel.getByTestId("commander-action-section");
   await expect(commanderActionSection).toBeVisible();
   await expect(commanderActionSection.getByText("Commander Action")).toBeVisible();

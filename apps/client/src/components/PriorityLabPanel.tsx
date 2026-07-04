@@ -3,7 +3,9 @@ import {
   describeEncounterActionCosts,
   describeEncounterActionEffects,
   describeEncounterActionTarget,
+  describeEncounterActionTargetRequirement,
   type EncounterActionSource,
+  type EncounterActionTarget,
   type EncounterActor,
   type EncounterCombatChargeProfile,
   type EncounterMatchState
@@ -22,7 +24,11 @@ type PriorityLabPanelProps = {
   readonly commanderActionSource: EncounterActionSource | undefined;
   readonly canSubmitCommanderAction: boolean;
   readonly commanderActionUnavailableText: string | undefined;
+  readonly targetProbeTarget: EncounterActionTarget | undefined;
+  readonly canSubmitTargetProbeAction: boolean;
+  readonly targetProbeUnavailableText: string | undefined;
   readonly onSubmitCommanderAction: () => void;
+  readonly onSubmitTargetProbeAction: () => void;
   readonly onSubmitPrototypeAction: () => void;
   readonly onPassPlayer: () => void;
   readonly onPassEnemy: () => void;
@@ -82,7 +88,11 @@ export const PriorityLabPanel = ({
   commanderActionSource,
   canSubmitCommanderAction,
   commanderActionUnavailableText,
+  targetProbeTarget,
+  canSubmitTargetProbeAction,
+  targetProbeUnavailableText,
   onSubmitCommanderAction,
+  onSubmitTargetProbeAction,
   onSubmitPrototypeAction,
   onPassPlayer,
   onPassEnemy,
@@ -115,6 +125,15 @@ export const PriorityLabPanel = ({
   const commanderTargetText = describeEncounterActionTarget(
     defaultTargetForEncounterAction("commander_rally", "player")
   );
+  const targetProbeCostText = describeEncounterActionCosts("target_probe");
+  const targetProbeRequirementText =
+    describeEncounterActionTargetRequirement("target_probe");
+  const targetProbeEffectText = describeEncounterActionEffects(
+    "target_probe",
+    "player",
+    targetProbeTarget
+  );
+  const targetProbeTargetText = describeEncounterActionTarget(targetProbeTarget);
 
   return (
     <section className="debug-grid" aria-labelledby="priority-lab-heading">
@@ -257,6 +276,48 @@ export const PriorityLabPanel = ({
           <span>
             <strong>Effect:</strong> {prototypeEffectText}
           </span>
+        </div>
+
+        <div
+          className="encounter-action-section"
+          data-testid="target-probe-action-section"
+        >
+          <h3>Target Probe</h3>
+          <div className="mini-actions">
+            <button
+              type="button"
+              onClick={onSubmitTargetProbeAction}
+              disabled={
+                !playerMainPhasePriority ||
+                !targetProbeTarget ||
+                !canSubmitTargetProbeAction
+              }
+            >
+              Queue Target Probe
+            </button>
+          </div>
+          <p className="muted" data-testid="target-probe-status">
+            {targetProbeTarget
+              ? `Target: ${targetProbeTargetText}`
+              : (targetProbeUnavailableText ?? "No valid enemy board-card target.")}
+            {targetProbeTarget && !canSubmitTargetProbeAction
+              ? ` - ${targetProbeUnavailableText ?? "Target Probe unavailable."}`
+              : ""}
+          </p>
+          <div
+            className="encounter-action-contract"
+            data-testid="target-probe-action-contract"
+          >
+            <span>
+              <strong>Cost:</strong> {targetProbeCostText}
+            </span>
+            <span>
+              <strong>Target:</strong> {targetProbeRequirementText}
+            </span>
+            <span>
+              <strong>Effect:</strong> {targetProbeEffectText}
+            </span>
+          </div>
         </div>
 
         <div className="encounter-action-section" data-testid="commander-action-section">

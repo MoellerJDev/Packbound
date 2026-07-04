@@ -1,8 +1,17 @@
+import type {
+  BoardPosition,
+  CardDefId,
+  CardInstanceId,
+  PlayerId,
+  PlayerSide
+} from "@packbound/shared";
+
 export const ENCOUNTER_ACTION_KINDS = [
   "debug_noop",
   "debug_pressure",
   "main_phase_pressure",
-  "commander_rally"
+  "commander_rally",
+  "target_probe"
 ] as const;
 
 export type EncounterActionKind = (typeof ENCOUNTER_ACTION_KINDS)[number];
@@ -25,13 +34,47 @@ export type EncounterActionTargetRequirement =
     }
   | {
       readonly type: "selfStability";
+    }
+  | {
+      readonly type: "enemyBoardCard";
+    }
+  | {
+      readonly type: "friendlyBoardCard";
+    }
+  | {
+      readonly type: "anyBoardCard";
+    }
+  | {
+      readonly type: "boardCell";
     };
 
-export type EncounterActionTarget = {
+export type EncounterStabilityActionTarget = {
   readonly type: "stability";
   readonly actor: EncounterActionActor;
   readonly label: string;
 };
+
+export type EncounterBoardCardActionTarget = {
+  readonly type: "boardCard";
+  readonly side: PlayerSide;
+  readonly cardInstanceId: CardInstanceId;
+  readonly defId: CardDefId;
+  readonly ownerId: PlayerId;
+  readonly position: BoardPosition;
+  readonly label: string;
+};
+
+export type EncounterBoardCellActionTarget = {
+  readonly type: "boardCell";
+  readonly side: PlayerSide;
+  readonly position: BoardPosition;
+  readonly label: string;
+};
+
+export type EncounterActionTarget =
+  | EncounterStabilityActionTarget
+  | EncounterBoardCardActionTarget
+  | EncounterBoardCellActionTarget;
 
 export type EncounterActionCost =
   | {
@@ -80,7 +123,9 @@ const NO_COST = [{ type: "none" }] as const;
 const NO_EFFECT = [{ type: "none" }] as const;
 const NO_TARGET = { type: "none" } as const;
 const OPPONENT_STABILITY_TARGET = { type: "opponentStability" } as const;
+const ENEMY_BOARD_CARD_TARGET = { type: "enemyBoardCard" } as const;
 const COMBAT_CHARGE_ONE = { type: "combatCharge", amount: 1 } as const;
+const COMBAT_CHARGE_ONE_ONLY = [COMBAT_CHARGE_ONE] as const;
 const TARGET_STABILITY_MINUS_ONE = [
   { type: "targetStabilityDelta", amount: -1 }
 ] as const;
@@ -129,6 +174,16 @@ const ENCOUNTER_ACTION_DEFINITIONS_BY_KIND = {
     effects: TARGET_STABILITY_MINUS_ONE,
     sourceLifecycleOnResolve: "usedOnResolve",
     includeEffectSummaryInResolutionLog: true
+  },
+  target_probe: {
+    kind: "target_probe",
+    label: "Target Probe",
+    timing: "mainPhase",
+    targetRequirement: ENEMY_BOARD_CARD_TARGET,
+    costs: COMBAT_CHARGE_ONE_ONLY,
+    effects: NO_EFFECT,
+    sourceLifecycleOnResolve: "none",
+    includeEffectSummaryInResolutionLog: true
   }
 } as const satisfies Record<EncounterActionKind, EncounterActionDefinition>;
 
@@ -149,6 +204,12 @@ const actorLabel = (actor: EncounterActionActor): string =>
 
 const opponentOf = (actor: EncounterActionActor): EncounterActionActor =>
   actor === "player" ? "enemy" : "player";
+
+const friendlySideForActor = (actor: EncounterActionActor): PlayerSide =>
+  actor === "player" ? "playerA" : "playerB";
+
+const enemySideForActor = (actor: EncounterActionActor): PlayerSide =>
+  actor === "player" ? "playerB" : "playerA";
 
 const stabilityTargetForActor = (actor: EncounterActionActor): EncounterActionTarget => ({
   type: "stability",
@@ -201,6 +262,34 @@ export const defaultTargetForEncounterAction = (
       return stabilityTargetForActor(opponentOf(actor));
     case "selfStability":
       return stabilityTargetForActor(actor);
+    case "enemyBoardCard":
+    case "friendlyBoardCard":
+    case "anyBoardCard":
+    case "boardCell":
+      return undefined;
+  }
+};
+
+export const describeEncounterActionTargetRequirement = (
+  kind: EncounterActionKind
+): string => {
+  const definition = getEncounterActionDefinition(kind);
+
+  switch (definition.targetRequirement.type) {
+    case "none":
+      return "None";
+    case "opponentStability":
+      return "Opponent Stability";
+    case "selfStability":
+      return "Self Stability";
+    case "enemyBoardCard":
+      return "Enemy board card";
+    case "friendlyBoardCard":
+      return "Friendly board card";
+    case "anyBoardCard":
+      return "Any board card";
+    case "boardCell":
+      return "Board cell";
   }
 };
 
@@ -208,32 +297,112 @@ export const describeEncounterActionTarget = (
   target: EncounterActionTarget | undefined
 ): string => target?.label ?? "None";
 
+const copyBoardPosition = (position: BoardPosition): BoardPosition => ({
+  row: position.row,
+  col: position.col,
+  layer: position.layer
+});
+
+const copyBoardCardTarget = (
+  target: EncounterBoardCardActionTarget
+): EncounterBoardCardActionTarget => ({
+  type: "boardCard",
+  side: target.side,
+  cardInstanceId: target.cardInstanceId,
+  defId: target.defId,
+  ownerId: target.ownerId,
+  position: copyBoardPosition(target.position),
+  label: target.label
+});
+
+const copyBoardCellTarget = (
+  target: EncounterBoardCellActionTarget
+): EncounterBoardCellActionTarget => ({
+  type: "boardCell",
+  side: target.side,
+  position: copyBoardPosition(target.position),
+  label: target.label
+});
+
 export const validateEncounterActionTarget = (
   kind: EncounterActionKind,
   actor: EncounterActionActor,
   target: EncounterActionTarget | undefined
 ): EncounterActionTarget | undefined => {
   const definition = getEncounterActionDefinition(kind);
-  const expected = defaultTargetForEncounterAction(kind, actor);
   const label = definition.label;
 
-  if (!expected) {
-    if (target) {
-      throw new Error(`${label} does not use a target.`);
+  switch (definition.targetRequirement.type) {
+    case "none":
+      if (target) {
+        throw new Error(`${label} does not use a target.`);
+      }
+      return undefined;
+    case "opponentStability":
+    case "selfStability": {
+      const expected = defaultTargetForEncounterAction(kind, actor);
+      if (!expected || expected.type !== "stability") {
+        throw new Error(`${label} has an invalid Stability target contract.`);
+      }
+      if (!target) {
+        throw new Error(`${label} requires ${expected.label}.`);
+      }
+      if (target.type !== "stability" || target.actor !== expected.actor) {
+        throw new Error(`${label} must target ${expected.label}.`);
+      }
+      return expected;
     }
-    return undefined;
+    case "enemyBoardCard":
+      if (!target) {
+        throw new Error(
+          `${label} requires ${describeEncounterActionTargetRequirement(kind)}.`
+        );
+      }
+      if (target.type !== "boardCard") {
+        throw new Error(`${label} requires an enemy board card target.`);
+      }
+      if (target.side !== enemySideForActor(actor)) {
+        throw new Error(`${label} must target an enemy board card.`);
+      }
+      return copyBoardCardTarget(target);
+    case "friendlyBoardCard":
+      if (!target) {
+        throw new Error(
+          `${label} requires ${describeEncounterActionTargetRequirement(kind)}.`
+        );
+      }
+      if (target.type !== "boardCard") {
+        throw new Error(`${label} requires a friendly board card target.`);
+      }
+      if (target.side !== friendlySideForActor(actor)) {
+        throw new Error(`${label} must target a friendly board card.`);
+      }
+      return copyBoardCardTarget(target);
+    case "anyBoardCard":
+      if (!target) {
+        throw new Error(
+          `${label} requires ${describeEncounterActionTargetRequirement(kind)}.`
+        );
+      }
+      if (target.type !== "boardCard") {
+        throw new Error(`${label} requires a board card target.`);
+      }
+      return copyBoardCardTarget(target);
+    case "boardCell":
+      if (!target) {
+        throw new Error(
+          `${label} requires ${describeEncounterActionTargetRequirement(kind)}.`
+        );
+      }
+      if (target.type !== "boardCell") {
+        throw new Error(`${label} requires a board cell target.`);
+      }
+      return copyBoardCellTarget(target);
   }
-
-  if (!target) {
-    throw new Error(`${label} requires ${expected.label}.`);
-  }
-
-  if (target.type !== expected.type || target.actor !== expected.actor) {
-    throw new Error(`${label} must target ${expected.label}.`);
-  }
-
-  return expected;
 };
+
+export const hasOnlyNoEffect = (kind: EncounterActionKind): boolean =>
+  getEncounterActionDefinition(kind).effects.every((effect) => effect.type === "none");
 
 export const resolveEncounterActionEffects = ({
   kind,
@@ -305,6 +474,10 @@ export const describeEncounterActionEffects = (
   actor: EncounterActionActor,
   target?: EncounterActionTarget
 ): string => {
+  if (!target && hasOnlyNoEffect(kind)) {
+    return "No effect.";
+  }
+
   const effectResult = resolveEncounterActionEffects({
     kind,
     actor,

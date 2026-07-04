@@ -6,6 +6,7 @@ export * from "./economy";
 export * from "./engagementPreview";
 export * from "./encounterActionContracts";
 export * from "./encounterActionSources";
+export * from "./encounterActionTargets";
 export * from "./encounterMatch";
 export * from "./encounterResources";
 export * from "./encounters";

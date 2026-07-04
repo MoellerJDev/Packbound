@@ -1,4 +1,7 @@
 import { describe, expect, it } from "vitest";
+
+import { asCardDefId, asCardInstanceId, asPlayerId } from "@packbound/shared";
+
 import {
   canUseEncounterActionDuringPhase,
   combatChargeCostForEncounterAction,
@@ -6,6 +9,7 @@ import {
   describeEncounterActionCosts,
   describeEncounterActionEffects,
   describeEncounterActionTarget,
+  describeEncounterActionTargetRequirement,
   ENCOUNTER_ACTION_KINDS,
   getEncounterActionDefinition,
   labelForEncounterAction,
@@ -14,13 +18,30 @@ import {
   validateEncounterActionTarget
 } from "../encounterActionContracts";
 
+const enemyBoardCardTarget = {
+  type: "boardCard",
+  side: "playerB",
+  cardInstanceId: asCardInstanceId("encounter:ember_scraprunner:board:0"),
+  defId: asCardDefId("ember_scraprunner"),
+  ownerId: asPlayerId("encounter:early_ember_pressure"),
+  position: { row: 0, col: 3, layer: "ground" },
+  label: "Ember Scraprunner (enemy ground r0 c3)"
+} as const;
+
+const friendlyBoardCardTarget = {
+  ...enemyBoardCardTarget,
+  side: "playerA",
+  label: "Ember Scraprunner (ally ground r0 c3)"
+} as const;
+
 describe("encounter action contracts", () => {
   it("defines every supported encounter action kind", () => {
     expect(ENCOUNTER_ACTION_KINDS).toEqual([
       "debug_noop",
       "debug_pressure",
       "main_phase_pressure",
-      "commander_rally"
+      "commander_rally",
+      "target_probe"
     ]);
 
     for (const kind of ENCOUNTER_ACTION_KINDS) {
@@ -38,6 +59,7 @@ describe("encounter action contracts", () => {
       "Prototype Pressure Technique"
     );
     expect(labelForEncounterAction("commander_rally")).toBe("Commander Rally");
+    expect(labelForEncounterAction("target_probe")).toBe("Target Probe");
     expect(labelForEncounterAction("main_phase_pressure", "Sparkfall Test")).toBe(
       "Sparkfall Test"
     );
@@ -48,6 +70,7 @@ describe("encounter action contracts", () => {
       "usedOnResolve"
     );
     expect(sourceLifecycleForEncounterAction("commander_rally")).toBe("usedOnResolve");
+    expect(sourceLifecycleForEncounterAction("target_probe")).toBe("none");
   });
 
   it("declares Combat Charge costs for the prototype real actions", () => {
@@ -55,6 +78,7 @@ describe("encounter action contracts", () => {
     expect(combatChargeCostForEncounterAction("debug_pressure")).toBe(0);
     expect(combatChargeCostForEncounterAction("main_phase_pressure")).toBe(1);
     expect(combatChargeCostForEncounterAction("commander_rally")).toBe(1);
+    expect(combatChargeCostForEncounterAction("target_probe")).toBe(1);
 
     expect(getEncounterActionDefinition("main_phase_pressure").costs).toEqual([
       { type: "combatCharge", amount: 1 },
@@ -63,6 +87,9 @@ describe("encounter action contracts", () => {
     expect(getEncounterActionDefinition("commander_rally").costs).toEqual([
       { type: "combatCharge", amount: 1 },
       { type: "sourceUsedOnResolve" }
+    ]);
+    expect(getEncounterActionDefinition("target_probe").costs).toEqual([
+      { type: "combatCharge", amount: 1 }
     ]);
   });
 
@@ -74,7 +101,11 @@ describe("encounter action contracts", () => {
     expect(canUseEncounterActionDuringPhase("debug_noop", "combat")).toBe(false);
     expect(canUseEncounterActionDuringPhase("debug_noop", "complete")).toBe(false);
 
-    for (const kind of ["main_phase_pressure", "commander_rally"] as const) {
+    for (const kind of [
+      "main_phase_pressure",
+      "commander_rally",
+      "target_probe"
+    ] as const) {
       expect(canUseEncounterActionDuringPhase(kind, "firstMain")).toBe(true);
       expect(canUseEncounterActionDuringPhase(kind, "secondMain")).toBe(true);
       expect(canUseEncounterActionDuringPhase(kind, "start")).toBe(false);
@@ -94,16 +125,22 @@ describe("encounter action contracts", () => {
     expect(describeEncounterActionCosts("commander_rally", "Commander")).toBe(
       "Pay 1 Combat Charge. Uses Commander on resolve."
     );
+    expect(describeEncounterActionCosts("target_probe")).toBe("Pay 1 Combat Charge.");
     expect(describeEncounterActionEffects("main_phase_pressure", "player")).toBe(
       "Enemy Stability -1."
     );
     expect(describeEncounterActionEffects("commander_rally", "player")).toBe(
       "Enemy Stability -1."
     );
+    expect(describeEncounterActionEffects("target_probe", "player")).toBe("No effect.");
+    expect(describeEncounterActionTargetRequirement("target_probe")).toBe(
+      "Enemy board card"
+    );
   });
 
   it("derives and validates default Stability targets", () => {
     expect(defaultTargetForEncounterAction("debug_noop", "player")).toBeUndefined();
+    expect(defaultTargetForEncounterAction("target_probe", "player")).toBeUndefined();
     expect(defaultTargetForEncounterAction("main_phase_pressure", "player")).toEqual({
       type: "stability",
       actor: "enemy",
@@ -153,6 +190,28 @@ describe("encounter action contracts", () => {
     ).toThrow(/Debug no-op does not use a target/);
   });
 
+  it("validates prototype board card targets", () => {
+    expect(
+      validateEncounterActionTarget("target_probe", "player", enemyBoardCardTarget)
+    ).toEqual(enemyBoardCardTarget);
+    expect(describeEncounterActionTarget(enemyBoardCardTarget)).toBe(
+      "Ember Scraprunner (enemy ground r0 c3)"
+    );
+    expect(() =>
+      validateEncounterActionTarget("target_probe", "player", undefined)
+    ).toThrow(/Target Probe requires Enemy board card/);
+    expect(() =>
+      validateEncounterActionTarget("target_probe", "player", friendlyBoardCardTarget)
+    ).toThrow(/Target Probe must target an enemy board card/);
+    expect(() =>
+      validateEncounterActionTarget("target_probe", "player", {
+        type: "stability",
+        actor: "enemy",
+        label: "Enemy Stability"
+      })
+    ).toThrow(/Target Probe requires an enemy board card target/);
+  });
+
   it("evaluates stability effects for either actor deterministically", () => {
     expect(
       resolveEncounterActionEffects({
@@ -199,6 +258,17 @@ describe("encounter action contracts", () => {
         }
       })
     ).toThrow(/must target Enemy Stability/);
+
+    expect(
+      resolveEncounterActionEffects({
+        actor: "player",
+        kind: "target_probe",
+        target: enemyBoardCardTarget
+      })
+    ).toEqual({
+      enemyStabilityDelta: 0,
+      playerStabilityDelta: 0
+    });
   });
 
   it("keeps the static registry JSON-serializable", () => {

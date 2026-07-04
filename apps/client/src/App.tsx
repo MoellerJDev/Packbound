@@ -236,6 +236,13 @@ type BoardSelectedCardRef = Extract<
 >;
 
 type BoardPlacementSummary = RunState["board"]["placements"][number];
+type RunGuideStepState = "done" | "active" | "blocked" | "todo";
+
+type RunGuideStep = {
+  readonly label: string;
+  readonly detail: string;
+  readonly state: RunGuideStepState;
+};
 
 const firstUnitOrEchoPlacement = (
   placements: readonly BoardPlacementSummary[]
@@ -271,6 +278,7 @@ const sameBoardPosition = (left: BoardPosition, right: BoardPosition): boolean =
   left.row === right.row && left.col === right.col && left.layer === right.layer;
 
 export function App() {
+  const isDefaultRoute = activeDebugScenarioId === undefined;
   const isRendererLab = activeDebugScenarioId === DEBUG_RENDERER_SCENARIO_ID;
   const showDeveloperDetails = activeDebugScenarioId !== undefined;
   const [selectedStarterKitId, setSelectedStarterKitId] = useState(firstStarterKitId);
@@ -346,6 +354,10 @@ export function App() {
   const upgradeProgressGroups = useMemo(
     () => getUpgradeProgressGroups(run, sampleCatalog),
     [run]
+  );
+  const readyUpgradeGroups = useMemo(
+    () => upgradeProgressGroups.filter((group) => group.canUpgrade),
+    [upgradeProgressGroups]
   );
   const upgradeProgressByCardId = useMemo(() => {
     const byCardId = new Map<CardInstanceId, UpgradeProgressGroup>();
@@ -742,6 +754,103 @@ export function App() {
   const commanderUpgradeClaimedThisRound =
     !run.commander ||
     run.commander.upgradeHistory.some((entry) => entry.round === run.currentRound);
+  const runGuideSteps = useMemo<readonly RunGuideStep[]>(() => {
+    const rewardBucketsDone =
+      packRewardClaimedThisRound && commanderUpgradeClaimedThisRound;
+    return [
+      {
+        label: "Prepare your loadout",
+        detail: validation.ok
+          ? "Board, Sources, Spellrail, and Commander are legal."
+          : "Fix the blocked loadout item before combat.",
+        state:
+          phase === "planning"
+            ? validation.ok
+              ? "done"
+              : "blocked"
+            : phase === "complete"
+              ? "done"
+              : "done"
+      },
+      {
+        label: "Start combat",
+        detail:
+          phase === "planning" && validation.ok
+            ? "Click Ready Combat when the board looks good."
+            : "Combat can start after the loadout is legal.",
+        state:
+          phase === "planning"
+            ? validation.ok
+              ? "active"
+              : "todo"
+            : phase === "complete"
+              ? "done"
+              : "done"
+      },
+      {
+        label: "Review combat",
+        detail:
+          phase === "combatReady"
+            ? "Check the preview, then Record Combat."
+            : latestCombatSummary
+              ? "Latest combat is summarized below."
+              : "Combat results appear after recording.",
+        state:
+          phase === "combatReady"
+            ? "active"
+            : phase === "planning" && !latestCombatSummary
+              ? "todo"
+              : latestCombatSummary || phase === "reward" || phase === "combatResolved"
+                ? "done"
+                : "todo"
+      },
+      {
+        label: "Choose rewards",
+        detail:
+          phase === "reward"
+            ? rewardBucketsDone
+              ? "Pack and Commander rewards are claimed."
+              : "Open one pack and choose one Commander upgrade."
+            : "Rewards unlock after combat.",
+        state:
+          phase === "reward"
+            ? rewardBucketsDone
+              ? "done"
+              : "active"
+            : phase === "combatResolved" || phase === "planning"
+              ? rewardBucketsDone && latestCombatSummary
+                ? "done"
+                : "todo"
+              : "todo"
+      },
+      {
+        label: "Advance to next fight",
+        detail:
+          phase === "combatResolved"
+            ? "Click Advance to enter the next planning round."
+            : "Advance becomes available after rewards are complete.",
+        state:
+          phase === "combatResolved" ? "active" : phase === "complete" ? "done" : "todo"
+      }
+    ];
+  }, [
+    commanderUpgradeClaimedThisRound,
+    latestCombatSummary,
+    packRewardClaimedThisRound,
+    phase,
+    validation.ok
+  ]);
+  const latestCommanderCombatReturn =
+    latestCombatSummary && run.commander
+      ? run.commander.lifecycleHistory
+          .slice()
+          .reverse()
+          .find(
+            (entry) =>
+              entry.round === latestCombatSummary.round &&
+              entry.type === "destroyed_to_command"
+          )
+      : undefined;
 
   const resetRun = (starterKitId = selectedStarterKitId) => {
     const nextRun = createDebugRun(starterKitId);
@@ -895,6 +1004,7 @@ export function App() {
   const renderCommandZonePanel = (variant: "panel" | "renderer-lab-panel") => {
     const commander = run.commander;
     const Heading = variant === "panel" ? "h2" : "h3";
+    const compactDefaultPanel = variant === "panel" && isDefaultRoute;
     const commanderName = commander ? cardName(commander.card.defId) : "None";
     const blockedReasons = [
       commanderDeployCheck.ok ? "" : `Deploy Commander: ${commanderDeployCheck.reason}`,
@@ -904,8 +1014,31 @@ export function App() {
       .slice(-5)
       .reverse();
 
+    const lifecycleContent =
+      recentLifecycleEntries.length > 0 ? (
+        <ol className="message-list compact commander-lifecycle-list">
+          {recentLifecycleEntries.map((entry) => (
+            <li key={entry.id} data-testid="commander-lifecycle-entry">
+              <span className="commander-lifecycle-primary">{entry.label}</span>
+              <small className="commander-lifecycle-meta">
+                Round {entry.round} | {formatCommanderLifecycleSource(entry.source)} |
+                Phase {entry.phase} | {formatCommanderLifecycleMovement(entry)}
+              </small>
+              <small className="commander-lifecycle-meta">
+                {formatCommanderLifecycleDelta(entry)}
+              </small>
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <p className="muted">No Commander lifecycle events recorded.</p>
+      );
+
     return (
-      <div className={variant} data-testid="command-zone-panel">
+      <div
+        className={`${variant} ${compactDefaultPanel ? "compact-command-zone" : ""}`}
+        data-testid="command-zone-panel"
+      >
         <Heading>Command Zone</Heading>
         <dl className="run-stats">
           <div>
@@ -920,24 +1053,30 @@ export function App() {
             <dt>Deploy Count</dt>
             <dd data-testid="commander-deploy-count">{commander?.deployCount ?? 0}</dd>
           </div>
-          <div>
-            <dt>Upgrade Level</dt>
-            <dd data-testid="commander-upgrade-level">
-              Lv {commander?.card.upgradeLevel ?? 0}
-            </dd>
-          </div>
-          <div>
-            <dt>Raw Rebind Tax</dt>
-            <dd data-testid="commander-raw-rebind-tax">
-              +{commanderRawRebindTax} Charge
-            </dd>
-          </div>
-          <div>
-            <dt>Tax Discount</dt>
-            <dd data-testid="commander-rebind-discount">
-              -{commanderRebindTaxDiscount} Charge
-            </dd>
-          </div>
+          {!compactDefaultPanel ? (
+            <div>
+              <dt>Upgrade Level</dt>
+              <dd data-testid="commander-upgrade-level">
+                Lv {commander?.card.upgradeLevel ?? 0}
+              </dd>
+            </div>
+          ) : null}
+          {!compactDefaultPanel ? (
+            <div>
+              <dt>Raw Rebind Tax</dt>
+              <dd data-testid="commander-raw-rebind-tax">
+                +{commanderRawRebindTax} Charge
+              </dd>
+            </div>
+          ) : null}
+          {!compactDefaultPanel ? (
+            <div>
+              <dt>Tax Discount</dt>
+              <dd data-testid="commander-rebind-discount">
+                -{commanderRebindTaxDiscount} Charge
+              </dd>
+            </div>
+          ) : null}
           <div>
             <dt>Effective Rebind Tax</dt>
             <dd data-testid="commander-rebind-tax">
@@ -962,27 +1101,20 @@ export function App() {
           Prototype Commander. Effective Rebind Tax is enforced as generic Board Charge
           while deployed.
         </p>
-        <div className="commander-lifecycle" data-testid="commander-lifecycle-panel">
-          <h4>Commander Lifecycle</h4>
-          {recentLifecycleEntries.length > 0 ? (
-            <ol className="message-list compact commander-lifecycle-list">
-              {recentLifecycleEntries.map((entry) => (
-                <li key={entry.id} data-testid="commander-lifecycle-entry">
-                  <span className="commander-lifecycle-primary">{entry.label}</span>
-                  <small className="commander-lifecycle-meta">
-                    Round {entry.round} | {formatCommanderLifecycleSource(entry.source)} |{" "}
-                    Phase {entry.phase} | {formatCommanderLifecycleMovement(entry)}
-                  </small>
-                  <small className="commander-lifecycle-meta">
-                    {formatCommanderLifecycleDelta(entry)}
-                  </small>
-                </li>
-              ))}
-            </ol>
-          ) : (
-            <p className="muted">No Commander lifecycle events recorded.</p>
-          )}
-        </div>
+        {compactDefaultPanel ? (
+          <details
+            className="commander-lifecycle compact-details"
+            data-testid="commander-lifecycle-panel"
+          >
+            <summary>Commander History</summary>
+            {lifecycleContent}
+          </details>
+        ) : (
+          <div className="commander-lifecycle" data-testid="commander-lifecycle-panel">
+            <h4>Commander Lifecycle</h4>
+            {lifecycleContent}
+          </div>
+        )}
         <div className="mini-actions">
           <button
             type="button"
@@ -1394,6 +1526,90 @@ export function App() {
     );
   };
 
+  const renderCurrentEncounterDetails = () => (
+    <>
+      <dl className="run-stats">
+        <div>
+          <dt>Name</dt>
+          <dd>{currentEncounter?.name ?? "None"}</dd>
+        </div>
+        <div>
+          <dt>Kind</dt>
+          <dd>{currentEncounter?.kind ?? "none"}</dd>
+        </div>
+        <div>
+          <dt>Difficulty</dt>
+          <dd>{currentEncounter?.difficulty ?? "-"}</dd>
+        </div>
+        <div>
+          <dt>Opponent Board</dt>
+          <dd>{currentEncounter ? "Inspect in battlefield" : "-"}</dd>
+        </div>
+      </dl>
+      {currentEncounter ? (
+        <div className="encounter-loadout">
+          <h3>Opponent Board</h3>
+          <ol className="card-list compact">
+            {currentEncounter.loadout.board.placements.map((placement) => (
+              <li key={placement.cardInstanceId}>
+                <span>{cardName(placement.defId)}</span>
+                <small>
+                  r{placement.position.row} c{placement.position.col}{" "}
+                  {placement.position.layer}
+                </small>
+                <button
+                  type="button"
+                  className="secondary"
+                  onClick={() => inspectEncounterBoard(placement.cardInstanceId)}
+                >
+                  Inspect
+                </button>
+              </li>
+            ))}
+          </ol>
+          <h3>Opponent Source Row</h3>
+          <ol className="card-list compact">
+            {currentEncounter.loadout.sourceRow.cards.map((card) => (
+              <li key={card.instanceId}>
+                <span>{cardName(card.defId)}</span>
+                <small>{card.zone}</small>
+                <button
+                  type="button"
+                  className="secondary"
+                  onClick={() => inspectEncounterSource(card.instanceId)}
+                >
+                  Inspect
+                </button>
+              </li>
+            ))}
+          </ol>
+          <h3>Opponent Spellrail</h3>
+          <ol className="card-list compact">
+            {currentEncounter.loadout.spellrail.cards.length > 0 ? (
+              currentEncounter.loadout.spellrail.cards.map((card) => (
+                <li key={card.instanceId}>
+                  <span>{cardName(card.defId)}</span>
+                  <small>{card.zone}</small>
+                  <button
+                    type="button"
+                    className="secondary"
+                    onClick={() => inspectEncounterSpellrail(card.instanceId)}
+                  >
+                    Inspect
+                  </button>
+                </li>
+              ))
+            ) : (
+              <li>
+                <span>None</span>
+              </li>
+            )}
+          </ol>
+        </div>
+      ) : null}
+    </>
+  );
+
   const renderHexArena = () => (
     <div className="battlefield-board" data-testid="hex-arena">
       <div className="hex-arena-heading">
@@ -1575,7 +1791,14 @@ export function App() {
             </aside>
           </div>
 
-          <CombatModelFactsView />
+          {isDefaultRoute ? (
+            <details className="combat-model-details">
+              <summary>Combat Model Notes</summary>
+              <CombatModelFactsView />
+            </details>
+          ) : (
+            <CombatModelFactsView />
+          )}
         </section>
       ) : null}
 
@@ -1877,14 +2100,20 @@ export function App() {
       ) : null}
 
       <section className="debug-grid">
-        <div className="panel">
-          <h2>Run State</h2>
+        <div className="panel player-step-panel">
+          <h2>{isDefaultRoute ? "What now?" : "Run State"}</h2>
           <p className="next-action">{nextActionMessage}</p>
+          {isDefaultRoute ? (
+            <ol className="run-guide" aria-label="Run flow">
+              {runGuideSteps.map((step) => (
+                <li key={step.label} data-step-state={step.state}>
+                  <span>{step.label}</span>
+                  <small>{step.detail}</small>
+                </li>
+              ))}
+            </ol>
+          ) : null}
           <dl className="run-stats">
-            <div>
-              <dt>Seed</dt>
-              <dd>{run.seed}</dd>
-            </div>
             <div>
               <dt>Round</dt>
               <dd>
@@ -1900,10 +2129,6 @@ export function App() {
               <dd>{run.playerGold}</dd>
             </div>
             <div>
-              <dt>Status</dt>
-              <dd>{run.status}</dd>
-            </div>
-            <div>
               <dt>Phase</dt>
               <dd>{phase}</dd>
             </div>
@@ -1912,112 +2137,101 @@ export function App() {
               <dd>{starterKitName}</dd>
             </div>
           </dl>
+          {isDefaultRoute ? (
+            <details className="compact-details run-metadata-details">
+              <summary>Run details</summary>
+              <dl className="run-stats">
+                <div>
+                  <dt>Seed</dt>
+                  <dd>{run.seed}</dd>
+                </div>
+                <div>
+                  <dt>Status</dt>
+                  <dd>{run.status}</dd>
+                </div>
+              </dl>
+            </details>
+          ) : (
+            <dl className="run-stats">
+              <div>
+                <dt>Seed</dt>
+                <dd>{run.seed}</dd>
+              </div>
+              <div>
+                <dt>Status</dt>
+                <dd>{run.status}</dd>
+              </div>
+            </dl>
+          )}
         </div>
 
         {renderCommandZonePanel("panel")}
         {renderCommanderUpgradePanel("panel")}
 
-        <div className="panel">
-          <h2>Current Encounter</h2>
-          <dl className="run-stats">
-            <div>
-              <dt>Name</dt>
-              <dd>{currentEncounter?.name ?? "None"}</dd>
+        {isDefaultRoute ? (
+          <details className="panel advanced-panel" data-testid="opponent-details-panel">
+            <summary className="advanced-summary">
+              <h2>Opponent Details</h2>
+              <span>{currentEncounter?.name ?? "No encounter"}</span>
+            </summary>
+            <div className="advanced-panel-body">
+              <p className="muted">
+                Opponent cards are inspectable directly from the battlefield; this panel
+                keeps the full encounter loadout available when needed.
+              </p>
+              {renderCurrentEncounterDetails()}
             </div>
-            <div>
-              <dt>Kind</dt>
-              <dd>{currentEncounter?.kind ?? "none"}</dd>
-            </div>
-            <div>
-              <dt>Difficulty</dt>
-              <dd>{currentEncounter?.difficulty ?? "-"}</dd>
-            </div>
-            <div>
-              <dt>Opponent Board</dt>
-              <dd>{currentEncounter ? "Inspect in battlefield" : "-"}</dd>
-            </div>
-          </dl>
-          {currentEncounter ? (
-            <div className="encounter-loadout">
-              <h3>Opponent Board</h3>
-              <ol className="card-list compact">
-                {currentEncounter.loadout.board.placements.map((placement) => (
-                  <li key={placement.cardInstanceId}>
-                    <span>{cardName(placement.defId)}</span>
-                    <small>
-                      r{placement.position.row} c{placement.position.col}{" "}
-                      {placement.position.layer}
-                    </small>
-                    <button
-                      type="button"
-                      className="secondary"
-                      onClick={() => inspectEncounterBoard(placement.cardInstanceId)}
-                    >
-                      Inspect
-                    </button>
-                  </li>
-                ))}
-              </ol>
-              <h3>Opponent Source Row</h3>
-              <ol className="card-list compact">
-                {currentEncounter.loadout.sourceRow.cards.map((card) => (
-                  <li key={card.instanceId}>
-                    <span>{cardName(card.defId)}</span>
-                    <small>{card.zone}</small>
-                    <button
-                      type="button"
-                      className="secondary"
-                      onClick={() => inspectEncounterSource(card.instanceId)}
-                    >
-                      Inspect
-                    </button>
-                  </li>
-                ))}
-              </ol>
-              <h3>Opponent Spellrail</h3>
-              <ol className="card-list compact">
-                {currentEncounter.loadout.spellrail.cards.length > 0 ? (
-                  currentEncounter.loadout.spellrail.cards.map((card) => (
-                    <li key={card.instanceId}>
-                      <span>{cardName(card.defId)}</span>
-                      <small>{card.zone}</small>
-                      <button
-                        type="button"
-                        className="secondary"
-                        onClick={() => inspectEncounterSpellrail(card.instanceId)}
-                      >
-                        Inspect
-                      </button>
-                    </li>
-                  ))
-                ) : (
-                  <li>
-                    <span>None</span>
-                  </li>
-                )}
-              </ol>
-            </div>
-          ) : null}
-        </div>
-
-        <div className="panel">
-          <h2>Planning Check</h2>
-          <div className={validation.ok ? "status ok" : "status error"}>
-            {validation.ok ? "Legal" : "Illegal"}
+          </details>
+        ) : (
+          <div className="panel">
+            <h2>Current Encounter</h2>
+            {renderCurrentEncounterDetails()}
           </div>
-          <ul className="message-list">
-            {validation.errors.map((error) => (
-              <li key={`${error.code}:${error.cardInstanceId ?? "state"}`}>
-                {error.message}
-              </li>
-            ))}
-          </ul>
-        </div>
+        )}
 
-        <div className="panel">
-          <h2>Traits / Teamups</h2>
-          <TraitSummaryView summary={traitSummary} />
-        </div>
+        {isDefaultRoute && validation.ok ? (
+          <details className="panel advanced-panel" data-testid="planning-check-panel">
+            <summary className="advanced-summary">
+              <h2>Planning Check</h2>
+              <span>Legal</span>
+            </summary>
+            <div className="advanced-panel-body">
+              <div className="status ok">Legal</div>
+              <p className="muted">Loadout validation passed.</p>
+            </div>
+          </details>
+        ) : (
+          <div className="panel" data-testid="planning-check-panel">
+            <h2>Planning Check</h2>
+            <div className={validation.ok ? "status ok" : "status error"}>
+              {validation.ok ? "Legal" : "Illegal"}
+            </div>
+            <ul className="message-list">
+              {validation.errors.map((error) => (
+                <li key={`${error.code}:${error.cardInstanceId ?? "state"}`}>
+                  {error.message}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {isDefaultRoute ? (
+          <details className="panel advanced-panel" data-testid="traits-panel">
+            <summary className="advanced-summary">
+              <h2>Traits / Teamups</h2>
+              <span>Display-only prototype</span>
+            </summary>
+            <div className="advanced-panel-body">
+              <TraitSummaryView summary={traitSummary} />
+            </div>
+          </details>
+        ) : (
+          <div className="panel" data-testid="traits-panel">
+            <h2>Traits / Teamups</h2>
+            <TraitSummaryView summary={traitSummary} />
+          </div>
+        )}
 
         <div className="panel">
           <h2>Reward Choices</h2>
@@ -2047,19 +2261,37 @@ export function App() {
                       <small>After purchase: {choice.goldAfterPurchase} gold</small>
                     )}
                     {explanation ? (
-                      <>
-                        <p className="reward-headline">{explanation.headline}</p>
-                        <ul className="reward-reasons">
-                          {explanation.reasons.map((reason, index) => (
-                            <li
-                              key={`${reason.kind}:${index}:${reason.text}`}
-                              className={`reward-reason ${reason.severity}`}
-                            >
-                              {reason.text}
-                            </li>
-                          ))}
-                        </ul>
-                      </>
+                      isDefaultRoute ? (
+                        <details className="reward-explanation-details">
+                          <summary className="reward-headline">
+                            {explanation.headline}
+                          </summary>
+                          <ul className="reward-reasons">
+                            {explanation.reasons.map((reason, index) => (
+                              <li
+                                key={`${reason.kind}:${index}:${reason.text}`}
+                                className={`reward-reason ${reason.severity}`}
+                              >
+                                {reason.text}
+                              </li>
+                            ))}
+                          </ul>
+                        </details>
+                      ) : (
+                        <>
+                          <p className="reward-headline">{explanation.headline}</p>
+                          <ul className="reward-reasons">
+                            {explanation.reasons.map((reason, index) => (
+                              <li
+                                key={`${reason.kind}:${index}:${reason.text}`}
+                                className={`reward-reason ${reason.severity}`}
+                              >
+                                {reason.text}
+                              </li>
+                            ))}
+                          </ul>
+                        </>
+                      )
                     ) : null}
                   </div>
                   <button
@@ -2161,32 +2393,59 @@ export function App() {
           </ol>
         </div>
 
-        <div className="panel">
-          <h2>Upgrade Progress</h2>
-          {upgradeProgressGroups.length > 0 ? (
-            <ol className="card-list">
-              {upgradeProgressGroups.map((group) => (
-                <li key={`${group.defId}:${group.upgradeLevel}`}>
-                  <span>{describeUpgradeProgressGroup(group)}</span>
-                  {group.canUpgrade ? (
-                    <button
-                      type="button"
-                      onClick={() => upgradeGroup(group)}
-                      disabled={!editable}
-                    >
-                      Upgrade
-                    </button>
-                  ) : null}
-                </li>
-              ))}
-            </ol>
-          ) : (
-            <p className="muted">
-              No duplicate upgrade progress yet. Unit and Echo cards need 3 matching pool
-              copies at the same level.
-            </p>
-          )}
-        </div>
+        {isDefaultRoute && readyUpgradeGroups.length === 0 ? (
+          <details className="panel advanced-panel" data-testid="upgrade-progress-panel">
+            <summary className="advanced-summary">
+              <h2>Upgrade Progress</h2>
+              <span>No ready duplicate upgrade</span>
+            </summary>
+            <div className="advanced-panel-body">
+              {upgradeProgressGroups.length > 0 ? (
+                <ol className="card-list">
+                  {upgradeProgressGroups.map((group) => (
+                    <li key={`${group.defId}:${group.upgradeLevel}`}>
+                      <span>{describeUpgradeProgressGroup(group)}</span>
+                    </li>
+                  ))}
+                </ol>
+              ) : (
+                <p className="muted">
+                  No duplicate upgrade progress yet. Unit and Echo cards need 3 matching
+                  pool copies at the same level.
+                </p>
+              )}
+            </div>
+          </details>
+        ) : (
+          <div className="panel" data-testid="upgrade-progress-panel">
+            <h2>Upgrade Progress</h2>
+            {(isDefaultRoute ? readyUpgradeGroups : upgradeProgressGroups).length > 0 ? (
+              <ol className="card-list">
+                {(isDefaultRoute ? readyUpgradeGroups : upgradeProgressGroups).map(
+                  (group) => (
+                    <li key={`${group.defId}:${group.upgradeLevel}`}>
+                      <span>{describeUpgradeProgressGroup(group)}</span>
+                      {group.canUpgrade ? (
+                        <button
+                          type="button"
+                          onClick={() => upgradeGroup(group)}
+                          disabled={!editable}
+                        >
+                          Upgrade
+                        </button>
+                      ) : null}
+                    </li>
+                  )
+                )}
+              </ol>
+            ) : (
+              <p className="muted">
+                No duplicate upgrade progress yet. Unit and Echo cards need 3 matching
+                pool copies at the same level.
+              </p>
+            )}
+          </div>
+        )}
 
         <div className="panel">
           <h2>Pool Cards</h2>
@@ -2248,6 +2507,35 @@ export function App() {
                 {latestCombatSummary.damageToOpponent} | Events:{" "}
                 {latestCombatSummary.eventCount} | Gold: +{latestCombatSummary.goldEarned}
               </p>
+              <dl className="combat-result-strip">
+                <div>
+                  <dt>Winner</dt>
+                  <dd>{latestCombatSummary.winner}</dd>
+                </div>
+                <div>
+                  <dt>Damage</dt>
+                  <dd>
+                    You {latestCombatSummary.damageToPlayer} / Enemy{" "}
+                    {latestCombatSummary.damageToOpponent}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Gold</dt>
+                  <dd>+{latestCombatSummary.goldEarned}</dd>
+                </div>
+                <div>
+                  <dt>Events</dt>
+                  <dd>{latestCombatSummary.eventCount}</dd>
+                </div>
+                <div>
+                  <dt>Commander</dt>
+                  <dd>
+                    {latestCommanderCombatReturn
+                      ? "Returned to Command"
+                      : "No combat return"}
+                  </dd>
+                </div>
+              </dl>
               <p className="flow-note">
                 Combat recorded: {latestCombatSummary.winner}. You gained{" "}
                 {latestCombatSummary.goldEarned} gold.{" "}
@@ -2259,7 +2547,14 @@ export function App() {
               </p>
               {lastRecordedCombatDisplaySummary ? (
                 <>
-                  <CombatSummaryView summary={lastRecordedCombatDisplaySummary} />
+                  {isDefaultRoute ? (
+                    <details className="combat-feed-details">
+                      <summary>Combat Event Feed</summary>
+                      <CombatSummaryView summary={lastRecordedCombatDisplaySummary} />
+                    </details>
+                  ) : (
+                    <CombatSummaryView summary={lastRecordedCombatDisplaySummary} />
+                  )}
                   {showDeveloperDetails ? (
                     <RawDebugDetails
                       label="Developer event JSON"
@@ -2292,7 +2587,34 @@ export function App() {
               Preview only, not yet recorded. Winner: {combat.winner} | Events:{" "}
               {combat.events.length}
             </p>
-            <CombatSummaryView summary={upcomingCombatDisplaySummary} />
+            <dl className="combat-result-strip">
+              <div>
+                <dt>Winner</dt>
+                <dd>{combat.winner}</dd>
+              </div>
+              <div>
+                <dt>Damage</dt>
+                <dd>
+                  You {combat.damageToPlayerA} / Enemy {combat.damageToPlayerB}
+                </dd>
+              </div>
+              <div>
+                <dt>Events</dt>
+                <dd>{combat.events.length}</dd>
+              </div>
+              <div>
+                <dt>Warnings</dt>
+                <dd>{combat.warnings.length}</dd>
+              </div>
+            </dl>
+            {isDefaultRoute ? (
+              <details className="combat-feed-details">
+                <summary>Preview Event Feed</summary>
+                <CombatSummaryView summary={upcomingCombatDisplaySummary} />
+              </details>
+            ) : (
+              <CombatSummaryView summary={upcomingCombatDisplaySummary} />
+            )}
             {showDeveloperDetails ? (
               <RawDebugDetails
                 label="Developer event JSON"

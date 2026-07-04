@@ -174,6 +174,15 @@ copy, a less self-deprecating topbar, reward/combat consequence notes, no raw
 event JSON on the default route, a quieter default Commander Upgrade panel, and
 clearer "inspect for blocked reason" text on cards with no immediate move.
 
+Default-route bloat-reduction update after this task: `/` now has a compact
+player-facing flow. The top visible dashboard starts with `What now?` and the
+five-step loop: prepare loadout, start combat, review combat, choose rewards,
+and advance. Legal Planning Check, opponent loadout internals, display-only
+Traits / Teamups, idle duplicate Upgrade Progress, run seed/status metadata,
+full Commander lifecycle history, combat model notes, reward rationale details,
+and long combat event feeds are now collapsed by default on `/`. Labs keep their
+verbose diagnostic surfaces.
+
 The biggest remaining Pixi findings are no longer the absence of replay controls,
 tiny first-pass labels, or unvalidated readability. The lab still needs event
 grouping/filtering for long feeds, scrub or speed controls, and final
@@ -181,7 +190,7 @@ default-route confidence. Pixi should stay opt-in until those are addressed.
 
 Recommended next task:
 
-`chore(client): collapse default-route debug panels`
+`chore(client): add post-pack loadout suggestions from existing legal actions`
 
 ## 2. Environment And Commands
 
@@ -254,6 +263,62 @@ Manual path played for this audit:
 6. Quickly checked Priority Lab, Renderer Lab, and Upgrade Lab for route health,
    horizontal overflow, and console/page errors.
 
+## Default Route Bloat Reduction
+
+Current status: implemented as a client-only streamlining pass. No rules,
+combat, Commander, encounter, card, or Pixi-default behavior changed.
+
+### Player-Facing By Default
+
+- The default route now opens below the battlefield with a compact `What now?`
+  panel that names the current next action and shows the intended loop:
+  prepare loadout, start combat, review combat, choose rewards, and advance.
+- The visible core remains the run header, starter selector, Ready / Record /
+  Advance controls, React/CSS Hex Arena, Ally Inspector, Enemy Inspector,
+  compact Command Zone, Board, Source Row, Spellrail, Pool Cards, reward choices
+  when relevant, Commander upgrades when relevant, and compact combat result
+  summaries.
+- Command Zone stays actionable: Commander name, zone, deploy count, effective
+  Rebind Tax, deploy cost, Board Charge after deploy, Inspect, Deploy Commander,
+  Return to Command, and blocked reasons remain visible.
+- Combat result panels now prioritize winner, damage taken/dealt, gold gained,
+  event count, and whether the Commander returned to Command.
+
+### Collapsed Or Hidden On `/`
+
+- Full Commander lifecycle history is under `Commander History`.
+- Current Encounter internals moved under `Opponent Details`; the battlefield is
+  still the primary enemy-inspection surface.
+- Legal Planning Check is collapsed by default and expands only when the player
+  wants validation detail; illegal states still surface visibly.
+- Display-only Traits / Teamups are collapsed because they do not yet drive
+  combat effects.
+- Idle duplicate Upgrade Progress is collapsed unless an actual combine is
+  ready.
+- Reward offer rationale lists are collapsed behind their headline.
+- Long combat event feeds and combat model facts are collapsed.
+- Run seed/status metadata is under `Run details`.
+
+### Intentionally Lab-Only
+
+- Priority Lab keeps priority holder, phase, stack, action contracts, source
+  lifecycle, Combat Charge, target probe, skirmish, and action-log detail.
+- Renderer Lab keeps Pixi replay controls, renderer feed, Combat Feed Sample,
+  click-to-place panels, and the collapsed React/CSS fallback.
+- Engagement Lab keeps range/target preview diagnostics.
+- Upgrade Lab keeps duplicate-upgrade diagnostics visible.
+
+### Still Blocking Spike Viability
+
+- The default route is clearer, but it still relies on list buttons rather than
+  direct board editing for most loadout actions.
+- New pack cards are still only movable after advancing back to planning, so
+  post-pack guidance should point players at the best legal next loadout moves.
+- Support/ground layering is still more implied than taught.
+- The React/CSS board still reads as two stacked boards rather than a single
+  shared arena; Pixi remains lab-only.
+- Long combat feeds are collapsed, not yet grouped or filtered.
+
 ### What Currently Feels Like A Game
 
 - The core loop is real: choose starter, inspect board, ready combat, record a
@@ -274,17 +339,15 @@ Manual path played for this audit:
 
 ### What Still Feels Like A Debug Lab
 
-- The default route still exposes many internal panels at once: Run State,
-  Current Encounter loadout, Planning Check, display-only Traits / Teamups,
-  Board, Source Row, Spellrail, Upgrade Progress, Pool Cards, and Last Recorded
-  Combat.
 - Card inspectors are useful but verbose. Design metadata, simulator stat facts,
   upgrade progress, legal actions, and blocked reasons all compete for attention
   in the first minute.
-- Current Encounter lists full opponent zones even though the battlefield
-  already lets the player inspect enemy cards.
-- Traits / Teamups are display-only, so they read like a promise rather than a
-  current decision engine.
+- Board, Source Row, Spellrail, and Pool Cards still use list-style action
+  buttons. They are playable, but still feel like a debug loadout editor rather
+  than a board-first game interface.
+- Current Encounter, legal Planning Check, display-only Traits / Teamups, idle
+  Upgrade Progress, and long combat feeds are now collapsed on `/`, but the
+  collapsed labels still reveal that this is a prototype shell.
 - Priority Lab remains valuable for rules development, but it should not leak
   into the mental model for a normal 10-minute run.
 
@@ -834,6 +897,9 @@ Note:
 
 - Pixi renderer lab is opt-in only and is not the default battlefield.
 - The default React/CSS Hex Arena remains the reliable debug battlefield.
+- The default route now hides/collapses most developer bloat, but Board, Source
+  Row, Spellrail, Pool/Bench, and Commander controls are still explicit
+  list/button debug controls rather than final direct-manipulation game UI.
 - Pixi uses generated shapes and text, not final art assets.
 - Pixi labels, stat chips, rings, and combat effects have been strengthened, but
   long names and dense adjacent rows can still crowd.
@@ -893,16 +959,15 @@ Note:
 
 Do next:
 
-`chore(client): collapse default-route debug panels`
+`chore(client): add post-pack loadout suggestions from existing legal actions`
 
-Why: the default route now proves a playable 3-fight loop, but it still looks
-like a full diagnostics dashboard below the battlefield. The next highest-impact
-task should hide or collapse lab-only/default-debug detail while keeping the
-existing rules surface intact.
+Why: the default route now hides most lab/dashboard bloat, but after a pack is
+opened the player still has to scan Board, Source Row, Spellrail, Pool/Bench,
+and inspectors to find the best next move. A client-only suggestion layer could
+surface existing legal actions for new cards without adding mechanics.
 
 Do soon:
 
-- `chore(client): add post-pack loadout suggestions from existing legal actions`
 - `chore(client): tighten reward explanation ranking for duplicates and fixing`
 - `feat(client): group or filter long combat summary events`
 - `feat(client): add Pixi replay scrub/speed controls`

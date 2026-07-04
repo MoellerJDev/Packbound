@@ -68,13 +68,42 @@ test("debug loop can inspect, preview, record, reward, and advance", async ({ pa
 
   await expect(page.getByRole("heading", { name: "Packbound" })).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Run State", exact: true })
+    page.getByRole("heading", { name: "What now?", exact: true })
   ).toBeVisible();
+  const runStatePanel = panel(page, "What now?");
+  await expect(runStatePanel.getByText("Prepare your loadout")).toBeVisible();
+  await expect(runStatePanel.getByText("Start combat")).toBeVisible();
+  await expect(runStatePanel.getByText("Review combat")).toBeVisible();
+  await expect(runStatePanel.getByText("Choose rewards")).toBeVisible();
+  await expect(runStatePanel.getByText("Advance to next fight")).toBeVisible();
+  await expect(runStatePanel.getByText("Run details")).toBeVisible();
+  const opponentDetails = panel(page, "Opponent Details");
+  await expect(opponentDetails).toBeVisible();
+  expect(
+    await opponentDetails.evaluate((node) => (node as HTMLDetailsElement).open)
+  ).toBe(false);
+  await expect(opponentDetails.locator(".advanced-summary span")).not.toHaveText(
+    "No encounter"
+  );
+  const planningDetails = panel(page, "Planning Check");
+  await expect(planningDetails).toBeVisible();
+  expect(
+    await planningDetails.evaluate((node) => (node as HTMLDetailsElement).open)
+  ).toBe(false);
+  await expect(planningDetails.locator(".advanced-summary span")).toHaveText("Legal");
+  const traitDetails = panel(page, "Traits / Teamups");
+  await expect(traitDetails).toBeVisible();
+  expect(await traitDetails.evaluate((node) => (node as HTMLDetailsElement).open)).toBe(
+    false
+  );
+  await expect(traitDetails.getByText("Display-only prototype")).toBeVisible();
+  const upgradeProgressDetails = panel(page, "Upgrade Progress");
+  await expect(upgradeProgressDetails).toBeVisible();
+  expect(
+    await upgradeProgressDetails.evaluate((node) => (node as HTMLDetailsElement).open)
+  ).toBe(false);
   await expect(
-    page.getByRole("heading", { name: "Current Encounter", exact: true })
-  ).toBeVisible();
-  await expect(
-    page.getByRole("heading", { name: "Planning Check", exact: true })
+    upgradeProgressDetails.getByText("No ready duplicate upgrade")
   ).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Battlefield", exact: true })
@@ -88,7 +117,6 @@ test("debug loop can inspect, preview, record, reward, and advance", async ({ pa
   await expect(
     page.getByRole("heading", { name: "Source Row", exact: true })
   ).toBeVisible();
-  await expect(panel(page, "Upgrade Progress")).toBeVisible();
   const commandZonePanel = panel(page, "Command Zone");
   await expect(commandZonePanel).toBeVisible();
   await expect(commandZonePanel.getByTestId("command-zone-card-name")).toHaveText(
@@ -100,9 +128,6 @@ test("debug loop can inspect, preview, record, reward, and advance", async ({ pa
   await expect(commandZonePanel.getByTestId("commander-rebind-tax")).toHaveText(
     "+0 Charge"
   );
-  await expect(commandZonePanel.getByTestId("commander-rebind-discount")).toHaveText(
-    "-0 Charge"
-  );
   await expect(commandZonePanel.getByTestId("commander-deploy-cost")).toHaveText(
     "1 base + 0 tax = 1 Charge"
   );
@@ -112,7 +137,12 @@ test("debug loop can inspect, preview, record, reward, and advance", async ({ pa
   await expect(
     commandZonePanel.getByRole("button", { name: "Deploy Commander" })
   ).toBeEnabled();
-  await expect(commandZonePanel.getByTestId("commander-lifecycle-panel")).toBeVisible();
+  const commanderHistory = commandZonePanel.getByTestId("commander-lifecycle-panel");
+  await expect(commanderHistory).toBeVisible();
+  expect(
+    await commanderHistory.evaluate((node) => (node as HTMLDetailsElement).open)
+  ).toBe(false);
+  await commanderHistory.getByText("Commander History").click();
   await expect(
     commandZonePanel.getByTestId("commander-lifecycle-entry").first()
   ).toContainText("Commander initialized in Command Zone.");
@@ -164,6 +194,7 @@ test("debug loop can inspect, preview, record, reward, and advance", async ({ pa
     hexArena.locator(".board-preview-marker.target-status.in-range").first()
   ).toBeVisible();
   await expectNoHorizontalScroll(hexArenaViewport);
+  await hexArena.scrollIntoViewIfNeeded();
   const occupiedCardsInViewport = await hexArena.getByTestId("board-card").evaluateAll(
     (cards) =>
       cards.filter((card) => {
@@ -250,6 +281,15 @@ test("debug loop can inspect, preview, record, reward, and advance", async ({ pa
   await expect(recordedPanel.getByText(/Damage:/)).toBeVisible();
   await expect(recordedPanel.getByText(/Events:/)).toBeVisible();
   await expect(recordedPanel.getByText(/Gold: \+/)).toBeVisible();
+  await expect(recordedPanel.locator(".combat-result-strip")).toContainText(
+    "No combat return"
+  );
+  const combatFeed = recordedPanel.locator("details.combat-feed-details");
+  await expect(combatFeed).toBeVisible();
+  expect(await combatFeed.evaluate((node) => (node as HTMLDetailsElement).open)).toBe(
+    false
+  );
+  await combatFeed.getByText("Combat Event Feed").click();
   await expect(recordedPanel.getByText("Damage to you", { exact: true })).toBeVisible();
   await expect(recordedPanel.getByText("Damage to enemy", { exact: true })).toBeVisible();
   await expect(recordedPanel.getByText("Warnings", { exact: true })).toBeVisible();
@@ -291,7 +331,12 @@ test("debug loop can inspect, preview, record, reward, and advance", async ({ pa
   const rewardPanel = panel(page, "Reward Choices");
   await expect(rewardPanel.getByText(/Cost \d+ gold/).first()).toBeVisible();
   await expect(rewardPanel.getByText(/After purchase: \d+ gold/).first()).toBeVisible();
-  await expect(rewardPanel.locator(".reward-headline").first()).toBeVisible();
+  const rewardExplanation = rewardPanel.locator(".reward-explanation-details").first();
+  await expect(rewardExplanation.locator(".reward-headline")).toBeVisible();
+  expect(
+    await rewardExplanation.evaluate((node) => (node as HTMLDetailsElement).open)
+  ).toBe(false);
+  await rewardExplanation.locator("summary").click();
   await expect(rewardPanel.locator(".reward-reasons li").first()).toBeVisible();
   await expect(
     rewardPanel
@@ -308,7 +353,6 @@ test("debug loop can inspect, preview, record, reward, and advance", async ({ pa
 
   await page.getByRole("button", { name: "Advance" }).click();
 
-  const runStatePanel = panel(page, "Run State");
   await expect(runStatePanel.getByText("2 / 3")).toBeVisible();
   await expect(runStatePanel.getByText(/Next:/)).toBeVisible();
 

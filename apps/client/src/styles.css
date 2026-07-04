@@ -595,6 +595,68 @@ h4 {
   padding: 16px;
 }
 
+.panel > summary,
+.compact-details > summary,
+.combat-feed-details > summary,
+.combat-model-details > summary,
+.reward-explanation-details > summary {
+  cursor: pointer;
+}
+
+.advanced-panel {
+  align-content: start;
+}
+
+.advanced-summary {
+  align-items: baseline;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  list-style-position: inside;
+}
+
+.advanced-summary h2 {
+  display: inline;
+  margin: 0;
+}
+
+.advanced-summary span {
+  color: #5d6870;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.advanced-panel-body,
+.compact-details,
+.combat-feed-details,
+.combat-model-details {
+  margin-top: 12px;
+}
+
+.compact-details {
+  border-top: 1px solid #dce5e0;
+  padding-top: 10px;
+}
+
+.compact-details summary,
+.combat-feed-details summary,
+.combat-model-details summary {
+  color: #3f6974;
+  font-size: 0.84rem;
+  font-weight: 900;
+}
+
+.combat-model-details {
+  background: #203139;
+  border: 1px solid #30474f;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.combat-model-details summary {
+  color: #eef6f0;
+}
+
 .wide {
   grid-column: 1 / -1;
 }
@@ -647,6 +709,14 @@ h4 {
   font-size: 0.88rem;
   font-weight: 800;
   margin-top: 4px;
+}
+
+.reward-explanation-details {
+  margin-top: 4px;
+}
+
+.reward-explanation-details .reward-headline {
+  display: list-item;
 }
 
 .reward-reasons {
@@ -738,6 +808,53 @@ h4 {
   padding: 9px 10px;
 }
 
+.run-guide {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+}
+
+.run-guide li {
+  border: 1px solid #dce5e0;
+  border-left-width: 5px;
+  border-radius: 6px;
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+}
+
+.run-guide li[data-step-state="active"] {
+  background: #eef8f0;
+  border-left-color: #2f8e55;
+}
+
+.run-guide li[data-step-state="blocked"] {
+  background: #fff1ec;
+  border-left-color: #b83225;
+}
+
+.run-guide li[data-step-state="done"] {
+  background: #f4f8f5;
+  border-left-color: #8ab99b;
+}
+
+.run-guide li[data-step-state="todo"] {
+  background: #f8faf8;
+  border-left-color: #c7d4cf;
+}
+
+.run-guide span {
+  font-weight: 900;
+}
+
+.run-guide small {
+  color: #5d6870;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
 .flow-note {
   background: #f3f7f5;
   border: 1px solid #d9e4df;
@@ -825,6 +942,10 @@ h4 {
 .commander-lifecycle-meta {
   color: #64717a;
   line-height: 1.35;
+}
+
+.compact-command-zone .run-stats {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .action-log-list {
@@ -1437,6 +1558,34 @@ h4 {
   margin-top: 14px;
 }
 
+.combat-result-strip {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  margin: 12px 0 0;
+}
+
+.combat-result-strip div {
+  background: #f4f8f5;
+  border: 1px solid #d9e4df;
+  border-radius: 6px;
+  min-width: 0;
+  padding: 9px;
+}
+
+.combat-result-strip dt {
+  color: #5d6870;
+  font-size: 0.7rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.combat-result-strip dd {
+  font-weight: 800;
+  margin: 2px 0 0;
+  overflow-wrap: anywhere;
+}
+
 .combat-summary-title {
   font-size: 1.1rem;
   font-weight: 800;
@@ -1615,6 +1764,10 @@ pre {
   }
 
   .combat-summary-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .combat-result-strip {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 

@@ -25,9 +25,10 @@ sharing:
 https://moellerjdev.github.io/Packbound/
 
 Deployment happens automatically from `main` after CI verification passes. The
-demo is not a finished game or public release. The default route is the
-React/CSS debug client, and `?scenario=renderer-lab` exposes a Pixi-centric
-renderer lab with the React/CSS board kept as a collapsed debug fallback.
+demo is not a finished game or public release. The default route is a
+streamlined React/CSS playable debug client, and `?scenario=renderer-lab`
+exposes a Pixi-centric renderer lab with the React/CSS board kept as a collapsed
+debug fallback.
 
 GitHub Pages must be configured in the repository settings to use GitHub
 Actions as the Pages source. If the repository remains private, Pages

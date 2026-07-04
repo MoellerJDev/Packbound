@@ -163,68 +163,68 @@ Play`, `Play -> Reset -> Play`, repeated reset/play, single-canvas safety, and
 console/page-error capture. The previously observed replay stall is fixed in
 automated coverage.
 
+Vertical-slice audit update after this task: the default route is now closer to
+a playable 3-fight run than an engine-only lab. The manual pass played Ember
+Scrappers through round 1 combat, reward pack purchase, Commander upgrade,
+round advance, loadout improvement, and round 2 combat. The loop produces real
+decisions and a readable story, especially once packs feed the next planning
+round and the Commander can deploy, die, return to Command, and tax future
+deployment. This task made only small client/report changes: clearer run-path
+copy, a less self-deprecating topbar, reward/combat consequence notes, no raw
+event JSON on the default route, a quieter default Commander Upgrade panel, and
+clearer "inspect for blocked reason" text on cards with no immediate move.
+
 The biggest remaining Pixi findings are no longer the absence of replay controls,
-tiny first-pass labels, or unvalidated readability. The lab still needs the
-event grouping/filtering for long feeds, scrub or speed controls, and final
+tiny first-pass labels, or unvalidated readability. The lab still needs event
+grouping/filtering for long feeds, scrub or speed controls, and final
 default-route confidence. Pixi should stay opt-in until those are addressed.
 
 Recommended next task:
 
-`feat(rules): add encounter action effect contract hooks`
+`chore(client): collapse default-route debug panels`
 
 ## 2. Environment And Commands
 
-- Commit tested before renderer-lab fix: `b8656401e653ab97f2f7de79aaf637e23f6b7a7d`
-- Baseline before Commander upgrade prototype:
-  `851ee27ec8e19600cc1fe2c1d679109036dc7bf1`
-- Baseline before Commander encounter action skeleton:
-  `d0cc4bfab678d39ab65c5fb7de3b14fc9ca0e76e`
-- Baseline before encounter action targeting contract:
-  `8ef4e4def59ae048ee214a6e5bf96674ed4025b4`
-- Baseline before encounter action paid-cost prototype:
-  `89f9c31addcac041d9d9298107ad06ce8bf29369`
-- Baseline before encounter charge Source Row bridge:
-  `c8e65e86b7af7a980d42a6b421edc14432d5f6fc`
-- Implementation verified: local working tree for
-  `feat(rules): add commander encounter action skeleton`
-- Baseline: `main`, aligned with `origin/main`
+- Baseline before this vertical-slice audit:
+  `5ed0df4b9c9767f982aa1670b9c36effe90c286a`
+- Branch: `main`, aligned with `origin/main` before edits
 - OS/environment: Windows, PowerShell, Codex desktop workspace
 - Node version: `v24.18.0`
 - pnpm version: `11.7.0`
 - Browser/tool used: Codex in-app browser against local Vite, plus Playwright
   browser smoke tests
 - Dev server URL: `http://127.0.0.1:5173/`
-- Manual viewport coverage: default in-app browser viewport, 1280 x 720, and
-  temporary 1440 x 900
-- Screenshot file created: no. I inspected transient in-app browser screenshots
-  only; no repo screenshot file was written.
-- Dependency install: skipped because `node_modules` was already present and
-  `pixi.js@8.19.0` was installed for `@packbound/client`
-- Dev server cleanup: stopped only the Packbound `pnpm dev` wrapper and its Vite
-  child listener on port 5173 after manual testing
-- Report file behavior: `PLAYTEST_REPORT.md` was overwritten, not duplicated
+- Manual viewport coverage: default in-app browser viewport, approximately
+  1280 x 720
+- Screenshot file created: no. No screenshots, traces, videos, browser reports,
+  generated balance reports, or raw logs were added to the repo.
+- Dependency install: skipped because `node_modules` was already present.
 
-| Command                                                                                                                              | Status | Notes                                                                  |
-| ------------------------------------------------------------------------------------------------------------------------------------ | ------ | ---------------------------------------------------------------------- |
-| `git fetch origin`                                                                                                                   | Pass   | Fetched before testing.                                                |
-| `git status`                                                                                                                         | Pass   | Clean worktree on `main`, aligned with `origin/main`.                  |
-| Commit ancestry check                                                                                                                | Pass   | Local `main` includes `00e4c64711a2acdc8e7abf4bb1de92475e3a26ce`.      |
-| Dependency check                                                                                                                     | Pass   | `node_modules` present; Pixi installed; `pnpm install` skipped.        |
-| `pnpm typecheck`                                                                                                                     | Pass   | All workspace project typechecks passed.                               |
-| `pnpm test -- apps/client/src/components/pixi/pixiCombatReplay.test.ts apps/client/src/components/pixi/pixiBattlefieldModel.test.ts` | Pass   | Focused Pixi replay/model tests passed after the fix.                  |
-| `pnpm test:browser`                                                                                                                  | Pass   | 5 Chromium smoke tests passed before manual playtest.                  |
-| `pnpm build`                                                                                                                         | Pass   | Build passed with the expected Pixi/Vite chunk-size warning.           |
-| `pnpm dev -- --host 127.0.0.1`                                                                                                       | Pass   | Served Vite on `http://127.0.0.1:5173/` for manual playtesting.        |
-| `pnpm exec prettier --write PLAYTEST_REPORT.md`                                                                                      | Pass   | Report formatted after overwrite.                                      |
-| `pnpm format:check`                                                                                                                  | Pass   | Final formatting check passed.                                         |
-| `pnpm test:browser`                                                                                                                  | Pass   | Re-run after report edit because route wording/selectors were checked. |
-| `git diff --check`                                                                                                                   | Pass   | No whitespace errors.                                                  |
+| Command                                                        | Status | Notes                                                                            |
+| -------------------------------------------------------------- | ------ | -------------------------------------------------------------------------------- |
+| `git fetch origin`                                             | Pass   | Fetched before testing.                                                          |
+| `git status --short --branch`                                  | Pass   | Clean worktree before edits; local `main` aligned with `origin/main`.            |
+| Commit ancestry check                                          | Pass   | Local `main` included `5ed0df4b9c9767f982aa1670b9c36effe90c286a`.                |
+| `pnpm dev -- --host 127.0.0.1`                                 | Pass   | Served Vite on `http://127.0.0.1:5173/` for manual playtesting.                  |
+| Manual default route playtest                                  | Pass   | Played Ember Scrappers through round 2 combat after reward/loadout improvement.  |
+| Manual Priority Lab / Renderer Lab / Upgrade Lab sweep         | Pass   | Routes loaded, no horizontal overflow seen, and no console/page errors captured. |
+| `pnpm typecheck`                                               | Pass   | Targeted pre-full-gate typecheck passed.                                         |
+| `pnpm test -- packages/rules/src/__tests__/runClarity.test.ts` | Pass   | Repository script ran the Vitest suite; 38 files / 383 tests passed.             |
+| `pnpm test:browser`                                            | Pass   | Targeted browser smoke pass: 5 Chromium tests passed.                            |
+| `pnpm format`                                                  | Pass   | Prettier wrote/confirmed formatting.                                             |
+| `pnpm format:check`                                            | Pass   | All matched files use Prettier style.                                            |
+| `pnpm lint`                                                    | Pass   | ESLint passed.                                                                   |
+| `pnpm typecheck`                                               | Pass   | Full-gate typecheck passed.                                                      |
+| `pnpm test`                                                    | Pass   | Full Vitest suite passed; 38 files / 383 tests.                                  |
+| `pnpm build`                                                   | Pass   | Build passed with the known Pixi/Vite chunk-size warning.                        |
+| `pnpm balance:report`                                          | Pass   | Deterministic balance text report command passed.                                |
+| `pnpm test:browser`                                            | Pass   | Full-gate browser smoke pass: 5 Chromium tests passed.                           |
 
 Build warning observed and not fixed in this task:
 
 - Vite reported `(!) Some chunks are larger than 500 kB after minification`.
-- Largest listed chunk: `assets/index-17-9XDWW.js`, `714.13 kB`, gzip
-  `210.92 kB`.
+- Largest listed chunk: `assets/index-vW2mnqT0.js`, `764.47 kB`, gzip
+  `222.86 kB`.
 
 ## 3. Scenarios Covered
 
@@ -237,6 +237,160 @@ Build warning observed and not fixed in this task:
 | `?scenario=upgrade-lab`    | Pass          | Duplicate combine and Lv 1 pool-card inspection work.                                                                                 |
 
 Browser console result: no warnings or errors captured across the manual pass.
+
+## Vertical Slice Playability Audit
+
+Manual path played for this audit:
+
+1. Started the default route with Ember Scrappers.
+2. Read the starter board, Source Row, Spellrail, Command Zone, inspectors, and
+   next-action text.
+3. Readied round 1 combat, inspected the upcoming preview, recorded combat, and
+   reviewed the result.
+4. Applied `Combat Training`, opened an Ember Foundry Pack, saw new pool cards,
+   and advanced to round 2.
+5. Improved the loadout by adding Cracked Prism, placing Signal Nest, deploying
+   the upgraded Commander, and recording round 2 combat.
+6. Quickly checked Priority Lab, Renderer Lab, and Upgrade Lab for route health,
+   horizontal overflow, and console/page errors.
+
+### What Currently Feels Like A Game
+
+- The core loop is real: choose starter, inspect board, ready combat, record a
+  deterministic fight, claim a pack plus Commander upgrade, improve the loadout,
+  and move into a harder second fight.
+- Round 1 creates a readable mini-story. Sparkfall queues, both Ember
+  Scraprunner units trade, combat ends in a draw, and the player gains gold.
+- Reward choices matter more once the player sees duplicate progress and pack
+  costs. In the tested run, Ember Foundry Pack clearly chased Ember Scraprunner
+  duplicates, while Source Pack offered cheaper fixing.
+- The Commander prototype now contributes to the playable spine instead of just
+  being a lab note. `Combat Training` made Sparkcatch Apprentice Lv 1, it
+  deployed in round 2, fought, died, returned to Command Zone, and increased
+  Rebind Tax.
+- Loadout improvement is understandable when it works: Cracked Prism increases
+  capacity/aspect access, Signal Nest occupies support, Sparkcatch occupies
+  ground, and the Planning Check stays legal.
+
+### What Still Feels Like A Debug Lab
+
+- The default route still exposes many internal panels at once: Run State,
+  Current Encounter loadout, Planning Check, display-only Traits / Teamups,
+  Board, Source Row, Spellrail, Upgrade Progress, Pool Cards, and Last Recorded
+  Combat.
+- Card inspectors are useful but verbose. Design metadata, simulator stat facts,
+  upgrade progress, legal actions, and blocked reasons all compete for attention
+  in the first minute.
+- Current Encounter lists full opponent zones even though the battlefield
+  already lets the player inspect enemy cards.
+- Traits / Teamups are display-only, so they read like a promise rather than a
+  current decision engine.
+- Priority Lab remains valuable for rules development, but it should not leak
+  into the mental model for a normal 10-minute run.
+
+### What Is Confusing In The Default Route
+
+- Before this task, the topbar called the build an "Ugly playable deterministic
+  run loop." The new copy is less self-deprecating and more player-facing.
+- Before this task, raw combat JSON was visible as a default-route disclosure.
+  It is now hidden on `/` and kept for lab routes.
+- New reward cards are only movable after advancing back to planning. The Pool
+  summary now states whether new cards can be moved now or after `Advance`.
+- Cards with no available move used to say only `No legal action`; they now say
+  `Inspect for blocked reason`, which points players toward the inspector.
+- Support and ground cards can share row/column coordinates, but the default UI
+  does not explicitly explain layers well enough during loadout edits.
+
+### Meaningful Decisions
+
+- Starter kit identity is meaningful because each starter changes board,
+  Sources, Spellrail, pool, and the prototype Commander source.
+- Pack choice is meaningful when it is tied to duplicates, fixing, affordability,
+  or current board gaps.
+- Commander upgrade choice is meaningful in the current small way: strengthen
+  the Commander now or reduce future effective Rebind Tax.
+- Source Row changes are meaningful because they change Board Charge capacity,
+  Aspect access, and encounter Combat Charge setup.
+- Board/support placement is meaningful because combat preview and simulator
+  output respond to occupied cells, range, movement, support triggers, and
+  target selection.
+
+### Fake Or Noisy Decisions
+
+- Traits / Teamups do not affect combat yet.
+- Some reward explanations overstate relevance. Off-archetype packs can still
+  sound "likely to support your current trait direction" because they share broad
+  near-miss traits.
+- Upgrade Progress can show lots of not-yet-actionable context before the player
+  has enough copies.
+- Commander lifecycle history is useful for debugging but noisy as a primary
+  player panel.
+- Raw stack/target/contract concepts belong in Priority Lab, not in the normal
+  default loop.
+
+### Useful Panels
+
+- Battlefield, Engagement Preview, Ally Inspector, and Enemy Inspector are the
+  most useful first-screen surfaces.
+- Command Zone is useful because it shows a real deploy action, tax, and zone
+  state.
+- Reward Choices are useful because they expose costs, affordability, pack bias,
+  and duplicate/fixing hints.
+- Pool Cards are useful after a pack because new cards are marked and can be
+  inspected.
+- Last Recorded Combat is useful when it starts with outcome, gold, and a compact
+  event story.
+
+### Panels To Hide Or Collapse Outside Labs
+
+- Current Encounter zone lists should probably collapse behind an opponent
+  details disclosure on the default route.
+- Planning Check can shrink to a compact legal/blocked banner when legal.
+- Traits / Teamups should be collapsed or visually marked as "display-only" until
+  trait effects matter.
+- Upgrade Progress should collapse when no upgrade is ready.
+- Commander Lifecycle should default to one latest event, with the full audit
+  trail behind details.
+
+### What Blocks A 10-Minute Playable Run
+
+- The default route still feels like a dashboard below the battlefield rather
+  than a guided run screen.
+- There is no "recommended next edit" after opening a pack, so the player must
+  infer whether to add Sources, place Units/Relics, chase duplicates, or deploy
+  Commander.
+- Reward explanations need stronger ranking. Duplicate/fixing/affordability
+  should beat broad trait near-miss language.
+- Long combat summaries still need grouping/filtering so the player can see the
+  few important swing events.
+- The default React/CSS battlefield still reads as two boards rather than one
+  arena, even though it is functional and horizontally stable.
+
+### Top 5 Small Fixes To Make The Current Game More Fun
+
+1. Collapse default-route debug panels: Current Encounter details, legal Planning
+   Check, display-only Traits, idle Upgrade Progress, and full Commander
+   lifecycle.
+2. Add a post-pack "best next edits" helper using existing data: new Sources,
+   playable board cards, duplicate progress, and blocked reasons.
+3. Tighten reward explanation ranking so off-archetype packs do not sound as
+   good as direct duplicate/fixing hits.
+4. Group combat summaries into headline beats: Techniques, first deaths,
+   Commander lifecycle, winner/damage, and hidden details.
+5. Add layer copy near Board/Pixi placement so ground/support sharing is
+   understandable without reading architecture docs.
+
+### Changes Made In This Pass
+
+- Replaced the topbar subtitle with player-facing loop copy.
+- Made next-action guidance call out board, Sources, Spellrail, Commander,
+  preview, rewards, and advancing more concretely.
+- Hid raw event JSON disclosures on the default route while preserving them for
+  lab scenarios.
+- Hid the default Commander Upgrades panel until reward choices or upgrade
+  history exist.
+- Added combat-result consequence text and clearer latest-pack movement timing.
+- Changed no-action card rows to point players toward inspector blocked reasons.
 
 ## 4. Default Route `/`
 
@@ -739,27 +893,30 @@ Note:
 
 Do next:
 
-`feat(rules): add encounter action effect contract hooks`
+`chore(client): collapse default-route debug panels`
 
-Why: Priority Lab now proves selectable serialized enemy board-card target
-snapshots and a match-local `probed` target-effect event through `Target Probe`,
-but the effect is still a single hard-coded skeleton mark. The next narrow slice
-should formalize how future authored encounter actions declare compact target
-effect payloads without adding Pixi click targeting, hand/deck/mill, enemy
-Commanders, broad timing, counterspells, broad RunState mutation, damage, or a
-full authored effect engine.
+Why: the default route now proves a playable 3-fight loop, but it still looks
+like a full diagnostics dashboard below the battlefield. The next highest-impact
+task should hide or collapse lab-only/default-debug detail while keeping the
+existing rules surface intact.
 
 Do soon:
 
+- `chore(client): add post-pack loadout suggestions from existing legal actions`
+- `chore(client): tighten reward explanation ranking for duplicates and fixing`
+- `feat(client): group or filter long combat summary events`
 - `feat(client): add Pixi replay scrub/speed controls`
 - `feat(rules): evaluate expanding the canonical board to 6 rows x 10-12 columns`
 - `feat(client): tune Pixi combat effect timing after manual readability pass`
 - `feat(client): keep selected target and next move visible together in preview labs`
-- `feat(client): group or filter long combat summary events`
-- `feat(rules): add encounter resource persistence and refresh rules`
 
 Still wait:
 
+- New encounter action effect hooks
+- More target contract layers
+- More prototype actions
+- Signature Relics
+- Authored effect engine
 - Pixi as the default renderer
 - Drag/drop
 - Backend

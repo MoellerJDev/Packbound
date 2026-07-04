@@ -256,7 +256,9 @@ test("debug loop can inspect, preview, record, reward, and advance", async ({ pa
 
   const commanderUpgradePanel = panel(page, "Commander Upgrades");
   await expect(
-    commanderUpgradePanel.getByText("Choose one Commander upgrade for this reward.")
+    commanderUpgradePanel.getByText(
+      "Choose one Commander upgrade for this reward. It applies only to the Commander."
+    )
   ).toBeVisible();
   await expect(
     commanderUpgradePanel.getByText("Combat Training", { exact: true })

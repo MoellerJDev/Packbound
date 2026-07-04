@@ -272,6 +272,7 @@ const sameBoardPosition = (left: BoardPosition, right: BoardPosition): boolean =
 
 export function App() {
   const isRendererLab = activeDebugScenarioId === DEBUG_RENDERER_SCENARIO_ID;
+  const showDeveloperDetails = activeDebugScenarioId !== undefined;
   const [selectedStarterKitId, setSelectedStarterKitId] = useState(firstStarterKitId);
   const [run, setRun] = useState(() => createDebugRun(firstStarterKitId));
   const [priorityMatch, setPriorityMatch] = useState(() =>
@@ -735,6 +736,12 @@ export function App() {
     () => new Set(getLatestOpenedPackCardInstanceIds(run)),
     [run]
   );
+  const packRewardClaimedThisRound = run.rewardHistory.some(
+    (entry) => entry.type === "pack" && entry.round === run.currentRound
+  );
+  const commanderUpgradeClaimedThisRound =
+    !run.commander ||
+    run.commander.upgradeHistory.some((entry) => entry.round === run.currentRound);
 
   const resetRun = (starterKitId = selectedStarterKitId) => {
     const nextRun = createDebugRun(starterKitId);
@@ -810,7 +817,7 @@ export function App() {
       return (
         <div className="mini-actions">
           {inspectButton}
-          {editable ? <small>No legal action</small> : null}
+          {editable ? <small>Inspect for blocked reason</small> : null}
         </div>
       );
     }
@@ -1016,6 +1023,9 @@ export function App() {
     const Heading = variant === "panel" ? "h2" : "h3";
     const history = commander?.upgradeHistory ?? [];
     const latestUpgrade = history.at(-1);
+    if (variant === "panel" && phase !== "reward" && history.length === 0) {
+      return null;
+    }
 
     return (
       <div className={variant} data-testid="commander-upgrade-panel">
@@ -1049,9 +1059,11 @@ export function App() {
         <p className="muted">
           {phase === "reward"
             ? commanderUpgradeChoices.length > 0
-              ? "Choose one Commander upgrade for this reward."
+              ? "Choose one Commander upgrade for this reward. It applies only to the Commander."
               : "Commander upgrade claimed for this reward."
-            : "Commander upgrade choices appear after combat rewards."}
+            : history.length > 0
+              ? "Latest Commander upgrades stay visible here."
+              : "Commander upgrades appear after combat."}
         </p>
         {commanderUpgradeChoices.length > 0 ? (
           <ol className="card-list compact">
@@ -1472,7 +1484,7 @@ export function App() {
       <section className="topbar">
         <div>
           <h1>Packbound</h1>
-          <p>Ugly playable deterministic run loop</p>
+          <p>Open packs, tune the loadout, fight, and grow the run.</p>
         </div>
         <div className="button-row">
           <label className="starter-picker">
@@ -2012,8 +2024,10 @@ export function App() {
           <p className="muted">
             {canApplyReward(run)
               ? rewardChoices.length > 0
-                ? "Buy one pack to add to the pool."
-                : "Pack reward claimed for this combat."
+                ? "Choose one pack. New cards go to the Pool for the next planning step."
+                : commanderUpgradeClaimedThisRound
+                  ? "Pack reward claimed. Advance when ready."
+                  : "Pack reward claimed. Choose a Commander upgrade to finish rewards."
               : "Rewards appear after combat is recorded."}
           </p>
           <ol className="card-list">
@@ -2179,7 +2193,10 @@ export function App() {
           {latestOpenedPack ? (
             <div className="pool-reward-summary">
               <p className="muted">
-                Latest pack: {latestPackName} | New cards are in Pool Cards below.
+                Latest pack: {latestPackName} |{" "}
+                {phase === "planning"
+                  ? "New cards are marked below and can be moved now."
+                  : "New cards are marked below; move them after you Advance to planning."}
               </p>
               {latestRewardHistoryEntry ? (
                 <p className="muted">
@@ -2231,19 +2248,30 @@ export function App() {
                 {latestCombatSummary.damageToOpponent} | Events:{" "}
                 {latestCombatSummary.eventCount} | Gold: +{latestCombatSummary.goldEarned}
               </p>
+              <p className="flow-note">
+                Combat recorded: {latestCombatSummary.winner}. You gained{" "}
+                {latestCombatSummary.goldEarned} gold.{" "}
+                {phase === "reward"
+                  ? "Claim one pack and one Commander upgrade before advancing."
+                  : packRewardClaimedThisRound && commanderUpgradeClaimedThisRound
+                    ? "Rewards are complete; Advance starts the next planning round."
+                    : "Finish any remaining reward before advancing."}
+              </p>
               {lastRecordedCombatDisplaySummary ? (
                 <>
                   <CombatSummaryView summary={lastRecordedCombatDisplaySummary} />
-                  <RawDebugDetails
-                    label="Raw debug events"
-                    value={{
-                      round: lastRecordedCombat?.round,
-                      encounterId: lastRecordedCombat?.encounterId,
-                      runSummary: latestCombatSummary,
-                      events: lastRecordedCombat?.result.events ?? [],
-                      warnings: lastRecordedCombat?.result.warnings ?? []
-                    }}
-                  />
+                  {showDeveloperDetails ? (
+                    <RawDebugDetails
+                      label="Developer event JSON"
+                      value={{
+                        round: lastRecordedCombat?.round,
+                        encounterId: lastRecordedCombat?.encounterId,
+                        runSummary: latestCombatSummary,
+                        events: lastRecordedCombat?.result.events ?? [],
+                        warnings: lastRecordedCombat?.result.warnings ?? []
+                      }}
+                    />
+                  ) : null}
                 </>
               ) : (
                 <p className="muted combat-empty">
@@ -2265,15 +2293,17 @@ export function App() {
               {combat.events.length}
             </p>
             <CombatSummaryView summary={upcomingCombatDisplaySummary} />
-            <RawDebugDetails
-              label="Raw debug events"
-              value={{
-                phase,
-                currentEncounterId: currentEncounter?.id ?? null,
-                events: combat.events,
-                warnings: combat.warnings
-              }}
-            />
+            {showDeveloperDetails ? (
+              <RawDebugDetails
+                label="Developer event JSON"
+                value={{
+                  phase,
+                  currentEncounterId: currentEncounter?.id ?? null,
+                  events: combat.events,
+                  warnings: combat.warnings
+                }}
+              />
+            ) : null}
           </div>
         ) : null}
       </section>

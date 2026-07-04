@@ -51,7 +51,7 @@ describe("run clarity helpers", () => {
     const illegalValidation = validateRunLoadout(illegalRun, sampleCatalog);
 
     expect(getRunNextActionMessage(planningRun, planningValidation)).toBe(
-      "Next: adjust your loadout or ready combat."
+      "Next: tune your board, Sources, Spellrail, and Commander, then ready combat."
     );
     expect(getRunNextActionMessage(illegalRun, illegalValidation)).toBe(
       "Fix loadout errors before combat."
@@ -61,16 +61,16 @@ describe("run clarity helpers", () => {
         { ...planningRun, phase: "combatReady" },
         planningValidation
       )
-    ).toBe("Next: review the preview, then record combat.");
+    ).toBe("Next: review the combat preview, then record combat to lock in the result.");
     expect(
       getRunNextActionMessage({ ...planningRun, phase: "reward" }, planningValidation)
-    ).toBe("Next: open one reward pack and choose one Commander upgrade.");
+    ).toBe("Next: claim both rewards: open one pack and choose one Commander upgrade.");
     expect(
       getRunNextActionMessage(
         { ...planningRun, phase: "combatResolved" },
         planningValidation
       )
-    ).toBe("Next: advance to the next round.");
+    ).toBe("Next: advance to start the next planning round.");
     expect(
       getRunNextActionMessage(
         { ...planningRun, status: "won", phase: "complete" },

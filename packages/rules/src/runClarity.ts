@@ -100,10 +100,10 @@ export const getRunNextActionMessage = (
   switch (phase) {
     case "planning":
       return validation.ok
-        ? "Next: adjust your loadout or ready combat."
+        ? "Next: tune your board, Sources, Spellrail, and Commander, then ready combat."
         : "Fix loadout errors before combat.";
     case "combatReady":
-      return "Next: review the preview, then record combat.";
+      return "Next: review the combat preview, then record combat to lock in the result.";
     case "reward": {
       if (!canApplyRewardNow) {
         return "Next: rewards will appear after combat.";
@@ -117,7 +117,7 @@ export const getRunNextActionMessage = (
         run.commander.upgradeHistory.some((entry) => entry.round === run.currentRound);
 
       if (!packRewardClaimed && !commanderUpgradeClaimed) {
-        return "Next: open one reward pack and choose one Commander upgrade.";
+        return "Next: claim both rewards: open one pack and choose one Commander upgrade.";
       }
       if (!packRewardClaimed) {
         return "Next: open one reward pack.";
@@ -128,7 +128,7 @@ export const getRunNextActionMessage = (
       return "Next: reward choices are complete.";
     }
     case "combatResolved":
-      return "Next: advance to the next round.";
+      return "Next: advance to start the next planning round.";
   }
 };
 

@@ -738,6 +738,16 @@ h4 {
   padding: 9px 10px;
 }
 
+.flow-note {
+  background: #f3f7f5;
+  border: 1px solid #d9e4df;
+  border-radius: 6px;
+  color: #244532;
+  font-weight: 700;
+  margin: 10px 0 0;
+  padding: 9px 10px;
+}
+
 .source-summary {
   display: grid;
   gap: 8px;

@@ -3,14 +3,15 @@
 ## 1. Executive Summary
 
 Current prototype status: Packbound's normal browser prototype still works, and
-the new opt-in Pixi renderer lab is a useful proof of direction but should remain
-lab-only for now.
+the default route now uses the Pixi battlefield as its primary board. Renderer
+Lab remains the opt-in diagnostics route for replay controls, feed comparison,
+and click-to-place stress testing.
 
-The default route still uses the React/CSS Hex Arena. Starter selection, dual
-inspectors, readying combat, combat recording, reward pack purchase, run
-advancement, engagement preview overlays, priority lab, and duplicate upgrade lab
-all worked during this pass. No browser console warnings or errors were captured
-while manually testing the requested routes.
+The default route keeps starter selection, dual inspectors, readying combat,
+combat recording, reward pack purchase, run advancement, engagement preview
+overlays, priority lab, and duplicate upgrade lab intact. The React/CSS Hex
+Arena remains available as a collapsed debug fallback rather than the primary
+default battlefield.
 
 The old stale issues are no longer the right top blockers:
 
@@ -21,10 +22,10 @@ The old stale issues are no longer the right top blockers:
 2. Missing selected range/target preview is fixed substantially. The React/CSS
    Hex Arena shows selected cells, range cells, likely target, attack-now or
    out-of-range state, and next-move markers clearly enough for debug play.
-3. The two-board battlefield presentation is only partially addressed. The
-   default route still reads as two stacked boards joined by an engagement line.
-   `?scenario=renderer-lab` presents a better single shared battlefield, but it
-   is still a generated-shape lab with readability and replay-coverage gaps.
+3. The two-board battlefield presentation is fixed for the primary default
+   battlefield. `/` and `?scenario=renderer-lab` now use the shared Pixi field,
+   while the old React/CSS two-board view remains available only as a collapsed
+   debug fallback.
 
 The Pixi renderer lab passes its basic lifecycle checks: one canvas mounts, Play
 and Reset are clickable, repeated `Play -> Reset -> Play` did not create
@@ -54,6 +55,13 @@ shows replay status, visual command index, total visualized command count, and
 the latest command summary. Browser smoke now clicks `Play -> Pause -> Step ->
 Reset -> Play` and checks the text state plus single-canvas safety.
 
+Implementation update after this task: the default route now mounts the Pixi
+battlefield as the primary `Battlefield` view. It keeps Ally Inspector, Enemy
+Inspector, Engagement Preview, compact run stats, and Combat Model Notes, but
+does not render Renderer Lab's replay buttons, Renderer Feed, Combat Feed
+Sample, or click-to-place lab panels. The old React/CSS Hex Arena is still
+available inside a collapsed `React/CSS Debug Board` fallback on `/`.
+
 Planning update after the Commander design refactor: design docs now frame a
 future Commander / Command Zone / Rebind Tax / Signature Relic direction as a
 real card-like run identity layer, not a hero-power button. This task adds the
@@ -65,7 +73,7 @@ use larger unit circles, stronger support plates, clearer nameplates, larger
 ATK/HP/RNG chips, stronger selected/target/range/placeable rings, wider
 same-coordinate offsets, and brighter/longer attack, damage, destroyed, appear,
 and phase cues. Browser smoke still avoids pixel assertions, so this should get
-a fresh manual visual pass before Pixi becomes the default.
+a fresh manual visual pass after any substantial future Pixi visual change.
 
 Manual validation update after this task: the latest Pixi readability pass has
 now been checked at 1280 x 720 and briefly at 1440 x 900. Pixi remained primary,
@@ -221,9 +229,9 @@ and browser smoke passed during the pass. Remaining client bloat is mostly
 renderer-lab state/controller setup and top-level App state coordination.
 
 The biggest remaining Pixi findings are no longer the absence of replay controls,
-tiny first-pass labels, or unvalidated readability. The lab still needs event
-grouping/filtering for long feeds, scrub or speed controls, and final
-default-route confidence. Pixi should stay opt-in until those are addressed.
+tiny first-pass labels, unvalidated readability, or default-route confidence.
+Now that Pixi is primary on `/`, the next gaps are long-feed grouping/filtering,
+scrub or speed controls in Renderer Lab, and more polished direct board editing.
 
 Recommended next task:
 
@@ -276,7 +284,7 @@ Build warning observed and not fixed in this task:
 
 | Scenario                   | Manual result | Notes                                                                                                                                 |
 | -------------------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| Default route `/`          | Pass          | React/CSS Hex Arena remains default; full run loop still works.                                                                       |
+| Default route `/`          | Pass          | Pixi battlefield is now primary; full run loop still works and React/CSS remains collapsed as a debug fallback.                       |
 | `?scenario=renderer-lab`   | Lab pass      | Pixi readability is manually validated; reset/play stall is fixed in smoke coverage.                                                  |
 | `?scenario=engagement-lab` | Pass          | Out-of-range melee and in-range ranged previews are understandable.                                                                   |
 | `?scenario=priority-lab`   | Pass          | Commander Rally, Prototype Technique, Target Probe, contract text, target metadata, source lifecycle, stack, log, skirmish flow work. |
@@ -311,7 +319,7 @@ combat, Commander, encounter, card, or Pixi-default behavior changed.
   panel that names the current next action and shows the intended loop:
   prepare loadout, start combat, review combat, choose rewards, and advance.
 - The visible core remains the run header, starter selector, Ready / Record /
-  Advance controls, React/CSS Hex Arena, Ally Inspector, Enemy Inspector,
+  Advance controls, Pixi battlefield, Ally Inspector, Enemy Inspector,
   compact Command Zone, Board, Source Row, Spellrail, Pool Cards, reward choices
   when relevant, Commander upgrades when relevant, and compact combat result
   summaries.
@@ -356,8 +364,8 @@ combat, Commander, encounter, card, or Pixi-default behavior changed.
   new post-pack suggestions explain that timing and apply legal next edits, but
   they are intentionally not automatic and not available during reward choice.
 - Support/ground layering is still more implied than taught.
-- The React/CSS board still reads as two stacked boards rather than a single
-  shared arena; Pixi remains lab-only.
+- The primary default battlefield now reads as one shared Pixi arena; the
+  collapsed React/CSS debug fallback still reads as two stacked boards.
 - Long combat feeds are collapsed, not yet grouped or filtered.
 
 ### What Currently Feels Like A Game
@@ -472,8 +480,8 @@ combat, Commander, encounter, card, or Pixi-default behavior changed.
   bias text. They still do not preview exact pack contents.
 - Long combat summaries still need grouping/filtering so the player can see the
   few important swing events.
-- The default React/CSS battlefield still reads as two boards rather than one
-  arena, even though it is functional and horizontally stable.
+- The collapsed React/CSS fallback still reads as two boards rather than one
+  arena, even though it remains functional and horizontally stable.
 
 ### Top 5 Small Fixes To Make The Current Game More Fun
 
@@ -517,17 +525,19 @@ Run State guidance moved through the expected loop:
 - Combat resolved: resolving both reward buckets enables `Advance`.
 - Advancing moves to round 2 planning against Ash Debt Collector.
 
-The default route did not mount Pixi. It used the React/CSS Hex Arena, with
-`canvasCount: 0`, and produced no Pixi errors on the default page.
+The default route now mounts exactly one Pixi battlefield canvas as the primary
+board. It produced no replay controls, no Renderer Feed, and no duplicate Pixi
+canvases on the default page. The React/CSS Hex Arena stayed available inside a
+collapsed `React/CSS Debug Board` fallback.
 
 Ally Inspector and Enemy Inspector remain useful. They expose type, zone,
 aspect, cost, stats, upgrade state, keywords, tags, traits, combat stat chips,
 rules text, ability text, design metadata, and legal actions where relevant.
 The selected ally and selected enemy can be compared at the same time.
 
-The Hex Arena shows relevant occupied cells immediately and has no horizontal
-overflow at the default 1280 x 720 browser size. The first selected Ember
-Scraprunner preview showed:
+The Pixi battlefield shows the relevant occupied tokens immediately and has no
+horizontal overflow at the default 1280 x 720 browser size. The first selected
+Ember Scraprunner preview showed:
 
 - `Attack now`
 - `Ember Scraprunner can attack Ember Scraprunner now.`
@@ -538,16 +548,16 @@ The normal debug loop worked end to end. I readied combat, recorded the round 1
 draw, reached reward phase, opened a reward pack, saw a new pool card marker and
 gold drop from 5 to 1, then advanced to round 2 planning.
 
-Remaining default-route UX note: the two-board Hex Arena still reads as two
-submitted boards rather than one battlefield. This is a presentation issue, not
-a blocker for the current debug loop.
+Remaining default-route UX note: the primary battlefield now reads as one shared
+arena, but most loadout editing still happens through list buttons below the
+board rather than direct board manipulation.
 
 ## 5. `?scenario=renderer-lab`
 
 Renderer lab is now Pixi-centric. The React/CSS Hex Arena is hidden by default
 inside a collapsed `React/CSS Debug Board` fallback, and Pixi is the first
-battlefield view on the route. This does not affect the normal `/` route, which
-still uses the React/CSS Hex Arena.
+battlefield view on the route. It now matches the default route's primary
+renderer, while keeping replay controls and feed diagnostics lab-only.
 
 Basic renderer lifecycle checks passed:
 
@@ -575,8 +585,7 @@ combat screen.
 
 What works:
 
-- The renderer reads much more like one shared battlefield than the default
-  two-board Hex Arena.
+- The renderer reads like one shared battlefield on both `/` and Renderer Lab.
 - The Pixi field now uses native board coordinates. A player unit at `r0 c2`
   and enemy unit at `r0 c3` render as adjacent, matching range and targeting
   truth.
@@ -657,11 +666,11 @@ Replay pacing:
 
 ### Default-Renderer Decision
 
-Pixi should remain lab-only for now. The route is now a better playable
-viewpoint, coordinate semantics match combat truth, token inspection works, and
-the readability pass addresses the most obvious label/stat/effect issues. It is
-still not ready to replace the React/CSS Hex Arena on `/` until long combat
-feeds are grouped or filtered and replay scrub/speed controls exist.
+Pixi is now the primary default-route battlefield. Coordinate semantics match
+combat truth, token inspection works, and the readability pass addresses the
+most obvious label/stat/effect issues. Renderer Lab should remain the place for
+replay controls, feed comparison, click-to-place diagnostics, and longer Pixi
+debug workflows until those surfaces are polished enough for player-facing use.
 
 ## 6. `?scenario=engagement-lab`
 
@@ -786,7 +795,7 @@ No horizontal overflow appeared in the upgrade lab.
 | Hex board has horizontal scroll                | Fixed                | No horizontal page overflow at 1280 x 720 on tested routes.                     |
 | Occupied cells hidden to the right             | Fixed horizontally   | Occupied cells fit width; vertical density remains a separate issue.            |
 | Missing range/target preview                   | Fixed substantially  | Selected, range, target, attack/out-of-range, and next-move markers work.       |
-| Two boards do not feel like one arena          | Partially addressed  | Default still has two boards; Pixi lab gives a stronger one-arena prototype.    |
+| Two boards do not feel like one arena          | Fixed on primary UI  | Default and renderer lab now use Pixi; the old two-board view is collapsed.     |
 | Pixi split player/enemy rows from combat truth | Fixed in lab         | Pixi now uses native row/col coordinates with only visual offsets for overlaps. |
 | Long combat summaries need grouping/filtering  | Still true           | Especially visible in Rotbloom's 111-event renderer-lab feed.                   |
 | Priority shell is not visible                  | Fixed for developers | Priority lab now shows stack, source context, stability, skirmish, second main. |
@@ -819,7 +828,7 @@ No horizontal overflow appeared in the upgrade lab.
   enough for renderer-lab use.
 - Remaining concern: long names such as `Cloudgate Adept` can truncate, and
   adjacent nameplates can still crowd in dense rows.
-- Severity: Medium before Pixi can become default.
+- Severity: Medium for default-route polish.
 
 ### Partially Addressed: Pixi Attack And Destroyed Effects
 
@@ -831,7 +840,7 @@ No horizontal overflow appeared in the upgrade lab.
   implementation. Damage, destroyed, and recalled-token visuals were manually
   visible in this pass.
 - Remaining concern: attack beams remain quick enough to miss without Step.
-- Severity: Low for lab, medium for default-renderer readiness.
+- Severity: Low for current play, medium for replay readability polish.
 
 ### Fixed: Reset Then Play No Longer Stalls Replay Index
 
@@ -856,15 +865,14 @@ No horizontal overflow appeared in the upgrade lab.
   that make a specific move, attack, recall, or destroyed event easy to revisit.
 - Severity: Medium as soon as Pixi is used for debugging non-trivial combats.
 
-### UX Confusion: Two Presentations Coexist, But Renderer Lab Is Cleaner
+### UX Confusion: Two Presentations Coexist
 
-- Steps: Open `?scenario=renderer-lab`.
-- Observed: Pixi is now the primary route view, and the React/CSS board is
-  collapsed as a fallback. The broader debug grid still exists below the lab,
-  so the route is still a debug/prototype surface rather than a final combat
-  screen.
+- Steps: Open `/` or `?scenario=renderer-lab`.
+- Observed: Pixi is now the primary battlefield, and the React/CSS board is
+  collapsed as a fallback. Renderer Lab still has the broader replay/debug grid,
+  so it remains a diagnostic route rather than a final combat screen.
 - Expected: Keep the fallback while Pixi is experimental; revisit once replay
-  controls and token readability improve.
+  controls, token readability, and direct board editing mature.
 - Severity: Low for the lab.
 
 ## 11. How To Manually Test The Pixi Renderer Lab
@@ -945,8 +953,10 @@ Note:
 
 ## 12. Known Limitations
 
-- Pixi renderer lab is opt-in only and is not the default battlefield.
-- The default React/CSS Hex Arena remains the reliable debug battlefield.
+- Pixi is now the primary default battlefield, but it still uses generated
+  shapes and text rather than final art assets.
+- The React/CSS Hex Arena remains available as a collapsed debug fallback on `/`
+  and `?scenario=renderer-lab`.
 - The default route now hides/collapses most developer bloat, but Board, Source
   Row, Spellrail, Pool/Bench, and Commander controls are still explicit
   list/button debug controls rather than final direct-manipulation game UI.
@@ -962,7 +972,6 @@ Note:
   route wiring, Battlefield / Hex Arena rendering, and default debug-grid route
   composition have been extracted from `App.tsx`, but the file still owns
   renderer-lab state/controller setup and top-level run state coordination.
-- Pixi uses generated shapes and text, not final art assets.
 - Pixi labels, stat chips, rings, and combat effects have been strengthened, but
   long names and dense adjacent rows can still crowd.
 - Pixi has click-to-select token inspection and minimal click-to-place from
@@ -1043,7 +1052,7 @@ Still wait:
 - More prototype actions
 - Signature Relics
 - Authored effect engine
-- Pixi as the default renderer
+- Pixi final-art presentation
 - Drag/drop
 - Backend
 - Multiplayer

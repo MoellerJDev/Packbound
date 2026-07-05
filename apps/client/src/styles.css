@@ -225,6 +225,21 @@ h4 {
   padding: 12px;
 }
 
+.default-pixi-stage {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.default-pixi-stage .pixi-renderer-host {
+  height: min(62vh, 640px);
+  min-height: 520px;
+}
+
+.default-pixi-debug-board {
+  margin-top: 4px;
+}
+
 .battlefield-board-side {
   min-width: 0;
 }
@@ -1774,6 +1789,11 @@ pre {
   }
 
   .battlefield-board {
+    grid-column: 1 / -1;
+    order: -1;
+  }
+
+  .default-pixi-stage {
     grid-column: 1 / -1;
     order: -1;
   }

@@ -69,6 +69,11 @@ import {
   type BattlefieldSectionController,
   type BattlefieldSectionView
 } from "./components/BattlefieldSection";
+import {
+  DefaultPixiBattlefieldSection,
+  type DefaultPixiBattlefieldController,
+  type DefaultPixiBattlefieldView
+} from "./components/DefaultPixiBattlefieldSection";
 import type {
   LastRecordedCombatPanelView,
   UpcomingCombatPanelView
@@ -1347,6 +1352,24 @@ export function App() {
   const battlefieldSectionController = {
     hexArena: hexArenaController
   } satisfies BattlefieldSectionController;
+  const defaultPixiBattlefieldView = {
+    currentRound: run.currentRound,
+    encounterName: currentEncounter?.name ?? "None",
+    engagementPreview,
+    phase,
+    pixiBattlefieldModel,
+    playerGold: run.playerGold,
+    playerHealth: run.playerHealth,
+    selectedAllyInspection,
+    selectedEnemyInspection
+  } satisfies DefaultPixiBattlefieldView;
+  const renderDebugBoard = () => (
+    <HexArenaView controller={hexArenaController} view={hexArenaView} />
+  );
+  const defaultPixiBattlefieldController = {
+    onTokenSelect: selectPixiToken,
+    renderDebugBoard
+  } satisfies DefaultPixiBattlefieldController;
   const defaultRunRouteView = {
     combat: {
       lastRecorded: lastRecordedCombatPanelView,
@@ -1437,9 +1460,7 @@ export function App() {
     onReturnCommander: returnCommanderFromBoard,
     onStepReplay: stepRendererReplay,
     onTokenSelect: selectPixiToken,
-    renderDebugBoard: () => (
-      <HexArenaView controller={hexArenaController} view={hexArenaView} />
-    ),
+    renderDebugBoard,
     renderLoadoutActions,
     renderRendererPoolActions
   } satisfies RendererLabRouteController;
@@ -1498,7 +1519,14 @@ export function App() {
         </div>
       </section>
 
-      {!isRendererLab ? (
+      {isDefaultRoute ? (
+        <DefaultPixiBattlefieldSection
+          controller={defaultPixiBattlefieldController}
+          view={defaultPixiBattlefieldView}
+        />
+      ) : null}
+
+      {!isDefaultRoute && !isRendererLab ? (
         <BattlefieldSection
           controller={battlefieldSectionController}
           view={battlefieldSectionView}

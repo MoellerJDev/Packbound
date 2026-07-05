@@ -152,6 +152,7 @@ test("debug loop can inspect, preview, record, reward, and advance", async ({ pa
   ).toContainText("Round 1 | Starter | Phase planning | to command");
 
   const boardPanel = panel(page, "Board");
+  const poolPanel = panel(page, "Pool Cards");
   const battlefield = page.locator(".battlefield-section");
   const rendererHost = page.getByTestId("pixi-renderer-host");
   const allyInspector = battlefield.locator(".battlefield-inspector.ally");
@@ -221,6 +222,23 @@ test("debug loop can inspect, preview, record, reward, and advance", async ({ pa
     engagementPreview.getByText("Ember Scraprunner can attack Ember Scraprunner now.")
   ).toBeVisible();
   await expectNoHorizontalScroll(rendererHost);
+
+  await expect(
+    battlefield.getByText(
+      "Select a board-placeable Pool card below, then click a highlighted Pixi cell."
+    )
+  ).toBeVisible();
+  const sparkcatchPoolRow = poolPanel
+    .getByRole("listitem")
+    .filter({ hasText: "Sparkcatch Apprentice" });
+  await sparkcatchPoolRow.getByRole("button", { name: "Select Board Cell" }).click();
+  await expect(battlefield.getByText("Placing Sparkcatch Apprentice.")).toBeVisible();
+  await clickPixiCell(page, rendererHost, 0, 0);
+  await expect(battlefield.getByText("Placing Sparkcatch Apprentice.")).toHaveCount(0);
+  await expect(
+    boardPanel.getByRole("listitem").filter({ hasText: "Sparkcatch Apprentice" }).first()
+  ).toBeVisible();
+  await expect(rendererHost.locator("canvas")).toHaveCount(1);
 
   await page.getByRole("button", { name: "Ready Combat" }).click();
 
@@ -312,7 +330,6 @@ test("debug loop can inspect, preview, record, reward, and advance", async ({ pa
     )
   ).toBeVisible();
 
-  const poolPanel = panel(page, "Pool Cards");
   await expect(poolPanel.getByText(/Latest pack:/)).toBeVisible();
   await expect(poolPanel.getByText(/Paid \d+ gold/)).toBeVisible();
   await expect(poolPanel.getByText("new").first()).toBeVisible();

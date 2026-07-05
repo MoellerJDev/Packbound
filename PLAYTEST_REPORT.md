@@ -62,6 +62,13 @@ does not render Renderer Lab's replay buttons, Renderer Feed, Combat Feed
 Sample, or click-to-place lab panels. The old React/CSS Hex Arena is still
 available inside a collapsed `React/CSS Debug Board` fallback on `/`.
 
+Implementation update after this task: the default Pixi battlefield now has a
+minimal board-placement affordance. A legal board-placeable Pool card can be
+selected with `Select Board Cell`, Pixi highlights legal cells using the same
+placeable-position model as Renderer Lab, and clicking a highlighted cell places
+the card through the existing `placeCardOnBoard` reducer path. The original
+list-button `Place on Board` workflow remains available.
+
 Planning update after the Commander design refactor: design docs now frame a
 future Commander / Command Zone / Rebind Tax / Signature Relic direction as a
 real card-like run identity layer, not a hero-power button. This task adds the
@@ -231,7 +238,8 @@ renderer-lab state/controller setup and top-level App state coordination.
 The biggest remaining Pixi findings are no longer the absence of replay controls,
 tiny first-pass labels, unvalidated readability, or default-route confidence.
 Now that Pixi is primary on `/`, the next gaps are long-feed grouping/filtering,
-scrub or speed controls in Renderer Lab, and more polished direct board editing.
+scrub or speed controls in Renderer Lab, and broader direct board editing beyond
+the first Pool/Bench placement affordance.
 
 Recommended next task:
 
@@ -544,13 +552,19 @@ Ember Scraprunner preview showed:
 - `Distance 1, range 1.`
 - `Likely target: nearest valid enemy.`
 
+Default Pixi placement now has a small direct-manipulation path. Selecting a
+legal Pool card with `Select Board Cell` shows highlighted Pixi cells, and
+clicking one places the card through the existing loadout reducer. The list
+button `Place on Board` path still works and remains visible.
+
 The normal debug loop worked end to end. I readied combat, recorded the round 1
 draw, reached reward phase, opened a reward pack, saw a new pool card marker and
 gold drop from 5 to 1, then advanced to round 2 planning.
 
 Remaining default-route UX note: the primary battlefield now reads as one shared
-arena, but most loadout editing still happens through list buttons below the
-board rather than direct board manipulation.
+arena and supports Pool-to-board cell placement, but Source Row, Spellrail,
+return-to-pool, and most loadout edits still happen through list buttons below
+the board.
 
 ## 5. `?scenario=renderer-lab`
 
@@ -957,9 +971,10 @@ Note:
   shapes and text rather than final art assets.
 - The React/CSS Hex Arena remains available as a collapsed debug fallback on `/`
   and `?scenario=renderer-lab`.
-- The default route now hides/collapses most developer bloat, but Board, Source
-  Row, Spellrail, Pool/Bench, and Commander controls are still explicit
-  list/button debug controls rather than final direct-manipulation game UI.
+- The default route now hides/collapses most developer bloat and supports
+  minimal Pool-to-board Pixi placement, but Source Row, Spellrail, return, and
+  Commander controls are still explicit list/button debug controls rather than
+  final direct-manipulation game UI.
 - Post-pack suggestions are deterministic and use existing legal actions only.
   They look only at the latest opened pack, suggest at most a few forward edits,
   and do not reason about long-term build quality, source swaps, duplicate
@@ -975,7 +990,8 @@ Note:
 - Pixi labels, stat chips, rings, and combat effects have been strengthened, but
   long names and dense adjacent rows can still crowd.
 - Pixi has click-to-select token inspection and minimal click-to-place from
-  Pool/Bench, but no drag/drop, hover tooltips, or full board-editing polish.
+  Pool/Bench on both `/` and Renderer Lab, but no drag/drop, hover tooltips, or
+  full board-editing polish.
 - Replay controls now cover Play/Resume, Pause, Step, and Reset, but there is no
   scrubber, speed control, event grouping, or filtered command list yet.
 - Step advances one visual command when playback is idle or paused. If clicked

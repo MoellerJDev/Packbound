@@ -240,6 +240,13 @@ h4 {
   margin-top: 4px;
 }
 
+.default-pixi-placement-note {
+  color: #c7d8d2;
+  font-size: 0.88rem;
+  font-weight: 800;
+  margin: -2px 0 0;
+}
+
 .battlefield-board-side {
   min-width: 0;
 }

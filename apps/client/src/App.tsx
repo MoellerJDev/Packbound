@@ -585,11 +585,14 @@ export function App() {
         playerBoard: playerBoardGrid,
         ...(encounterBoardGrid ? { enemyBoard: encounterBoardGrid } : {}),
         engagementPreview,
-        ...(isRendererLab ? { placeablePositions: rendererPlaceablePositions } : {})
+        ...(isDefaultRoute || isRendererLab
+          ? { placeablePositions: rendererPlaceablePositions }
+          : {})
       }),
     [
       encounterBoardGrid,
       engagementPreview,
+      isDefaultRoute,
       isRendererLab,
       playerBoardGrid,
       rendererPlaceablePositions
@@ -928,6 +931,7 @@ export function App() {
 
   const renderLoadoutActions = (cardInstanceId: CardInstanceId) => {
     const actions = getLegalLoadoutActions(run, sampleCatalog, cardInstanceId);
+    const placeAction = actions.find((action) => action.type === "placeOnBoard");
     const selectRunCard = () => {
       setRendererPlacementCardId(undefined);
       setSelectedAllyCardRef({ type: "run", cardInstanceId });
@@ -956,6 +960,14 @@ export function App() {
     return (
       <div className="mini-actions">
         {inspectButton}
+        {isDefaultRoute && placeAction ? (
+          <button
+            type="button"
+            onClick={() => selectRendererPlacementCard(cardInstanceId)}
+          >
+            Select Board Cell
+          </button>
+        ) : null}
         {actions.map((action) => (
           <button
             key={`${cardInstanceId}:${action.type}`}
@@ -1360,6 +1372,9 @@ export function App() {
     pixiBattlefieldModel,
     playerGold: run.playerGold,
     playerHealth: run.playerHealth,
+    placementCardName: rendererPlacementCard
+      ? cardName(rendererPlacementCard.defId)
+      : undefined,
     selectedAllyInspection,
     selectedEnemyInspection
   } satisfies DefaultPixiBattlefieldView;
@@ -1367,6 +1382,7 @@ export function App() {
     <HexArenaView controller={hexArenaController} view={hexArenaView} />
   );
   const defaultPixiBattlefieldController = {
+    onCellSelect: placeRendererCardOnCell,
     onTokenSelect: selectPixiToken,
     renderDebugBoard
   } satisfies DefaultPixiBattlefieldController;

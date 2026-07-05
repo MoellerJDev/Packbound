@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import type { CardInspection, EngagementPreview } from "@packbound/rules";
+import type { BoardPosition } from "@packbound/shared";
 
 import { CardInspectorView } from "./CardInspectorView";
 import { CombatModelFactsView } from "./CombatModelFactsView";
@@ -17,6 +18,7 @@ export type DefaultPixiBattlefieldView = {
   readonly engagementPreview: EngagementPreview;
   readonly phase: string;
   readonly pixiBattlefieldModel: PixiBattlefieldModel;
+  readonly placementCardName: string | undefined;
   readonly playerGold: number;
   readonly playerHealth: number;
   readonly selectedAllyInspection: CardInspection | undefined;
@@ -24,6 +26,7 @@ export type DefaultPixiBattlefieldView = {
 };
 
 export type DefaultPixiBattlefieldController = {
+  readonly onCellSelect: (position: BoardPosition) => void;
   readonly onTokenSelect: (card: PixiBattlefieldCard) => void;
   readonly renderDebugBoard: () => ReactNode;
 };
@@ -85,7 +88,17 @@ export const DefaultPixiBattlefieldSection = ({
           replayResetKey={0}
           replayStepRequestKey={0}
           onTokenSelect={controller.onTokenSelect}
+          onCellSelect={controller.onCellSelect}
         />
+        {view.placementCardName ? (
+          <p className="renderer-placement-hint default-pixi-placement-hint">
+            Placing {view.placementCardName}. Click a highlighted Pixi cell.
+          </p>
+        ) : (
+          <p className="default-pixi-placement-note">
+            Select a board-placeable Pool card below, then click a highlighted Pixi cell.
+          </p>
+        )}
         <EngagementPreviewPanel preview={view.engagementPreview} />
         <details className="renderer-debug-board default-pixi-debug-board">
           <summary>React/CSS Debug Board</summary>

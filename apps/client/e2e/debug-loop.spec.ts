@@ -77,6 +77,7 @@ test("debug loop can inspect, preview, record, reward, and advance", async ({ pa
   await expect(runStatePanel.getByText("Choose rewards")).toBeVisible();
   await expect(runStatePanel.getByText("Advance to next fight")).toBeVisible();
   await expect(runStatePanel.getByText("Run details")).toBeVisible();
+  await expect(page.getByTestId("post-pack-suggestions-panel")).toHaveCount(0);
   const opponentDetails = panel(page, "Opponent Details");
   await expect(opponentDetails).toBeVisible();
   expect(
@@ -346,6 +347,18 @@ test("debug loop can inspect, preview, record, reward, and advance", async ({ pa
   await expect(rewardPanel.getByRole("button", { name: "Open" }).first()).toBeVisible();
   await rewardPanel.getByRole("button", { name: "Open" }).first().click();
 
+  const postPackSuggestions = page.getByTestId("post-pack-suggestions-panel");
+  await expect(postPackSuggestions).toBeVisible();
+  await expect(
+    postPackSuggestions.getByRole("heading", { name: "Suggested next edits" })
+  ).toBeVisible();
+  await expect(postPackSuggestions.getByText(/Latest pack:/)).toBeVisible();
+  await expect(
+    postPackSuggestions.getByText(
+      "New cards are in your pool. Advance to the next planning round to edit your loadout."
+    )
+  ).toBeVisible();
+
   const poolPanel = panel(page, "Pool Cards");
   await expect(poolPanel.getByText(/Latest pack:/)).toBeVisible();
   await expect(poolPanel.getByText(/Paid \d+ gold/)).toBeVisible();
@@ -355,6 +368,36 @@ test("debug loop can inspect, preview, record, reward, and advance", async ({ pa
 
   await expect(runStatePanel.getByText("2 / 3")).toBeVisible();
   await expect(runStatePanel.getByText(/Next:/)).toBeVisible();
+  await expect(
+    postPackSuggestions.getByTestId("post-pack-suggestion").first()
+  ).toBeVisible();
+  const firstSuggestion = postPackSuggestions.getByTestId("post-pack-suggestion").first();
+  await firstSuggestion.scrollIntoViewIfNeeded();
+  await expect(
+    firstSuggestion.getByRole("button", { name: /Apply suggested edit:/ })
+  ).toBeVisible();
+  const suggestedCardName =
+    (await firstSuggestion.getByTestId("post-pack-suggestion-card-name").textContent()) ??
+    "";
+  const suggestedAction =
+    (await firstSuggestion.getByTestId("post-pack-suggestion-action").textContent()) ??
+    "";
+  expect(suggestedCardName.trim().length).toBeGreaterThan(0);
+  await expect(firstSuggestion.getByText(/High|Medium|Low/).first()).toBeVisible();
+  await firstSuggestion.getByRole("button", { name: /Apply suggested edit:/ }).click();
+  if (suggestedAction.includes("Source Row")) {
+    await expect(
+      panel(page, "Source Row").getByText(suggestedCardName.trim(), { exact: true })
+    ).toBeVisible();
+  } else if (suggestedAction.includes("Spellrail")) {
+    await expect(
+      panel(page, "Spellrail").getByText(suggestedCardName.trim(), { exact: true })
+    ).toBeVisible();
+  } else if (suggestedAction.includes("Board")) {
+    await expect(
+      panel(page, "Board").getByText(suggestedCardName.trim(), { exact: true })
+    ).toBeVisible();
+  }
 
   expect(errors.pageErrors).toEqual([]);
   expect(errors.consoleErrors).toEqual([]);

@@ -6,6 +6,7 @@ import {
   buildBoardGridSummary,
   buildEngagementPreview,
   buildLoadoutResourceSummary,
+  buildPostPackLoadoutSuggestions,
   buildRewardOfferExplanations,
   buildRunTraitSummary,
   buildCombatantSetupForEncounter,
@@ -75,6 +76,7 @@ import { CardInspectorView } from "./components/CardInspectorView";
 import { CombatModelFactsView } from "./components/CombatModelFactsView";
 import { CombatSummaryView } from "./components/CombatSummaryView";
 import { EngagementPreviewPanel } from "./components/EngagementPreviewPanel";
+import { PostPackSuggestionsPanel } from "./components/PostPackSuggestionsPanel";
 import { PriorityLabPanel } from "./components/PriorityLabPanel";
 import { PixiBattlefieldRenderer } from "./components/pixi/PixiBattlefieldRenderer";
 import {
@@ -561,6 +563,10 @@ export function App() {
   const latestCombatSummary = run.combatHistory.at(-1);
   const latestOpenedPack = run.openedPacks.at(-1);
   const latestRewardHistoryEntry = run.rewardHistory.at(-1);
+  const postPackSuggestions = useMemo(
+    () => buildPostPackLoadoutSuggestions(run, sampleCatalog),
+    [run]
+  );
   const upcomingCombatDisplaySummary = useMemo(
     () =>
       combat
@@ -2306,6 +2312,13 @@ export function App() {
             })}
           </ol>
         </div>
+
+        {isDefaultRoute && postPackSuggestions.latestOpenedCardCount > 0 ? (
+          <PostPackSuggestionsPanel
+            summary={postPackSuggestions}
+            onApplySuggestion={performLoadoutAction}
+          />
+        ) : null}
 
         <div className="panel">
           <h2>Board</h2>

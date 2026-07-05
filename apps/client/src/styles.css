@@ -745,6 +745,93 @@ h4 {
   color: #88342f;
 }
 
+.post-pack-suggestions-panel {
+  border-color: #b9d6c2;
+}
+
+.post-pack-suggestion-list {
+  display: grid;
+  gap: 10px;
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+}
+
+.post-pack-suggestion {
+  align-items: center;
+  border-top: 1px solid #dce5e0;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding-top: 10px;
+}
+
+.post-pack-suggestion-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.post-pack-suggestion-header {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.post-pack-suggestion-card-name {
+  color: #1f2b32;
+  font-weight: 900;
+}
+
+.post-pack-suggestion strong {
+  color: #244532;
+  font-size: 0.9rem;
+}
+
+.post-pack-suggestion p {
+  color: #1f2b32;
+  font-size: 0.88rem;
+}
+
+.post-pack-suggestion small {
+  color: #3f6974;
+  font-weight: 800;
+}
+
+.post-pack-suggestion button {
+  font-size: 0.84rem;
+  min-height: 34px;
+  padding: 0 10px;
+}
+
+.suggestion-priority {
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  padding: 2px 7px;
+  text-transform: uppercase;
+}
+
+.suggestion-priority.high {
+  background: #e6f4e8;
+  border: 1px solid #a8d5b2;
+  color: #1f5d30;
+}
+
+.suggestion-priority.medium {
+  background: #e6edf7;
+  border: 1px solid #c6d5e9;
+  color: #243f63;
+}
+
+.suggestion-priority.low {
+  background: #f3ede2;
+  border: 1px solid #d6c7aa;
+  color: #66502c;
+}
+
 .card-list small {
   color: #3f6974;
   font-weight: 700;

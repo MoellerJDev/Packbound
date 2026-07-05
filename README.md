@@ -143,7 +143,8 @@ pnpm dev
   ATK/HP/AS/RNG chips, Source Row resource totals, phase-aware next-action
   guidance, board-first selected Unit/Echo range, likely target, attack-now or
   out-of-range markers, next-move previews, display-only trait/teamup summaries,
-  and latest reward markers for newly opened pool cards.
+  latest reward markers for newly opened pool cards, and post-pack suggested
+  edits built from existing legal loadout actions.
 - The debug client also includes an opt-in PixiJS renderer lab at
   `?scenario=renderer-lab`. It keeps React as the app shell and makes Pixi the
   primary battlefield for that route, with the React/CSS Hex Arena collapsed as

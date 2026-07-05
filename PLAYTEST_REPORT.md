@@ -183,6 +183,15 @@ full Commander lifecycle history, combat model notes, reward rationale details,
 and long combat event feeds are now collapsed by default on `/`. Labs keep their
 verbose diagnostic surfaces.
 
+Implementation update after this task: the default route now shows compact
+post-pack loadout suggestions after a reward pack is opened. The rules layer
+builds a deterministic `Suggested next edits` summary from only the latest
+opened pack and existing legal loadout actions. The panel stays locked during
+reward/combat-resolved phases, then after Advance it can apply legal Source Row,
+Spellrail, or board placement actions through the same reducer path as the Pool
+buttons. This is a clarity layer, not a new mechanic or broad recommendation
+engine.
+
 The biggest remaining Pixi findings are no longer the absence of replay controls,
 tiny first-pass labels, or unvalidated readability. The lab still needs event
 grouping/filtering for long feeds, scrub or speed controls, and final
@@ -190,7 +199,7 @@ default-route confidence. Pixi should stay opt-in until those are addressed.
 
 Recommended next task:
 
-`chore(client): add post-pack loadout suggestions from existing legal actions`
+`chore(client): tighten reward explanation ranking for duplicates and fixing`
 
 ## 2. Environment And Commands
 
@@ -283,6 +292,9 @@ combat, Commander, encounter, card, or Pixi-default behavior changed.
   Return to Command, and blocked reasons remain visible.
 - Combat result panels now prioritize winner, damage taken/dealt, gold gained,
   event count, and whether the Commander returned to Command.
+- After a pack is opened, `Suggested next edits` summarizes the latest pack and,
+  once the run advances back to planning, surfaces legal Source Row, Spellrail,
+  and board placement actions from those new cards.
 
 ### Collapsed Or Hidden On `/`
 
@@ -312,8 +324,9 @@ combat, Commander, encounter, card, or Pixi-default behavior changed.
 
 - The default route is clearer, but it still relies on list buttons rather than
   direct board editing for most loadout actions.
-- New pack cards are still only movable after advancing back to planning, so
-  post-pack guidance should point players at the best legal next loadout moves.
+- New pack cards are still only movable after advancing back to planning. The
+  new post-pack suggestions explain that timing and apply legal next edits, but
+  they are intentionally not automatic and not available during reward choice.
 - Support/ground layering is still more implied than taught.
 - The React/CSS board still reads as two stacked boards rather than a single
   shared arena; Pixi remains lab-only.
@@ -358,7 +371,8 @@ combat, Commander, encounter, card, or Pixi-default behavior changed.
 - Before this task, raw combat JSON was visible as a default-route disclosure.
   It is now hidden on `/` and kept for lab routes.
 - New reward cards are only movable after advancing back to planning. The Pool
-  summary now states whether new cards can be moved now or after `Advance`.
+  summary and Suggested next edits panel now state whether new cards can be
+  moved now or after `Advance`.
 - Cards with no available move used to say only `No legal action`; they now say
   `Inspect for blocked reason`, which points players toward the inspector.
 - Support and ground cards can share row/column coordinates, but the default UI
@@ -401,6 +415,9 @@ combat, Commander, encounter, card, or Pixi-default behavior changed.
   and duplicate/fixing hints.
 - Pool Cards are useful after a pack because new cards are marked and can be
   inspected.
+- Suggested next edits is useful after a pack because it narrows the latest
+  pack to a few legal Source Row, Spellrail, or board edits without hiding the
+  normal Pool actions.
 - Last Recorded Combat is useful when it starts with outcome, gold, and a compact
   event story.
 
@@ -419,9 +436,9 @@ combat, Commander, encounter, card, or Pixi-default behavior changed.
 
 - The default route still feels like a dashboard below the battlefield rather
   than a guided run screen.
-- There is no "recommended next edit" after opening a pack, so the player must
-  infer whether to add Sources, place Units/Relics, chase duplicates, or deploy
-  Commander.
+- Post-pack suggestions reduce scanning after a reward pack, but they do not
+  yet teach board layers, source replacement tradeoffs, or duplicate-upgrade
+  timing as clearly as a final UI should.
 - Reward explanations need stronger ranking. Duplicate/fixing/affordability
   should beat broad trait near-miss language.
 - Long combat summaries still need grouping/filtering so the player can see the
@@ -434,14 +451,14 @@ combat, Commander, encounter, card, or Pixi-default behavior changed.
 1. Collapse default-route debug panels: Current Encounter details, legal Planning
    Check, display-only Traits, idle Upgrade Progress, and full Commander
    lifecycle.
-2. Add a post-pack "best next edits" helper using existing data: new Sources,
-   playable board cards, duplicate progress, and blocked reasons.
-3. Tighten reward explanation ranking so off-archetype packs do not sound as
+2. Tighten reward explanation ranking so off-archetype packs do not sound as
    good as direct duplicate/fixing hits.
-4. Group combat summaries into headline beats: Techniques, first deaths,
+3. Group combat summaries into headline beats: Techniques, first deaths,
    Commander lifecycle, winner/damage, and hidden details.
-5. Add layer copy near Board/Pixi placement so ground/support sharing is
+4. Add layer copy near Board/Pixi placement so ground/support sharing is
    understandable without reading architecture docs.
+5. Make post-pack suggestions explain why an otherwise interesting new card is
+   blocked by Source capacity, Board Charge, or layer occupancy.
 
 ### Changes Made In This Pass
 
@@ -454,6 +471,8 @@ combat, Commander, encounter, card, or Pixi-default behavior changed.
   history exist.
 - Added combat-result consequence text and clearer latest-pack movement timing.
 - Changed no-action card rows to point players toward inspector blocked reasons.
+- Added post-pack suggestions that use existing legal loadout actions for the
+  latest opened pack.
 
 ## 4. Default Route `/`
 
@@ -900,6 +919,10 @@ Note:
 - The default route now hides/collapses most developer bloat, but Board, Source
   Row, Spellrail, Pool/Bench, and Commander controls are still explicit
   list/button debug controls rather than final direct-manipulation game UI.
+- Post-pack suggestions are deterministic and use existing legal actions only.
+  They look only at the latest opened pack, suggest at most a few forward edits,
+  and do not reason about long-term build quality, source swaps, duplicate
+  upgrade timing, or board-layer education beyond short copy.
 - Pixi uses generated shapes and text, not final art assets.
 - Pixi labels, stat chips, rings, and combat effects have been strengthened, but
   long names and dense adjacent rows can still crowd.
@@ -959,16 +982,16 @@ Note:
 
 Do next:
 
-`chore(client): add post-pack loadout suggestions from existing legal actions`
+`chore(client): tighten reward explanation ranking for duplicates and fixing`
 
-Why: the default route now hides most lab/dashboard bloat, but after a pack is
-opened the player still has to scan Board, Source Row, Spellrail, Pool/Bench,
-and inspectors to find the best next move. A client-only suggestion layer could
-surface existing legal actions for new cards without adding mechanics.
+Why: post-pack suggestions now reduce scanning after a pack opens, but the pack
+offer rationale can still overvalue broad trait near-misses. Direct duplicate
+progress, fixing, affordability, and obvious Source needs should rank above
+vague archetype overlap.
 
 Do soon:
 
-- `chore(client): tighten reward explanation ranking for duplicates and fixing`
+- `feat(client): improve post-pack blocked-reason copy for Source capacity and board layers`
 - `feat(client): group or filter long combat summary events`
 - `feat(client): add Pixi replay scrub/speed controls`
 - `feat(rules): evaluate expanding the canonical board to 6 rows x 10-12 columns`

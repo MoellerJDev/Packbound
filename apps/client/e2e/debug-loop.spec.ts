@@ -34,7 +34,8 @@ const clickPixiCell = async (
   page: Page,
   rendererHost: Locator,
   row: number,
-  col: number
+  col: number,
+  offset: { readonly x: number; readonly y: number } = { x: 0, y: 0 }
 ) => {
   await rendererHost.scrollIntoViewIfNeeded();
   const box = await rendererHost.boundingBox();
@@ -54,9 +55,12 @@ const clickPixiCell = async (
   const x =
     box!.x +
     rootX +
-    (layout.marginX + col * layout.hexWidth + (row % 2 === 1 ? layout.hexWidth / 2 : 0)) *
+    (layout.marginX +
+      col * layout.hexWidth +
+      (row % 2 === 1 ? layout.hexWidth / 2 : 0) +
+      offset.x) *
       scale;
-  const y = box!.y + rootY + (layout.marginY + row * layout.rowStep) * scale;
+  const y = box!.y + rootY + (layout.marginY + row * layout.rowStep + offset.y) * scale;
 
   await page.mouse.click(x, y);
 };
@@ -230,6 +234,22 @@ test("debug loop can inspect, preview, record, reward, and advance", async ({ pa
   const sparkcatchPoolRow = poolPanel
     .getByRole("listitem")
     .filter({ hasText: "Sparkcatch Apprentice" });
+  await sparkcatchPoolRow.getByRole("button", { name: "Select Board Cell" }).click();
+  await expect(defaultPlacementHint).toHaveText(
+    "Placing Sparkcatch Apprentice. Click a highlighted Pixi cell."
+  );
+  await clickPixiCell(page, rendererHost, 0, 2, { x: 0, y: -47 });
+  await expect(defaultPlacementHint).toContainText(
+    "Cannot place Sparkcatch Apprentice at r0 c2 ground:"
+  );
+  await expect(defaultPlacementHint).toContainText("occupied tile");
+  await clickPixiCell(page, rendererHost, 0, 2);
+  await expect(
+    allyInspector.getByRole("heading", { name: "Ember Scraprunner" })
+  ).toBeVisible();
+  await expect(defaultPlacementHint).toHaveText(
+    "Select a board-placeable Pool card below, then click a highlighted Pixi cell."
+  );
   await sparkcatchPoolRow.getByRole("button", { name: "Select Board Cell" }).click();
   await expect(defaultPlacementHint).toHaveText(
     "Placing Sparkcatch Apprentice. Click a highlighted Pixi cell."

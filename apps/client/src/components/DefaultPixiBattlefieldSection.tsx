@@ -29,6 +29,12 @@ export type DefaultPixiPlacementHintView =
   | { readonly mode: "idle" }
   | { readonly mode: "ready"; readonly cardName: string }
   | {
+      readonly mode: "blockedCell";
+      readonly cardName: string;
+      readonly positionText: string;
+      readonly reason: string;
+    }
+  | {
       readonly mode: "blocked";
       readonly cardName: string;
       readonly reason: string;
@@ -36,6 +42,7 @@ export type DefaultPixiPlacementHintView =
 
 export type DefaultPixiBattlefieldController = {
   readonly onCellSelect: (position: BoardPosition) => void;
+  readonly onBlockedCellSelect?: (position: BoardPosition) => void;
   readonly onTokenSelect: (card: PixiBattlefieldCard) => void;
   readonly renderDebugBoard: () => ReactNode;
 };
@@ -63,6 +70,17 @@ const DefaultPixiPlacementHint = ({
         data-testid="default-pixi-placement-hint"
       >
         Cannot place {hint.cardName}: {hint.reason}
+      </p>
+    );
+  }
+
+  if (hint.mode === "blockedCell") {
+    return (
+      <p
+        className="default-pixi-placement-note blocked"
+        data-testid="default-pixi-placement-hint"
+      >
+        Cannot place {hint.cardName} at {hint.positionText}: {hint.reason}
       </p>
     );
   }
@@ -132,6 +150,9 @@ export const DefaultPixiBattlefieldSection = ({
           replayStepRequestKey={0}
           onTokenSelect={controller.onTokenSelect}
           onCellSelect={controller.onCellSelect}
+          {...(controller.onBlockedCellSelect
+            ? { onBlockedCellSelect: controller.onBlockedCellSelect }
+            : {})}
         />
         <DefaultPixiPlacementHint hint={view.placementHint} />
         <EngagementPreviewPanel preview={view.engagementPreview} />

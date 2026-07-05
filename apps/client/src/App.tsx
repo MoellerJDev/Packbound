@@ -248,6 +248,9 @@ const boardLayerForPoolCard = (
 const sameBoardPosition = (left: BoardPosition, right: BoardPosition): boolean =>
   left.row === right.row && left.col === right.col && left.layer === right.layer;
 
+const formatBoardPosition = (position: BoardPosition): string =>
+  `r${position.row} c${position.col} ${position.layer}`;
+
 export function App() {
   const isDefaultRoute = activeDebugScenarioId === undefined;
   const isRendererLab = activeDebugScenarioId === DEBUG_RENDERER_SCENARIO_ID;
@@ -272,6 +275,9 @@ export function App() {
   const [rendererReplay, setRendererReplay] = useState(createPixiReplayControlsState);
   const [rendererPlacementCardId, setRendererPlacementCardId] = useState<
     CardInstanceId | undefined
+  >();
+  const [defaultBlockedPlacementPosition, setDefaultBlockedPlacementPosition] = useState<
+    BoardPosition | undefined
   >();
   const [selectedTargetProbeCardInstanceId, setSelectedTargetProbeCardInstanceId] =
     useState<CardInstanceId | undefined>();
@@ -586,6 +592,23 @@ export function App() {
     }
 
     const placementCardName = cardName(rendererPlacementCard.defId);
+    if (defaultBlockedPlacementPosition) {
+      const check = canPlaceCardOnBoard(
+        run,
+        sampleCatalog,
+        rendererPlacementCard.instanceId,
+        defaultBlockedPlacementPosition
+      );
+      if (!check.ok) {
+        return {
+          mode: "blockedCell",
+          cardName: placementCardName,
+          positionText: formatBoardPosition(defaultBlockedPlacementPosition),
+          reason: check.reason
+        };
+      }
+    }
+
     if (rendererPlaceablePositions.length > 0) {
       return { mode: "ready", cardName: placementCardName };
     }
@@ -614,7 +637,12 @@ export function App() {
       cardName: placementCardName,
       reason: "No legal Pixi cells are available."
     };
-  }, [rendererPlaceablePositions.length, rendererPlacementCard, run]);
+  }, [
+    defaultBlockedPlacementPosition,
+    rendererPlaceablePositions.length,
+    rendererPlacementCard,
+    run
+  ]);
   const pixiBattlefieldModel = useMemo(
     () =>
       buildPixiBattlefieldModel({
@@ -924,6 +952,7 @@ export function App() {
     setSelectedEnemyCardRef(undefined);
     setSelectedEngagementRef(undefined);
     setRendererPlacementCardId(undefined);
+    setDefaultBlockedPlacementPosition(undefined);
     setSelectedTargetProbeCardInstanceId(undefined);
     setRendererReplay((current) => resetPixiReplay(current));
   };
@@ -958,6 +987,7 @@ export function App() {
       }
     });
     setRendererPlacementCardId(undefined);
+    setDefaultBlockedPlacementPosition(undefined);
     setSelectedAllyCardRef({ type: "run", cardInstanceId });
     if (action.type === "placeOnBoard") {
       setSelectedEngagementRef({ type: "run", cardInstanceId });
@@ -970,6 +1000,7 @@ export function App() {
     const placeAction = actions.find((action) => action.type === "placeOnBoard");
     const selectRunCard = () => {
       setRendererPlacementCardId(undefined);
+      setDefaultBlockedPlacementPosition(undefined);
       setSelectedAllyCardRef({ type: "run", cardInstanceId });
       if (
         run.board.placements.some(
@@ -1024,6 +1055,7 @@ export function App() {
 
     const cardInstanceId = run.commander.card.instanceId;
     setRendererPlacementCardId(undefined);
+    setDefaultBlockedPlacementPosition(undefined);
     setSelectedAllyCardRef({ type: "run", cardInstanceId });
     if (run.commander.card.zone === "board") {
       setSelectedEngagementRef({ type: "run", cardInstanceId });
@@ -1047,6 +1079,7 @@ export function App() {
       });
     });
     setRendererPlacementCardId(undefined);
+    setDefaultBlockedPlacementPosition(undefined);
     setSelectedAllyCardRef({ type: "run", cardInstanceId });
     setSelectedEngagementRef({ type: "run", cardInstanceId });
     setRendererReplay((current) => resetPixiReplay(current));
@@ -1066,6 +1099,7 @@ export function App() {
         : currentRun
     );
     setRendererPlacementCardId(undefined);
+    setDefaultBlockedPlacementPosition(undefined);
     setSelectedAllyCardRef({ type: "run", cardInstanceId });
     setSelectedEngagementRef(undefined);
     setRendererReplay((current) => resetPixiReplay(current));
@@ -1083,23 +1117,27 @@ export function App() {
 
   const inspectEncounterBoard = (cardInstanceId: CardInstanceId) => {
     setRendererPlacementCardId(undefined);
+    setDefaultBlockedPlacementPosition(undefined);
     setSelectedEnemyCardRef({ type: "encounterBoard", cardInstanceId });
     setSelectedEngagementRef({ type: "encounterBoard", cardInstanceId });
   };
 
   const inspectAllyBoardCard = (cardInstanceId: CardInstanceId) => {
     setRendererPlacementCardId(undefined);
+    setDefaultBlockedPlacementPosition(undefined);
     setSelectedAllyCardRef({ type: "run", cardInstanceId });
     setSelectedEngagementRef({ type: "run", cardInstanceId });
   };
 
   const inspectEncounterSource = (cardInstanceId: CardInstanceId) => {
     setRendererPlacementCardId(undefined);
+    setDefaultBlockedPlacementPosition(undefined);
     setSelectedEnemyCardRef({ type: "encounterSource", cardInstanceId });
   };
 
   const inspectEncounterSpellrail = (cardInstanceId: CardInstanceId) => {
     setRendererPlacementCardId(undefined);
+    setDefaultBlockedPlacementPosition(undefined);
     setSelectedEnemyCardRef({ type: "encounterSpellrail", cardInstanceId });
   };
 
@@ -1151,6 +1189,7 @@ export function App() {
     setSelectedEnemyCardRef(undefined);
     setSelectedEngagementRef(undefined);
     setRendererPlacementCardId(undefined);
+    setDefaultBlockedPlacementPosition(undefined);
     setSelectedTargetProbeCardInstanceId(undefined);
     setRendererReplay((current) => resetPixiReplay(current));
     setRun((currentRun) =>
@@ -1273,6 +1312,7 @@ export function App() {
 
   const selectPixiToken = (card: PixiBattlefieldCard) => {
     setRendererPlacementCardId(undefined);
+    setDefaultBlockedPlacementPosition(undefined);
     if (card.side === "playerA") {
       setSelectedAllyCardRef({ type: "run", cardInstanceId: card.cardInstanceId });
       setSelectedEngagementRef({ type: "run", cardInstanceId: card.cardInstanceId });
@@ -1320,12 +1360,36 @@ export function App() {
     setSelectedAllyCardRef({ type: "run", cardInstanceId });
     setSelectedEngagementRef({ type: "run", cardInstanceId });
     setRendererPlacementCardId(undefined);
+    setDefaultBlockedPlacementPosition(undefined);
     setRendererReplay((current) => resetPixiReplay(current));
   };
 
   const selectRendererPlacementCard = (cardInstanceId: CardInstanceId) => {
     setRendererPlacementCardId(cardInstanceId);
+    setDefaultBlockedPlacementPosition(undefined);
     setSelectedAllyCardRef({ type: "run", cardInstanceId });
+  };
+
+  const selectDefaultBlockedPlacementCell = (position: BoardPosition) => {
+    if (!isDefaultRoute || !rendererPlacementCard) {
+      return;
+    }
+
+    const layer = boardLayerForPoolCard(rendererPlacementCard);
+    if (!layer) {
+      return;
+    }
+
+    const targetPosition = { row: position.row, col: position.col, layer };
+    if (
+      rendererPlaceablePositions.some((candidate) =>
+        sameBoardPosition(candidate, targetPosition)
+      )
+    ) {
+      return;
+    }
+
+    setDefaultBlockedPlacementPosition(targetPosition);
   };
 
   const renderRendererPoolActions = (card: CardInstance) => {
@@ -1340,6 +1404,7 @@ export function App() {
           className="secondary"
           onClick={() => {
             setRendererPlacementCardId(undefined);
+            setDefaultBlockedPlacementPosition(undefined);
             setSelectedAllyCardRef({ type: "run", cardInstanceId: card.instanceId });
           }}
         >
@@ -1417,6 +1482,9 @@ export function App() {
   );
   const defaultPixiBattlefieldController = {
     onCellSelect: placeRendererCardOnCell,
+    ...(rendererPlacementCard && isDefaultRoute
+      ? { onBlockedCellSelect: selectDefaultBlockedPlacementCell }
+      : {}),
     onTokenSelect: selectPixiToken,
     renderDebugBoard
   } satisfies DefaultPixiBattlefieldController;

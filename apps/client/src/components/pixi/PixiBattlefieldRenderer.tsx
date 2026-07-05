@@ -36,6 +36,7 @@ type PixiBattlefieldRendererProps = {
   ) => void;
   readonly onTokenSelect?: (card: PixiBattlefieldCard) => void;
   readonly onCellSelect?: (position: BoardPosition) => void;
+  readonly onBlockedCellSelect?: (position: BoardPosition) => void;
 };
 
 type TokenView = {
@@ -125,7 +126,8 @@ const drawCell = (
   root: Container,
   cell: PixiBattlefieldModel["cells"][number],
   pulseTargets: Graphics[],
-  onCellSelect?: (position: BoardPosition) => void
+  onCellSelect?: (position: BoardPosition) => void,
+  onBlockedCellSelect?: (position: BoardPosition) => void
 ): void => {
   const center = hexCenterForSharedCell(cell.sharedCell);
   const markers = cell.markers;
@@ -181,6 +183,10 @@ const drawCell = (
     graphic.eventMode = "static";
     graphic.cursor = "pointer";
     graphic.on("pointertap", () => onCellSelect(cell.placeablePosition!));
+  } else if (cell.nativePosition && onBlockedCellSelect) {
+    graphic.eventMode = "static";
+    graphic.cursor = "not-allowed";
+    graphic.on("pointertap", () => onBlockedCellSelect(cell.nativePosition!));
   }
   root.addChild(graphic);
 
@@ -688,7 +694,8 @@ export const PixiBattlefieldRenderer = ({
   replayStepRequestKey,
   onReplayCommandComplete,
   onTokenSelect,
-  onCellSelect
+  onCellSelect,
+  onBlockedCellSelect
 }: PixiBattlefieldRendererProps) => {
   const hostRef = useRef<HTMLDivElement>(null);
   const appRef = useRef<Application | undefined>(undefined);
@@ -704,6 +711,7 @@ export const PixiBattlefieldRenderer = ({
   const lastStepRequestKeyRef = useRef(replayStepRequestKey);
   const onTokenSelectRef = useRef(onTokenSelect);
   const onCellSelectRef = useRef(onCellSelect);
+  const onBlockedCellSelectRef = useRef(onBlockedCellSelect);
   const onReplayCommandCompleteRef = useRef(onReplayCommandComplete);
 
   useEffect(() => {
@@ -729,6 +737,10 @@ export const PixiBattlefieldRenderer = ({
   useEffect(() => {
     onCellSelectRef.current = onCellSelect;
   }, [onCellSelect]);
+
+  useEffect(() => {
+    onBlockedCellSelectRef.current = onBlockedCellSelect;
+  }, [onBlockedCellSelect]);
 
   useEffect(() => {
     onReplayCommandCompleteRef.current = onReplayCommandComplete;
@@ -856,8 +868,14 @@ export const PixiBattlefieldRenderer = ({
 
       drawBackground(root);
       for (const cell of model.cells) {
-        drawCell(cellLayer, cell, pulseTargets, (position) =>
-          onCellSelectRef.current?.(position)
+        drawCell(
+          cellLayer,
+          cell,
+          pulseTargets,
+          (position) => onCellSelectRef.current?.(position),
+          onBlockedCellSelectRef.current
+            ? (position) => onBlockedCellSelectRef.current?.(position)
+            : undefined
         );
       }
       drawMovePreview(cellLayer, model, pulseTargets);

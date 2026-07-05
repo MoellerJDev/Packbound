@@ -199,17 +199,19 @@ Unit/Echo potential beats broad pack bias, Source/fixing pressure gets a
 stronger headline, and near-trait-only overlap now uses cautious copy instead of
 claiming a pack is likely to support the current trait direction.
 
-Maintenance update after this task: `App.tsx` panel extraction is broader now.
-Earlier focused components cover the run guide, Command Zone, reward choices,
-post-pack suggestions, and combat result/preview panels; this pass moved
-Commander upgrade rendering and the default-route Board, Source Row, Spellrail,
-Upgrade Progress, and Pool Cards sections into `CommanderUpgradePanel` and
-`LoadoutZonesPanel`. `App.tsx` dropped from about 2309 lines to about 2095
-lines, with no gameplay, rules, routes, lab behavior, reward ranking, post-pack
-suggestions, or Pixi-default changes. Targeted typecheck and browser smoke
-passed during the pass. Remaining client bloat is mostly renderer-lab
-orchestration, renderer-lab loadout rendering, Priority Lab wiring, and
-top-level App state coordination.
+Maintenance update after this task: `App.tsx` panel and route extraction is
+broader now. Earlier focused components cover the run guide, Command Zone,
+reward choices, post-pack suggestions, combat result/preview panels, Commander
+upgrades, and the default-route Board, Source Row, Spellrail, Upgrade Progress,
+and Pool Cards sections. This pass moved the renderer-lab section, replay
+controls, Pixi stage, renderer feed, renderer-lab loadout panels, and React/CSS
+fallback into `RendererLabRoute`. `App.tsx` dropped from about 2309 lines before
+the panel extraction work to about 1879 lines now, including about 216 lines
+removed in this renderer-lab pass. No gameplay, rules, routes, lab behavior,
+reward ranking, post-pack suggestions, replay timing, or Pixi-default behavior
+changed. Targeted typecheck and browser smoke passed during the pass. Remaining
+client bloat is mostly renderer-lab state/controller setup, Priority Lab wiring,
+Battlefield / Hex Arena rendering, and top-level App state coordination.
 
 The biggest remaining Pixi findings are no longer the absence of replay controls,
 tiny first-pass labels, or unvalidated readability. The lab still needs event

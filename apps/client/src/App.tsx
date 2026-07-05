@@ -77,7 +77,6 @@ import {
   type LastRecordedCombatPanelView,
   type UpcomingCombatPanelView
 } from "./components/CombatResultPanel";
-import { CombatSummaryView } from "./components/CombatSummaryView";
 import {
   CommandZonePanel,
   type CommandZonePanelView
@@ -93,7 +92,6 @@ import {
 } from "./components/LoadoutZonesPanel";
 import { PostPackSuggestionsPanel } from "./components/PostPackSuggestionsPanel";
 import { PriorityLabPanel } from "./components/PriorityLabPanel";
-import { PixiBattlefieldRenderer } from "./components/pixi/PixiBattlefieldRenderer";
 import {
   buildPixiBattlefieldModel,
   type PixiBattlefieldCard
@@ -125,6 +123,11 @@ import {
   applyDebugScenario,
   debugScenarioFromSearch
 } from "./debugScenarios";
+import {
+  RendererLabRoute,
+  type RendererLabRouteController,
+  type RendererLabRouteView
+} from "./routes/RendererLabRoute";
 
 const playerId = asPlayerId("debug-player");
 const runSeed = "client-debug-run";
@@ -1553,6 +1556,52 @@ export function App() {
     </div>
   );
 
+  const rendererLabRouteView = {
+    boardPlacements: run.board.placements,
+    commandZoneView,
+    commanderDeployDisabled: !commanderDeployCheck.ok,
+    commanderReturnDisabled: !commanderReturnCheck.ok,
+    commanderUpgradePanelView,
+    engagementPreview,
+    pixiBattlefieldModel,
+    poolCards: run.pool,
+    rendererInspectorIsEnemy,
+    rendererInspection,
+    rendererPlacementCardId,
+    rendererPlacementCardName: rendererPlacementCard
+      ? cardName(rendererPlacementCard.defId)
+      : undefined,
+    replay: rendererReplay,
+    replayAvailable: rendererLabCombat !== undefined,
+    replayCommandCountText: rendererReplayCommandCountText,
+    replayCommands: rendererReplayCommands,
+    replayEventCount: rendererLabCombat?.events.length ?? 0,
+    replayLatestSummary: rendererReplayLatestSummary,
+    replayWinnerText: rendererLabCombat?.winner ?? "none",
+    resourceSummary,
+    rendererLabCombatDisplaySummary,
+    sourceCards: run.sourceRow.cards,
+    spellrailCards: run.spellrail.cards,
+    spellrailMaxSlots: run.spellrail.maxSlots
+  } satisfies RendererLabRouteView;
+  const rendererLabRouteController = {
+    cardName,
+    onApplyCommanderUpgrade: applyCommanderUpgrade,
+    onCellSelect: placeRendererCardOnCell,
+    onDeployCommander: deployCommanderFromCommand,
+    onInspectCommander: inspectCommander,
+    onPauseReplay: pauseRendererReplay,
+    onPlayReplay: playRendererReplay,
+    onReplayCommandComplete: completeRendererReplayCommand,
+    onResetReplay: resetRendererReplay,
+    onReturnCommander: returnCommanderFromBoard,
+    onStepReplay: stepRendererReplay,
+    onTokenSelect: selectPixiToken,
+    renderDebugBoard: renderHexArena,
+    renderLoadoutActions,
+    renderRendererPoolActions
+  } satisfies RendererLabRouteController;
+
   return (
     <main className="app-shell">
       <section className="topbar">
@@ -1661,275 +1710,10 @@ export function App() {
       ) : null}
 
       {isRendererLab ? (
-        <section className="renderer-lab-section" aria-labelledby="renderer-lab-heading">
-          <div className="renderer-lab-header">
-            <div>
-              <h2 id="renderer-lab-heading">Pixi Renderer Lab</h2>
-              <p className="muted">
-                Pixi is the primary battlefield on this route. The React/CSS board is
-                available in the collapsed debug fallback below.
-              </p>
-            </div>
-            <div className="button-row">
-              <button
-                type="button"
-                onClick={playRendererReplay}
-                disabled={
-                  !rendererLabCombat ||
-                  rendererReplayCommands.length === 0 ||
-                  rendererReplay.status === "playing"
-                }
-              >
-                {rendererReplay.status === "paused" ? "Resume Replay" : "Play Replay"}
-              </button>
-              <button
-                type="button"
-                className="secondary"
-                onClick={pauseRendererReplay}
-                disabled={rendererReplay.status !== "playing"}
-              >
-                Pause Replay
-              </button>
-              <button
-                type="button"
-                className="secondary"
-                onClick={stepRendererReplay}
-                disabled={
-                  !rendererLabCombat ||
-                  rendererReplayCommands.length === 0 ||
-                  rendererReplay.status === "playing" ||
-                  rendererReplay.status === "complete"
-                }
-              >
-                Step Replay
-              </button>
-              <button type="button" className="secondary" onClick={resetRendererReplay}>
-                Reset Replay
-              </button>
-            </div>
-          </div>
-
-          <div className="renderer-lab-main">
-            <div className="renderer-lab-stage">
-              <PixiBattlefieldRenderer
-                model={pixiBattlefieldModel}
-                replayCommands={rendererReplayCommands}
-                replayStatus={rendererReplay.status}
-                replayCommandIndex={rendererReplay.commandIndex}
-                replayResetKey={rendererReplay.resetKey}
-                replayStepRequestKey={rendererReplay.stepRequestKey}
-                onReplayCommandComplete={completeRendererReplayCommand}
-                onTokenSelect={selectPixiToken}
-                onCellSelect={placeRendererCardOnCell}
-              />
-              <EngagementPreviewPanel preview={engagementPreview} />
-              {rendererPlacementCard ? (
-                <p className="renderer-placement-hint">
-                  Placing {cardName(rendererPlacementCard.defId)}. Legal Pixi cells are
-                  highlighted.
-                </p>
-              ) : null}
-            </div>
-            <aside className="renderer-lab-panel renderer-inspector-panel">
-              <h3>Pixi Inspector</h3>
-              <CardInspectorView
-                inspection={rendererInspection}
-                emptyText="Select a unit or support token on the Pixi battlefield."
-                showLegalActions={!rendererInspectorIsEnemy}
-              />
-              <h3>Renderer Feed</h3>
-              <dl className="run-stats">
-                <div>
-                  <dt>Shared field units</dt>
-                  <dd>{pixiBattlefieldModel.cards.length}</dd>
-                </div>
-                <div>
-                  <dt>Replay events</dt>
-                  <dd>{rendererLabCombat?.events.length ?? 0}</dd>
-                </div>
-                <div>
-                  <dt>Replay status</dt>
-                  <dd data-testid="renderer-replay-status">{rendererReplay.status}</dd>
-                </div>
-                <div>
-                  <dt>Replay command</dt>
-                  <dd data-testid="renderer-replay-command-index">
-                    {rendererReplayCommandCountText}
-                  </dd>
-                </div>
-                <div>
-                  <dt>Winner</dt>
-                  <dd>{rendererLabCombat?.winner ?? "none"}</dd>
-                </div>
-                <div>
-                  <dt>Visualized</dt>
-                  <dd>appear/recall, move, attack, damage, destroyed</dd>
-                </div>
-              </dl>
-              <p className="renderer-replay-latest" data-testid="renderer-replay-latest">
-                {rendererReplayLatestSummary}
-              </p>
-              <h3>Preview</h3>
-              <ul className="message-list compact">
-                <li>Selected halo, range glow, likely target ring, and next move.</li>
-                <li>Unit circles show larger nameplates plus ATK / HP / RNG chips.</li>
-                <li>Support and Relic-style permanents use support plates.</li>
-                <li>Player tokens use cool cyan; enemy tokens use ember red.</li>
-              </ul>
-              {rendererLabCombatDisplaySummary ? (
-                <>
-                  <h3>Combat Feed Sample</h3>
-                  <CombatSummaryView summary={rendererLabCombatDisplaySummary} />
-                </>
-              ) : (
-                <p className="muted">No deterministic combat result is available.</p>
-              )}
-            </aside>
-          </div>
-
-          <div className="renderer-lab-loadout-grid">
-            <CommandZonePanel
-              isDefaultRoute={isDefaultRoute}
-              variant="renderer-lab-panel"
-              view={commandZoneView}
-              deployDisabled={!commanderDeployCheck.ok}
-              returnDisabled={!commanderReturnCheck.ok}
-              onInspect={inspectCommander}
-              onDeploy={deployCommanderFromCommand}
-              onReturn={returnCommanderFromBoard}
-            />
-            <CommanderUpgradePanel
-              variant="renderer-lab-panel"
-              view={commanderUpgradePanelView}
-              onApplyUpgrade={applyCommanderUpgrade}
-            />
-
-            <div className="renderer-lab-panel">
-              <h3>Loadout Resources</h3>
-              <dl className="source-summary">
-                <div>
-                  <dt>Board Charge</dt>
-                  <dd>{resourceSummary.boardChargeText}</dd>
-                </div>
-                <div>
-                  <dt>Aspect Access</dt>
-                  <dd>{resourceSummary.aspectAccessText}</dd>
-                </div>
-                <div>
-                  <dt>Source Row</dt>
-                  <dd>{resourceSummary.sourceSlotsText}</dd>
-                </div>
-                <div>
-                  <dt>Spellrail</dt>
-                  <dd>
-                    {run.spellrail.cards.length} / {run.spellrail.maxSlots}
-                  </dd>
-                </div>
-                <div>
-                  <dt>Combat Charge/sec</dt>
-                  <dd>{resourceSummary.combatChargePerSecondText}</dd>
-                </div>
-              </dl>
-              <p className="muted">
-                Pool/Bench cards are inactive. Source Row provides Charge and aspects.
-                Spellrail holds Techniques.
-              </p>
-            </div>
-
-            <div className="renderer-lab-panel">
-              <h3>Board</h3>
-              <p className="muted">Active board permanents use Board Charge.</p>
-              <ol className="card-list compact">
-                {run.board.placements.length > 0 ? (
-                  run.board.placements.map((placement) => (
-                    <li key={placement.cardInstanceId}>
-                      <span>{cardName(placement.defId)}</span>
-                      <small>
-                        r{placement.position.row} c{placement.position.col}{" "}
-                        {placement.position.layer}
-                      </small>
-                      {renderLoadoutActions(placement.cardInstanceId)}
-                    </li>
-                  ))
-                ) : (
-                  <li>
-                    <span>None</span>
-                  </li>
-                )}
-              </ol>
-            </div>
-
-            <div className="renderer-lab-panel">
-              <h3>Source Row</h3>
-              <p className="muted">Sources define capacity, aspect access, and charge.</p>
-              <ol className="card-list compact">
-                {run.sourceRow.cards.map((card) => (
-                  <li key={card.instanceId}>
-                    <span>{cardName(card.defId)}</span>
-                    <small>{card.zone}</small>
-                    {renderLoadoutActions(card.instanceId)}
-                  </li>
-                ))}
-              </ol>
-            </div>
-
-            <div className="renderer-lab-panel">
-              <h3>Spellrail</h3>
-              <p className="muted">
-                Techniques queue here for the current prototype loop.
-              </p>
-              <ol className="card-list compact">
-                {run.spellrail.cards.length > 0 ? (
-                  run.spellrail.cards.map((card) => (
-                    <li key={card.instanceId}>
-                      <span>{cardName(card.defId)}</span>
-                      <small>{card.zone}</small>
-                      {renderLoadoutActions(card.instanceId)}
-                    </li>
-                  ))
-                ) : (
-                  <li>
-                    <span>None</span>
-                  </li>
-                )}
-              </ol>
-            </div>
-
-            <div className="renderer-lab-panel wide">
-              <h3>Pool / Bench</h3>
-              <p className="muted">
-                Select a board-placeable card, then click a highlighted Pixi cell.
-              </p>
-              <ol className="card-list compact">
-                {run.pool.length > 0 ? (
-                  run.pool.map((card) => (
-                    <li
-                      key={card.instanceId}
-                      className={
-                        rendererPlacementCardId === card.instanceId
-                          ? "pending-placement-card"
-                          : undefined
-                      }
-                    >
-                      <span>{cardName(card.defId)}</span>
-                      <small>Pool / Bench</small>
-                      {renderRendererPoolActions(card)}
-                    </li>
-                  ))
-                ) : (
-                  <li>
-                    <span>No Pool / Bench cards</span>
-                  </li>
-                )}
-              </ol>
-            </div>
-          </div>
-
-          <details className="renderer-debug-board">
-            <summary>React/CSS Debug Board</summary>
-            <div className="renderer-debug-board-inner">{renderHexArena()}</div>
-          </details>
-        </section>
+        <RendererLabRoute
+          controller={rendererLabRouteController}
+          view={rendererLabRouteView}
+        />
       ) : null}
 
       {activeDebugScenarioId === DEBUG_PRIORITY_SCENARIO_ID ? (

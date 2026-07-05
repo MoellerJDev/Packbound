@@ -1,4 +1,4 @@
-import { type ReactNode, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { sampleCatalog } from "@packbound/content";
 import {
@@ -39,7 +39,6 @@ import {
   submitPrototypePressureActionFromRun,
   submitTargetProbeActionFromEncounterBoard,
   validateRunLoadout,
-  type BoardGridCardSummary,
   type CombatResultLike,
   type CommanderUpgradeId,
   type EngagementPreviewSide,
@@ -65,9 +64,11 @@ import {
   type CombatResult
 } from "@packbound/sim";
 
-import { BoardGridView } from "./components/BoardGridView";
-import { CardInspectorView } from "./components/CardInspectorView";
-import { CombatModelFactsView } from "./components/CombatModelFactsView";
+import {
+  BattlefieldSection,
+  type BattlefieldSectionController,
+  type BattlefieldSectionView
+} from "./components/BattlefieldSection";
 import {
   CombatResultPanel,
   type LastRecordedCombatPanelView,
@@ -81,7 +82,11 @@ import {
   CommanderUpgradePanel,
   type CommanderUpgradePanelView
 } from "./components/CommanderUpgradePanel";
-import { EngagementPreviewPanel } from "./components/EngagementPreviewPanel";
+import {
+  HexArenaView,
+  type HexArenaController,
+  type HexArenaViewData
+} from "./components/HexArenaView";
 import {
   LoadoutZonesPanel,
   type LoadoutZonesPanelView
@@ -111,7 +116,6 @@ import {
   type RunGuideStep
 } from "./components/RunGuidePanel";
 import { TraitSummaryView } from "./components/TraitSummaryView";
-import { UpgradeBadge } from "./components/upgradeBadges";
 import {
   DEBUG_PRIORITY_SCENARIO_ID,
   DEBUG_RENDERER_SCENARIO_ID,
@@ -1042,6 +1046,12 @@ export function App() {
     setSelectedEngagementRef({ type: "encounterBoard", cardInstanceId });
   };
 
+  const inspectAllyBoardCard = (cardInstanceId: CardInstanceId) => {
+    setRendererPlacementCardId(undefined);
+    setSelectedAllyCardRef({ type: "run", cardInstanceId });
+    setSelectedEngagementRef({ type: "run", cardInstanceId });
+  };
+
   const inspectEncounterSource = (cardInstanceId: CardInstanceId) => {
     setRendererPlacementCardId(undefined);
     setSelectedEnemyCardRef({ type: "encounterSource", cardInstanceId });
@@ -1051,20 +1061,6 @@ export function App() {
     setRendererPlacementCardId(undefined);
     setSelectedEnemyCardRef({ type: "encounterSpellrail", cardInstanceId });
   };
-
-  const renderPlayerGridCardMeta = (card: BoardGridCardSummary): ReactNode => (
-    <>
-      <UpgradeBadge level={card.upgradeLevel ?? 0} />
-      {card.definitionMissing ? (
-        <span className="missing-def-badge">missing def</span>
-      ) : null}
-    </>
-  );
-
-  const renderEncounterGridCardMeta = (card: BoardGridCardSummary): ReactNode =>
-    card.definitionMissing ? (
-      <span className="missing-def-badge">missing def</span>
-    ) : null;
 
   const markReady = () => {
     setRun((currentRun) =>
@@ -1414,90 +1410,39 @@ export function App() {
     </>
   );
 
-  const renderHexArena = () => (
-    <div className="battlefield-board" data-testid="hex-arena">
-      <div className="hex-arena-heading">
-        <h3>Hex Arena</h3>
-        <EngagementPreviewPanel preview={engagementPreview} />
-        <div className="hex-arena-badges" aria-label="Hex arena topology">
-          <span>Odd-r hex</span>
-          <span>Pointy-top</span>
-        </div>
-      </div>
-
-      <div className="hex-arena-viewport" data-testid="hex-arena-viewport">
-        <div className="battlefield-board-side enemy">
-          <div className="board-side-heading">
-            <h3>Enemy Hex Board</h3>
-            <span>{currentEncounter?.kind ?? "none"}</span>
-          </div>
-          <div className="board-orientation" aria-label="Enemy board orientation">
-            <span>Enemy side</span>
-            <span>Odd-r hex</span>
-            <span>Odd rows offset</span>
-            <span>Backline r0</span>
-            <span>Frontline r3</span>
-          </div>
-          {encounterBoardGrid ? (
-            <BoardGridView
-              boardSide="playerB"
-              engagementPreview={engagementPreview}
-              summary={encounterBoardGrid}
-              emptyText="No enemy board cards are placed."
-              onInspect={(card) => inspectEncounterBoard(card.cardInstanceId)}
-              renderCardMeta={renderEncounterGridCardMeta}
-              selectedCardInstanceId={
-                effectiveEnemyCardRef?.type === "encounterBoard"
-                  ? effectiveEnemyCardRef.cardInstanceId
-                  : undefined
-              }
-            />
-          ) : (
-            <p className="muted">No current encounter board to show.</p>
-          )}
-        </div>
-
-        <div className="battlefield-vs">Engagement Line</div>
-
-        <div className="battlefield-board-side ally">
-          <div className="board-side-heading">
-            <h3>Ally Hex Board</h3>
-            <span>{resourceSummary.boardChargeText} Charge</span>
-          </div>
-          <div className="board-orientation" aria-label="Ally board orientation">
-            <span>Your side</span>
-            <span>Odd-r hex</span>
-            <span>Odd rows offset</span>
-            <span>Frontline r0</span>
-            <span>Backline r3</span>
-          </div>
-          <BoardGridView
-            boardSide="playerA"
-            engagementPreview={engagementPreview}
-            summary={playerBoardGrid}
-            emptyText="No player board cards are placed."
-            onInspect={(card) => {
-              setRendererPlacementCardId(undefined);
-              setSelectedAllyCardRef({
-                type: "run",
-                cardInstanceId: card.cardInstanceId
-              });
-              setSelectedEngagementRef({
-                type: "run",
-                cardInstanceId: card.cardInstanceId
-              });
-            }}
-            renderCardMeta={renderPlayerGridCardMeta}
-            selectedCardInstanceId={
-              effectiveAllyCardRef?.type === "run"
-                ? effectiveAllyCardRef.cardInstanceId
-                : undefined
-            }
-          />
-        </div>
-      </div>
-    </div>
-  );
+  const hexArenaView = {
+    engagementPreview,
+    encounterBoardGrid,
+    encounterKindText: currentEncounter?.kind ?? "none",
+    playerBoardGrid,
+    resourceBoardChargeText: resourceSummary.boardChargeText,
+    selectedAllyBoardCardInstanceId:
+      effectiveAllyCardRef?.type === "run"
+        ? effectiveAllyCardRef.cardInstanceId
+        : undefined,
+    selectedEnemyBoardCardInstanceId:
+      effectiveEnemyCardRef?.type === "encounterBoard"
+        ? effectiveEnemyCardRef.cardInstanceId
+        : undefined
+  } satisfies HexArenaViewData;
+  const hexArenaController = {
+    onInspectAllyBoardCard: inspectAllyBoardCard,
+    onInspectEnemyBoardCard: inspectEncounterBoard
+  } satisfies HexArenaController;
+  const battlefieldSectionView = {
+    currentRound: run.currentRound,
+    encounterName: currentEncounter?.name ?? "None",
+    hexArena: hexArenaView,
+    isDefaultRoute,
+    phase,
+    playerGold: run.playerGold,
+    playerHealth: run.playerHealth,
+    selectedAllyInspection,
+    selectedEnemyInspection
+  } satisfies BattlefieldSectionView;
+  const battlefieldSectionController = {
+    hexArena: hexArenaController
+  } satisfies BattlefieldSectionController;
 
   const rendererLabRouteView = {
     boardPlacements: run.board.placements,
@@ -1540,7 +1485,9 @@ export function App() {
     onReturnCommander: returnCommanderFromBoard,
     onStepReplay: stepRendererReplay,
     onTokenSelect: selectPixiToken,
-    renderDebugBoard: renderHexArena,
+    renderDebugBoard: () => (
+      <HexArenaView controller={hexArenaController} view={hexArenaView} />
+    ),
     renderLoadoutActions,
     renderRendererPoolActions
   } satisfies RendererLabRouteController;
@@ -1600,66 +1547,10 @@ export function App() {
       </section>
 
       {!isRendererLab ? (
-        <section className="battlefield-section" aria-labelledby="battlefield-heading">
-          <div className="battlefield-header">
-            <div>
-              <h2 id="battlefield-heading">Battlefield</h2>
-              <p className="muted">
-                Automatic combat setup for round {run.currentRound}. Inspect one ally and
-                one enemy at the same time to compare stats, keywords, and targeting
-                clues.
-              </p>
-            </div>
-            <dl className="battlefield-run-strip">
-              <div>
-                <dt>Phase</dt>
-                <dd>{phase}</dd>
-              </div>
-              <div>
-                <dt>Health</dt>
-                <dd>{run.playerHealth}</dd>
-              </div>
-              <div>
-                <dt>Gold</dt>
-                <dd>{run.playerGold}</dd>
-              </div>
-              <div>
-                <dt>Encounter</dt>
-                <dd>{currentEncounter?.name ?? "None"}</dd>
-              </div>
-            </dl>
-          </div>
-
-          <div className="battlefield-layout">
-            <aside className="battlefield-inspector ally">
-              <h3>Ally Inspector</h3>
-              <CardInspectorView
-                inspection={selectedAllyInspection}
-                emptyText="Select an ally board, pool, Source Row, or Spellrail card."
-              />
-            </aside>
-
-            {renderHexArena()}
-
-            <aside className="battlefield-inspector enemy">
-              <h3>Enemy Inspector</h3>
-              <CardInspectorView
-                inspection={selectedEnemyInspection}
-                emptyText="Select an enemy board, Source Row, or Spellrail card."
-                showLegalActions={false}
-              />
-            </aside>
-          </div>
-
-          {isDefaultRoute ? (
-            <details className="combat-model-details">
-              <summary>Combat Model Notes</summary>
-              <CombatModelFactsView />
-            </details>
-          ) : (
-            <CombatModelFactsView />
-          )}
-        </section>
+        <BattlefieldSection
+          controller={battlefieldSectionController}
+          view={battlefieldSectionView}
+        />
       ) : null}
 
       {isRendererLab ? (

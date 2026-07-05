@@ -18,7 +18,6 @@ import {
   canPlaceCardOnBoard,
   canRecordCombat,
   canReturnCommanderToCommand,
-  combatChargeCostForEncounterAction,
   createEncounterMatch,
   createRunFromStarterKit,
   passEncounterPriority,
@@ -35,13 +34,10 @@ import {
   getRunNextActionMessage,
   inspectEncounterCard,
   inspectRunCard,
-  listEncounterBoardCardTargets,
-  listPrototypePressureActionSources,
   recordEncounterCombatSkirmish,
   submitCommanderRallyActionFromRun,
   submitPrototypePressureActionFromRun,
   submitTargetProbeActionFromEncounterBoard,
-  validateCommanderRallyActionSource,
   validateRunLoadout,
   type BoardGridCardSummary,
   type CombatResultLike,
@@ -91,7 +87,6 @@ import {
   type LoadoutZonesPanelView
 } from "./components/LoadoutZonesPanel";
 import { PostPackSuggestionsPanel } from "./components/PostPackSuggestionsPanel";
-import { PriorityLabPanel } from "./components/PriorityLabPanel";
 import {
   buildPixiBattlefieldModel,
   type PixiBattlefieldCard
@@ -128,6 +123,11 @@ import {
   type RendererLabRouteController,
   type RendererLabRouteView
 } from "./routes/RendererLabRoute";
+import {
+  PriorityLabRoute,
+  buildPriorityLabRouteView,
+  type PriorityLabRouteController
+} from "./routes/PriorityLabRoute";
 
 const playerId = asPlayerId("debug-player");
 const runSeed = "client-debug-run";
@@ -391,86 +391,6 @@ export function App() {
     return canDeployCommander(run, sampleCatalog, commanderDefaultPosition);
   }, [commanderCandidatePosition, commanderDefaultPosition, run]);
   const commanderReturnCheck = useMemo(() => canReturnCommanderToCommand(run), [run]);
-  const priorityPrototypeActionSource = useMemo(
-    () =>
-      listPrototypePressureActionSources({
-        run,
-        catalog: sampleCatalog,
-        actor: "player"
-      })[0],
-    [run]
-  );
-  const availablePriorityPrototypeActionSource = useMemo(
-    () =>
-      listPrototypePressureActionSources({
-        run,
-        catalog: sampleCatalog,
-        actor: "player",
-        match: priorityMatch
-      })[0],
-    [priorityMatch, run]
-  );
-  const priorityCommanderActionValidation = useMemo(
-    () =>
-      validateCommanderRallyActionSource({
-        run,
-        catalog: sampleCatalog,
-        match: priorityMatch,
-        actor: "player"
-      }),
-    [priorityMatch, run]
-  );
-  const priorityCommanderActionSource = priorityCommanderActionValidation.ok
-    ? priorityCommanderActionValidation.source
-    : undefined;
-  const priorityTargetProbeTargets = useMemo(
-    () =>
-      currentEncounter
-        ? listEncounterBoardCardTargets({
-            catalog: sampleCatalog,
-            board: currentEncounter.loadout.board,
-            side: "playerB",
-            requiredSide: "playerB"
-          })
-        : [],
-    [currentEncounter]
-  );
-  const selectedTargetProbeTarget =
-    priorityTargetProbeTargets.find(
-      (target) => target.cardInstanceId === selectedTargetProbeCardInstanceId
-    ) ?? priorityTargetProbeTargets[0];
-  const prototypeActionCombatChargeCost =
-    combatChargeCostForEncounterAction("main_phase_pressure");
-  const commanderActionCombatChargeCost =
-    combatChargeCostForEncounterAction("commander_rally");
-  const targetProbeActionCombatChargeCost =
-    combatChargeCostForEncounterAction("target_probe");
-  const canPayPrototypeAction =
-    priorityMatch.playerCombatCharge >= prototypeActionCombatChargeCost;
-  const canPayCommanderAction =
-    priorityMatch.playerCombatCharge >= commanderActionCombatChargeCost;
-  const canPayTargetProbeAction =
-    priorityMatch.playerCombatCharge >= targetProbeActionCombatChargeCost;
-  const prototypeCostUnavailableText = `Prototype Pressure Technique requires ${prototypeActionCombatChargeCost} Combat Charge, but Player has ${priorityMatch.playerCombatCharge}.`;
-  const commanderCostUnavailableText = `Commander Rally requires ${commanderActionCombatChargeCost} Combat Charge, but Player has ${priorityMatch.playerCombatCharge}.`;
-  const targetProbeCostUnavailableText = `Target Probe requires ${targetProbeActionCombatChargeCost} Combat Charge, but Player has ${priorityMatch.playerCombatCharge}.`;
-  const prototypeActionUnavailableText = availablePriorityPrototypeActionSource
-    ? canPayPrototypeAction
-      ? undefined
-      : prototypeCostUnavailableText
-    : priorityPrototypeActionSource
-      ? `${priorityPrototypeActionSource.cardName} is already queued or used this encounter.`
-      : "No valid player Spellrail Technique source.";
-  const priorityCommanderActionUnavailableText = priorityCommanderActionValidation.ok
-    ? canPayCommanderAction
-      ? undefined
-      : commanderCostUnavailableText
-    : priorityCommanderActionValidation.message;
-  const targetProbeUnavailableText = selectedTargetProbeTarget
-    ? canPayTargetProbeAction
-      ? undefined
-      : targetProbeCostUnavailableText
-    : "No valid enemy board-card target.";
 
   const combat = useMemo(() => {
     if (!opponentSetup || !recordReady) {
@@ -510,6 +430,27 @@ export function App() {
     priorityMatch.skirmishes.length,
     priorityMatch.turnNumber
   ]);
+  const priorityLabRouteView = useMemo(
+    () =>
+      buildPriorityLabRouteView({
+        canRunCombat: priorityMatch.phase === "combat" && priorityLabCombat !== undefined,
+        catalog: sampleCatalog,
+        combatChargeProfile: priorityLabCombatChargeSetup.profile,
+        currentEncounterBoard: currentEncounter?.loadout.board,
+        debugCombatChargeTopUp: priorityLabCombatChargeSetup.debugTopUp,
+        match: priorityMatch,
+        run,
+        selectedTargetProbeCardInstanceId
+      }),
+    [
+      currentEncounter,
+      priorityLabCombat,
+      priorityLabCombatChargeSetup,
+      priorityMatch,
+      run,
+      selectedTargetProbeCardInstanceId
+    ]
+  );
   const rendererLabCombat = useMemo(() => {
     if (!opponentSetup || !currentEncounter) {
       return undefined;
@@ -1185,7 +1126,8 @@ export function App() {
   };
 
   const submitPriorityPrototypeAction = () => {
-    if (!availablePriorityPrototypeActionSource) {
+    const source = priorityLabRouteView.availablePrototypeActionSource;
+    if (!source) {
       return;
     }
 
@@ -1195,13 +1137,13 @@ export function App() {
         run,
         catalog: sampleCatalog,
         actor: "player",
-        cardInstanceId: availablePriorityPrototypeActionSource.cardInstanceId
+        cardInstanceId: source.cardInstanceId
       })
     );
   };
 
   const submitPriorityCommanderAction = () => {
-    if (!priorityCommanderActionSource) {
+    if (!priorityLabRouteView.commanderActionSource) {
       return;
     }
 
@@ -1216,7 +1158,8 @@ export function App() {
   };
 
   const submitPriorityTargetProbeAction = () => {
-    if (!selectedTargetProbeTarget || !currentEncounter) {
+    const target = priorityLabRouteView.selectedTargetProbeTarget;
+    if (!target || !currentEncounter) {
       return;
     }
 
@@ -1226,7 +1169,7 @@ export function App() {
         catalog: sampleCatalog,
         board: currentEncounter.loadout.board,
         actor: "player",
-        cardInstanceId: selectedTargetProbeTarget.cardInstanceId
+        cardInstanceId: target.cardInstanceId
       })
     );
   };
@@ -1601,6 +1544,16 @@ export function App() {
     renderLoadoutActions,
     renderRendererPoolActions
   } satisfies RendererLabRouteController;
+  const priorityLabRouteController = {
+    onPassEnemy: passPriorityAsEnemy,
+    onPassPlayer: passPriorityAsPlayer,
+    onReset: resetPriorityLab,
+    onRunSkirmish: runPrioritySkirmish,
+    onSelectTargetProbeTarget: selectPriorityTargetProbeTarget,
+    onSubmitCommanderAction: submitPriorityCommanderAction,
+    onSubmitPrototypeAction: submitPriorityPrototypeAction,
+    onSubmitTargetProbeAction: submitPriorityTargetProbeAction
+  } satisfies PriorityLabRouteController;
 
   return (
     <main className="app-shell">
@@ -1717,40 +1670,9 @@ export function App() {
       ) : null}
 
       {activeDebugScenarioId === DEBUG_PRIORITY_SCENARIO_ID ? (
-        <PriorityLabPanel
-          match={priorityMatch}
-          combatChargeProfile={priorityLabCombatChargeSetup.profile}
-          debugCombatChargeTopUp={priorityLabCombatChargeSetup.debugTopUp}
-          canRunCombat={
-            priorityMatch.phase === "combat" && priorityLabCombat !== undefined
-          }
-          prototypeActionSource={priorityPrototypeActionSource}
-          canSubmitPrototypeAction={
-            availablePriorityPrototypeActionSource !== undefined && canPayPrototypeAction
-          }
-          prototypeActionSourceUnavailableText={prototypeActionUnavailableText}
-          commanderName={commanderDefinition?.name ?? "No Commander"}
-          commanderZone={run.commander?.card.zone ?? "none"}
-          commanderActionSource={priorityCommanderActionSource}
-          canSubmitCommanderAction={
-            priorityCommanderActionSource !== undefined && canPayCommanderAction
-          }
-          commanderActionUnavailableText={priorityCommanderActionUnavailableText}
-          targetProbeTargets={priorityTargetProbeTargets}
-          selectedTargetProbeTarget={selectedTargetProbeTarget}
-          selectedTargetProbeCardInstanceId={selectedTargetProbeTarget?.cardInstanceId}
-          canSubmitTargetProbeAction={
-            selectedTargetProbeTarget !== undefined && canPayTargetProbeAction
-          }
-          targetProbeUnavailableText={targetProbeUnavailableText}
-          onSelectTargetProbeTarget={selectPriorityTargetProbeTarget}
-          onSubmitCommanderAction={submitPriorityCommanderAction}
-          onSubmitTargetProbeAction={submitPriorityTargetProbeAction}
-          onSubmitPrototypeAction={submitPriorityPrototypeAction}
-          onPassPlayer={passPriorityAsPlayer}
-          onPassEnemy={passPriorityAsEnemy}
-          onRunSkirmish={runPrioritySkirmish}
-          onReset={resetPriorityLab}
+        <PriorityLabRoute
+          controller={priorityLabRouteController}
+          view={priorityLabRouteView}
         />
       ) : null}
 

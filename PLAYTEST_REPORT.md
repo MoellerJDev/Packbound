@@ -199,6 +199,13 @@ Unit/Echo potential beats broad pack bias, Source/fixing pressure gets a
 stronger headline, and near-trait-only overlap now uses cautious copy instead of
 claiming a pack is likely to support the current trait direction.
 
+Maintenance update after this task: default-route panel rendering is now split
+out of `App.tsx` into focused client components for the run guide, Command Zone,
+reward choices, and combat result/preview panels. This changed no gameplay,
+rules, routes, lab behavior, reward ranking, post-pack suggestions, or Pixi
+defaults. Remaining client bloat is mostly renderer-lab orchestration,
+Priority Lab wiring, Commander upgrade rendering, and loadout zone lists.
+
 The biggest remaining Pixi findings are no longer the absence of replay controls,
 tiny first-pass labels, or unvalidated readability. The lab still needs event
 grouping/filtering for long feeds, scrub or speed controls, and final
@@ -937,6 +944,9 @@ Note:
   pressure, active trait matches, and economy ahead of near-trait and broad bias
   text, but they are still lightweight pack-level hints rather than a full draft
   recommendation system.
+- Default-route panel rendering has been extracted from `App.tsx`, but the file
+  still owns renderer-lab state/control wiring, Priority Lab wiring, Commander
+  upgrade rendering, and loadout-zone list rendering.
 - Pixi uses generated shapes and text, not final art assets.
 - Pixi labels, stat chips, rings, and combat effects have been strengthened, but
   long names and dense adjacent rows can still crowd.

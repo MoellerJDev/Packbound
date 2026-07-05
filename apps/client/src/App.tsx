@@ -46,7 +46,6 @@ import {
   validateRunLoadout,
   type BoardGridCardSummary,
   type CombatResultLike,
-  type CommanderLifecycleHistoryEntry,
   type CommanderUpgradeId,
   type EngagementPreviewSide,
   type EncounterCombatChargeProfile,
@@ -74,7 +73,16 @@ import {
 import { BoardGridView } from "./components/BoardGridView";
 import { CardInspectorView } from "./components/CardInspectorView";
 import { CombatModelFactsView } from "./components/CombatModelFactsView";
+import {
+  CombatResultPanel,
+  type LastRecordedCombatPanelView,
+  type UpcomingCombatPanelView
+} from "./components/CombatResultPanel";
 import { CombatSummaryView } from "./components/CombatSummaryView";
+import {
+  CommandZonePanel,
+  type CommandZonePanelView
+} from "./components/CommandZonePanel";
 import { EngagementPreviewPanel } from "./components/EngagementPreviewPanel";
 import { PostPackSuggestionsPanel } from "./components/PostPackSuggestionsPanel";
 import { PriorityLabPanel } from "./components/PriorityLabPanel";
@@ -96,7 +104,12 @@ import {
   resetPixiReplay,
   stepPixiReplay
 } from "./components/pixi/pixiReplayControls";
-import { RawDebugDetails } from "./components/RawDebugDetails";
+import { RewardChoicesPanel } from "./components/RewardChoicesPanel";
+import {
+  RunGuidePanel,
+  type RunGuideStat,
+  type RunGuideStep
+} from "./components/RunGuidePanel";
 import { TraitSummaryView } from "./components/TraitSummaryView";
 import { UpgradeBadge, UpgradeProgressBadge } from "./components/upgradeBadges";
 import {
@@ -115,51 +128,6 @@ const cardName = (defId: CardDefId): string =>
 const cardNamesByDefId = new Map(
   sampleCatalog.cards.map((card) => [card.id, card.name] as const)
 );
-
-const formatCommanderLifecycleSource = (
-  source: CommanderLifecycleHistoryEntry["source"]
-): string =>
-  source
-    .split("_")
-    .map((part) => `${part.slice(0, 1).toUpperCase()}${part.slice(1)}`)
-    .join(" ");
-
-const formatCommanderLifecycleMovement = (
-  entry: CommanderLifecycleHistoryEntry
-): string => {
-  if (entry.fromZone && entry.toZone) {
-    return `${entry.fromZone} -> ${entry.toZone}`;
-  }
-  if (entry.toZone) {
-    return `to ${entry.toZone}`;
-  }
-  if (entry.fromZone) {
-    return `from ${entry.fromZone}`;
-  }
-  return "zone unchanged";
-};
-
-const formatCommanderLifecycleDelta = (entry: CommanderLifecycleHistoryEntry): string => {
-  const deltas = [
-    entry.deployCountBefore !== entry.deployCountAfter
-      ? `Deploys ${entry.deployCountBefore} -> ${entry.deployCountAfter}`
-      : "",
-    entry.rebindTaxBefore !== entry.rebindTaxAfter
-      ? `Raw Tax +${entry.rebindTaxBefore} -> +${entry.rebindTaxAfter}`
-      : "",
-    entry.rebindTaxDiscountBefore !== entry.rebindTaxDiscountAfter
-      ? `Discount -${entry.rebindTaxDiscountBefore} -> -${entry.rebindTaxDiscountAfter}`
-      : "",
-    entry.effectiveRebindTaxBefore !== entry.effectiveRebindTaxAfter
-      ? `Effective +${entry.effectiveRebindTaxBefore} -> +${entry.effectiveRebindTaxAfter}`
-      : "",
-    entry.upgradeLevelBefore !== entry.upgradeLevelAfter
-      ? `Level ${entry.upgradeLevelBefore} -> ${entry.upgradeLevelAfter}`
-      : ""
-  ].filter((delta) => delta.length > 0);
-
-  return deltas.length > 0 ? deltas.join(" | ") : "State recorded";
-};
 
 const combatResultForAction = (result: CombatResultLike): CombatResultLike => ({
   winner: result.winner,
@@ -238,13 +206,6 @@ type BoardSelectedCardRef = Extract<
 >;
 
 type BoardPlacementSummary = RunState["board"]["placements"][number];
-type RunGuideStepState = "done" | "active" | "blocked" | "todo";
-
-type RunGuideStep = {
-  readonly label: string;
-  readonly detail: string;
-  readonly state: RunGuideStepState;
-};
 
 const firstUnitOrEchoPlacement = (
   placements: readonly BoardPlacementSummary[]
@@ -857,6 +818,85 @@ export function App() {
               entry.type === "destroyed_to_command"
           )
       : undefined;
+  const commandZoneBlockedReasons = [
+    commanderDeployCheck.ok ? "" : `Deploy Commander: ${commanderDeployCheck.reason}`,
+    commanderReturnCheck.ok ? "" : `Return to Command: ${commanderReturnCheck.reason}`
+  ].filter((line) => line.length > 0);
+  const commandZoneView = {
+    boardChargeAfterDeploy: commanderBoardChargeAfterDeploy,
+    boardChargeCapacity: resourceSummary.boardChargeCapacity,
+    blockedReasons: commandZoneBlockedReasons,
+    commanderName: run.commander ? cardName(run.commander.card.defId) : "None",
+    deployBoardCharge: commanderDeployBoardCharge,
+    deployCount: run.commander?.deployCount ?? 0,
+    effectiveRebindTax: commanderEffectiveRebindTax,
+    hasCommander: run.commander !== undefined,
+    lifecycleEntries: (run.commander?.lifecycleHistory ?? []).slice(-5).reverse(),
+    rawRebindTax: commanderRawRebindTax,
+    rebindTaxDiscount: commanderRebindTaxDiscount,
+    baseBoardCharge: commanderBaseBoardCharge,
+    upgradeLevel: run.commander?.card.upgradeLevel ?? 0,
+    zone: run.commander?.card.zone ?? "none"
+  } satisfies CommandZonePanelView;
+  const rewardChoicesDescription = canApplyReward(run)
+    ? rewardChoices.length > 0
+      ? "Choose one pack. New cards go to the Pool for the next planning step."
+      : commanderUpgradeClaimedThisRound
+        ? "Pack reward claimed. Advance when ready."
+        : "Pack reward claimed. Choose a Commander upgrade to finish rewards."
+    : "Rewards appear after combat is recorded.";
+  const runGuideStats = [
+    {
+      label: "Round",
+      value: (
+        <>
+          {run.currentRound} / {run.maxRounds}
+        </>
+      )
+    },
+    { label: "Health", value: run.playerHealth },
+    { label: "Gold", value: run.playerGold },
+    { label: "Phase", value: phase },
+    { label: "Starter", value: starterKitName }
+  ] satisfies readonly RunGuideStat[];
+  const runGuideDetails = [
+    { label: "Seed", value: run.seed },
+    { label: "Status", value: run.status }
+  ] satisfies readonly RunGuideStat[];
+  const lastRecordedCombatPanelView = {
+    commanderReturnedToCommand: latestCommanderCombatReturn !== undefined,
+    displaySummary: lastRecordedCombatDisplaySummary,
+    emptyText:
+      "Compact run summary is available; full event details are not stored in run state.",
+    flowNote: latestCombatSummary
+      ? `Combat recorded: ${latestCombatSummary.winner}. You gained ${
+          latestCombatSummary.goldEarned
+        } gold. ${
+          phase === "reward"
+            ? "Claim one pack and one Commander upgrade before advancing."
+            : packRewardClaimedThisRound && commanderUpgradeClaimedThisRound
+              ? "Rewards are complete; Advance starts the next planning round."
+              : "Finish any remaining reward before advancing."
+        }`
+      : "",
+    rawDebugValue: {
+      round: lastRecordedCombat?.round,
+      encounterId: lastRecordedCombat?.encounterId,
+      runSummary: latestCombatSummary,
+      events: lastRecordedCombat?.result.events ?? [],
+      warnings: lastRecordedCombat?.result.warnings ?? []
+    },
+    summary: latestCombatSummary
+  } satisfies LastRecordedCombatPanelView;
+  const upcomingCombatPanelView =
+    combat && upcomingCombatDisplaySummary
+      ? ({
+          combat,
+          currentEncounterId: currentEncounter?.id,
+          displaySummary: upcomingCombatDisplaySummary,
+          phase
+        } satisfies UpcomingCombatPanelView)
+      : undefined;
 
   const resetRun = (starterKitId = selectedStarterKitId) => {
     const nextRun = createDebugRun(starterKitId);
@@ -1005,155 +1045,6 @@ export function App() {
     setSelectedAllyCardRef({ type: "run", cardInstanceId });
     setSelectedEngagementRef(undefined);
     setRendererReplay((current) => resetPixiReplay(current));
-  };
-
-  const renderCommandZonePanel = (variant: "panel" | "renderer-lab-panel") => {
-    const commander = run.commander;
-    const Heading = variant === "panel" ? "h2" : "h3";
-    const compactDefaultPanel = variant === "panel" && isDefaultRoute;
-    const commanderName = commander ? cardName(commander.card.defId) : "None";
-    const blockedReasons = [
-      commanderDeployCheck.ok ? "" : `Deploy Commander: ${commanderDeployCheck.reason}`,
-      commanderReturnCheck.ok ? "" : `Return to Command: ${commanderReturnCheck.reason}`
-    ].filter((line) => line.length > 0);
-    const recentLifecycleEntries = (commander?.lifecycleHistory ?? [])
-      .slice(-5)
-      .reverse();
-
-    const lifecycleContent =
-      recentLifecycleEntries.length > 0 ? (
-        <ol className="message-list compact commander-lifecycle-list">
-          {recentLifecycleEntries.map((entry) => (
-            <li key={entry.id} data-testid="commander-lifecycle-entry">
-              <span className="commander-lifecycle-primary">{entry.label}</span>
-              <small className="commander-lifecycle-meta">
-                Round {entry.round} | {formatCommanderLifecycleSource(entry.source)} |
-                Phase {entry.phase} | {formatCommanderLifecycleMovement(entry)}
-              </small>
-              <small className="commander-lifecycle-meta">
-                {formatCommanderLifecycleDelta(entry)}
-              </small>
-            </li>
-          ))}
-        </ol>
-      ) : (
-        <p className="muted">No Commander lifecycle events recorded.</p>
-      );
-
-    return (
-      <div
-        className={`${variant} ${compactDefaultPanel ? "compact-command-zone" : ""}`}
-        data-testid="command-zone-panel"
-      >
-        <Heading>Command Zone</Heading>
-        <dl className="run-stats">
-          <div>
-            <dt>Commander</dt>
-            <dd data-testid="command-zone-card-name">{commanderName}</dd>
-          </div>
-          <div>
-            <dt>Zone</dt>
-            <dd data-testid="command-zone-location">{commander?.card.zone ?? "none"}</dd>
-          </div>
-          <div>
-            <dt>Deploy Count</dt>
-            <dd data-testid="commander-deploy-count">{commander?.deployCount ?? 0}</dd>
-          </div>
-          {!compactDefaultPanel ? (
-            <div>
-              <dt>Upgrade Level</dt>
-              <dd data-testid="commander-upgrade-level">
-                Lv {commander?.card.upgradeLevel ?? 0}
-              </dd>
-            </div>
-          ) : null}
-          {!compactDefaultPanel ? (
-            <div>
-              <dt>Raw Rebind Tax</dt>
-              <dd data-testid="commander-raw-rebind-tax">
-                +{commanderRawRebindTax} Charge
-              </dd>
-            </div>
-          ) : null}
-          {!compactDefaultPanel ? (
-            <div>
-              <dt>Tax Discount</dt>
-              <dd data-testid="commander-rebind-discount">
-                -{commanderRebindTaxDiscount} Charge
-              </dd>
-            </div>
-          ) : null}
-          <div>
-            <dt>Effective Rebind Tax</dt>
-            <dd data-testid="commander-rebind-tax">
-              +{commanderEffectiveRebindTax} Charge
-            </dd>
-          </div>
-          <div>
-            <dt>Deploy Cost</dt>
-            <dd data-testid="commander-deploy-cost">
-              {commanderBaseBoardCharge} base + {commanderEffectiveRebindTax} tax ={" "}
-              {commanderDeployBoardCharge} Charge
-            </dd>
-          </div>
-          <div>
-            <dt>Board Charge After Deploy</dt>
-            <dd data-testid="commander-board-charge-after-deploy">
-              {commanderBoardChargeAfterDeploy} / {resourceSummary.boardChargeCapacity}
-            </dd>
-          </div>
-        </dl>
-        <p className="muted">
-          Prototype Commander. Effective Rebind Tax is enforced as generic Board Charge
-          while deployed.
-        </p>
-        {compactDefaultPanel ? (
-          <details
-            className="commander-lifecycle compact-details"
-            data-testid="commander-lifecycle-panel"
-          >
-            <summary>Commander History</summary>
-            {lifecycleContent}
-          </details>
-        ) : (
-          <div className="commander-lifecycle" data-testid="commander-lifecycle-panel">
-            <h4>Commander Lifecycle</h4>
-            {lifecycleContent}
-          </div>
-        )}
-        <div className="mini-actions">
-          <button
-            type="button"
-            className="secondary"
-            onClick={inspectCommander}
-            disabled={!commander}
-          >
-            Inspect
-          </button>
-          <button
-            type="button"
-            onClick={deployCommanderFromCommand}
-            disabled={!commanderDeployCheck.ok}
-          >
-            Deploy Commander
-          </button>
-          <button
-            type="button"
-            onClick={returnCommanderFromBoard}
-            disabled={!commanderReturnCheck.ok}
-          >
-            Return to Command
-          </button>
-        </div>
-        {blockedReasons.length > 0 ? (
-          <ul className="message-list compact">
-            {blockedReasons.map((line) => (
-              <li key={line}>{line}</li>
-            ))}
-          </ul>
-        ) : null}
-      </div>
-    );
   };
 
   const renderCommanderUpgradePanel = (variant: "panel" | "renderer-lab-panel") => {
@@ -1936,7 +1827,16 @@ export function App() {
           </div>
 
           <div className="renderer-lab-loadout-grid">
-            {renderCommandZonePanel("renderer-lab-panel")}
+            <CommandZonePanel
+              isDefaultRoute={isDefaultRoute}
+              variant="renderer-lab-panel"
+              view={commandZoneView}
+              deployDisabled={!commanderDeployCheck.ok}
+              returnDisabled={!commanderReturnCheck.ok}
+              onInspect={inspectCommander}
+              onDeploy={deployCommanderFromCommand}
+              onReturn={returnCommanderFromBoard}
+            />
             {renderCommanderUpgradePanel("renderer-lab-panel")}
 
             <div className="renderer-lab-panel">
@@ -2106,72 +2006,24 @@ export function App() {
       ) : null}
 
       <section className="debug-grid">
-        <div className="panel player-step-panel">
-          <h2>{isDefaultRoute ? "What now?" : "Run State"}</h2>
-          <p className="next-action">{nextActionMessage}</p>
-          {isDefaultRoute ? (
-            <ol className="run-guide" aria-label="Run flow">
-              {runGuideSteps.map((step) => (
-                <li key={step.label} data-step-state={step.state}>
-                  <span>{step.label}</span>
-                  <small>{step.detail}</small>
-                </li>
-              ))}
-            </ol>
-          ) : null}
-          <dl className="run-stats">
-            <div>
-              <dt>Round</dt>
-              <dd>
-                {run.currentRound} / {run.maxRounds}
-              </dd>
-            </div>
-            <div>
-              <dt>Health</dt>
-              <dd>{run.playerHealth}</dd>
-            </div>
-            <div>
-              <dt>Gold</dt>
-              <dd>{run.playerGold}</dd>
-            </div>
-            <div>
-              <dt>Phase</dt>
-              <dd>{phase}</dd>
-            </div>
-            <div>
-              <dt>Starter</dt>
-              <dd>{starterKitName}</dd>
-            </div>
-          </dl>
-          {isDefaultRoute ? (
-            <details className="compact-details run-metadata-details">
-              <summary>Run details</summary>
-              <dl className="run-stats">
-                <div>
-                  <dt>Seed</dt>
-                  <dd>{run.seed}</dd>
-                </div>
-                <div>
-                  <dt>Status</dt>
-                  <dd>{run.status}</dd>
-                </div>
-              </dl>
-            </details>
-          ) : (
-            <dl className="run-stats">
-              <div>
-                <dt>Seed</dt>
-                <dd>{run.seed}</dd>
-              </div>
-              <div>
-                <dt>Status</dt>
-                <dd>{run.status}</dd>
-              </div>
-            </dl>
-          )}
-        </div>
+        <RunGuidePanel
+          isDefaultRoute={isDefaultRoute}
+          nextActionMessage={nextActionMessage}
+          runDetails={runGuideDetails}
+          stats={runGuideStats}
+          steps={runGuideSteps}
+        />
 
-        {renderCommandZonePanel("panel")}
+        <CommandZonePanel
+          isDefaultRoute={isDefaultRoute}
+          variant="panel"
+          view={commandZoneView}
+          deployDisabled={!commanderDeployCheck.ok}
+          returnDisabled={!commanderReturnCheck.ok}
+          onInspect={inspectCommander}
+          onDeploy={deployCommanderFromCommand}
+          onReturn={returnCommanderFromBoard}
+        />
         {renderCommanderUpgradePanel("panel")}
 
         {isDefaultRoute ? (
@@ -2239,79 +2091,14 @@ export function App() {
           </div>
         )}
 
-        <div className="panel">
-          <h2>Reward Choices</h2>
-          <p className="muted">
-            {canApplyReward(run)
-              ? rewardChoices.length > 0
-                ? "Choose one pack. New cards go to the Pool for the next planning step."
-                : commanderUpgradeClaimedThisRound
-                  ? "Pack reward claimed. Advance when ready."
-                  : "Pack reward claimed. Choose a Commander upgrade to finish rewards."
-              : "Rewards appear after combat is recorded."}
-          </p>
-          <ol className="card-list">
-            {rewardChoices.map((choice) => {
-              const explanation = rewardOfferExplanationByChoiceId.get(choice.id);
-
-              return (
-                <li key={choice.id}>
-                  <div className="reward-choice-cell">
-                    <span>{choice.label}</span>
-                    <small>Cost {choice.cost} gold</small>
-                    {!choice.affordable ? (
-                      <small>
-                        Need {choice.cost} gold, have {run.playerGold}
-                      </small>
-                    ) : (
-                      <small>After purchase: {choice.goldAfterPurchase} gold</small>
-                    )}
-                    {explanation ? (
-                      isDefaultRoute ? (
-                        <details className="reward-explanation-details">
-                          <summary className="reward-headline">
-                            {explanation.headline}
-                          </summary>
-                          <ul className="reward-reasons">
-                            {explanation.reasons.map((reason, index) => (
-                              <li
-                                key={`${reason.kind}:${index}:${reason.text}`}
-                                className={`reward-reason ${reason.severity}`}
-                              >
-                                {reason.text}
-                              </li>
-                            ))}
-                          </ul>
-                        </details>
-                      ) : (
-                        <>
-                          <p className="reward-headline">{explanation.headline}</p>
-                          <ul className="reward-reasons">
-                            {explanation.reasons.map((reason, index) => (
-                              <li
-                                key={`${reason.kind}:${index}:${reason.text}`}
-                                className={`reward-reason ${reason.severity}`}
-                              >
-                                {reason.text}
-                              </li>
-                            ))}
-                          </ul>
-                        </>
-                      )
-                    ) : null}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => openReward(choice.id)}
-                    disabled={!choice.affordable}
-                  >
-                    Open
-                  </button>
-                </li>
-              );
-            })}
-          </ol>
-        </div>
+        <RewardChoicesPanel
+          collapseExplanations={isDefaultRoute}
+          description={rewardChoicesDescription}
+          explanationsByChoiceId={rewardOfferExplanationByChoiceId}
+          onOpenReward={openReward}
+          playerGold={run.playerGold}
+          rewardChoices={rewardChoices}
+        />
 
         {isDefaultRoute && postPackSuggestions.latestOpenedCardCount > 0 ? (
           <PostPackSuggestionsPanel
@@ -2510,137 +2297,12 @@ export function App() {
           </ol>
         </div>
 
-        <div className="panel wide">
-          <h2>Last Recorded Combat</h2>
-          {latestCombatSummary ? (
-            <>
-              <p className="muted">
-                Round {latestCombatSummary.round} | Winner: {latestCombatSummary.winner} |
-                Damage: {latestCombatSummary.damageToPlayer}/
-                {latestCombatSummary.damageToOpponent} | Events:{" "}
-                {latestCombatSummary.eventCount} | Gold: +{latestCombatSummary.goldEarned}
-              </p>
-              <dl className="combat-result-strip">
-                <div>
-                  <dt>Winner</dt>
-                  <dd>{latestCombatSummary.winner}</dd>
-                </div>
-                <div>
-                  <dt>Damage</dt>
-                  <dd>
-                    You {latestCombatSummary.damageToPlayer} / Enemy{" "}
-                    {latestCombatSummary.damageToOpponent}
-                  </dd>
-                </div>
-                <div>
-                  <dt>Gold</dt>
-                  <dd>+{latestCombatSummary.goldEarned}</dd>
-                </div>
-                <div>
-                  <dt>Events</dt>
-                  <dd>{latestCombatSummary.eventCount}</dd>
-                </div>
-                <div>
-                  <dt>Commander</dt>
-                  <dd>
-                    {latestCommanderCombatReturn
-                      ? "Returned to Command"
-                      : "No combat return"}
-                  </dd>
-                </div>
-              </dl>
-              <p className="flow-note">
-                Combat recorded: {latestCombatSummary.winner}. You gained{" "}
-                {latestCombatSummary.goldEarned} gold.{" "}
-                {phase === "reward"
-                  ? "Claim one pack and one Commander upgrade before advancing."
-                  : packRewardClaimedThisRound && commanderUpgradeClaimedThisRound
-                    ? "Rewards are complete; Advance starts the next planning round."
-                    : "Finish any remaining reward before advancing."}
-              </p>
-              {lastRecordedCombatDisplaySummary ? (
-                <>
-                  {isDefaultRoute ? (
-                    <details className="combat-feed-details">
-                      <summary>Combat Event Feed</summary>
-                      <CombatSummaryView summary={lastRecordedCombatDisplaySummary} />
-                    </details>
-                  ) : (
-                    <CombatSummaryView summary={lastRecordedCombatDisplaySummary} />
-                  )}
-                  {showDeveloperDetails ? (
-                    <RawDebugDetails
-                      label="Developer event JSON"
-                      value={{
-                        round: lastRecordedCombat?.round,
-                        encounterId: lastRecordedCombat?.encounterId,
-                        runSummary: latestCombatSummary,
-                        events: lastRecordedCombat?.result.events ?? [],
-                        warnings: lastRecordedCombat?.result.warnings ?? []
-                      }}
-                    />
-                  ) : null}
-                </>
-              ) : (
-                <p className="muted combat-empty">
-                  Compact run summary is available; full event details are not stored in
-                  run state.
-                </p>
-              )}
-            </>
-          ) : (
-            <p className="muted">No combat has been recorded for this run.</p>
-          )}
-        </div>
-
-        {combat && upcomingCombatDisplaySummary ? (
-          <div className="panel wide">
-            <h2>Upcoming Combat Preview</h2>
-            <p className="muted">
-              Preview only, not yet recorded. Winner: {combat.winner} | Events:{" "}
-              {combat.events.length}
-            </p>
-            <dl className="combat-result-strip">
-              <div>
-                <dt>Winner</dt>
-                <dd>{combat.winner}</dd>
-              </div>
-              <div>
-                <dt>Damage</dt>
-                <dd>
-                  You {combat.damageToPlayerA} / Enemy {combat.damageToPlayerB}
-                </dd>
-              </div>
-              <div>
-                <dt>Events</dt>
-                <dd>{combat.events.length}</dd>
-              </div>
-              <div>
-                <dt>Warnings</dt>
-                <dd>{combat.warnings.length}</dd>
-              </div>
-            </dl>
-            {isDefaultRoute ? (
-              <details className="combat-feed-details">
-                <summary>Preview Event Feed</summary>
-                <CombatSummaryView summary={upcomingCombatDisplaySummary} />
-              </details>
-            ) : (
-              <CombatSummaryView summary={upcomingCombatDisplaySummary} />
-            )}
-            {showDeveloperDetails ? (
-              <RawDebugDetails
-                label="Developer event JSON"
-                value={{
-                  phase,
-                  currentEncounterId: currentEncounter?.id ?? null,
-                  events: combat.events,
-                  warnings: combat.warnings
-                }}
-              />
-            ) : null}
-          </div>
-        ) : null}
+        <CombatResultPanel
+          isDefaultRoute={isDefaultRoute}
+          lastRecorded={lastRecordedCombatPanelView}
+          showDeveloperDetails={showDeveloperDetails}
+          upcoming={upcomingCombatPanelView}
+        />
       </section>
     </main>
   );

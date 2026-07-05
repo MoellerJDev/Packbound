@@ -192,6 +192,13 @@ Spellrail, or board placement actions through the same reducer path as the Pool
 buttons. This is a clarity layer, not a new mechanic or broad recommendation
 engine.
 
+Implementation update after this task: reward pack explanations now rank
+concrete reasons ahead of broad overlap. Unaffordable warnings remain first,
+visible duplicate upgrade progress beats softer synergy text, duplicate
+Unit/Echo potential beats broad pack bias, Source/fixing pressure gets a
+stronger headline, and near-trait-only overlap now uses cautious copy instead of
+claiming a pack is likely to support the current trait direction.
+
 The biggest remaining Pixi findings are no longer the absence of replay controls,
 tiny first-pass labels, or unvalidated readability. The lab still needs event
 grouping/filtering for long feeds, scrub or speed controls, and final
@@ -199,7 +206,7 @@ default-route confidence. Pixi should stay opt-in until those are addressed.
 
 Recommended next task:
 
-`chore(client): tighten reward explanation ranking for duplicates and fixing`
+`feat(client): improve post-pack blocked-reason copy for Source capacity and board layers`
 
 ## 2. Environment And Commands
 
@@ -395,9 +402,9 @@ combat, Commander, encounter, card, or Pixi-default behavior changed.
 ### Fake Or Noisy Decisions
 
 - Traits / Teamups do not affect combat yet.
-- Some reward explanations overstate relevance. Off-archetype packs can still
-  sound "likely to support your current trait direction" because they share broad
-  near-miss traits.
+- Reward explanations are more honest now, but they still summarize pack-level
+  odds rather than showing exact opened-card outcomes. Near-trait overlap is
+  cautious, while duplicate progress and fixing pressure get priority.
 - Upgrade Progress can show lots of not-yet-actionable context before the player
   has enough copies.
 - Commander lifecycle history is useful for debugging but noisy as a primary
@@ -439,8 +446,9 @@ combat, Commander, encounter, card, or Pixi-default behavior changed.
 - Post-pack suggestions reduce scanning after a reward pack, but they do not
   yet teach board layers, source replacement tradeoffs, or duplicate-upgrade
   timing as clearly as a final UI should.
-- Reward explanations need stronger ranking. Duplicate/fixing/affordability
-  should beat broad trait near-miss language.
+- Reward explanations now favor duplicate progress, duplicate potential,
+  fixing/resource pressure, active traits, and economy before near-trait or broad
+  bias text. They still do not preview exact pack contents.
 - Long combat summaries still need grouping/filtering so the player can see the
   few important swing events.
 - The default React/CSS battlefield still reads as two boards rather than one
@@ -451,14 +459,14 @@ combat, Commander, encounter, card, or Pixi-default behavior changed.
 1. Collapse default-route debug panels: Current Encounter details, legal Planning
    Check, display-only Traits, idle Upgrade Progress, and full Commander
    lifecycle.
-2. Tighten reward explanation ranking so off-archetype packs do not sound as
-   good as direct duplicate/fixing hits.
+2. Make post-pack suggestions explain why an otherwise interesting new card is
+   blocked by Source capacity, Board Charge, or layer occupancy.
 3. Group combat summaries into headline beats: Techniques, first deaths,
    Commander lifecycle, winner/damage, and hidden details.
 4. Add layer copy near Board/Pixi placement so ground/support sharing is
    understandable without reading architecture docs.
-5. Make post-pack suggestions explain why an otherwise interesting new card is
-   blocked by Source capacity, Board Charge, or layer occupancy.
+5. Add a compact "why this pack" detail state that can show duplicate/fixing
+   reasons without reopening the full reward explanation list.
 
 ### Changes Made In This Pass
 
@@ -473,6 +481,8 @@ combat, Commander, encounter, card, or Pixi-default behavior changed.
 - Changed no-action card rows to point players toward inspector blocked reasons.
 - Added post-pack suggestions that use existing legal loadout actions for the
   latest opened pack.
+- Tightened reward explanation ranking so concrete duplicate and fixing reasons
+  beat broad trait/bias overlap.
 
 ## 4. Default Route `/`
 
@@ -923,6 +933,10 @@ Note:
   They look only at the latest opened pack, suggest at most a few forward edits,
   and do not reason about long-term build quality, source swaps, duplicate
   upgrade timing, or board-layer education beyond short copy.
+- Reward explanations now rank duplicate progress, duplicate potential, fixing
+  pressure, active trait matches, and economy ahead of near-trait and broad bias
+  text, but they are still lightweight pack-level hints rather than a full draft
+  recommendation system.
 - Pixi uses generated shapes and text, not final art assets.
 - Pixi labels, stat chips, rings, and combat effects have been strengthened, but
   long names and dense adjacent rows can still crowd.
@@ -982,16 +996,15 @@ Note:
 
 Do next:
 
-`chore(client): tighten reward explanation ranking for duplicates and fixing`
+`feat(client): improve post-pack blocked-reason copy for Source capacity and board layers`
 
-Why: post-pack suggestions now reduce scanning after a pack opens, but the pack
-offer rationale can still overvalue broad trait near-misses. Direct duplicate
-progress, fixing, affordability, and obvious Source needs should rank above
-vague archetype overlap.
+Why: post-pack suggestions now surface legal latest-pack edits, and reward
+explanations are more honest. The next clarity gap is explaining why a newly
+opened card is interesting but blocked by Source Row space, Board Charge, Aspect
+access, or ground/support layer occupancy.
 
 Do soon:
 
-- `feat(client): improve post-pack blocked-reason copy for Source capacity and board layers`
 - `feat(client): group or filter long combat summary events`
 - `feat(client): add Pixi replay scrub/speed controls`
 - `feat(rules): evaluate expanding the canonical board to 6 rows x 10-12 columns`

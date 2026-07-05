@@ -118,6 +118,9 @@ const explanationForPack = (
 const reasonText = (explanation: RewardOfferExplanation): string =>
   explanation.reasons.map((reason) => reason.text).join(" ");
 
+const reasonKindIndex = (explanation: RewardOfferExplanation, kind: string): number =>
+  explanation.reasons.findIndex((reason) => reason.kind === kind);
+
 describe("reward offer explanations", () => {
   it("is deterministic and JSON-serializable", () => {
     const run = withStoredChoices(createRewardRun(), [
@@ -189,20 +192,32 @@ describe("reward offer explanations", () => {
     expect(reasonText(explanation)).toMatch(/Cheaper fixing option|Cheapest offer/);
   });
 
-  it("mentions matching trait direction and archetype bias", () => {
-    const run = withStoredChoices(createRewardRun(), ["ember_foundry_pack"]);
+  it("prioritizes active trait matches above near-trait and broad bias details", () => {
+    const run = withStoredChoices(createRewardRun(), [
+      "source_pack",
+      "ember_foundry_pack"
+    ]);
     const explanation = explanationForPack(
       buildRewardOfferExplanations(run, sampleCatalog),
       "ember_foundry_pack"
     );
 
     expect(explanation.reasons).toContainEqual(
-      expect.objectContaining({ kind: "traitMatch" })
+      expect.objectContaining({ kind: "activeTraitMatch" })
+    );
+    expect(explanation.reasons).toContainEqual(
+      expect.objectContaining({ kind: "nearTraitProgress" })
     );
     expect(explanation.reasons).toContainEqual(
       expect.objectContaining({ kind: "archetypeBias" })
     );
     expect(reasonText(explanation)).toMatch(/Ember|Scrapper/);
+    expect(reasonKindIndex(explanation, "activeTraitMatch")).toBeLessThan(
+      reasonKindIndex(explanation, "nearTraitProgress")
+    );
+    expect(reasonKindIndex(explanation, "nearTraitProgress")).toBeLessThan(
+      reasonKindIndex(explanation, "archetypeBias")
+    );
   });
 
   it("references partial Unit or Echo duplicate progress when the pack can contain that card", () => {
@@ -215,12 +230,79 @@ describe("reward offer explanations", () => {
       "ember_foundry_pack"
     );
 
+    expect(explanation.headline).toBe("Can chase visible duplicate progress.");
     expect(explanation.reasons).toContainEqual(
       expect.objectContaining({ kind: "upgradeProgress" })
     );
     expect(reasonText(explanation)).toContain("Ember Scraprunner");
     expect(reasonText(explanation)).toContain("2 / 3 pool copies");
     expect(reasonText(explanation)).toContain("active copies that must return to pool");
+    expect(reasonKindIndex(explanation, "upgradeProgress")).toBeLessThan(
+      reasonKindIndex(explanation, "duplicatePotential")
+    );
+  });
+
+  it("promotes duplicate potential ahead of broad archetype bias", () => {
+    const run = withStoredChoices(createRewardRun(), [
+      "source_pack",
+      "ember_foundry_pack"
+    ]);
+    const explanation = explanationForPack(
+      buildRewardOfferExplanations(run, sampleCatalog),
+      "ember_foundry_pack"
+    );
+
+    expect(explanation.headline).toBe("Can find useful duplicate Unit/Echo copies.");
+    expect(explanation.reasons).toContainEqual(
+      expect.objectContaining({
+        kind: "duplicatePotential",
+        severity: "positive",
+        text: expect.stringContaining("Can find useful duplicate Unit/Echo copies")
+      })
+    );
+    expect(reasonKindIndex(explanation, "duplicatePotential")).toBeLessThan(
+      reasonKindIndex(explanation, "archetypeBias")
+    );
+  });
+
+  it("promotes source/fixing pressure ahead of weak trait overlap", () => {
+    const run = withStoredChoices(createRewardRun(), ["source_pack", "cloudspire_pack"]);
+    const explanation = explanationForPack(
+      buildRewardOfferExplanations(run, sampleCatalog),
+      "source_pack"
+    );
+
+    expect(explanation.headline).toBe("Fixing helps play cards already in your pool.");
+    expect(explanation.reasons).toContainEqual(
+      expect.objectContaining({
+        kind: "sourceFixing",
+        text: "Fixing helps play expensive or off-Aspect cards already in your pool."
+      })
+    );
+    expect(reasonKindIndex(explanation, "sourceFixing")).toBeLessThan(
+      reasonKindIndex(explanation, "activeTraitMatch")
+    );
+  });
+
+  it("uses cautious copy for near-trait-only overlap", () => {
+    const run = withStoredChoices(createRewardRun(), ["source_pack", "cloudspire_pack"]);
+    const explanation = explanationForPack(
+      buildRewardOfferExplanations(run, sampleCatalog),
+      "cloudspire_pack"
+    );
+
+    expect(explanation.headline).toBe("May help a near trait later.");
+    expect(explanation.headline).not.toContain("Likely to support");
+    expect(explanation.reasons).not.toContainEqual(
+      expect.objectContaining({ kind: "activeTraitMatch" })
+    );
+    expect(explanation.reasons).toContainEqual(
+      expect.objectContaining({
+        kind: "nearTraitProgress",
+        severity: "neutral",
+        text: "May help near Echo Fodder trait later."
+      })
+    );
   });
 
   it("does not frame duplicate Relics as upgrade hits", () => {

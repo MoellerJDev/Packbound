@@ -18,6 +18,8 @@ import { getCurrentRewardChoices } from "./rewards";
 export type RewardOfferReasonKind =
   | "affordability"
   | "traitMatch"
+  | "activeTraitMatch"
+  | "nearTraitProgress"
   | "upgradeProgress"
   | "sourceFixing"
   | "archetypeBias"
@@ -302,45 +304,53 @@ const addUniqueReason = (
   }
 };
 
+const reasonPriority = (reason: RewardOfferReason): number => {
+  if (reason.kind === "affordability") {
+    return 0;
+  }
+  if (reason.kind === "warning" || reason.severity === "warning") {
+    return 1;
+  }
+
+  switch (reason.kind) {
+    case "upgradeProgress":
+      return 2;
+    case "duplicatePotential":
+      return 3;
+    case "sourceFixing":
+      return 4;
+    case "activeTraitMatch":
+    case "traitMatch":
+      return 5;
+    case "economy":
+      return 6;
+    case "nearTraitProgress":
+      return 7;
+    case "archetypeBias":
+      return 8;
+  }
+};
+
 const compactReasons = (
   reasons: readonly RewardOfferReason[]
 ): readonly RewardOfferReason[] => {
-  if (reasons.length <= MAX_REASONS) {
-    return reasons;
-  }
-
-  const selected = new Set<number>();
-
-  const selectWhere = (predicate: (reason: RewardOfferReason) => boolean): void => {
-    for (const [index, current] of reasons.entries()) {
-      if (selected.size >= MAX_REASONS) {
-        return;
-      }
-      if (predicate(current)) {
-        selected.add(index);
-      }
-    }
-  };
-
-  selectWhere((current) => current.kind === "affordability");
-  selectWhere((current) => current.severity === "warning");
-  selectWhere((current) => current.kind === "sourceFixing");
-  selectWhere((current) => current.kind === "upgradeProgress");
-  selectWhere((current) => current.kind === "economy");
-  selectWhere((current) => current.kind === "traitMatch");
-  selectWhere((current) => current.kind === "archetypeBias");
-  selectWhere((current) => current.kind === "duplicatePotential");
-
-  return [...selected]
-    .sort((left, right) => left - right)
-    .map((index) => reasons[index])
-    .filter((current): current is RewardOfferReason => current !== undefined);
+  return reasons
+    .map((current, index) => ({ current, index }))
+    .sort((left, right) => {
+      const priorityDelta = reasonPriority(left.current) - reasonPriority(right.current);
+      return priorityDelta !== 0 ? priorityDelta : left.index - right.index;
+    })
+    .slice(0, MAX_REASONS)
+    .map((entry) => entry.current);
 };
 
 const reasonTextByKind = (
   reasons: readonly RewardOfferReason[],
   kind: RewardOfferReasonKind
 ): string | undefined => reasons.find((current) => current.kind === kind)?.text;
+
+const sourceFixingShowsPressure = (text: string | undefined): boolean =>
+  text?.startsWith("Fixing helps play") ?? false;
 
 const headlineForOffer = (
   choice: RewardChoice,
@@ -356,17 +366,37 @@ const headlineForOffer = (
     return "Can chase visible duplicate progress.";
   }
 
-  const traitText = reasonTextByKind(reasons, "traitMatch");
-  if (traitText) {
-    return "Likely to support your current trait direction.";
+  const duplicateText = reasonTextByKind(reasons, "duplicatePotential");
+  if (duplicateText) {
+    return "Can find useful duplicate Unit/Echo copies.";
   }
 
-  if (context.sourceHeavy) {
-    return "Fixing option for Aspect access and board Charge.";
+  const sourceFixingText = reasonTextByKind(reasons, "sourceFixing");
+  if (sourceFixingShowsPressure(sourceFixingText)) {
+    return "Fixing helps play cards already in your pool.";
+  }
+
+  if (context.sourceHeavy && sourceFixingText) {
+    return "Adds Source options for future picks.";
+  }
+
+  const activeTraitText = reasonTextByKind(reasons, "activeTraitMatch");
+  if (activeTraitText) {
+    return activeTraitText;
+  }
+
+  const economyText = reasonTextByKind(reasons, "economy");
+  if (economyText) {
+    return economyText;
+  }
+
+  const nearTraitText = reasonTextByKind(reasons, "nearTraitProgress");
+  if (nearTraitText) {
+    return "May help a near trait later.";
   }
 
   if (context.topBiasTags.length > 0) {
-    return `Biased toward ${formatList(context.topBiasTags.slice(0, 3))}.`;
+    return `Broadly biased toward ${formatList(context.topBiasTags.slice(0, 3))}.`;
   }
 
   return "Adds another pack option for this run.";
@@ -409,7 +439,9 @@ export const buildRewardOfferExplanation = (
   const packName = pack?.name ?? choice.label;
   const context = buildPackCardContext(catalog, pack);
   const packPrimaryDefIds = cardDefIds(context.primaryCards);
-  const packTraitIds = traitIdsForCards(context.primaryCards);
+  const packTraitIds = traitIdsForCards(
+    context.primaryCards.filter((card) => card.cardType !== "Source")
+  );
   const traitSummary = buildRunTraitSummary(run, catalog);
   const upgradeProgressGroups = getUpgradeProgressGroups(run, catalog);
   const upgradeRelevantGroups = upgradeProgressGroups.filter(
@@ -457,12 +489,13 @@ export const buildRewardOfferExplanation = (
   }
 
   if (context.sourceHeavy) {
+    const hasSourcePressure = sourceFixingPressure(run, catalog);
     addUniqueReason(
       reasons,
       reason(
         "sourceFixing",
-        sourceFixingPressure(run, catalog)
-          ? "May help play expensive or off-Aspect cards already in your pool."
+        hasSourcePressure
+          ? "Fixing helps play expensive or off-Aspect cards already in your pool."
           : "Can add Aspect access and board Charge for future pulls.",
         "positive",
         { relatedTags: ["Source", "Fixing"] }
@@ -490,7 +523,7 @@ export const buildRewardOfferExplanation = (
     addUniqueReason(
       reasons,
       reason(
-        "traitMatch",
+        "activeTraitMatch",
         `Matches active ${formatList(traitNames(activeMatches))} ${plural(
           activeMatches.length,
           "trait"
@@ -510,9 +543,12 @@ export const buildRewardOfferExplanation = (
     addUniqueReason(
       reasons,
       reason(
-        "traitMatch",
-        `Can help push ${formatList(traitNames(nearMatches))} toward the next tier.`,
-        "positive",
+        "nearTraitProgress",
+        `May help near ${formatList(traitNames(nearMatches))} ${plural(
+          nearMatches.length,
+          "trait"
+        )} later.`,
+        "neutral",
         { relatedTraitIds: nearMatches.map((trait) => trait.traitId) }
       )
     );
@@ -582,10 +618,10 @@ export const buildRewardOfferExplanation = (
       reasons,
       reason(
         "duplicatePotential",
-        `Can find duplicate Unit/Echo copies such as ${formatList(
+        `Can find useful duplicate Unit/Echo copies such as ${formatList(
           duplicateCards.map((card) => card.name)
         )}.`,
-        "neutral",
+        "positive",
         { relatedCardDefIds: duplicateCards.map((card) => card.id) }
       )
     );

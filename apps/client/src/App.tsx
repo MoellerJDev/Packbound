@@ -21,7 +21,6 @@ import {
   combatChargeCostForEncounterAction,
   createEncounterMatch,
   createRunFromStarterKit,
-  describeUpgradeProgressGroup,
   passEncounterPriority,
   getCommanderDeploymentCandidatePosition,
   getCommanderEffectiveRebindTax,
@@ -83,7 +82,15 @@ import {
   CommandZonePanel,
   type CommandZonePanelView
 } from "./components/CommandZonePanel";
+import {
+  CommanderUpgradePanel,
+  type CommanderUpgradePanelView
+} from "./components/CommanderUpgradePanel";
 import { EngagementPreviewPanel } from "./components/EngagementPreviewPanel";
+import {
+  LoadoutZonesPanel,
+  type LoadoutZonesPanelView
+} from "./components/LoadoutZonesPanel";
 import { PostPackSuggestionsPanel } from "./components/PostPackSuggestionsPanel";
 import { PriorityLabPanel } from "./components/PriorityLabPanel";
 import { PixiBattlefieldRenderer } from "./components/pixi/PixiBattlefieldRenderer";
@@ -111,7 +118,7 @@ import {
   type RunGuideStep
 } from "./components/RunGuidePanel";
 import { TraitSummaryView } from "./components/TraitSummaryView";
-import { UpgradeBadge, UpgradeProgressBadge } from "./components/upgradeBadges";
+import { UpgradeBadge } from "./components/upgradeBadges";
 import {
   DEBUG_PRIORITY_SCENARIO_ID,
   DEBUG_RENDERER_SCENARIO_ID,
@@ -838,6 +845,34 @@ export function App() {
     upgradeLevel: run.commander?.card.upgradeLevel ?? 0,
     zone: run.commander?.card.zone ?? "none"
   } satisfies CommandZonePanelView;
+  const commanderUpgradePanelView = {
+    choices: commanderUpgradeChoices,
+    currentLevel: run.commander?.card.upgradeLevel ?? 0,
+    effectiveRebindTax: commanderEffectiveRebindTax,
+    history: run.commander?.upgradeHistory ?? [],
+    phase,
+    rawRebindTax: commanderRawRebindTax,
+    rebindTaxDiscount: commanderRebindTaxDiscount
+  } satisfies CommanderUpgradePanelView;
+  const loadoutZonesView = {
+    activeCards: run.activeCards,
+    boardPlacements: run.board.placements,
+    editable,
+    isDefaultRoute,
+    latestOpenedCardNames,
+    latestOpenedPack,
+    latestPackName,
+    latestRewardCardIds,
+    latestRewardHistoryEntry,
+    phase,
+    poolCards: run.pool,
+    readyUpgradeGroups,
+    resourceSummary,
+    sourceCards: run.sourceRow.cards,
+    spellrailCards: run.spellrail.cards,
+    upgradeProgressByCardId,
+    upgradeProgressGroups
+  } satisfies LoadoutZonesPanelView;
   const rewardChoicesDescription = canApplyReward(run)
     ? rewardChoices.length > 0
       ? "Choose one pack. New cards go to the Pool for the next planning step."
@@ -1047,77 +1082,6 @@ export function App() {
     setRendererReplay((current) => resetPixiReplay(current));
   };
 
-  const renderCommanderUpgradePanel = (variant: "panel" | "renderer-lab-panel") => {
-    const commander = run.commander;
-    const Heading = variant === "panel" ? "h2" : "h3";
-    const history = commander?.upgradeHistory ?? [];
-    const latestUpgrade = history.at(-1);
-    if (variant === "panel" && phase !== "reward" && history.length === 0) {
-      return null;
-    }
-
-    return (
-      <div className={variant} data-testid="commander-upgrade-panel">
-        <Heading>Commander Upgrades</Heading>
-        <dl className="run-stats">
-          <div>
-            <dt>Current Level</dt>
-            <dd data-testid="commander-upgrade-panel-level">
-              Lv {commander?.card.upgradeLevel ?? 0}
-            </dd>
-          </div>
-          <div>
-            <dt>Raw Tax</dt>
-            <dd>+{commanderRawRebindTax} Charge</dd>
-          </div>
-          <div>
-            <dt>Discount</dt>
-            <dd>-{commanderRebindTaxDiscount} Charge</dd>
-          </div>
-          <div>
-            <dt>Effective Tax</dt>
-            <dd data-testid="commander-upgrade-effective-tax">
-              +{commanderEffectiveRebindTax} Charge
-            </dd>
-          </div>
-          <div>
-            <dt>History</dt>
-            <dd data-testid="commander-upgrade-history-count">{history.length}</dd>
-          </div>
-        </dl>
-        <p className="muted">
-          {phase === "reward"
-            ? commanderUpgradeChoices.length > 0
-              ? "Choose one Commander upgrade for this reward. It applies only to the Commander."
-              : "Commander upgrade claimed for this reward."
-            : history.length > 0
-              ? "Latest Commander upgrades stay visible here."
-              : "Commander upgrades appear after combat."}
-        </p>
-        {commanderUpgradeChoices.length > 0 ? (
-          <ol className="card-list compact">
-            {commanderUpgradeChoices.map((choice) => (
-              <li key={choice.id}>
-                <div className="reward-choice-cell">
-                  <span>{choice.label}</span>
-                  <small>{choice.effectText}</small>
-                </div>
-                <button type="button" onClick={() => applyCommanderUpgrade(choice.id)}>
-                  Apply {choice.label}
-                </button>
-              </li>
-            ))}
-          </ol>
-        ) : null}
-        {latestUpgrade ? (
-          <p className="muted" data-testid="commander-latest-upgrade">
-            Latest: {latestUpgrade.label}, round {latestUpgrade.round}.
-          </p>
-        ) : null}
-      </div>
-    );
-  };
-
   const upgradeGroup = (group: UpgradeProgressGroup) => {
     setRun((currentRun) =>
       applyRunAction(currentRun, sampleCatalog, {
@@ -1127,9 +1091,6 @@ export function App() {
       })
     );
   };
-
-  const upgradeLevelForActiveCard = (cardInstanceId: CardInstanceId): number =>
-    run.activeCards.find((card) => card.instanceId === cardInstanceId)?.upgradeLevel ?? 0;
 
   const inspectEncounterBoard = (cardInstanceId: CardInstanceId) => {
     setRendererPlacementCardId(undefined);
@@ -1837,7 +1798,11 @@ export function App() {
               onDeploy={deployCommanderFromCommand}
               onReturn={returnCommanderFromBoard}
             />
-            {renderCommanderUpgradePanel("renderer-lab-panel")}
+            <CommanderUpgradePanel
+              variant="renderer-lab-panel"
+              view={commanderUpgradePanelView}
+              onApplyUpgrade={applyCommanderUpgrade}
+            />
 
             <div className="renderer-lab-panel">
               <h3>Loadout Resources</h3>
@@ -2024,7 +1989,11 @@ export function App() {
           onDeploy={deployCommanderFromCommand}
           onReturn={returnCommanderFromBoard}
         />
-        {renderCommanderUpgradePanel("panel")}
+        <CommanderUpgradePanel
+          variant="panel"
+          view={commanderUpgradePanelView}
+          onApplyUpgrade={applyCommanderUpgrade}
+        />
 
         {isDefaultRoute ? (
           <details className="panel advanced-panel" data-testid="opponent-details-panel">
@@ -2107,195 +2076,12 @@ export function App() {
           />
         ) : null}
 
-        <div className="panel">
-          <h2>Board</h2>
-          <ol className="card-list">
-            {run.board.placements.map((placement) => (
-              <li key={placement.cardInstanceId}>
-                <div className="card-name-cell">
-                  <span>{cardName(placement.defId)}</span>
-                  <UpgradeBadge
-                    level={upgradeLevelForActiveCard(placement.cardInstanceId)}
-                  />
-                  <UpgradeProgressBadge
-                    group={upgradeProgressByCardId.get(placement.cardInstanceId)}
-                    cardInstanceId={placement.cardInstanceId}
-                    zone="active"
-                  />
-                </div>
-                <small>
-                  r{placement.position.row} c{placement.position.col}{" "}
-                  {placement.position.layer}
-                </small>
-                {renderLoadoutActions(placement.cardInstanceId)}
-              </li>
-            ))}
-          </ol>
-        </div>
-
-        <div className="panel">
-          <h2>Source Row</h2>
-          <dl className="source-summary">
-            <div>
-              <dt>Board Charge</dt>
-              <dd>{resourceSummary.boardChargeText}</dd>
-            </div>
-            <div>
-              <dt>Aspect Access</dt>
-              <dd>{resourceSummary.aspectAccessText}</dd>
-            </div>
-            <div>
-              <dt>Combat Charge/sec</dt>
-              <dd>{resourceSummary.combatChargePerSecondText}</dd>
-            </div>
-            <div>
-              <dt>Slots</dt>
-              <dd>{resourceSummary.sourceSlotsText}</dd>
-            </div>
-          </dl>
-          <ol className="card-list">
-            {run.sourceRow.cards.map((card) => (
-              <li key={card.instanceId}>
-                <div className="card-name-cell">
-                  <span>{cardName(card.defId)}</span>
-                  <UpgradeBadge level={card.upgradeLevel} />
-                  <UpgradeProgressBadge
-                    group={upgradeProgressByCardId.get(card.instanceId)}
-                    cardInstanceId={card.instanceId}
-                    zone="active"
-                  />
-                </div>
-                <small>{card.zone}</small>
-                {renderLoadoutActions(card.instanceId)}
-              </li>
-            ))}
-          </ol>
-        </div>
-
-        <div className="panel">
-          <h2>Spellrail</h2>
-          <ol className="card-list">
-            {run.spellrail.cards.map((card) => (
-              <li key={card.instanceId}>
-                <div className="card-name-cell">
-                  <span>{cardName(card.defId)}</span>
-                  <UpgradeBadge level={card.upgradeLevel} />
-                  <UpgradeProgressBadge
-                    group={upgradeProgressByCardId.get(card.instanceId)}
-                    cardInstanceId={card.instanceId}
-                    zone="active"
-                  />
-                </div>
-                <small>{card.zone}</small>
-                {renderLoadoutActions(card.instanceId)}
-              </li>
-            ))}
-          </ol>
-        </div>
-
-        {isDefaultRoute && readyUpgradeGroups.length === 0 ? (
-          <details className="panel advanced-panel" data-testid="upgrade-progress-panel">
-            <summary className="advanced-summary">
-              <h2>Upgrade Progress</h2>
-              <span>No ready duplicate upgrade</span>
-            </summary>
-            <div className="advanced-panel-body">
-              {upgradeProgressGroups.length > 0 ? (
-                <ol className="card-list">
-                  {upgradeProgressGroups.map((group) => (
-                    <li key={`${group.defId}:${group.upgradeLevel}`}>
-                      <span>{describeUpgradeProgressGroup(group)}</span>
-                    </li>
-                  ))}
-                </ol>
-              ) : (
-                <p className="muted">
-                  No duplicate upgrade progress yet. Unit and Echo cards need 3 matching
-                  pool copies at the same level.
-                </p>
-              )}
-            </div>
-          </details>
-        ) : (
-          <div className="panel" data-testid="upgrade-progress-panel">
-            <h2>Upgrade Progress</h2>
-            {(isDefaultRoute ? readyUpgradeGroups : upgradeProgressGroups).length > 0 ? (
-              <ol className="card-list">
-                {(isDefaultRoute ? readyUpgradeGroups : upgradeProgressGroups).map(
-                  (group) => (
-                    <li key={`${group.defId}:${group.upgradeLevel}`}>
-                      <span>{describeUpgradeProgressGroup(group)}</span>
-                      {group.canUpgrade ? (
-                        <button
-                          type="button"
-                          onClick={() => upgradeGroup(group)}
-                          disabled={!editable}
-                        >
-                          Upgrade
-                        </button>
-                      ) : null}
-                    </li>
-                  )
-                )}
-              </ol>
-            ) : (
-              <p className="muted">
-                No duplicate upgrade progress yet. Unit and Echo cards need 3 matching
-                pool copies at the same level.
-              </p>
-            )}
-          </div>
-        )}
-
-        <div className="panel">
-          <h2>Pool Cards</h2>
-          {latestOpenedPack ? (
-            <div className="pool-reward-summary">
-              <p className="muted">
-                Latest pack: {latestPackName} |{" "}
-                {phase === "planning"
-                  ? "New cards are marked below and can be moved now."
-                  : "New cards are marked below; move them after you Advance to planning."}
-              </p>
-              {latestRewardHistoryEntry ? (
-                <p className="muted">
-                  Paid {latestRewardHistoryEntry.cost} gold | Gold{" "}
-                  {latestRewardHistoryEntry.goldBefore}
-                  {" -> "}
-                  {latestRewardHistoryEntry.goldAfter}
-                </p>
-              ) : null}
-              <p>{latestOpenedCardNames.join(", ")}</p>
-              <small>{latestOpenedPack.seed}</small>
-            </div>
-          ) : (
-            <p className="muted">Open rewards to grow the pool.</p>
-          )}
-          <ol className="card-list">
-            {run.pool.map((card) => {
-              const isLatestReward = latestRewardCardIds.has(card.instanceId);
-              return (
-                <li
-                  key={card.instanceId}
-                  className={isLatestReward ? "latest-reward-card" : undefined}
-                >
-                  <div className="card-name-cell">
-                    <span>{cardName(card.defId)}</span>
-                    <UpgradeBadge level={card.upgradeLevel} />
-                    <UpgradeProgressBadge
-                      group={upgradeProgressByCardId.get(card.instanceId)}
-                      cardInstanceId={card.instanceId}
-                      zone="pool"
-                    />
-                    {isLatestReward ? <span className="new-badge">new</span> : null}
-                  </div>
-                  <small>{card.zone}</small>
-                  {renderLoadoutActions(card.instanceId)}
-                </li>
-              );
-            })}
-          </ol>
-        </div>
+        <LoadoutZonesPanel
+          cardName={cardName}
+          renderLoadoutActions={renderLoadoutActions}
+          view={loadoutZonesView}
+          onUpgradeGroup={upgradeGroup}
+        />
 
         <CombatResultPanel
           isDefaultRoute={isDefaultRoute}

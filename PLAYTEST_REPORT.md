@@ -199,12 +199,17 @@ Unit/Echo potential beats broad pack bias, Source/fixing pressure gets a
 stronger headline, and near-trait-only overlap now uses cautious copy instead of
 claiming a pack is likely to support the current trait direction.
 
-Maintenance update after this task: default-route panel rendering is now split
-out of `App.tsx` into focused client components for the run guide, Command Zone,
-reward choices, and combat result/preview panels. This changed no gameplay,
-rules, routes, lab behavior, reward ranking, post-pack suggestions, or Pixi
-defaults. Remaining client bloat is mostly renderer-lab orchestration,
-Priority Lab wiring, Commander upgrade rendering, and loadout zone lists.
+Maintenance update after this task: `App.tsx` panel extraction is broader now.
+Earlier focused components cover the run guide, Command Zone, reward choices,
+post-pack suggestions, and combat result/preview panels; this pass moved
+Commander upgrade rendering and the default-route Board, Source Row, Spellrail,
+Upgrade Progress, and Pool Cards sections into `CommanderUpgradePanel` and
+`LoadoutZonesPanel`. `App.tsx` dropped from about 2309 lines to about 2095
+lines, with no gameplay, rules, routes, lab behavior, reward ranking, post-pack
+suggestions, or Pixi-default changes. Targeted typecheck and browser smoke
+passed during the pass. Remaining client bloat is mostly renderer-lab
+orchestration, renderer-lab loadout rendering, Priority Lab wiring, and
+top-level App state coordination.
 
 The biggest remaining Pixi findings are no longer the absence of replay controls,
 tiny first-pass labels, or unvalidated readability. The lab still needs event

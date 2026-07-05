@@ -25,10 +25,10 @@ sharing:
 https://moellerjdev.github.io/Packbound/
 
 Deployment happens automatically from `main` after CI verification passes. The
-demo is not a finished game or public release. The default route is a
-streamlined React/CSS playable debug client, and `?scenario=renderer-lab`
-exposes a Pixi-centric renderer lab with the React/CSS board kept as a collapsed
-debug fallback.
+demo is not a finished game or public release. The default route uses Pixi as
+the primary battlefield with the React/CSS board kept as a collapsed debug
+fallback, and `?scenario=renderer-lab` exposes the fuller Pixi-centric renderer
+lab.
 
 GitHub Pages must be configured in the repository settings to use GitHub
 Actions as the Pages source. If the repository remains private, Pages
@@ -141,21 +141,21 @@ pnpm dev
 - The debug client includes a card inspection panel for readable card details,
   clearer normalized ability text, legal loadout actions, and blocked-action
   reasons, including upgrade progress and why duplicates may be blocked.
-- The debug client now opens on a battlefield-first compact CSS Hex Arena with
-  Ally and Enemy Inspectors, inspectable fixed-size hex tokens, compact
-  ATK/HP/AS/RNG chips, Source Row resource totals, phase-aware next-action
-  guidance, board-first selected Unit/Echo range, likely target, attack-now or
-  out-of-range markers, next-move previews, display-only trait/teamup summaries,
-  latest reward markers for newly opened pool cards, and post-pack suggested
-  edits built from existing legal loadout actions.
+- The debug client now opens on a Pixi-primary battlefield with Ally and Enemy
+  Inspectors, compact run stats, token inspection, engagement preview context,
+  direct Pool/Bench-to-board placement through highlighted Pixi cells,
+  phase-aware next-action guidance, display-only trait/teamup summaries, latest
+  reward markers for newly opened pool cards, and post-pack suggested edits
+  built from existing legal loadout actions. The React/CSS Hex Arena remains a
+  collapsed debug fallback on the default route.
 - The debug client also includes an opt-in PixiJS renderer lab at
   `?scenario=renderer-lab`. It keeps React as the app shell and makes Pixi the
   primary battlefield for that route, with the React/CSS Hex Arena collapsed as
   a debug fallback. Pixi uses the same canonical odd-r board coordinates as the
   rules, engagement preview, and simulator; tokens are selectable, feed the
   existing inspector, and support a minimal click-to-place flow for legal
-  Pool/Bench board permanents. The default route still uses the React/CSS Hex
-  Arena debug board.
+  Pool/Bench board permanents. The default route uses the same Pixi field as its
+  primary battlefield without the renderer-lab replay/feed panels.
 - The battlefield explains the current simulator model honestly: attack, health,
   attack speed, odd-r hex range, neighboring-hex movement, distance targeting,
   Guard, Barrier, Quickstart, Airborne, and AntiAir matter today.

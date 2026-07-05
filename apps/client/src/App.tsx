@@ -534,8 +534,8 @@ export function App() {
     isDefaultRoute,
     run
   });
-  const rendererPlacementCard = pixiPlacement.view.selectedPlacementCard;
-  const rendererPlaceablePositions = pixiPlacement.view.placeablePositions;
+  const pixiPlacementCard = pixiPlacement.view.selectedPlacementCard;
+  const pixiPlaceablePositions = pixiPlacement.view.placeablePositions;
   const pixiBattlefieldModel = useMemo(
     () =>
       buildPixiBattlefieldModel({
@@ -543,7 +543,7 @@ export function App() {
         ...(encounterBoardGrid ? { enemyBoard: encounterBoardGrid } : {}),
         engagementPreview,
         ...(isDefaultRoute || isRendererLab
-          ? { placeablePositions: rendererPlaceablePositions }
+          ? { placeablePositions: pixiPlaceablePositions }
           : {})
       }),
     [
@@ -552,7 +552,7 @@ export function App() {
       isDefaultRoute,
       isRendererLab,
       playerBoardGrid,
-      rendererPlaceablePositions
+      pixiPlaceablePositions
     ]
   );
   const rendererReplayCardNameByInstanceId = useMemo(() => {
@@ -918,10 +918,7 @@ export function App() {
       <div className="mini-actions">
         {inspectButton}
         {isDefaultRoute && placeAction ? (
-          <button
-            type="button"
-            onClick={() => selectRendererPlacementCard(cardInstanceId)}
-          >
+          <button type="button" onClick={() => selectPixiPlacementCard(cardInstanceId)}>
             Select Board Cell
           </button>
         ) : null}
@@ -1210,12 +1207,10 @@ export function App() {
     });
   };
 
-  const placeRendererCardOnCell = (position: BoardPosition) => {
+  const placePixiSelectedCardOnCell = (position: BoardPosition) => {
     if (
       !pixiPlacement.selectedPlacementCardId ||
-      !rendererPlaceablePositions.some((candidate) =>
-        sameBoardPosition(candidate, position)
-      )
+      !pixiPlaceablePositions.some((candidate) => sameBoardPosition(candidate, position))
     ) {
       return;
     }
@@ -1244,12 +1239,12 @@ export function App() {
     setRendererReplay((current) => resetPixiReplay(current));
   };
 
-  const selectRendererPlacementCard = (cardInstanceId: CardInstanceId) => {
+  const selectPixiPlacementCard = (cardInstanceId: CardInstanceId) => {
     pixiPlacement.controller.selectPlacementCard(cardInstanceId);
     setSelectedAllyCardRef({ type: "run", cardInstanceId });
   };
 
-  const renderRendererPoolActions = (card: CardInstance) => {
+  const renderPixiPoolActions = (card: CardInstance) => {
     const actions = getLegalLoadoutActions(run, sampleCatalog, card.instanceId);
     const placeAction = actions.find((action) => action.type === "placeOnBoard");
     const directActions = actions.filter((action) => action.type !== "placeOnBoard");
@@ -1267,10 +1262,7 @@ export function App() {
           Inspect
         </button>
         {placeAction ? (
-          <button
-            type="button"
-            onClick={() => selectRendererPlacementCard(card.instanceId)}
-          >
+          <button type="button" onClick={() => selectPixiPlacementCard(card.instanceId)}>
             Select Board Cell
           </button>
         ) : null}
@@ -1339,8 +1331,8 @@ export function App() {
   );
   const defaultPixiBattlefieldController = {
     onCancelPlacement: pixiPlacement.controller.clearPlacement,
-    onCellSelect: placeRendererCardOnCell,
-    ...(rendererPlacementCard && isDefaultRoute
+    onCellSelect: placePixiSelectedCardOnCell,
+    ...(pixiPlacementCard && isDefaultRoute
       ? { onBlockedCellSelect: pixiPlacement.controller.selectBlockedCell }
       : {}),
     onTokenSelect: selectPixiToken,
@@ -1406,9 +1398,9 @@ export function App() {
     poolCards: run.pool,
     rendererInspectorIsEnemy,
     rendererInspection,
-    rendererPlacementCardId: pixiPlacement.selectedPlacementCardId,
-    rendererPlacementCardName: rendererPlacementCard
-      ? cardName(rendererPlacementCard.defId)
+    pixiPlacementCardId: pixiPlacement.selectedPlacementCardId,
+    pixiPlacementCardName: pixiPlacementCard
+      ? cardName(pixiPlacementCard.defId)
       : undefined,
     replay: rendererReplay,
     replayAvailable: rendererLabCombat !== undefined,
@@ -1426,7 +1418,7 @@ export function App() {
   const rendererLabRouteController = {
     cardName,
     onApplyCommanderUpgrade: applyCommanderUpgrade,
-    onCellSelect: placeRendererCardOnCell,
+    onCellSelect: placePixiSelectedCardOnCell,
     onDeployCommander: deployCommanderFromCommand,
     onInspectCommander: inspectCommander,
     onPauseReplay: pauseRendererReplay,
@@ -1438,7 +1430,7 @@ export function App() {
     onTokenSelect: selectPixiToken,
     renderDebugBoard,
     renderLoadoutActions,
-    renderRendererPoolActions
+    renderPixiPoolActions
   } satisfies RendererLabRouteController;
   const priorityLabRouteController = {
     onPassEnemy: passPriorityAsEnemy,

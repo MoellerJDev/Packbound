@@ -40,8 +40,8 @@ export type RendererLabRouteView = {
   readonly poolCards: RunState["pool"];
   readonly rendererInspectorIsEnemy: boolean;
   readonly rendererInspection: CardInspection | undefined;
-  readonly rendererPlacementCardId: CardInstance["instanceId"] | undefined;
-  readonly rendererPlacementCardName: string | undefined;
+  readonly pixiPlacementCardId: CardInstance["instanceId"] | undefined;
+  readonly pixiPlacementCardName: string | undefined;
   readonly replay: PixiReplayControlsState;
   readonly replayAvailable: boolean;
   readonly replayCommandCountText: string;
@@ -77,7 +77,7 @@ export type RendererLabRouteController = {
   readonly renderLoadoutActions: (
     cardInstanceId: CardInstance["instanceId"]
   ) => ReactNode;
-  readonly renderRendererPoolActions: (card: CardInstance) => ReactNode;
+  readonly renderPixiPoolActions: (card: CardInstance) => ReactNode;
 };
 
 export const RendererLabRoute = ({
@@ -149,9 +149,9 @@ export const RendererLabRoute = ({
           onCellSelect={controller.onCellSelect}
         />
         <EngagementPreviewPanel preview={view.engagementPreview} />
-        {view.rendererPlacementCardName ? (
+        {view.pixiPlacementCardName ? (
           <p className="renderer-placement-hint">
-            Placing {view.rendererPlacementCardName}. Legal Pixi cells are highlighted.
+            Placing {view.pixiPlacementCardName}. Legal Pixi cells are highlighted.
           </p>
         ) : null}
       </div>
@@ -329,14 +329,14 @@ export const RendererLabRoute = ({
               <li
                 key={card.instanceId}
                 className={
-                  view.rendererPlacementCardId === card.instanceId
+                  view.pixiPlacementCardId === card.instanceId
                     ? "pending-placement-card"
                     : undefined
                 }
               >
                 <span>{controller.cardName(card.defId)}</span>
                 <small>Pool / Bench</small>
-                {controller.renderRendererPoolActions(card)}
+                {controller.renderPixiPoolActions(card)}
               </li>
             ))
           ) : (

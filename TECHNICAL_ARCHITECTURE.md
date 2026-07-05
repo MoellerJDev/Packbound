@@ -84,14 +84,16 @@ Responsibilities:
 - Debug views
 
 The client may call `packages/rules` and `packages/sim`, but it must not duplicate gameplay logic.
-The current React/HTML battlefield is a compact CSS Hex Arena debug
-visualization of discrete board positions and layers, not the final Pixi
-battlefield renderer. It uses fixed-size pointy-top odd-r hex tiles and
-inspectable tokens without canvas/WebGL. Its Ally and Enemy Inspectors render
-stat and combat-model facts from rules/simulator helper data, including
-selected Unit/Echo engagement previews. The preview overlay is React/CSS only:
-range, selected, target, attack-now, out-of-range, blocked, and next-move
-markers are debug visualization states, not simulation state.
+The default route now uses Pixi as the primary battlefield presentation while
+keeping the React/CSS Hex Arena as a collapsed debug fallback. Pixi receives
+rules-derived board summaries, engagement preview markers, and placeable-cell
+affordances; it does not decide placement legality or combat outcomes. The
+React/CSS fallback still visualizes discrete board positions and layers with
+inspectable fixed-size hex tokens for debugging. Ally and Enemy Inspectors render
+stat and combat-model facts from rules/simulator helper data, including selected
+Unit/Echo engagement previews. Range, selected, target, attack-now,
+out-of-range, blocked, and next-move markers remain debug visualization states,
+not simulation state.
 
 ### `apps/server`
 

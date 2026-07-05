@@ -85,6 +85,13 @@ idle control state, selecting a Pool card, canceling placement, verifying a
 post-cancel Pixi cell click is a no-op, blocked-cell copy, token inspection, and
 placing through a highlighted Pixi cell.
 
+Maintenance update after this task: route-neutral Pixi placement wiring now uses
+Pixi/shared names instead of old Renderer Lab-only names in `App.tsx` and
+`RendererLabRoute`. The reusable `PACKBOUND_AGENT_PROMPT_GUIDE.md` has also
+been added as a general Packbound agent guide, replacing the stale one-off
+default-Pixi handoff prompt that had been copied into the working tree during
+the audit.
+
 Planning update after the Commander design refactor: design docs now frame a
 future Commander / Command Zone / Rebind Tax / Signature Relic direction as a
 real card-like run identity layer, not a hero-power button. This task adds the

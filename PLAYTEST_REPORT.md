@@ -207,15 +207,18 @@ and Pool Cards sections. Renderer Lab now lives in `RendererLabRoute`, Priority
 Lab route-specific action-source, target, can-submit, unavailable-text,
 combat-charge, and callback wiring live in `PriorityLabRoute`, and this pass
 extracted Battlefield / Hex Arena rendering into `BattlefieldSection` and
-`HexArenaView`. `App.tsx` dropped from about 2309 lines before the panel
-extraction work to about 1692 lines now, including about 109 lines removed in
-this Battlefield / Hex Arena pass. No gameplay, rules, routes, lab behavior,
-reward ranking, post-pack suggestions, combat preview logic, board/engagement
-math, Pixi behavior, Priority Lab mechanics, action contracts, stack behavior,
-target probe behavior, source lifecycle behavior, or Pixi-default behavior
-changed. Targeted typecheck and browser smoke passed during the pass. Remaining
-client bloat is mostly renderer-lab state/controller setup, default-route
-debug-grid orchestration, and top-level App state coordination.
+`HexArenaView`. This pass moved the default debug-grid route composition into
+`DefaultRunRoute`, including Run Guide, Command Zone, Commander Upgrades,
+Opponent Details, Planning Check, Traits / Teamups, Reward Choices, post-pack
+suggestions, loadout zones, combat panels, and current encounter details.
+`App.tsx` dropped from about 2309 lines before the panel extraction work to
+about 1528 lines now, including about 164 lines removed in this DefaultRunRoute
+pass. No gameplay, rules, routes, lab behavior, copy, reward ranking, post-pack
+suggestions, combat preview logic, board/engagement math, Pixi behavior,
+Priority Lab mechanics, action contracts, stack behavior, target probe behavior,
+source lifecycle behavior, or Pixi-default behavior changed. Targeted typecheck
+and browser smoke passed during the pass. Remaining client bloat is mostly
+renderer-lab state/controller setup and top-level App state coordination.
 
 The biggest remaining Pixi findings are no longer the absence of replay controls,
 tiny first-pass labels, or unvalidated readability. The lab still needs event
@@ -956,9 +959,9 @@ Note:
   text, but they are still lightweight pack-level hints rather than a full draft
   recommendation system.
 - Default-route panel rendering, renderer-lab route rendering, Priority Lab
-  route wiring, and Battlefield / Hex Arena rendering have been extracted from
-  `App.tsx`, but the file still owns renderer-lab state/controller setup,
-  default-route debug-grid orchestration, and top-level run state coordination.
+  route wiring, Battlefield / Hex Arena rendering, and default debug-grid route
+  composition have been extracted from `App.tsx`, but the file still owns
+  renderer-lab state/controller setup and top-level run state coordination.
 - Pixi uses generated shapes and text, not final art assets.
 - Pixi labels, stat chips, rings, and combat effects have been strengthened, but
   long names and dense adjacent rows can still crowd.

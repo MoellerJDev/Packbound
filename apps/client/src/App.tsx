@@ -69,29 +69,18 @@ import {
   type BattlefieldSectionController,
   type BattlefieldSectionView
 } from "./components/BattlefieldSection";
-import {
-  CombatResultPanel,
-  type LastRecordedCombatPanelView,
-  type UpcomingCombatPanelView
+import type {
+  LastRecordedCombatPanelView,
+  UpcomingCombatPanelView
 } from "./components/CombatResultPanel";
-import {
-  CommandZonePanel,
-  type CommandZonePanelView
-} from "./components/CommandZonePanel";
-import {
-  CommanderUpgradePanel,
-  type CommanderUpgradePanelView
-} from "./components/CommanderUpgradePanel";
+import type { CommandZonePanelView } from "./components/CommandZonePanel";
+import type { CommanderUpgradePanelView } from "./components/CommanderUpgradePanel";
 import {
   HexArenaView,
   type HexArenaController,
   type HexArenaViewData
 } from "./components/HexArenaView";
-import {
-  LoadoutZonesPanel,
-  type LoadoutZonesPanelView
-} from "./components/LoadoutZonesPanel";
-import { PostPackSuggestionsPanel } from "./components/PostPackSuggestionsPanel";
+import type { LoadoutZonesPanelView } from "./components/LoadoutZonesPanel";
 import {
   buildPixiBattlefieldModel,
   type PixiBattlefieldCard
@@ -109,19 +98,18 @@ import {
   resetPixiReplay,
   stepPixiReplay
 } from "./components/pixi/pixiReplayControls";
-import { RewardChoicesPanel } from "./components/RewardChoicesPanel";
-import {
-  RunGuidePanel,
-  type RunGuideStat,
-  type RunGuideStep
-} from "./components/RunGuidePanel";
-import { TraitSummaryView } from "./components/TraitSummaryView";
+import type { RunGuideStat, RunGuideStep } from "./components/RunGuidePanel";
 import {
   DEBUG_PRIORITY_SCENARIO_ID,
   DEBUG_RENDERER_SCENARIO_ID,
   applyDebugScenario,
   debugScenarioFromSearch
 } from "./debugScenarios";
+import {
+  DefaultRunRoute,
+  type DefaultRunRouteController,
+  type DefaultRunRouteView
+} from "./routes/DefaultRunRoute";
 import {
   RendererLabRoute,
   type RendererLabRouteController,
@@ -1326,90 +1314,6 @@ export function App() {
     );
   };
 
-  const renderCurrentEncounterDetails = () => (
-    <>
-      <dl className="run-stats">
-        <div>
-          <dt>Name</dt>
-          <dd>{currentEncounter?.name ?? "None"}</dd>
-        </div>
-        <div>
-          <dt>Kind</dt>
-          <dd>{currentEncounter?.kind ?? "none"}</dd>
-        </div>
-        <div>
-          <dt>Difficulty</dt>
-          <dd>{currentEncounter?.difficulty ?? "-"}</dd>
-        </div>
-        <div>
-          <dt>Opponent Board</dt>
-          <dd>{currentEncounter ? "Inspect in battlefield" : "-"}</dd>
-        </div>
-      </dl>
-      {currentEncounter ? (
-        <div className="encounter-loadout">
-          <h3>Opponent Board</h3>
-          <ol className="card-list compact">
-            {currentEncounter.loadout.board.placements.map((placement) => (
-              <li key={placement.cardInstanceId}>
-                <span>{cardName(placement.defId)}</span>
-                <small>
-                  r{placement.position.row} c{placement.position.col}{" "}
-                  {placement.position.layer}
-                </small>
-                <button
-                  type="button"
-                  className="secondary"
-                  onClick={() => inspectEncounterBoard(placement.cardInstanceId)}
-                >
-                  Inspect
-                </button>
-              </li>
-            ))}
-          </ol>
-          <h3>Opponent Source Row</h3>
-          <ol className="card-list compact">
-            {currentEncounter.loadout.sourceRow.cards.map((card) => (
-              <li key={card.instanceId}>
-                <span>{cardName(card.defId)}</span>
-                <small>{card.zone}</small>
-                <button
-                  type="button"
-                  className="secondary"
-                  onClick={() => inspectEncounterSource(card.instanceId)}
-                >
-                  Inspect
-                </button>
-              </li>
-            ))}
-          </ol>
-          <h3>Opponent Spellrail</h3>
-          <ol className="card-list compact">
-            {currentEncounter.loadout.spellrail.cards.length > 0 ? (
-              currentEncounter.loadout.spellrail.cards.map((card) => (
-                <li key={card.instanceId}>
-                  <span>{cardName(card.defId)}</span>
-                  <small>{card.zone}</small>
-                  <button
-                    type="button"
-                    className="secondary"
-                    onClick={() => inspectEncounterSpellrail(card.instanceId)}
-                  >
-                    Inspect
-                  </button>
-                </li>
-              ))
-            ) : (
-              <li>
-                <span>None</span>
-              </li>
-            )}
-          </ol>
-        </div>
-      ) : null}
-    </>
-  );
-
   const hexArenaView = {
     engagementPreview,
     encounterBoardGrid,
@@ -1443,6 +1347,54 @@ export function App() {
   const battlefieldSectionController = {
     hexArena: hexArenaController
   } satisfies BattlefieldSectionController;
+  const defaultRunRouteView = {
+    combat: {
+      lastRecorded: lastRecordedCombatPanelView,
+      upcoming: upcomingCombatPanelView
+    },
+    commandZone: {
+      deployDisabled: !commanderDeployCheck.ok,
+      returnDisabled: !commanderReturnCheck.ok,
+      view: commandZoneView
+    },
+    commanderUpgradePanelView,
+    currentEncounter,
+    isDefaultRoute,
+    loadoutZonesView,
+    planningCheck: {
+      errors: validation.errors,
+      ok: validation.ok
+    },
+    postPackSuggestions,
+    rewards: {
+      description: rewardChoicesDescription,
+      explanationsByChoiceId: rewardOfferExplanationByChoiceId,
+      playerGold: run.playerGold,
+      rewardChoices
+    },
+    runGuide: {
+      nextActionMessage,
+      runDetails: runGuideDetails,
+      stats: runGuideStats,
+      steps: runGuideSteps
+    },
+    showDeveloperDetails,
+    traitSummary
+  } satisfies DefaultRunRouteView;
+  const defaultRunRouteController = {
+    cardName,
+    onApplyCommanderUpgrade: applyCommanderUpgrade,
+    onApplyPostPackSuggestion: performLoadoutAction,
+    onDeployCommander: deployCommanderFromCommand,
+    onInspectCommander: inspectCommander,
+    onInspectEncounterBoard: inspectEncounterBoard,
+    onInspectEncounterSource: inspectEncounterSource,
+    onInspectEncounterSpellrail: inspectEncounterSpellrail,
+    onOpenReward: openReward,
+    onReturnCommander: returnCommanderFromBoard,
+    onUpgradeGroup: upgradeGroup,
+    renderLoadoutActions
+  } satisfies DefaultRunRouteController;
 
   const rendererLabRouteView = {
     boardPlacements: run.board.placements,
@@ -1567,126 +1519,10 @@ export function App() {
         />
       ) : null}
 
-      <section className="debug-grid">
-        <RunGuidePanel
-          isDefaultRoute={isDefaultRoute}
-          nextActionMessage={nextActionMessage}
-          runDetails={runGuideDetails}
-          stats={runGuideStats}
-          steps={runGuideSteps}
-        />
-
-        <CommandZonePanel
-          isDefaultRoute={isDefaultRoute}
-          variant="panel"
-          view={commandZoneView}
-          deployDisabled={!commanderDeployCheck.ok}
-          returnDisabled={!commanderReturnCheck.ok}
-          onInspect={inspectCommander}
-          onDeploy={deployCommanderFromCommand}
-          onReturn={returnCommanderFromBoard}
-        />
-        <CommanderUpgradePanel
-          variant="panel"
-          view={commanderUpgradePanelView}
-          onApplyUpgrade={applyCommanderUpgrade}
-        />
-
-        {isDefaultRoute ? (
-          <details className="panel advanced-panel" data-testid="opponent-details-panel">
-            <summary className="advanced-summary">
-              <h2>Opponent Details</h2>
-              <span>{currentEncounter?.name ?? "No encounter"}</span>
-            </summary>
-            <div className="advanced-panel-body">
-              <p className="muted">
-                Opponent cards are inspectable directly from the battlefield; this panel
-                keeps the full encounter loadout available when needed.
-              </p>
-              {renderCurrentEncounterDetails()}
-            </div>
-          </details>
-        ) : (
-          <div className="panel">
-            <h2>Current Encounter</h2>
-            {renderCurrentEncounterDetails()}
-          </div>
-        )}
-
-        {isDefaultRoute && validation.ok ? (
-          <details className="panel advanced-panel" data-testid="planning-check-panel">
-            <summary className="advanced-summary">
-              <h2>Planning Check</h2>
-              <span>Legal</span>
-            </summary>
-            <div className="advanced-panel-body">
-              <div className="status ok">Legal</div>
-              <p className="muted">Loadout validation passed.</p>
-            </div>
-          </details>
-        ) : (
-          <div className="panel" data-testid="planning-check-panel">
-            <h2>Planning Check</h2>
-            <div className={validation.ok ? "status ok" : "status error"}>
-              {validation.ok ? "Legal" : "Illegal"}
-            </div>
-            <ul className="message-list">
-              {validation.errors.map((error) => (
-                <li key={`${error.code}:${error.cardInstanceId ?? "state"}`}>
-                  {error.message}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {isDefaultRoute ? (
-          <details className="panel advanced-panel" data-testid="traits-panel">
-            <summary className="advanced-summary">
-              <h2>Traits / Teamups</h2>
-              <span>Display-only prototype</span>
-            </summary>
-            <div className="advanced-panel-body">
-              <TraitSummaryView summary={traitSummary} />
-            </div>
-          </details>
-        ) : (
-          <div className="panel" data-testid="traits-panel">
-            <h2>Traits / Teamups</h2>
-            <TraitSummaryView summary={traitSummary} />
-          </div>
-        )}
-
-        <RewardChoicesPanel
-          collapseExplanations={isDefaultRoute}
-          description={rewardChoicesDescription}
-          explanationsByChoiceId={rewardOfferExplanationByChoiceId}
-          onOpenReward={openReward}
-          playerGold={run.playerGold}
-          rewardChoices={rewardChoices}
-        />
-
-        {isDefaultRoute && postPackSuggestions.latestOpenedCardCount > 0 ? (
-          <PostPackSuggestionsPanel
-            summary={postPackSuggestions}
-            onApplySuggestion={performLoadoutAction}
-          />
-        ) : null}
-
-        <LoadoutZonesPanel
-          cardName={cardName}
-          renderLoadoutActions={renderLoadoutActions}
-          view={loadoutZonesView}
-          onUpgradeGroup={upgradeGroup}
-        />
-
-        <CombatResultPanel
-          isDefaultRoute={isDefaultRoute}
-          lastRecorded={lastRecordedCombatPanelView}
-          showDeveloperDetails={showDeveloperDetails}
-          upcoming={upcomingCombatPanelView}
-        />
-      </section>
+      <DefaultRunRoute
+        controller={defaultRunRouteController}
+        view={defaultRunRouteView}
+      />
     </main>
   );
 }

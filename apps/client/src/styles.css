@@ -240,6 +240,56 @@ h4 {
   margin-top: 4px;
 }
 
+.default-pixi-edit-controls {
+  align-items: center;
+  background: #203139;
+  border: 1px solid #30474f;
+  border-radius: 8px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 10px 12px;
+}
+
+.default-pixi-edit-controls dl {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  margin: 0;
+  min-width: 0;
+}
+
+.default-pixi-edit-controls div {
+  min-width: 0;
+}
+
+.default-pixi-edit-controls dt {
+  color: #9eb4af;
+  font-size: 0.66rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.default-pixi-edit-controls dd {
+  color: #f7fbf8;
+  font-weight: 900;
+  margin: 2px 0 0;
+  overflow-wrap: anywhere;
+}
+
+.default-pixi-edit-controls p {
+  color: #c7d8d2;
+  font-size: 0.84rem;
+  font-weight: 800;
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.default-pixi-edit-controls button {
+  min-height: 34px;
+  padding: 0 12px;
+}
+
 .default-pixi-placement-note {
   color: #c7d8d2;
   font-size: 0.88rem;

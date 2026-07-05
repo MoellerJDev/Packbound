@@ -228,12 +228,50 @@ test("debug loop can inspect, preview, record, reward, and advance", async ({ pa
   await expectNoHorizontalScroll(rendererHost);
 
   const defaultPlacementHint = battlefield.getByTestId("default-pixi-placement-hint");
+  const defaultEditControls = battlefield.getByTestId("default-pixi-board-edit-controls");
+  await expect(defaultEditControls).toBeVisible();
+  await expect(
+    defaultEditControls.getByTestId("default-pixi-board-edit-mode")
+  ).toHaveText("Inspect");
+  await expect(
+    defaultEditControls.getByTestId("default-pixi-board-edit-status")
+  ).toHaveText("Select Pool cards below to enter placement mode.");
+  await expect(
+    defaultEditControls.getByRole("button", { name: "Cancel Placement" })
+  ).toHaveCount(0);
   await expect(defaultPlacementHint).toHaveText(
     "Select a board-placeable Pool card below, then click a highlighted Pixi cell."
   );
   const sparkcatchPoolRow = poolPanel
     .getByRole("listitem")
     .filter({ hasText: "Sparkcatch Apprentice" });
+  await sparkcatchPoolRow.getByRole("button", { name: "Select Board Cell" }).click();
+  await expect(
+    defaultEditControls.getByTestId("default-pixi-board-edit-mode")
+  ).toHaveText("Place");
+  await expect(
+    defaultEditControls.getByTestId("default-pixi-board-edit-selected")
+  ).toHaveText("Sparkcatch Apprentice");
+  await expect(
+    defaultEditControls.getByTestId("default-pixi-board-edit-status")
+  ).toHaveText("Click a highlighted Pixi cell to place this card.");
+  await expect(
+    defaultEditControls.getByRole("button", { name: "Cancel Placement" })
+  ).toBeVisible();
+  await expect(defaultPlacementHint).toHaveText(
+    "Placing Sparkcatch Apprentice. Click a highlighted Pixi cell."
+  );
+  await defaultEditControls.getByRole("button", { name: "Cancel Placement" }).click();
+  await expect(
+    defaultEditControls.getByTestId("default-pixi-board-edit-mode")
+  ).toHaveText("Inspect");
+  await expect(defaultPlacementHint).toHaveText(
+    "Select a board-placeable Pool card below, then click a highlighted Pixi cell."
+  );
+  await clickPixiCell(page, rendererHost, 0, 0);
+  await expect(
+    boardPanel.getByRole("listitem").filter({ hasText: "Sparkcatch Apprentice" })
+  ).toHaveCount(0);
   await sparkcatchPoolRow.getByRole("button", { name: "Select Board Cell" }).click();
   await expect(defaultPlacementHint).toHaveText(
     "Placing Sparkcatch Apprentice. Click a highlighted Pixi cell."
@@ -243,10 +281,16 @@ test("debug loop can inspect, preview, record, reward, and advance", async ({ pa
     "Cannot place Sparkcatch Apprentice at r0 c2 ground:"
   );
   await expect(defaultPlacementHint).toContainText("occupied tile");
+  await expect(
+    defaultEditControls.getByTestId("default-pixi-board-edit-status")
+  ).toHaveText("Choose a highlighted cell or cancel placement.");
   await clickPixiCell(page, rendererHost, 0, 2);
   await expect(
     allyInspector.getByRole("heading", { name: "Ember Scraprunner" })
   ).toBeVisible();
+  await expect(
+    defaultEditControls.getByTestId("default-pixi-board-edit-mode")
+  ).toHaveText("Inspect");
   await expect(defaultPlacementHint).toHaveText(
     "Select a board-placeable Pool card below, then click a highlighted Pixi cell."
   );

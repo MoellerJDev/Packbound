@@ -76,6 +76,15 @@ card it names the card and points to highlighted cells, and when a non-placeable
 cell is clicked it names the target coordinate/layer and surfaces the existing
 placement validation reason instead of a generic failure.
 
+Implementation update after this task: default Pixi placement state and hint
+building have been extracted out of `App.tsx` into a focused placement
+view-model and hook. The battlefield now shows a small board-edit control strip
+that reports Inspect vs Place mode, the selected placement card, the current
+placement status, and a `Cancel Placement` action. Browser smoke covers the
+idle control state, selecting a Pool card, canceling placement, verifying a
+post-cancel Pixi cell click is a no-op, blocked-cell copy, token inspection, and
+placing through a highlighted Pixi cell.
+
 Planning update after the Commander design refactor: design docs now frame a
 future Commander / Command Zone / Rebind Tax / Signature Relic direction as a
 real card-like run identity layer, not a hero-power button. This task adds the
@@ -250,7 +259,7 @@ the first Pool/Bench placement and blocked-cell affordances.
 
 Recommended next task:
 
-`feat(client): improve post-pack blocked-reason copy for Source capacity and board layers`
+`feat(client): add Source Row and Spellrail Pixi edit affordances`
 
 ## 2. Environment And Commands
 
@@ -982,9 +991,10 @@ Note:
 - The React/CSS Hex Arena remains available as a collapsed debug fallback on `/`
   and `?scenario=renderer-lab`.
 - The default route now hides/collapses most developer bloat and supports
-  minimal Pool-to-board Pixi placement, but Source Row, Spellrail, return, and
-  Commander controls are still explicit list/button debug controls rather than
-  final direct-manipulation game UI.
+  minimal Pool-to-board Pixi placement with Inspect/Place mode controls, cancel,
+  and blocked-cell copy, but Source Row, Spellrail, return, and Commander
+  controls are still explicit list/button debug controls rather than final
+  direct-manipulation game UI.
 - Post-pack suggestions are deterministic and use existing legal actions only.
   They look only at the latest opened pack, suggest at most a few forward edits,
   and do not reason about long-term build quality, source swaps, duplicate
@@ -1059,15 +1069,17 @@ Note:
 
 Do next:
 
-`feat(client): improve post-pack blocked-reason copy for Source capacity and board layers`
+`feat(client): add Source Row and Spellrail Pixi edit affordances`
 
-Why: post-pack suggestions now surface legal latest-pack edits, and reward
-explanations are more honest. The next clarity gap is explaining why a newly
-opened card is interesting but blocked by Source Row space, Board Charge, Aspect
-access, or ground/support layer occupancy.
+Why: `/` now has a real Pixi board-edit mode for Pool-to-board placement, with
+selected-card status, cancel, blocked-cell hints, and no-op safety after cancel.
+The remaining default-route editing mismatch is that Source Row, Spellrail,
+return-to-pool, and Commander actions still live entirely in list/button panels
+while the primary battlefield feels direct-manipulation first.
 
 Do soon:
 
+- `feat(client): improve post-pack blocked-reason copy for Source capacity and board layers`
 - `feat(client): group or filter long combat summary events`
 - `feat(client): add Pixi replay scrub/speed controls`
 - `feat(rules): evaluate expanding the canonical board to 6 rows x 10-12 columns`

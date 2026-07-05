@@ -11,12 +11,17 @@ import type {
   PixiBattlefieldCard,
   PixiBattlefieldModel
 } from "./pixi/pixiBattlefieldModel";
+import type {
+  DefaultPixiBoardEditControlsView,
+  DefaultPixiPlacementHintView
+} from "../viewModels/defaultPixiPlacementView";
 
 export type DefaultPixiBattlefieldView = {
   readonly currentRound: number;
   readonly encounterName: string;
   readonly engagementPreview: EngagementPreview;
   readonly phase: string;
+  readonly boardEditControls: DefaultPixiBoardEditControlsView;
   readonly pixiBattlefieldModel: PixiBattlefieldModel;
   readonly placementHint: DefaultPixiPlacementHintView;
   readonly playerGold: number;
@@ -25,22 +30,8 @@ export type DefaultPixiBattlefieldView = {
   readonly selectedEnemyInspection: CardInspection | undefined;
 };
 
-export type DefaultPixiPlacementHintView =
-  | { readonly mode: "idle" }
-  | { readonly mode: "ready"; readonly cardName: string }
-  | {
-      readonly mode: "blockedCell";
-      readonly cardName: string;
-      readonly positionText: string;
-      readonly reason: string;
-    }
-  | {
-      readonly mode: "blocked";
-      readonly cardName: string;
-      readonly reason: string;
-    };
-
 export type DefaultPixiBattlefieldController = {
+  readonly onCancelPlacement: () => void;
   readonly onCellSelect: (position: BoardPosition) => void;
   readonly onBlockedCellSelect?: (position: BoardPosition) => void;
   readonly onTokenSelect: (card: PixiBattlefieldCard) => void;
@@ -52,45 +43,66 @@ const DefaultPixiPlacementHint = ({
 }: {
   readonly hint: DefaultPixiPlacementHintView;
 }) => {
+  if (hint.mode === "blocked" || hint.mode === "blockedCell") {
+    return (
+      <p
+        className="default-pixi-placement-note blocked"
+        data-testid="default-pixi-placement-hint"
+      >
+        {hint.text}
+      </p>
+    );
+  }
+
   if (hint.mode === "ready") {
     return (
       <p
         className="renderer-placement-hint default-pixi-placement-hint"
         data-testid="default-pixi-placement-hint"
       >
-        Placing {hint.cardName}. Click a highlighted Pixi cell.
-      </p>
-    );
-  }
-
-  if (hint.mode === "blocked") {
-    return (
-      <p
-        className="default-pixi-placement-note blocked"
-        data-testid="default-pixi-placement-hint"
-      >
-        Cannot place {hint.cardName}: {hint.reason}
-      </p>
-    );
-  }
-
-  if (hint.mode === "blockedCell") {
-    return (
-      <p
-        className="default-pixi-placement-note blocked"
-        data-testid="default-pixi-placement-hint"
-      >
-        Cannot place {hint.cardName} at {hint.positionText}: {hint.reason}
+        {hint.text}
       </p>
     );
   }
 
   return (
     <p className="default-pixi-placement-note" data-testid="default-pixi-placement-hint">
-      Select a board-placeable Pool card below, then click a highlighted Pixi cell.
+      {hint.text}
     </p>
   );
 };
+
+const DefaultPixiBoardEditControls = ({
+  onCancelPlacement,
+  view
+}: {
+  readonly onCancelPlacement: () => void;
+  readonly view: DefaultPixiBoardEditControlsView;
+}) => (
+  <div
+    className="default-pixi-edit-controls"
+    data-testid="default-pixi-board-edit-controls"
+  >
+    <dl>
+      <div>
+        <dt>Mode</dt>
+        <dd data-testid="default-pixi-board-edit-mode">{view.modeLabel}</dd>
+      </div>
+      {view.selectedCardName ? (
+        <div>
+          <dt>Selected</dt>
+          <dd data-testid="default-pixi-board-edit-selected">{view.selectedCardName}</dd>
+        </div>
+      ) : null}
+    </dl>
+    <p data-testid="default-pixi-board-edit-status">{view.statusText}</p>
+    {view.canCancelPlacement ? (
+      <button type="button" className="secondary" onClick={onCancelPlacement}>
+        Cancel Placement
+      </button>
+    ) : null}
+  </div>
+);
 
 export const DefaultPixiBattlefieldSection = ({
   controller,
@@ -153,6 +165,10 @@ export const DefaultPixiBattlefieldSection = ({
           {...(controller.onBlockedCellSelect
             ? { onBlockedCellSelect: controller.onBlockedCellSelect }
             : {})}
+        />
+        <DefaultPixiBoardEditControls
+          view={view.boardEditControls}
+          onCancelPlacement={controller.onCancelPlacement}
         />
         <DefaultPixiPlacementHint hint={view.placementHint} />
         <EngagementPreviewPanel preview={view.engagementPreview} />

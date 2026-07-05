@@ -69,6 +69,12 @@ placeable-position model as Renderer Lab, and clicking a highlighted cell places
 the card through the existing `placeCardOnBoard` reducer path. The original
 list-button `Place on Board` workflow remains available.
 
+Implementation update after this task: the default Pixi placement hint now
+distinguishes idle, ready, and blocked states. With no selected Pool card it
+explains the expected flow, with a selected placeable card it names the card and
+points to highlighted cells, and when no legal cells exist it surfaces the
+existing placement validation reason instead of a generic failure.
+
 Planning update after the Commander design refactor: design docs now frame a
 future Commander / Command Zone / Rebind Tax / Signature Relic direction as a
 real card-like run identity layer, not a hero-power button. This task adds the
@@ -553,9 +559,11 @@ Ember Scraprunner preview showed:
 - `Likely target: nearest valid enemy.`
 
 Default Pixi placement now has a small direct-manipulation path. Selecting a
-legal Pool card with `Select Board Cell` shows highlighted Pixi cells, and
-clicking one places the card through the existing loadout reducer. The list
-button `Place on Board` path still works and remains visible.
+legal Pool card with `Select Board Cell` shows highlighted Pixi cells, names the
+card in the battlefield hint, and clicking a highlighted cell places the card
+through the existing loadout reducer. If the selected card has no legal Pixi
+cell, the hint uses the existing placement validation reason. The list button
+`Place on Board` path still works and remains visible.
 
 The normal debug loop worked end to end. I readied combat, recorded the round 1
 draw, reached reward phase, opened a reward pack, saw a new pool card marker and
@@ -992,6 +1000,8 @@ Note:
 - Pixi has click-to-select token inspection and minimal click-to-place from
   Pool/Bench on both `/` and Renderer Lab, but no drag/drop, hover tooltips, or
   full board-editing polish.
+- Default Pixi placement hints use existing placement validation reasons, but
+  they still show only one concise reason at a time.
 - Replay controls now cover Play/Resume, Pause, Step, and Reset, but there is no
   scrubber, speed control, event grouping, or filtered command list yet.
 - Step advances one visual command when playback is idle or paused. If clicked

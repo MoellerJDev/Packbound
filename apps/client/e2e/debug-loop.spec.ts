@@ -223,18 +223,21 @@ test("debug loop can inspect, preview, record, reward, and advance", async ({ pa
   ).toBeVisible();
   await expectNoHorizontalScroll(rendererHost);
 
-  await expect(
-    battlefield.getByText(
-      "Select a board-placeable Pool card below, then click a highlighted Pixi cell."
-    )
-  ).toBeVisible();
+  const defaultPlacementHint = battlefield.getByTestId("default-pixi-placement-hint");
+  await expect(defaultPlacementHint).toHaveText(
+    "Select a board-placeable Pool card below, then click a highlighted Pixi cell."
+  );
   const sparkcatchPoolRow = poolPanel
     .getByRole("listitem")
     .filter({ hasText: "Sparkcatch Apprentice" });
   await sparkcatchPoolRow.getByRole("button", { name: "Select Board Cell" }).click();
-  await expect(battlefield.getByText("Placing Sparkcatch Apprentice.")).toBeVisible();
+  await expect(defaultPlacementHint).toHaveText(
+    "Placing Sparkcatch Apprentice. Click a highlighted Pixi cell."
+  );
   await clickPixiCell(page, rendererHost, 0, 0);
-  await expect(battlefield.getByText("Placing Sparkcatch Apprentice.")).toHaveCount(0);
+  await expect(defaultPlacementHint).toHaveText(
+    "Select a board-placeable Pool card below, then click a highlighted Pixi cell."
+  );
   await expect(
     boardPanel.getByRole("listitem").filter({ hasText: "Sparkcatch Apprentice" }).first()
   ).toBeVisible();

@@ -72,6 +72,7 @@ import {
 import {
   DefaultPixiBattlefieldSection,
   type DefaultPixiBattlefieldController,
+  type DefaultPixiPlacementHintView,
   type DefaultPixiBattlefieldView
 } from "./components/DefaultPixiBattlefieldSection";
 import type {
@@ -579,6 +580,41 @@ export function App() {
     }
     return positions;
   }, [rendererPlacementCard, run]);
+  const defaultPixiPlacementHint = useMemo<DefaultPixiPlacementHintView>(() => {
+    if (!rendererPlacementCard) {
+      return { mode: "idle" };
+    }
+
+    const placementCardName = cardName(rendererPlacementCard.defId);
+    if (rendererPlaceablePositions.length > 0) {
+      return { mode: "ready", cardName: placementCardName };
+    }
+
+    const layer = boardLayerForPoolCard(rendererPlacementCard) ?? "ground";
+    for (let row = 0; row < BOARD_ROWS; row += 1) {
+      for (let col = 0; col < BOARD_COLS; col += 1) {
+        const check = canPlaceCardOnBoard(
+          run,
+          sampleCatalog,
+          rendererPlacementCard.instanceId,
+          { row, col, layer }
+        );
+        if (!check.ok) {
+          return {
+            mode: "blocked",
+            cardName: placementCardName,
+            reason: check.reason
+          };
+        }
+      }
+    }
+
+    return {
+      mode: "blocked",
+      cardName: placementCardName,
+      reason: "No legal Pixi cells are available."
+    };
+  }, [rendererPlaceablePositions.length, rendererPlacementCard, run]);
   const pixiBattlefieldModel = useMemo(
     () =>
       buildPixiBattlefieldModel({
@@ -1372,9 +1408,7 @@ export function App() {
     pixiBattlefieldModel,
     playerGold: run.playerGold,
     playerHealth: run.playerHealth,
-    placementCardName: rendererPlacementCard
-      ? cardName(rendererPlacementCard.defId)
-      : undefined,
+    placementHint: defaultPixiPlacementHint,
     selectedAllyInspection,
     selectedEnemyInspection
   } satisfies DefaultPixiBattlefieldView;

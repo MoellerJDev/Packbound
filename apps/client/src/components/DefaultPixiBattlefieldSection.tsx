@@ -18,17 +18,60 @@ export type DefaultPixiBattlefieldView = {
   readonly engagementPreview: EngagementPreview;
   readonly phase: string;
   readonly pixiBattlefieldModel: PixiBattlefieldModel;
-  readonly placementCardName: string | undefined;
+  readonly placementHint: DefaultPixiPlacementHintView;
   readonly playerGold: number;
   readonly playerHealth: number;
   readonly selectedAllyInspection: CardInspection | undefined;
   readonly selectedEnemyInspection: CardInspection | undefined;
 };
 
+export type DefaultPixiPlacementHintView =
+  | { readonly mode: "idle" }
+  | { readonly mode: "ready"; readonly cardName: string }
+  | {
+      readonly mode: "blocked";
+      readonly cardName: string;
+      readonly reason: string;
+    };
+
 export type DefaultPixiBattlefieldController = {
   readonly onCellSelect: (position: BoardPosition) => void;
   readonly onTokenSelect: (card: PixiBattlefieldCard) => void;
   readonly renderDebugBoard: () => ReactNode;
+};
+
+const DefaultPixiPlacementHint = ({
+  hint
+}: {
+  readonly hint: DefaultPixiPlacementHintView;
+}) => {
+  if (hint.mode === "ready") {
+    return (
+      <p
+        className="renderer-placement-hint default-pixi-placement-hint"
+        data-testid="default-pixi-placement-hint"
+      >
+        Placing {hint.cardName}. Click a highlighted Pixi cell.
+      </p>
+    );
+  }
+
+  if (hint.mode === "blocked") {
+    return (
+      <p
+        className="default-pixi-placement-note blocked"
+        data-testid="default-pixi-placement-hint"
+      >
+        Cannot place {hint.cardName}: {hint.reason}
+      </p>
+    );
+  }
+
+  return (
+    <p className="default-pixi-placement-note" data-testid="default-pixi-placement-hint">
+      Select a board-placeable Pool card below, then click a highlighted Pixi cell.
+    </p>
+  );
 };
 
 export const DefaultPixiBattlefieldSection = ({
@@ -90,15 +133,7 @@ export const DefaultPixiBattlefieldSection = ({
           onTokenSelect={controller.onTokenSelect}
           onCellSelect={controller.onCellSelect}
         />
-        {view.placementCardName ? (
-          <p className="renderer-placement-hint default-pixi-placement-hint">
-            Placing {view.placementCardName}. Click a highlighted Pixi cell.
-          </p>
-        ) : (
-          <p className="default-pixi-placement-note">
-            Select a board-placeable Pool card below, then click a highlighted Pixi cell.
-          </p>
-        )}
+        <DefaultPixiPlacementHint hint={view.placementHint} />
         <EngagementPreviewPanel preview={view.engagementPreview} />
         <details className="renderer-debug-board default-pixi-debug-board">
           <summary>React/CSS Debug Board</summary>

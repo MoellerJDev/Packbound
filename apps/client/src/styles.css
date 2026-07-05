@@ -247,6 +247,14 @@ h4 {
   margin: -2px 0 0;
 }
 
+.default-pixi-placement-note.blocked {
+  background: #3a2524;
+  border: 1px solid #6d403b;
+  border-radius: 6px;
+  color: #ffd5ce;
+  padding: 9px 11px;
+}
+
 .battlefield-board-side {
   min-width: 0;
 }

@@ -80,6 +80,9 @@ the project but do not deploy.
 
 ## Commands
 
+Use Node 24 LTS with pnpm 11.7.0. The repo includes `.nvmrc` for local runtime
+selection, and CI runs on Node 24.
+
 ```sh
 pnpm install
 pnpm format

@@ -734,23 +734,24 @@ test("default playtest can record combat, claim rewards, and advance", async ({
   const suggestedCardName =
     (await firstSuggestion.getByTestId("post-pack-suggestion-card-name").textContent()) ??
     "";
+  const suggestedBaseCardName = suggestedCardName.replace(/\sx\d+$/, "").trim();
   const suggestedAction =
     (await firstSuggestion.getByTestId("post-pack-suggestion-action").textContent()) ??
     "";
-  expect(suggestedCardName.trim().length).toBeGreaterThan(0);
+  expect(suggestedBaseCardName.length).toBeGreaterThan(0);
   await expect(firstSuggestion.getByText(/High|Medium|Low/).first()).toBeVisible();
   await firstSuggestion.getByRole("button", { name: /Apply suggested edit:/ }).click();
   if (suggestedAction.includes("Source Row")) {
     await expect(
-      panel(page, "Source Row").getByText(suggestedCardName.trim(), { exact: true })
+      panel(page, "Source Row").getByText(suggestedBaseCardName, { exact: true })
     ).toBeVisible();
   } else if (suggestedAction.includes("Spellrail")) {
     await expect(
-      panel(page, "Spellrail").getByText(suggestedCardName.trim(), { exact: true })
+      panel(page, "Spellrail").getByText(suggestedBaseCardName, { exact: true })
     ).toBeVisible();
   } else if (suggestedAction.includes("Board")) {
     await expect(
-      panel(page, "Board").getByText(suggestedCardName.trim(), { exact: true })
+      panel(page, "Board").getByText(suggestedBaseCardName, { exact: true })
     ).toBeVisible();
   }
 

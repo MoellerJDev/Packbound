@@ -3,6 +3,7 @@ import {
   ASPECTS,
   chargeCostTotal,
   type Aspect,
+  type CardDefId,
   type CardType,
   type CardInstanceId,
   type ValidationResult
@@ -29,8 +30,12 @@ export type PostPackLoadoutSuggestionPriority = "high" | "medium" | "low";
 export type PostPackLoadoutSuggestion = {
   readonly id: string;
   readonly cardInstanceId: CardInstanceId;
+  readonly groupedCardInstanceIds: readonly CardInstanceId[];
+  readonly cardDefId: CardDefId;
   readonly cardName: string;
+  readonly displayName: string;
   readonly cardType: CardType;
+  readonly duplicateCount: number;
   readonly action?: LoadoutAction;
   readonly headline: string;
   readonly reason: string;
@@ -241,6 +246,103 @@ const postPackSuggestionRank = (suggestion: PostPackLoadoutSuggestion): number =
   return 20;
 };
 
+const priorityOrder = {
+  high: 0,
+  medium: 1,
+  low: 2
+} satisfies Record<PostPackLoadoutSuggestionPriority, number>;
+
+const postPackSuggestionSort = (
+  left: PostPackLoadoutSuggestion,
+  right: PostPackLoadoutSuggestion
+): number => {
+  const rankDelta = postPackSuggestionRank(left) - postPackSuggestionRank(right);
+  if (rankDelta !== 0) {
+    return rankDelta;
+  }
+  const priorityDelta = priorityOrder[left.priority] - priorityOrder[right.priority];
+  if (priorityDelta !== 0) {
+    return priorityDelta;
+  }
+  return (
+    left.cardName.localeCompare(right.cardName) ||
+    left.cardInstanceId.localeCompare(right.cardInstanceId)
+  );
+};
+
+const groupedSuggestionKey = (suggestion: PostPackLoadoutSuggestion): string =>
+  [
+    suggestion.cardDefId,
+    suggestion.cardName,
+    suggestion.cardType,
+    suggestion.action?.type ?? "inspect",
+    suggestion.headline,
+    suggestion.unavailableReason ?? ""
+  ].join("|");
+
+const groupedHeadline = (
+  suggestion: PostPackLoadoutSuggestion,
+  duplicateCount: number
+): string => {
+  if (duplicateCount === 1) {
+    return suggestion.headline;
+  }
+
+  switch (suggestion.action?.type) {
+    case "addToSourceRow":
+      return "Add one to Source Row";
+    case "addToSpellrail":
+      return "Add one to Spellrail";
+    case "placeOnBoard":
+      return "Place one on Board";
+    case "returnToPool":
+      return "Return one to Pool";
+    case undefined:
+      return "Inspect one for blocked reason";
+  }
+};
+
+const groupPostPackSuggestions = (
+  suggestions: readonly PostPackLoadoutSuggestion[]
+): readonly PostPackLoadoutSuggestion[] => {
+  const grouped = new Map<string, PostPackLoadoutSuggestion[]>();
+  const orderedKeys: string[] = [];
+
+  for (const suggestion of suggestions) {
+    const key = groupedSuggestionKey(suggestion);
+    const existing = grouped.get(key);
+    if (existing) {
+      existing.push(suggestion);
+    } else {
+      grouped.set(key, [suggestion]);
+      orderedKeys.push(key);
+    }
+  }
+
+  return orderedKeys.map((key) => {
+    const group = grouped.get(key) ?? [];
+    const representative = group[0];
+    if (!representative || group.length <= 1) {
+      return representative ?? suggestions[0]!;
+    }
+
+    const groupedCardInstanceIds = group.flatMap(
+      (suggestion) => suggestion.groupedCardInstanceIds
+    );
+    const duplicateCount = groupedCardInstanceIds.length;
+
+    return {
+      ...representative,
+      id: `${representative.id}:group:${duplicateCount}`,
+      groupedCardInstanceIds,
+      displayName: `${representative.cardName} x${duplicateCount}`,
+      duplicateCount,
+      headline: groupedHeadline(representative, duplicateCount),
+      reason: `${duplicateCount} copies opened. ${representative.reason}`
+    };
+  });
+};
+
 export const buildPostPackLoadoutSuggestions = (
   run: RunState,
   catalog: ContentCatalog
@@ -273,7 +375,7 @@ export const buildPostPackLoadoutSuggestions = (
   }
 
   const suggestions = latestOpenedPack.cards
-    .map((openedCard) => {
+    .map((openedCard): PostPackLoadoutSuggestion | undefined => {
       const def = catalog.cardsById.get(openedCard.defId);
       if (!def) {
         return undefined;
@@ -288,8 +390,12 @@ export const buildPostPackLoadoutSuggestions = (
           action?.type ?? "inspect"
         }`,
         cardInstanceId: openedCard.instanceId,
+        groupedCardInstanceIds: [openedCard.instanceId],
+        cardDefId: def.id,
         cardName: def.name,
+        displayName: def.name,
         cardType: def.cardType,
+        duplicateCount: 1,
         ...(action ? { action } : {}),
         ...copy
       } satisfies PostPackLoadoutSuggestion;
@@ -297,32 +403,14 @@ export const buildPostPackLoadoutSuggestions = (
     .filter(
       (suggestion): suggestion is PostPackLoadoutSuggestion => suggestion !== undefined
     )
-    .sort((left, right) => {
-      const rankDelta = postPackSuggestionRank(left) - postPackSuggestionRank(right);
-      if (rankDelta !== 0) {
-        return rankDelta;
-      }
-      const priorityOrder: Record<PostPackLoadoutSuggestionPriority, number> = {
-        high: 0,
-        medium: 1,
-        low: 2
-      };
-      const priorityDelta = priorityOrder[left.priority] - priorityOrder[right.priority];
-      if (priorityDelta !== 0) {
-        return priorityDelta;
-      }
-      return (
-        left.cardName.localeCompare(right.cardName) ||
-        left.cardInstanceId.localeCompare(right.cardInstanceId)
-      );
-    })
-    .slice(0, 5);
+    .sort(postPackSuggestionSort);
+  const groupedSuggestions = groupPostPackSuggestions(suggestions).slice(0, 5);
 
   return {
     ...(latestPackName ? { latestPackName } : {}),
     latestOpenedCardCount: latestOpenedCardIds.length,
     editableNow,
-    suggestions,
+    suggestions: groupedSuggestions,
     emptyText:
       "No immediate legal edits from the latest pack. Inspect the new cards for blocked reasons."
   };

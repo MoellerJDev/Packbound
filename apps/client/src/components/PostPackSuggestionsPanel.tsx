@@ -35,7 +35,7 @@ export const PostPackSuggestionsPanel = ({
       <button
         type="button"
         onClick={() => onApplySuggestion(suggestion.cardInstanceId, action)}
-        aria-label={`Apply suggested edit: ${suggestion.headline} for ${suggestion.cardName}`}
+        aria-label={`Apply suggested edit: ${suggestion.headline} for ${suggestion.displayName}`}
       >
         {suggestion.headline}
       </button>
@@ -65,7 +65,7 @@ export const PostPackSuggestionsPanel = ({
                     className="post-pack-suggestion-card-name"
                     data-testid="post-pack-suggestion-card-name"
                   >
-                    {suggestion.cardName}
+                    {suggestion.displayName}
                   </span>
                   <span className={`suggestion-priority ${suggestion.priority}`}>
                     {priorityLabel(suggestion.priority)}

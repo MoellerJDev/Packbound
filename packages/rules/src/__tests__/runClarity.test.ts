@@ -249,6 +249,79 @@ describe("run clarity helpers", () => {
     expect(JSON.parse(JSON.stringify(summary))).toEqual(summary);
   });
 
+  it("groups duplicate latest-pack suggestions with the same recommendation", () => {
+    const run = createStarterRun();
+    const firstCopy = packCard(run, "cracked_prism", "first-cracked-prism");
+    const secondCopy = packCard(run, "cracked_prism", "second-cracked-prism");
+    const latestPack = openedPack(run, "source_pack", "clarity:duplicate-sources", [
+      firstCopy,
+      secondCopy
+    ]);
+    const planningRun = withOpenedPack(run, latestPack);
+    const summary = buildPostPackLoadoutSuggestions(planningRun, sampleCatalog);
+    const suggestion = summary.suggestions[0];
+
+    expect(summary.latestOpenedCardCount).toBe(2);
+    expect(summary.suggestions).toHaveLength(1);
+    expect(suggestion).toMatchObject({
+      cardInstanceId: firstCopy.instanceId,
+      groupedCardInstanceIds: [firstCopy.instanceId, secondCopy.instanceId],
+      cardName: "Cracked Prism",
+      displayName: "Cracked Prism x2",
+      duplicateCount: 2,
+      headline: "Add one to Source Row",
+      priority: "high"
+    });
+    expect(suggestion?.reason).toBe(
+      "2 copies opened. Adds Board Charge, Aspect access, and Combat Charge/sec from this Source."
+    );
+    expect(suggestion?.action).toEqual({
+      type: "addToSourceRow",
+      label: "Add to Source Row"
+    });
+    expect(
+      getLegalLoadoutActions(planningRun, sampleCatalog, firstCopy.instanceId)
+    ).toContainEqual(suggestion?.action);
+    expect(buildPostPackLoadoutSuggestions(planningRun, sampleCatalog)).toEqual(summary);
+    expect(JSON.parse(JSON.stringify(summary))).toEqual(summary);
+  });
+
+  it("keeps same-name suggestions separate when their action types differ", () => {
+    const run = createStarterRun();
+    const legalSource = packCard(run, "ember_source", "legal-source-copy");
+    const staleSource = packCard(run, "ember_source", "stale-source-copy");
+    const latestPack = openedPack(run, "source_pack", "clarity:mixed-source-actions", [
+      legalSource,
+      staleSource
+    ]);
+    const planningRun = {
+      ...run,
+      pool: [...run.pool, legalSource],
+      openedPacks: [latestPack]
+    };
+    const summary = buildPostPackLoadoutSuggestions(planningRun, sampleCatalog);
+
+    expect(summary.latestOpenedCardCount).toBe(2);
+    expect(summary.suggestions).toHaveLength(2);
+    expect(summary.suggestions.map((suggestion) => suggestion.displayName)).toEqual([
+      "Ember Source",
+      "Ember Source"
+    ]);
+    expect(summary.suggestions.map((suggestion) => suggestion.duplicateCount)).toEqual([
+      1, 1
+    ]);
+    expect(summary.suggestions.map((suggestion) => suggestion.action?.type)).toEqual([
+      "addToSourceRow",
+      undefined
+    ]);
+    expect(summary.suggestions[0]?.groupedCardInstanceIds).toEqual([
+      legalSource.instanceId
+    ]);
+    expect(summary.suggestions[1]?.groupedCardInstanceIds).toEqual([
+      staleSource.instanceId
+    ]);
+  });
+
   it("returns low-priority unavailable suggestions for latest-pack cards without forward edits", () => {
     const run = createStarterRun();
     const sourceRowFullRun = {

@@ -332,19 +332,27 @@ Charge/sec, and Techniques live in Spellrail slots. This is a UI clarity pass
 only; rules, validation, loadout actions, Pixi placement, combat, content, and
 rewards did not change.
 
+Implementation update after this task: post-pack suggestions now group duplicate
+latest-pack copies that have the same useful recommendation. The displayed row
+shows copy count, such as `Cracked Prism x2`, and applies one representative
+legal action while preserving all actual card instances in the pool. Suggestions
+with the same card name but different action availability stay separate, so the
+copy does not hide blocked or different-action cases.
+
 The biggest remaining Pixi/default-route findings are no longer the absence of
 replay controls, tiny first-pass labels, unvalidated readability, default-route
 confidence, basic default-route edit affordances, an ungrouped default combat
 feed, a debug-grid first screen, or always-expanded inspector detail. Now that
 `/` opens on a tighter Pixi-focused playtest surface with an immediate build
-decision and a first-fold Loadout Tray, the next gaps are richer
-direct-manipulation polish such as drag/drop or canvas-native zone editing,
-cleaner post-pack suggestion grouping, scrub or speed controls in Renderer Lab,
-and checking that grouped combat copy scales beyond the current starter fights.
+decision, a first-fold Loadout Tray, and grouped duplicate post-pack
+suggestions, the next gaps are richer direct-manipulation polish such as
+drag/drop or canvas-native zone editing, stronger post-pack blocked-reason copy,
+scrub or speed controls in Renderer Lab, and checking that grouped combat copy
+scales beyond the current starter fights.
 
 Recommended next task:
 
-`feat(client): group duplicate post-pack suggestions by card name`
+`feat(client): improve post-pack blocked-reason copy for Source capacity and board layers`
 
 ## 2. Environment And Commands
 
@@ -1186,9 +1194,10 @@ Note:
   controls near the battlefield. These are still button affordances rather than
   final drag/drop or canvas-native zone editing.
 - Post-pack suggestions are deterministic and use existing legal actions only.
-  They look only at the latest opened pack, suggest at most a few forward edits,
-  and do not reason about long-term build quality, source swaps, duplicate
-  upgrade timing, or board-layer education beyond short copy.
+  They look only at the latest opened pack, group duplicate same-action copies
+  for display, suggest at most a few forward edits, and do not reason about
+  long-term build quality, source swaps, duplicate upgrade timing, or
+  board-layer education beyond short copy.
 - Reward explanations now rank duplicate progress, duplicate potential, fixing
   pressure, active trait matches, and economy ahead of near-trait and broad bias
   text, but they are still lightweight pack-level hints rather than a full draft
@@ -1262,19 +1271,17 @@ Note:
 
 Do next:
 
-`feat(client): group duplicate post-pack suggestions by card name`
+`feat(client): improve post-pack blocked-reason copy for Source capacity and board layers`
 
-Why: the tightened `/` route now has first-fold loadout editing plus concise
-layer and resource education. The next visible repetition is that post-pack
-suggestions can list several copies of the same card separately, which makes the
-reward-to-loadout bridge noisier than the rest of the default route. Grouping
-those suggestions would improve clarity without changing rules, combat, content,
-or Pixi renderer behavior.
+Why: the tightened `/` route now has first-fold loadout editing, concise layer
+and resource education, and grouped duplicate post-pack suggestions. The next
+clarity gap is when suggestions are unavailable: the current copy still points
+players toward inspection instead of explaining common blockers such as Source
+capacity, Board Charge, or occupied ground/support layers.
 
 Do soon:
 
 - `feat(client): add Pixi replay scrub/speed controls`
-- `feat(client): improve post-pack blocked-reason copy for Source capacity and board layers`
 - `test(playtest): manually validate grouped combat key moments across starters`
 - `feat(rules): evaluate expanding the canonical board to 6 rows x 10-12 columns`
 - `feat(client): tune Pixi combat effect timing after manual readability pass`

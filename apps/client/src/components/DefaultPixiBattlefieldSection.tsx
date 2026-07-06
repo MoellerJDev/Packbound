@@ -210,6 +210,18 @@ const DefaultPixiCommanderEditControls = ({
   </div>
 );
 
+const selectionContextText = ({
+  selectedAllyInspection,
+  selectedEnemyInspection
+}: Pick<
+  DefaultPixiBattlefieldView,
+  "selectedAllyInspection" | "selectedEnemyInspection"
+>): string => {
+  const allyName = selectedAllyInspection?.name ?? "none";
+  const enemyName = selectedEnemyInspection?.name ?? "none";
+  return `Selected ally: ${allyName}. Selected enemy: ${enemyName}.`;
+};
+
 export const DefaultPixiBattlefieldSection = ({
   controller,
   view
@@ -225,8 +237,8 @@ export const DefaultPixiBattlefieldSection = ({
       <div>
         <h2 id="battlefield-heading">Battlefield</h2>
         <p className="muted">
-          Click tokens to inspect them, then use the action strip below the board to tune
-          the run.
+          Blue tokens are yours, red tokens are enemies. Click either side to inspect what
+          will fight next.
         </p>
       </div>
       <dl className="battlefield-run-strip">
@@ -252,7 +264,9 @@ export const DefaultPixiBattlefieldSection = ({
     <div className="battlefield-layout">
       <aside className="battlefield-inspector ally">
         <h3>Ally Inspector</h3>
+        <p className="inspector-context-note">Your side selection</p>
         <CardInspectorView
+          contextLabel="Your side"
           inspection={view.selectedAllyInspection}
           emptyText="Select an ally token, pool, Source Row, or Spellrail card."
           variant="compact"
@@ -260,8 +274,20 @@ export const DefaultPixiBattlefieldSection = ({
       </aside>
 
       <div className="default-pixi-stage">
+        <div className="default-pixi-side-legend" data-testid="default-pixi-side-legend">
+          <span className="ally">Your side</span>
+          <span className="center">Engagement line</span>
+          <span className="enemy">Enemy side</span>
+        </div>
+        <p
+          className="default-pixi-selection-context"
+          data-testid="default-pixi-selection-context"
+        >
+          {selectionContextText(view)}
+        </p>
         <PixiBattlefieldRenderer
           model={view.pixiBattlefieldModel}
+          presentation="playerFacing"
           replayCommands={[]}
           replayStatus="idle"
           replayCommandIndex={0}
@@ -292,7 +318,7 @@ export const DefaultPixiBattlefieldSection = ({
           </div>
           <DefaultPixiPlacementHint hint={view.placementHint} />
         </div>
-        <EngagementPreviewPanel preview={view.engagementPreview} />
+        <EngagementPreviewPanel preview={view.engagementPreview} playerFacingLabels />
         <details className="renderer-debug-board default-pixi-debug-board">
           <summary>React/CSS Debug Board</summary>
           <div className="renderer-debug-board-inner">
@@ -303,7 +329,9 @@ export const DefaultPixiBattlefieldSection = ({
 
       <aside className="battlefield-inspector enemy">
         <h3>Enemy Inspector</h3>
+        <p className="inspector-context-note">Enemy side selection</p>
         <CardInspectorView
+          contextLabel="Enemy side"
           inspection={view.selectedEnemyInspection}
           emptyText="Select an enemy token, Source Row, or Spellrail card."
           showLegalActions={false}

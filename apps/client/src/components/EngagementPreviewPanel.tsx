@@ -22,9 +22,22 @@ const previewReasonText = (reason: string | undefined): string => {
   }
 };
 
+const sidePrefix = (side: "playerA" | "playerB"): string =>
+  side === "playerA" ? "Your" : "Enemy";
+
+const sideName = ({
+  name,
+  side
+}: {
+  readonly name: string;
+  readonly side: "playerA" | "playerB";
+}): string => `${sidePrefix(side)} ${name}`;
+
 export const EngagementPreviewPanel = ({
+  playerFacingLabels = false,
   preview
 }: {
+  readonly playerFacingLabels?: boolean;
   readonly preview: EngagementPreview;
 }) => {
   if (!preview.selected) {
@@ -37,6 +50,11 @@ export const EngagementPreviewPanel = ({
   }
 
   const target = preview.likelyTarget;
+  const selectedName = playerFacingLabels
+    ? sideName(preview.selected)
+    : preview.selected.name;
+  const targetName =
+    playerFacingLabels && target ? sideName(target) : (target?.name ?? undefined);
   const statusLabel = target?.inRange
     ? "Attack now"
     : target
@@ -45,12 +63,16 @@ export const EngagementPreviewPanel = ({
   const headline = target
     ? target.inRange
       ? preview.selected.identity === "Ranged" && target.distance > 1
-        ? `${preview.selected.name} can attack from ${target.distance} ${hexNoun(
-            target.distance
-          )} away.`
-        : `${preview.selected.name} can attack ${target.name} now.`
-      : `${preview.selected.name} cannot attack yet.`
-    : `${preview.selected.name} has no valid target.`;
+        ? playerFacingLabels
+          ? `${selectedName} can attack ${targetName} from ${target.distance} ${hexNoun(
+              target.distance
+            )} away.`
+          : `${selectedName} can attack from ${target.distance} ${hexNoun(
+              target.distance
+            )} away.`
+        : `${selectedName} can attack ${targetName} now.`
+      : `${selectedName} cannot attack yet.`
+    : `${selectedName} has no valid target.`;
 
   return (
     <div className="engagement-preview-panel" data-testid="engagement-preview">
@@ -65,7 +87,7 @@ export const EngagementPreviewPanel = ({
         </span>
       </div>
       <div className="engagement-preview-title">
-        <strong>{preview.selected.name}</strong>
+        <strong>{selectedName}</strong>
         <span>{preview.selected.identity}</span>
         <span>Range {preview.selected.range}</span>
       </div>

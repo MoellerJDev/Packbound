@@ -172,12 +172,42 @@ const CardInspectorDetails = ({
   </>
 );
 
+const CompactInspectorRuleSummary = ({
+  inspection
+}: {
+  readonly inspection: CardInspection;
+}) => {
+  const primaryText =
+    inspection.rulesText ??
+    inspection.abilityText[0] ??
+    inspection.techniqueText ??
+    inspection.sourceText;
+  const secondaryText =
+    inspection.rulesText && inspection.abilityText.length > 0
+      ? inspection.abilityText[0]
+      : undefined;
+
+  if (!primaryText) {
+    return null;
+  }
+
+  return (
+    <div className="compact-inspector-rules" data-testid="compact-inspector-rules">
+      <h4>What it does</h4>
+      <p>{primaryText}</p>
+      {secondaryText ? <p className="muted">{secondaryText}</p> : null}
+    </div>
+  );
+};
+
 export const CardInspectorView = ({
+  contextLabel,
   inspection,
   emptyText,
   showLegalActions = true,
   variant = "full"
 }: {
+  readonly contextLabel?: string;
   readonly inspection: CardInspection | undefined;
   readonly emptyText: string;
   readonly showLegalActions?: boolean;
@@ -192,6 +222,9 @@ export const CardInspectorView = ({
       <div className="card-inspector compact-card-inspector">
         <div className="compact-card-inspector-header">
           <div>
+            {contextLabel ? (
+              <span className="compact-inspector-context">{contextLabel}</span>
+            ) : null}
             <h3>{inspection.name}</h3>
             <p className="muted">
               {inspection.cardType} | {inspection.zone ?? "definition"} |{" "}
@@ -211,6 +244,7 @@ export const CardInspectorView = ({
             ))}
           </div>
         ) : null}
+        <CompactInspectorRuleSummary inspection={inspection} />
         <dl className="compact-inspector-summary">
           <div>
             <dt>Cost</dt>
@@ -220,12 +254,6 @@ export const CardInspectorView = ({
             <div>
               <dt>Stats</dt>
               <dd>{inspection.statsText}</dd>
-            </div>
-          ) : null}
-          {inspection.upgradeText ? (
-            <div>
-              <dt>Upgrade</dt>
-              <dd>{inspection.upgradeText}</dd>
             </div>
           ) : null}
         </dl>

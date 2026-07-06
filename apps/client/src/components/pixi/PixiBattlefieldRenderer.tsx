@@ -24,6 +24,7 @@ import { PIXI_BATTLEFIELD_THEME, sideTheme } from "./pixiTheme";
 
 type PixiBattlefieldRendererProps = {
   readonly model: PixiBattlefieldModel;
+  readonly presentation?: "canonical" | "playerFacing";
   readonly replayCommands: readonly PixiReplayCommand[];
   readonly replayStatus: PixiReplayStatus;
   readonly replayCommandIndex: number;
@@ -46,6 +47,28 @@ type TokenView = {
 };
 
 type TokenEmphasis = "selected" | "target" | "none";
+
+const sideLabel = (side: PixiBattlefieldCard["side"]): string =>
+  side === "playerA" ? "YOU" : "ENEMY";
+
+const makeTokenSelectable = ({
+  card,
+  graphic,
+  onTokenSelect
+}: {
+  readonly card: PixiBattlefieldCard;
+  readonly graphic: Graphics;
+  readonly onTokenSelect: ((card: PixiBattlefieldCard) => void) | undefined;
+}): Graphics => {
+  if (!onTokenSelect) {
+    return graphic;
+  }
+
+  graphic.eventMode = "static";
+  graphic.cursor = "pointer";
+  graphic.on("pointertap", () => onTokenSelect(card));
+  return graphic;
+};
 
 const layerOffset = (layer: PixiBattlefieldCard["layer"]): PixiPoint => {
   switch (layer) {
@@ -96,7 +119,10 @@ const addText = (
   return label;
 };
 
-const drawBackground = (root: Container): void => {
+const drawBackground = (
+  root: Container,
+  presentation: NonNullable<PixiBattlefieldRendererProps["presentation"]>
+): void => {
   root.addChild(
     new Graphics()
       .roundRect(0, 0, PIXI_BATTLEFIELD_LAYOUT.width, PIXI_BATTLEFIELD_LAYOUT.height, 22)
@@ -114,6 +140,50 @@ const drawBackground = (root: Container): void => {
       .fill({ color: PIXI_BATTLEFIELD_THEME.fieldFill, alpha: 0.54 })
       .stroke({ color: PIXI_BATTLEFIELD_THEME.hexStroke, alpha: 0.42, width: 1.4 })
   );
+
+  if (presentation === "playerFacing") {
+    const fieldX = 24;
+    const fieldY = 50;
+    const fieldWidth = PIXI_BATTLEFIELD_LAYOUT.width - fieldX * 2;
+    const fieldHeight = PIXI_BATTLEFIELD_LAYOUT.height - fieldY - 28;
+    const centerX = PIXI_BATTLEFIELD_LAYOUT.width / 2;
+    root.addChild(
+      new Graphics()
+        .roundRect(fieldX, fieldY, fieldWidth / 2, fieldHeight, 16)
+        .fill({ color: PIXI_BATTLEFIELD_THEME.player.fill, alpha: 0.2 })
+    );
+    root.addChild(
+      new Graphics()
+        .roundRect(centerX, fieldY, fieldWidth / 2, fieldHeight, 16)
+        .fill({ color: PIXI_BATTLEFIELD_THEME.enemy.fill, alpha: 0.2 })
+    );
+    root.addChild(
+      new Graphics()
+        .moveTo(centerX, fieldY + 6)
+        .lineTo(centerX, fieldY + fieldHeight - 6)
+        .stroke({ color: PIXI_BATTLEFIELD_THEME.lane, alpha: 0.48, width: 4 })
+    );
+    addText(root, "YOUR SIDE", 116, 32, {
+      fill: PIXI_BATTLEFIELD_THEME.player.accent,
+      fontSize: 11,
+      fontWeight: "900",
+      alpha: 0.92
+    });
+    addText(root, "ENEMY SIDE", PIXI_BATTLEFIELD_LAYOUT.width - 116, 32, {
+      fill: PIXI_BATTLEFIELD_THEME.enemy.accent,
+      fontSize: 11,
+      fontWeight: "900",
+      alpha: 0.92
+    });
+    addText(root, "ENGAGEMENT LINE", centerX, 32, {
+      fill: PIXI_BATTLEFIELD_THEME.text,
+      fontSize: 9,
+      fontWeight: "900",
+      alpha: 0.62
+    });
+    return;
+  }
+
   addText(root, "SHARED COMBAT FIELD", PIXI_BATTLEFIELD_LAYOUT.width / 2, 32, {
     fill: PIXI_BATTLEFIELD_THEME.text,
     fontSize: 10,
@@ -243,7 +313,8 @@ const tokenPointForCard = (
 const drawToken = (
   card: PixiBattlefieldCard,
   onTokenSelect?: (card: PixiBattlefieldCard) => void,
-  emphasis: TokenEmphasis = "none"
+  emphasis: TokenEmphasis = "none",
+  showSideBadge = false
 ): TokenView => {
   const theme = sideTheme(card.side);
   const container = new Container();
@@ -257,18 +328,17 @@ const drawToken = (
   const point = tokenPointForCard(card);
   container.position.set(point.x, point.y);
   container.zIndex = card.sharedCell.row * 10 + (isSupport ? 1 : 4);
-  if (onTokenSelect) {
-    container.eventMode = "static";
-    container.cursor = "pointer";
-    container.on("pointertap", () => onTokenSelect(card));
-  }
 
   if (isSupport) {
     container.addChild(
-      new Graphics()
-        .roundRect(-31, -20, 62, 40, 8)
-        .fill({ color: PIXI_BATTLEFIELD_THEME.support, alpha: 0.9 })
-        .stroke({ color: theme.accent, alpha: 0.88, width: 3 })
+      makeTokenSelectable({
+        card,
+        onTokenSelect,
+        graphic: new Graphics()
+          .roundRect(-31, -20, 62, 40, 8)
+          .fill({ color: PIXI_BATTLEFIELD_THEME.support, alpha: 0.9 })
+          .stroke({ color: theme.accent, alpha: 0.88, width: 3 })
+      })
     );
     container.addChild(
       new Graphics()
@@ -281,6 +351,19 @@ const drawToken = (
           .roundRect(-38, -27, 76, 54, 10)
           .stroke({ color: emphasisColor, alpha: 0.98, width: 4 })
       );
+    }
+    if (showSideBadge) {
+      container.addChild(
+        new Graphics()
+          .roundRect(-28, -48, 56, 16, 6)
+          .fill({ color: theme.fill, alpha: 0.94 })
+          .stroke({ color: theme.glow, alpha: 0.86, width: 1.4 })
+      );
+      addText(container, sideLabel(card.side), 0, -40, {
+        fill: theme.text,
+        fontSize: 8,
+        fontWeight: "900"
+      });
     }
     addText(container, card.initials, 0, -2, {
       fill: 0x20160b,
@@ -308,10 +391,14 @@ const drawToken = (
   }
 
   container.addChild(
-    new Graphics()
-      .circle(0, 0, 29)
-      .fill({ color: theme.fill, alpha: 0.96 })
-      .stroke({ color: theme.glow, alpha: 0.98, width: 4 })
+    makeTokenSelectable({
+      card,
+      onTokenSelect,
+      graphic: new Graphics()
+        .circle(0, 0, 29)
+        .fill({ color: theme.fill, alpha: 0.96 })
+        .stroke({ color: theme.glow, alpha: 0.98, width: 4 })
+    })
   );
   container.addChild(
     new Graphics().circle(0, 0, 38).stroke({ color: theme.glow, alpha: 0.28, width: 9 })
@@ -324,6 +411,19 @@ const drawToken = (
         width: 4.5
       })
     );
+  }
+  if (showSideBadge) {
+    container.addChild(
+      new Graphics()
+        .roundRect(-29, -52, 58, 18, 7)
+        .fill({ color: theme.fill, alpha: 0.94 })
+        .stroke({ color: theme.glow, alpha: 0.88, width: 1.5 })
+    );
+    addText(container, sideLabel(card.side), 0, -43, {
+      fill: theme.text,
+      fontSize: 8,
+      fontWeight: "900"
+    });
   }
   addText(container, card.initials, 0, -5, {
     fill: theme.text,
@@ -687,6 +787,7 @@ const playCommand = async (
 
 export const PixiBattlefieldRenderer = ({
   model,
+  presentation = "canonical",
   replayCommands,
   replayStatus,
   replayCommandIndex,
@@ -866,7 +967,7 @@ export const PixiBattlefieldRenderer = ({
       replaySessionRef.current += 1;
       replayBusySessionRef.current = undefined;
 
-      drawBackground(root);
+      drawBackground(root, presentation);
       for (const cell of model.cells) {
         drawCell(
           cellLayer,
@@ -889,7 +990,8 @@ export const PixiBattlefieldRenderer = ({
         const token = drawToken(
           card,
           (selectedCard) => onTokenSelectRef.current?.(selectedCard),
-          emphasis
+          emphasis,
+          presentation === "playerFacing"
         );
         token.container.scale.set(token.baseScale);
         tokenLayer.addChild(token.container);
@@ -929,7 +1031,7 @@ export const PixiBattlefieldRenderer = ({
         app?.destroy(true, { children: true });
       }
     };
-  }, [model, replayResetKey, runAutomaticPlayback]);
+  }, [model, presentation, replayResetKey, runAutomaticPlayback]);
 
   useEffect(() => {
     if (replayStatus === "playing") {

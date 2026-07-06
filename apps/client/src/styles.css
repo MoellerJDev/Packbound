@@ -230,6 +230,14 @@ h4 {
   margin: 0 0 12px;
 }
 
+.inspector-context-note {
+  color: #5d6870;
+  font-size: 0.76rem;
+  font-weight: 900;
+  margin: -6px 0 10px;
+  text-transform: uppercase;
+}
+
 .battlefield-board {
   --hex-w: clamp(48px, 4vw, 58px);
   --hex-h: calc(var(--hex-w) * 1.1547);
@@ -245,6 +253,48 @@ h4 {
   display: grid;
   gap: 10px;
   min-width: 0;
+}
+
+.default-pixi-side-legend {
+  align-items: center;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.default-pixi-side-legend span {
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  padding: 6px 9px;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.default-pixi-side-legend .ally {
+  background: #123f55;
+  border: 1px solid #72d9ff;
+  color: #e8fbff;
+}
+
+.default-pixi-side-legend .center {
+  background: #29363a;
+  border: 1px solid #6f7e7f;
+  color: #f0f7f5;
+}
+
+.default-pixi-side-legend .enemy {
+  background: #5c211c;
+  border: 1px solid #ff8a5c;
+  color: #fff0e8;
+}
+
+.default-pixi-selection-context {
+  color: #c7d8d2;
+  font-size: 0.84rem;
+  font-weight: 800;
+  margin: -2px 0 0;
 }
 
 .default-pixi-stage .pixi-renderer-host {
@@ -1454,6 +1504,20 @@ h4 {
   font-size: 1rem;
 }
 
+.compact-inspector-context {
+  background: #eaf2ee;
+  border: 1px solid #ccdbd4;
+  border-radius: 999px;
+  color: #244532;
+  display: inline-flex;
+  font-size: 0.66rem;
+  font-weight: 900;
+  line-height: 1;
+  margin-bottom: 5px;
+  padding: 4px 7px;
+  text-transform: uppercase;
+}
+
 .compact-card-inspector .muted {
   font-size: 0.78rem;
   margin: 0;
@@ -1467,6 +1531,34 @@ h4 {
   display: grid;
   gap: 6px;
   margin: 0;
+}
+
+.compact-inspector-rules {
+  background: #f4f8f5;
+  border: 1px solid #d9e4df;
+  border-left: 4px solid #2f8e55;
+  border-radius: 6px;
+  display: grid;
+  gap: 5px;
+  padding: 8px 9px;
+}
+
+.compact-inspector-rules h4 {
+  color: #244532;
+  font-size: 0.68rem;
+  margin: 0;
+}
+
+.compact-inspector-rules p {
+  color: #1f2b32;
+  font-size: 0.82rem;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.compact-inspector-rules .muted {
+  color: #587071;
+  font-size: 0.78rem;
 }
 
 .compact-inspector-summary div {

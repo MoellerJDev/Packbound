@@ -48,6 +48,10 @@ test("default playtest route starts with concise Pixi play surface", async ({ pa
   await expect(loadoutTray.getByTestId("default-loadout-tray-spellrail")).toContainText(
     "Spellrail"
   );
+  await expect(loadoutTray).toContainText(
+    "Select, place, and move the cards that shape your next fight."
+  );
+  await expect(loadoutTray.getByText(/Advanced Debug/)).toHaveCount(0);
   const advancedDebug = page.getByTestId("advanced-debug-panels");
   await expect(advancedDebug).toBeVisible();
   expect(await advancedDebug.evaluate((node) => (node as HTMLDetailsElement).open)).toBe(
@@ -66,6 +70,13 @@ test("default playtest route starts with concise Pixi play surface", async ({ pa
   await expect(
     page.getByRole("heading", { name: "Enemy Inspector", exact: true })
   ).toBeVisible();
+  const sideLegend = page.getByTestId("default-pixi-side-legend");
+  await expect(sideLegend.getByText("Your side", { exact: true })).toBeVisible();
+  await expect(sideLegend.getByText("Engagement line", { exact: true })).toBeVisible();
+  await expect(sideLegend.getByText("Enemy side", { exact: true })).toBeVisible();
+  await expect(page.getByTestId("default-pixi-selection-context")).toContainText(
+    "Selected ally: Ember Scraprunner. Selected enemy: Ember Scraprunner."
+  );
 
   await expect(rendererHost).toBeVisible();
   await expect(rendererHost.locator("canvas")).toHaveCount(1);
@@ -82,7 +93,15 @@ test("default playtest route starts with concise Pixi play surface", async ({ pa
   await expect(
     allyInspector.getByRole("heading", { name: "Ember Scraprunner" })
   ).toBeVisible();
+  await expect(allyInspector.getByText("Your side", { exact: true })).toBeVisible();
+  await expect(allyInspector.getByTestId("compact-inspector-rules")).toContainText(
+    "Quickstart. When destroyed, sparks the nearest enemy."
+  );
   await expect(enemyInspector.getByText(/\| encounter \|/)).toBeVisible();
+  await expect(enemyInspector.getByText("Enemy side", { exact: true })).toBeVisible();
+  await expect(enemyInspector.getByTestId("compact-inspector-rules")).toContainText(
+    "Quickstart. When destroyed, sparks the nearest enemy."
+  );
   await expect(allyInspector.getByText("Full card details")).toBeVisible();
   const engagementPreview = battlefield.locator(
     ".default-pixi-stage > [data-testid='engagement-preview']"
@@ -92,7 +111,9 @@ test("default playtest route starts with concise Pixi play surface", async ({ pa
   ).toBeVisible();
   await expect(engagementPreview.getByText("Ember Scraprunner").first()).toBeVisible();
   await expect(
-    engagementPreview.getByText("Ember Scraprunner can attack Ember Scraprunner now.")
+    engagementPreview.getByText(
+      "Your Ember Scraprunner can attack Enemy Ember Scraprunner now."
+    )
   ).toBeVisible();
   await expect(engagementPreview.getByText("Distance 1, range 1.")).toBeVisible();
   await expect(engagementPreview.getByText("Attack now")).toBeVisible();
@@ -102,13 +123,17 @@ test("default playtest route starts with concise Pixi play surface", async ({ pa
 });
 
 test("default compact inspector can reveal full card details", async ({ page }) => {
-  const { allyInspector, errors, rendererHost } = await gotoDefaultPlaytestRoute(page);
+  const { allyInspector, enemyInspector, errors, rendererHost } =
+    await gotoDefaultPlaytestRoute(page);
 
   await clickPixiCell(page, rendererHost, 0, 2);
   await expect(
     allyInspector.getByRole("heading", { name: "Ember Scraprunner" })
   ).toBeVisible();
   await expect(allyInspector.getByText(/Unit \| board \| Ember/)).toBeVisible();
+  await expect(allyInspector.getByTestId("compact-inspector-rules")).toContainText(
+    "Quickstart. When destroyed, sparks the nearest enemy."
+  );
   const allyCardDetails = allyInspector.locator("details.card-inspector-details-toggle");
   await expect(allyCardDetails).toBeVisible();
   expect(
@@ -120,6 +145,18 @@ test("default compact inspector can reveal full card details", async ({ page }) 
   await expect(
     allyCardDetails.getByRole("heading", { name: "Legal Actions" })
   ).toBeVisible();
+
+  await clickPixiCell(page, rendererHost, 0, 3);
+  await expect(
+    enemyInspector.getByRole("heading", { name: "Ember Scraprunner" })
+  ).toBeVisible();
+  await expect(enemyInspector.getByText(/Unit \| encounter \| Ember/)).toBeVisible();
+  await expect(enemyInspector.getByTestId("compact-inspector-rules")).toContainText(
+    "Quickstart. When destroyed, sparks the nearest enemy."
+  );
+  await expect(page.getByTestId("default-pixi-selection-context")).toContainText(
+    "Selected enemy: Ember Scraprunner."
+  );
 
   expectNoBrowserErrors(errors);
 });

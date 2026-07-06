@@ -106,6 +106,35 @@ expands full card details or performs repeated Pixi clicks, and Renderer Lab
 smoke is split across load/control presence, Commander diagnostics, placement,
 and replay-control tests.
 
+Manual clarity update after this task: the latest default-route playtest found
+that the battlefield was still the biggest comprehension failure. The shared
+Pixi field made ally and enemy ownership feel ambiguous even with blue/red token
+colors; the player expected a clear "your side / enemy side" presentation.
+Clicking different tokens did not make selected ally/enemy context feel loud
+enough, compact inspectors hid rules/ability text behind `Full card details`,
+upgrade/design metadata competed too early, and the Loadout Tray still used
+debug-facing overflow language.
+
+Implementation update after this task: the default Pixi battlefield now opts
+into a player-facing presentation while keeping the canonical rules/sim
+coordinates unchanged. The canvas shows `YOUR SIDE`, `ENEMY SIDE`, and an
+`ENGAGEMENT LINE`, tokens carry `YOU` / `ENEMY` badges, and the default route
+adds a side legend plus selected ally/enemy context text above the canvas.
+Engagement Preview copy on `/` now says phrases such as
+`Your Ember Scraprunner can attack Enemy Ember Scraprunner now.` Renderer Lab
+continues to use the canonical diagnostic shared-field presentation.
+
+Implementation update after this task: compact inspectors now surface a
+`What it does` block by default, using rules text and the first formatted
+ability when available. Cost and stats remain visible, while verbose upgrade
+progress, upgrade bonus, legal-action details, design metadata, keywords, tags,
+traits, and combat-stat explanations stay behind `Full card details`.
+
+Implementation update after this task: the default Loadout Tray no longer tells
+players to avoid or open debug panels in normal-flow copy. Capped zone overflow
+now uses player-facing copy such as `+2 more cards`, while full loadout lists
+remain available in collapsed Advanced Debug Panels for diagnostics.
+
 Implementation update after this task: the default Pixi battlefield now has a
 compact `Loadout` control strip for selected Pool cards. It uses existing legal
 loadout actions to expose `Add to Source Row` for selected Sources and
@@ -1205,6 +1234,13 @@ Note:
 
 - Pixi is now the primary default battlefield, but it still uses generated
   shapes and text rather than final art assets.
+- The default Pixi battlefield now has stronger player-facing side labels,
+  side-colored territory bands, side badges, and selected ally/enemy context,
+  but the underlying board is still the canonical shared rules coordinate
+  space. It is not a true two-side deployment redesign.
+- Compact inspectors now show rules/ability summary by default, but long cards
+  still need thoughtful text editing and richer card-layout polish before a
+  cold-start demo.
 - The tightened default Pixi route has now had a fresh 10-minute manual pass at
   1440 x 900 plus a 1280 x 720 sanity pass. It is close to showable with light
   narration, and the first-fold `Loadout Tray` now exposes ordinary
@@ -1293,25 +1329,34 @@ Note:
 - Duplicate upgrades remain generic +1 ATK/+1 HP combines.
 - Combat summaries now have deterministic key-moment grouping, but the copy has
   not had a broad manual pass across many longer future fights.
+- Deferred design concerns from the latest manual playtest remain: reward flow
+  likely wants shop-style framing, pack-to-loadout pacing may need a future
+  deployment-limiting or deck/hand/draw pass, Commander upgrades need more
+  build-defining depth, and Board Charge / Sources / Combat Charge need stronger
+  conceptual teaching.
 
 ## 13. Recommended Next Tasks
 
 Do next:
 
-`feat(client): add Pixi replay scrub/speed controls`
+`test(playtest): manually validate battlefield side clarity and card summaries`
 
-Why: the tightened `/` route now has first-fold loadout editing, concise layer
-and resource education, grouped duplicate post-pack suggestions, and clearer
-blocked copy for common loadout constraints. The next visible comprehension gap
-is still long Pixi combat playback: Play/Pause/Step/Reset work, but longer
-Renderer Lab replays need a scrub or speed affordance to revisit specific moves,
-attacks, recalls, and destroyed markers.
+Why: this task addressed the biggest default-route comprehension issue with
+player-facing side labels, token side badges, selected ally/enemy context, and
+compact `What it does` inspector summaries. The safest next move is a short
+manual pass to confirm those changes actually fix the first-read battlefield
+confusion before building larger systems on top.
 
 Do soon:
 
 - `test(playtest): manually validate grouped combat key moments across starters`
+- `feat(client): strengthen Board Charge and Source teaching`
+- `feat(client): frame reward packs as a shop step`
+- `design(rules): evaluate pack-to-loadout pacing limits`
+- `design(rules): deepen Commander upgrade choices`
 - `feat(rules): evaluate expanding the canonical board to 6 rows x 10-12 columns`
 - `feat(client): tune Pixi combat effect timing after manual readability pass`
+- `feat(client): add Pixi replay scrub/speed controls`
 - `feat(client): keep selected target and next move visible together in preview labs`
 
 Still wait:

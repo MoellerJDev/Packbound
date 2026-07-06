@@ -19,6 +19,9 @@ const formatPosition = (
 ): string =>
   `r${placement.position.row} c${placement.position.col} ${placement.position.layer}`;
 
+const moreCardsText = (count: number): string =>
+  `+${count} more ${count === 1 ? "card" : "cards"}`;
+
 const DefaultLoadoutTrayCard = ({
   actions,
   meta,
@@ -72,7 +75,7 @@ const DefaultLoadoutTrayZone = ({
       )}
     </ol>
     {moreCount > 0 ? (
-      <p className="default-loadout-tray-more">+{moreCount} more in Advanced Debug</p>
+      <p className="default-loadout-tray-more">{moreCardsText(moreCount)}</p>
     ) : null}
   </section>
 );
@@ -111,7 +114,7 @@ export const DefaultLoadoutTray = ({
         <div>
           <h2 id="default-loadout-tray-heading">Loadout Tray</h2>
           <p className="muted">
-            Select, place, and move key cards without opening the debug panels.
+            Select, place, and move the cards that shape your next fight.
           </p>
           <p
             className="default-loadout-tray-rule-note"

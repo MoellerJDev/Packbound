@@ -306,19 +306,30 @@ an empty recorded-combat panel, and the decision panel uses denser spacing. This
 is a layout-only/client presentation pass; rules, combat, loadout legality,
 rewards, content, and Pixi renderer behavior did not change.
 
+Manual playtest update after this task: the tightened default Pixi route was
+played through the intended 10-minute path on July 6, 2026 at 1440 x 900, then
+checked at 1280 x 720. The route is close to showable: the immediate upgrade
+decision, Pixi board, compact inspectors, Combat Preview, Key Moments, rewards,
+Commander upgrade, Advance, and post-pack suggestions form a coherent loop. The
+largest remaining friction is that key loadout-editing lists still live under
+`Advanced Debug Panels`, while the Pixi action strip sits below the canvas and
+falls below the first fold at 1280 x 720. A first-time player can understand the
+loop with light narration, but the route is not yet a cold-start demo.
+
 The biggest remaining Pixi/default-route findings are no longer the absence of
 replay controls, tiny first-pass labels, unvalidated readability, default-route
 confidence, basic default-route edit affordances, an ungrouped default combat
 feed, a debug-grid first screen, or always-expanded inspector detail. Now that
 `/` opens on a tighter Pixi-focused playtest surface with an immediate build
-decision, the next gaps are manual validation of the refreshed 10-minute
-playtest flow, richer direct-manipulation polish such as drag/drop or
-canvas-native zone editing, scrub or speed controls in Renderer Lab, and
-checking that grouped combat copy scales beyond the current starter fights.
+decision, the next gaps are first-fold access to ordinary loadout editing,
+clearer board/support-layer education, richer direct-manipulation polish such
+as drag/drop or canvas-native zone editing, scrub or speed controls in Renderer
+Lab, and checking that grouped combat copy scales beyond the current starter
+fights.
 
 Recommended next task:
 
-`test(playtest): manually validate tightened default Pixi playtest route`
+`feat(client): surface default loadout controls in first-fold tray`
 
 ## 2. Environment And Commands
 
@@ -376,6 +387,102 @@ Build warning observed and not fixed in this task:
 Browser console result: no warnings or errors captured across the manual pass.
 
 ## Vertical Slice Playability Audit
+
+### Tightened Default Pixi Route Manual Playtest - July 6, 2026
+
+Viewport coverage:
+
+- Main pass: 1440 x 900 explicit browser viewport. The measured content width
+  was 1425 px after scrollbar space, with no horizontal overflow.
+- Sanity pass: 1280 x 720 explicit browser viewport. The measured content width
+  was 1265 px after scrollbar space, with no horizontal overflow.
+
+Manual path played:
+
+1. Read the `Current Decision` panel and applied the immediate Cinder Scout
+   duplicate upgrade.
+2. Inspected the Pixi battlefield, clicked an ally token and enemy token, and
+   opened then closed `Full card details`.
+3. Opened `Advanced Debug Panels` to reach loadout lists, round-tripped Ember
+   Source through Pool back to Source Row, and round-tripped Sparkfall through
+   Pool back to Spellrail.
+4. Used the compact Commander controls to inspect, deploy, and return
+   Sparkcatch Apprentice to Command. The resulting Rebind Tax block was clear:
+   redeploy needed 4 total Board Charge while Source Row provided 3.
+5. Selected Sparkcatch Apprentice from Pool, clicked a highlighted Pixi cell,
+   and confirmed board charge moved to 3 / 3.
+6. Readied combat, reviewed Combat Preview, recorded combat, read Key Moments,
+   opened a reward pack, applied Rebind Calibration, advanced to round 2, and
+   applied one post-pack suggestion.
+7. Briefly loaded Renderer Lab, Priority Lab, Engagement Lab, and Upgrade Lab;
+   all loaded, had no horizontal overflow, and produced no browser console
+   warnings or errors in the pass.
+
+Scorecard:
+
+| Category                         | Score | Finding                                                                                                                                       |
+| -------------------------------- | ----- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| First-screen clarity             | 4 / 5 | `Current Decision` and the immediate upgrade are clear, but "tune your board" points to controls that are below the fold or inside debug UI.  |
+| Battlefield readability          | 4 / 5 | Pixi is visually central, tokens/stats are readable at both tested sizes, and compact inspectors help, but support/ground layers need help.   |
+| Action/control clarity           | 3 / 5 | Inspect/Place/Loadout/Commander modes work and blocked reasons are good, but the source lists are hidden under `Advanced Debug Panels`.       |
+| Combat understanding             | 4 / 5 | Combat Preview and Key Moments explain winner, damage, destroyed units, and triggers well enough without opening the full feed.               |
+| Reward/advance clarity           | 4 / 5 | Pack cost, after-purchase gold, Commander upgrade, Advance, and post-pack suggestions are understandable, though duplicate suggestions recur. |
+| Overall 10-minute demo viability | 4 / 5 | Close to showable with light narration; not yet a cold first-time demo because core editing affordances still feel tucked away.               |
+
+What worked:
+
+- The route opens with an actual decision rather than a lab wall. Cinder Scout's
+  duplicate upgrade is understandable and satisfying as a first click.
+- Pixi now owns attention. At 1440 x 900 and 1280 x 720, the board reads as the
+  primary arena and there is no horizontal page overflow.
+- Compact inspectors are a net improvement. ATK/HP/AS/RNG and Cost/Stats/Upgrade
+  are visible without flooding the first minute, and `Full card details` is
+  discoverable when deeper simulator/legal text is needed.
+- Source Row, Spellrail, return-to-pool, Commander, and Pool-to-board placement
+  all work through the compact Pixi-adjacent control strip once a card is
+  selected.
+- Combat Preview is useful before commitment. In the tested path it predicted a
+  player win, 12 events, 0/1 damage, destroyed units, major damage, and a
+  Sparkcatch trigger.
+- Recorded Key Moments are readable enough to explain the fight without opening
+  the full event feed.
+- Rewards and Commander upgrades are understandable. Pack costs and remaining
+  gold are clear, Rebind Calibration made sense after voluntarily returning the
+  Commander, and Advance became the obvious next button.
+- Post-pack suggestions are useful after Advance. Applying Cracked Prism moved
+  Source capacity from 3 to 5 and made the next planning step feel productive.
+
+What felt confusing:
+
+- The first screen says to tune board, Sources, Spellrail, and Commander, but a
+  new player does not see the Pool Cards, Source Row, Spellrail, or Board lists
+  until they open `Advanced Debug Panels`.
+- The Pixi action strip is helpful, but it sits below the canvas. At 1280 x 720,
+  the first viewport shows the top of the board and inspectors, while the
+  action strip and placement hint are below the fold.
+- `Advanced Debug Panels` now contains core playtest actions, not just advanced
+  debugging. The label is accurate historically but misleading for a first-time
+  playtest.
+- Support/ground layering is still more learned through blocked placement
+  messages than explained up front.
+- Repeated Source suggestions can look odd when a pack contains duplicate Source
+  cards. It is legal and deterministic, but the recommendation list could group
+  duplicate names.
+- `Sparkcatch Apprentice triggered` is useful in Key Moments, but it does not
+  explain why the trigger happened unless the player already inspected the card.
+
+Verdict:
+
+- Overall status: close, not cold-start showable.
+- Biggest success: the combat/reward/advance loop now feels coherent once the
+  player finds the loadout controls.
+- Biggest UI friction: core loadout lists are hidden behind `Advanced Debug
+Panels`, and the Pixi action strip is below the first fold at 1280 x 720.
+- Biggest gameplay friction: board layers and triggered effects are visible in
+  results but not taught strongly enough during planning.
+- Smallest next improvement: surface a compact first-fold loadout tray for the
+  selected Pool/Board/Source/Spellrail card so normal editing no longer depends
+  on opening `Advanced Debug Panels`.
 
 Manual path played for this audit:
 
@@ -1048,9 +1155,11 @@ Note:
 
 - Pixi is now the primary default battlefield, but it still uses generated
   shapes and text rather than final art assets.
-- The default route now starts as a Pixi-focused playtest surface with an
-  immediate duplicate-upgrade build decision, but that exact 10-minute route
-  flow still needs a fresh manual playtest pass after this implementation.
+- The tightened default Pixi route has now had a fresh 10-minute manual pass at
+  1440 x 900 plus a 1280 x 720 sanity pass. It is close to showable with light
+  narration, but not yet a cold-start demo because core loadout lists remain
+  under `Advanced Debug Panels` and the Pixi action strip sits below the first
+  fold at 1280 x 720.
 - The React/CSS Hex Arena remains available as a collapsed debug fallback on `/`
   and `?scenario=renderer-lab`.
 - The default route now hides/collapses most developer bloat and supports
@@ -1135,18 +1244,19 @@ Note:
 
 Do next:
 
-`test(playtest): manually validate default Pixi playtest route`
+`feat(client): surface default loadout controls in first-fold tray`
 
-Why: `/` now opens on the Pixi-first playtest route with an immediate
-upgrade/build decision, direct Pixi board placement, selected-card Source Row /
-Spellrail moves, return-to-pool, compact Commander actions, grouped combat key
-moments, rewards, Commander upgrades, post-pack suggestions, and round advance.
-The route is covered by browser smoke and deterministic combat tests, but it
-needs a focused manual 10-minute pass before the next UI or rules slice.
+Why: the tightened `/` route now plays through a coherent 10-minute loop, but
+the manual pass showed that first-time loadout editing still depends on opening
+`Advanced Debug Panels` and scrolling below the Pixi canvas. A small first-fold
+tray for selected Pool/Board/Source/Spellrail actions would make the default
+route more showable without changing rules, combat, content, or Pixi renderer
+behavior.
 
 Do soon:
 
 - `feat(client): add Pixi replay scrub/speed controls`
+- `feat(client): group duplicate post-pack suggestions by card name`
 - `feat(client): improve post-pack blocked-reason copy for Source capacity and board layers`
 - `test(playtest): manually validate grouped combat key moments across starters`
 - `feat(rules): evaluate expanding the canonical board to 6 rows x 10-12 columns`

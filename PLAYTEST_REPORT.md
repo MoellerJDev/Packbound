@@ -92,6 +92,14 @@ been added as a general Packbound agent guide, replacing the stale one-off
 default-Pixi handoff prompt that had been copied into the working tree during
 the audit.
 
+Implementation update after this task: the default Pixi battlefield now has a
+compact `Loadout` control strip for selected Pool cards. It uses existing legal
+loadout actions to expose `Add to Source Row` for selected Sources and
+`Add to Spellrail` for selected Techniques, while showing clear idle and
+no-zone-action copy for other Pool cards. Browser smoke returns the starter
+Source and Technique to Pool, moves them back through the Pixi-adjacent
+controls, and then verifies the existing board placement mode still works.
+
 Planning update after the Commander design refactor: design docs now frame a
 future Commander / Command Zone / Rebind Tax / Signature Relic direction as a
 real card-like run identity layer, not a hero-power button. This task adds the
@@ -262,11 +270,11 @@ The biggest remaining Pixi findings are no longer the absence of replay controls
 tiny first-pass labels, unvalidated readability, or default-route confidence.
 Now that Pixi is primary on `/`, the next gaps are long-feed grouping/filtering,
 scrub or speed controls in Renderer Lab, and broader direct board editing beyond
-the first Pool/Bench placement and blocked-cell affordances.
+Pool-to-board, Source Row, and Spellrail Pool-card affordances.
 
 Recommended next task:
 
-`feat(client): add Source Row and Spellrail Pixi edit affordances`
+`feat(client): add default Pixi return and Commander affordances`
 
 ## 2. Environment And Commands
 
@@ -422,9 +430,10 @@ combat, Commander, encounter, card, or Pixi-default behavior changed.
 - Card inspectors are useful but verbose. Design metadata, simulator stat facts,
   upgrade progress, legal actions, and blocked reasons all compete for attention
   in the first minute.
-- Board, Source Row, Spellrail, and Pool Cards still use list-style action
-  buttons. They are playable, but still feel like a debug loadout editor rather
-  than a board-first game interface.
+- Source Row and Spellrail now have compact Pixi-adjacent controls for selected
+  Pool cards, but return-to-pool, Commander, and most zone management still use
+  list-style buttons. They are playable, but still feel like a debug loadout
+  editor rather than a board-first game interface.
 - Current Encounter, legal Planning Check, display-only Traits / Teamups, idle
   Upgrade Progress, and long combat feeds are now collapsed on `/`, but the
   collapsed labels still reveal that this is a prototype shell.
@@ -588,9 +597,9 @@ draw, reached reward phase, opened a reward pack, saw a new pool card marker and
 gold drop from 5 to 1, then advanced to round 2 planning.
 
 Remaining default-route UX note: the primary battlefield now reads as one shared
-arena and supports Pool-to-board cell placement, but Source Row, Spellrail,
-return-to-pool, and most loadout edits still happen through list buttons below
-the board.
+arena and supports Pool-to-board cell placement plus selected Pool-card Source
+Row and Spellrail moves, but return-to-pool and Commander actions still happen
+through list buttons below the board.
 
 ## 5. `?scenario=renderer-lab`
 
@@ -999,9 +1008,9 @@ Note:
   and `?scenario=renderer-lab`.
 - The default route now hides/collapses most developer bloat and supports
   minimal Pool-to-board Pixi placement with Inspect/Place mode controls, cancel,
-  and blocked-cell copy, but Source Row, Spellrail, return, and Commander
-  controls are still explicit list/button debug controls rather than final
-  direct-manipulation game UI.
+  blocked-cell copy, and selected Pool-card Source Row / Spellrail moves, but
+  return-to-pool and Commander controls are still explicit list/button debug
+  controls rather than final direct-manipulation game UI.
 - Post-pack suggestions are deterministic and use existing legal actions only.
   They look only at the latest opened pack, suggest at most a few forward edits,
   and do not reason about long-term build quality, source swaps, duplicate
@@ -1016,9 +1025,10 @@ Note:
   renderer-lab state/controller setup and top-level run state coordination.
 - Pixi labels, stat chips, rings, and combat effects have been strengthened, but
   long names and dense adjacent rows can still crowd.
-- Pixi has click-to-select token inspection and minimal click-to-place from
-  Pool/Bench on both `/` and Renderer Lab, but no drag/drop, hover tooltips, or
-  full board-editing polish.
+- Pixi has click-to-select token inspection, minimal click-to-place from
+  Pool/Bench on both `/` and Renderer Lab, and default-route Source
+  Row/Spellrail controls for selected Pool cards, but no drag/drop, hover
+  tooltips, or full board-editing polish.
 - Default Pixi placement hints use existing placement validation reasons for
   selected-card and clicked-cell failures, but they still show only one concise
   reason at a time.
@@ -1027,8 +1037,9 @@ Note:
 - Step advances one visual command when playback is idle or paused. If clicked
   while a paused command animation is still settling, the renderer waits for that
   command to settle and then advances one additional deterministic command.
-- Click-to-place only covers legal Pool/Bench board permanents; Source Row and
-  Spellrail still use explicit buttons.
+- Default-route Source Row and Spellrail controls only act on selected Pool
+  cards with legal existing actions; they are not Pixi canvas drop zones and do
+  not cover return-to-pool.
 - Newly materialized appear/recall tokens use event metadata; if a card is not
   in the initial board model, stat chips, traits, and keywords are currently
   empty.
@@ -1076,13 +1087,13 @@ Note:
 
 Do next:
 
-`feat(client): add Source Row and Spellrail Pixi edit affordances`
+`feat(client): add default Pixi return and Commander affordances`
 
-Why: `/` now has a real Pixi board-edit mode for Pool-to-board placement, with
-selected-card status, cancel, blocked-cell hints, and no-op safety after cancel.
-The remaining default-route editing mismatch is that Source Row, Spellrail,
-return-to-pool, and Commander actions still live entirely in list/button panels
-while the primary battlefield feels direct-manipulation first.
+Why: `/` now has a real Pixi board-edit mode for Pool-to-board placement and a
+compact Loadout strip for selected Pool-card Source Row / Spellrail moves. The
+remaining default-route editing mismatch is that return-to-pool and Commander
+actions still live entirely in list/button panels while the primary battlefield
+feels direct-manipulation first.
 
 Do soon:
 

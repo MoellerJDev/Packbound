@@ -156,6 +156,8 @@ test("debug loop can inspect, preview, record, reward, and advance", async ({ pa
   ).toContainText("Round 1 | Starter | Phase planning | to command");
 
   const boardPanel = panel(page, "Board");
+  const sourceRowPanel = panel(page, "Source Row");
+  const spellrailPanel = panel(page, "Spellrail");
   const poolPanel = panel(page, "Pool Cards");
   const battlefield = page.locator(".battlefield-section");
   const rendererHost = page.getByTestId("pixi-renderer-host");
@@ -229,6 +231,9 @@ test("debug loop can inspect, preview, record, reward, and advance", async ({ pa
 
   const defaultPlacementHint = battlefield.getByTestId("default-pixi-placement-hint");
   const defaultEditControls = battlefield.getByTestId("default-pixi-board-edit-controls");
+  const defaultZoneEditControls = battlefield.getByTestId(
+    "default-pixi-zone-edit-controls"
+  );
   await expect(defaultEditControls).toBeVisible();
   await expect(
     defaultEditControls.getByTestId("default-pixi-board-edit-mode")
@@ -242,10 +247,82 @@ test("debug loop can inspect, preview, record, reward, and advance", async ({ pa
   await expect(defaultPlacementHint).toHaveText(
     "Select a board-placeable Pool card below, then click a highlighted Pixi cell."
   );
+  await expect(defaultZoneEditControls).toBeVisible();
+  await expect(
+    defaultZoneEditControls.getByTestId("default-pixi-zone-edit-mode")
+  ).toHaveText("Loadout");
+  await expect(
+    defaultZoneEditControls.getByTestId("default-pixi-zone-edit-status")
+  ).toHaveText("Select a Pool card below to send it to Source Row or Spellrail.");
+
+  const emberSourceSourceRow = sourceRowPanel
+    .getByRole("listitem")
+    .filter({ hasText: "Ember Source" });
+  await emberSourceSourceRow.getByRole("button", { name: "Return to Pool" }).click();
+  const emberSourcePoolRow = poolPanel
+    .getByRole("listitem")
+    .filter({ hasText: "Ember Source" });
+  await emberSourcePoolRow.getByRole("button", { name: "Inspect" }).click();
+  await expect(
+    defaultZoneEditControls.getByTestId("default-pixi-zone-edit-selected")
+  ).toHaveText("Ember Source");
+  await expect(
+    defaultZoneEditControls.getByTestId("default-pixi-zone-edit-status")
+  ).toHaveText("Send Ember Source to Source Row or Spellrail.");
+  await expect(
+    defaultZoneEditControls.getByRole("button", { name: "Add to Source Row" })
+  ).toBeVisible();
+  await expect(
+    defaultZoneEditControls.getByRole("button", { name: "Add to Spellrail" })
+  ).toHaveCount(0);
+  await defaultZoneEditControls
+    .getByRole("button", { name: "Add to Source Row" })
+    .click();
+  await expect(
+    sourceRowPanel.getByRole("listitem").filter({ hasText: "Ember Source" })
+  ).toBeVisible();
+  await expect(
+    defaultZoneEditControls.getByTestId("default-pixi-zone-edit-status")
+  ).toHaveText("Select a Pool card below to send it to Source Row or Spellrail.");
+
+  const sparkfallSpellrailRow = spellrailPanel
+    .getByRole("listitem")
+    .filter({ hasText: "Sparkfall" });
+  await sparkfallSpellrailRow.getByRole("button", { name: "Return to Pool" }).click();
+  const sparkfallPoolRow = poolPanel
+    .getByRole("listitem")
+    .filter({ hasText: "Sparkfall" });
+  await sparkfallPoolRow.getByRole("button", { name: "Inspect" }).click();
+  await expect(
+    defaultZoneEditControls.getByTestId("default-pixi-zone-edit-selected")
+  ).toHaveText("Sparkfall");
+  await expect(
+    defaultZoneEditControls.getByTestId("default-pixi-zone-edit-status")
+  ).toHaveText("Send Sparkfall to Source Row or Spellrail.");
+  await expect(
+    defaultZoneEditControls.getByRole("button", { name: "Add to Spellrail" })
+  ).toBeVisible();
+  await expect(
+    defaultZoneEditControls.getByRole("button", { name: "Add to Source Row" })
+  ).toHaveCount(0);
+  await defaultZoneEditControls.getByRole("button", { name: "Add to Spellrail" }).click();
+  await expect(
+    spellrailPanel.getByRole("listitem").filter({ hasText: "Sparkfall" })
+  ).toBeVisible();
+  await expect(
+    defaultZoneEditControls.getByTestId("default-pixi-zone-edit-status")
+  ).toHaveText("Select a Pool card below to send it to Source Row or Spellrail.");
+
   const sparkcatchPoolRow = poolPanel
     .getByRole("listitem")
     .filter({ hasText: "Sparkcatch Apprentice" });
   await sparkcatchPoolRow.getByRole("button", { name: "Select Board Cell" }).click();
+  await expect(
+    defaultZoneEditControls.getByTestId("default-pixi-zone-edit-selected")
+  ).toHaveText("Sparkcatch Apprentice");
+  await expect(
+    defaultZoneEditControls.getByTestId("default-pixi-zone-edit-status")
+  ).toHaveText("Sparkcatch Apprentice has no legal Source Row or Spellrail move.");
   await expect(
     defaultEditControls.getByTestId("default-pixi-board-edit-mode")
   ).toHaveText("Place");

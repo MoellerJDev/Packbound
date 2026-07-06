@@ -84,6 +84,10 @@ button:disabled {
   justify-content: flex-end;
 }
 
+.button-row.compact {
+  gap: 8px;
+}
+
 .starter-picker {
   align-items: center;
   color: #5d6870;
@@ -288,6 +292,14 @@ h4 {
 .default-pixi-edit-controls button {
   min-height: 34px;
   padding: 0 12px;
+}
+
+.default-pixi-loadout-edit-controls .button-row {
+  justify-content: flex-start;
+}
+
+.default-pixi-loadout-edit-controls .button-row:empty {
+  display: none;
 }
 
 .default-pixi-placement-note {

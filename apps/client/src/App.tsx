@@ -126,6 +126,10 @@ import {
   type PriorityLabRouteController
 } from "./routes/PriorityLabRoute";
 import { useDefaultPixiPlacement } from "./hooks/useDefaultPixiPlacement";
+import {
+  buildDefaultPixiLoadoutEditView,
+  type DefaultPixiZoneEditAction
+} from "./viewModels/defaultPixiLoadoutEditView";
 import { sameBoardPosition } from "./viewModels/defaultPixiPlacementView";
 
 const playerId = asPlayerId("debug-player");
@@ -536,6 +540,20 @@ export function App() {
   });
   const pixiPlacementCard = pixiPlacement.view.selectedPlacementCard;
   const pixiPlaceablePositions = pixiPlacement.view.placeablePositions;
+  const selectedPoolCardIdForPixiZoneEdit =
+    selectedAllyCardRef?.type === "run" &&
+    run.pool.some((card) => card.instanceId === selectedAllyCardRef.cardInstanceId)
+      ? selectedAllyCardRef.cardInstanceId
+      : undefined;
+  const pixiLoadoutEditView = useMemo(
+    () =>
+      buildDefaultPixiLoadoutEditView({
+        catalog: sampleCatalog,
+        run,
+        selectedPoolCardId: selectedPoolCardIdForPixiZoneEdit
+      }),
+    [run, selectedPoolCardIdForPixiZoneEdit]
+  );
   const pixiBattlefieldModel = useMemo(
     () =>
       buildPixiBattlefieldModel({
@@ -1244,6 +1262,14 @@ export function App() {
     setSelectedAllyCardRef({ type: "run", cardInstanceId });
   };
 
+  const applyPixiZoneEditAction = (action: DefaultPixiZoneEditAction) => {
+    if (pixiLoadoutEditView.mode !== "selected") {
+      return;
+    }
+
+    performLoadoutAction(pixiLoadoutEditView.selectedCardInstanceId, action);
+  };
+
   const renderPixiPoolActions = (card: CardInstance) => {
     const actions = getLegalLoadoutActions(run, sampleCatalog, card.instanceId);
     const placeAction = actions.find((action) => action.type === "placeOnBoard");
@@ -1319,6 +1345,7 @@ export function App() {
     engagementPreview,
     phase,
     boardEditControls: pixiPlacement.view.boardEditControls,
+    loadoutEditControls: pixiLoadoutEditView,
     pixiBattlefieldModel,
     playerGold: run.playerGold,
     playerHealth: run.playerHealth,
@@ -1330,6 +1357,7 @@ export function App() {
     <HexArenaView controller={hexArenaController} view={hexArenaView} />
   );
   const defaultPixiBattlefieldController = {
+    onApplyZoneEditAction: applyPixiZoneEditAction,
     onCancelPlacement: pixiPlacement.controller.clearPlacement,
     onCellSelect: placePixiSelectedCardOnCell,
     ...(pixiPlacementCard && isDefaultRoute

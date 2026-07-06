@@ -15,6 +15,10 @@ import type {
   DefaultPixiBoardEditControlsView,
   DefaultPixiPlacementHintView
 } from "../viewModels/defaultPixiPlacementView";
+import type {
+  DefaultPixiLoadoutEditView,
+  DefaultPixiZoneEditAction
+} from "../viewModels/defaultPixiLoadoutEditView";
 
 export type DefaultPixiBattlefieldView = {
   readonly currentRound: number;
@@ -22,6 +26,7 @@ export type DefaultPixiBattlefieldView = {
   readonly engagementPreview: EngagementPreview;
   readonly phase: string;
   readonly boardEditControls: DefaultPixiBoardEditControlsView;
+  readonly loadoutEditControls: DefaultPixiLoadoutEditView;
   readonly pixiBattlefieldModel: PixiBattlefieldModel;
   readonly placementHint: DefaultPixiPlacementHintView;
   readonly playerGold: number;
@@ -34,6 +39,7 @@ export type DefaultPixiBattlefieldController = {
   readonly onCancelPlacement: () => void;
   readonly onCellSelect: (position: BoardPosition) => void;
   readonly onBlockedCellSelect?: (position: BoardPosition) => void;
+  readonly onApplyZoneEditAction: (action: DefaultPixiZoneEditAction) => void;
   readonly onTokenSelect: (card: PixiBattlefieldCard) => void;
   readonly renderDebugBoard: () => ReactNode;
 };
@@ -104,6 +110,44 @@ const DefaultPixiBoardEditControls = ({
   </div>
 );
 
+const DefaultPixiLoadoutEditControls = ({
+  onApplyZoneEditAction,
+  view
+}: {
+  readonly onApplyZoneEditAction: (action: DefaultPixiZoneEditAction) => void;
+  readonly view: DefaultPixiLoadoutEditView;
+}) => (
+  <div
+    className="default-pixi-edit-controls default-pixi-loadout-edit-controls"
+    data-testid="default-pixi-zone-edit-controls"
+  >
+    <dl>
+      <div>
+        <dt>Mode</dt>
+        <dd data-testid="default-pixi-zone-edit-mode">{view.modeLabel}</dd>
+      </div>
+      {view.mode === "selected" ? (
+        <div>
+          <dt>Selected</dt>
+          <dd data-testid="default-pixi-zone-edit-selected">{view.selectedCardName}</dd>
+        </div>
+      ) : null}
+    </dl>
+    <div className="button-row compact">
+      {view.actions.map((action) => (
+        <button
+          key={action.type}
+          type="button"
+          onClick={() => onApplyZoneEditAction(action)}
+        >
+          {action.label}
+        </button>
+      ))}
+    </div>
+    <p data-testid="default-pixi-zone-edit-status">{view.statusText}</p>
+  </div>
+);
+
 export const DefaultPixiBattlefieldSection = ({
   controller,
   view
@@ -169,6 +213,10 @@ export const DefaultPixiBattlefieldSection = ({
         <DefaultPixiBoardEditControls
           view={view.boardEditControls}
           onCancelPlacement={controller.onCancelPlacement}
+        />
+        <DefaultPixiLoadoutEditControls
+          view={view.loadoutEditControls}
+          onApplyZoneEditAction={controller.onApplyZoneEditAction}
         />
         <DefaultPixiPlacementHint hint={view.placementHint} />
         <EngagementPreviewPanel preview={view.engagementPreview} />

@@ -1,5 +1,6 @@
 export * from "./abilities";
 export * from "./aspects";
+export * from "./battlefieldModel";
 export * from "./board";
 export * from "./cards";
 export * from "./combatEvents";

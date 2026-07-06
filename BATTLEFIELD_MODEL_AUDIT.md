@@ -11,6 +11,13 @@ This audit captures the migration impact before changing core board behavior.
 It should be treated as a design and technical checkpoint, not an implementation
 record for an 8-row board.
 
+Phase 2 implementation note: `packages/shared/src/battlefieldModel.ts` now
+defines the future local deployment and global combat coordinate-space constants,
+row ownership helpers, bounds helpers, and local-to-combat mapping helpers. They
+are exported from `packages/shared`, covered by focused unit tests, and are not
+yet wired into combat setup, validation, content, Pixi, browser clicks, or
+current gameplay behavior.
+
 ## Current Canonical Model
 
 - `packages/shared/src/constants.ts` defines `BOARD_ROWS = 4` and
@@ -275,16 +282,16 @@ what the player sees and what the simulator uses.
 
 ### Phase 2: Add Mapping Helpers Without Behavior Change
 
-- Add a shared helper module such as `packages/shared/src/battlefieldModel.ts`.
-- Define `LOCAL_DEPLOYMENT_ROWS = 4`, `COMBAT_BOARD_ROWS = 8`, and side row
+- Added shared helper module `packages/shared/src/battlefieldModel.ts`.
+- Defined `LOCAL_DEPLOYMENT_ROWS = 4`, `COMBAT_BOARD_ROWS = 8`, and side row
   ranges.
-- Add pure helpers:
+- Added pure helpers:
   - `toCombatPosition(side, localPosition)`
   - `toLocalDeploymentPosition(side, combatPosition)`
   - `isPlayerSideCombatRow(row)`
   - `isEnemySideCombatRow(row)`
   - `combatRowsForSide(side)`
-- Add tests for frontlines, backlines, round trips, bounds, and odd-r distance
+- Added tests for frontlines, backlines, round trips, bounds, and odd-r distance
   across rows 3 and 4.
 - Keep current rules, sim, Pixi, and content behavior unchanged.
 
@@ -324,7 +331,10 @@ what the player sees and what the simulator uses.
 
 ## Recommended Next Task
 
-`test(shared): add battlefield coordinate-space mapping helpers`
+`feat(sim): map combat setup to global battlefield coordinates`
 
-That task should implement Phase 2 only: add tested local-to-combat mapping
-helpers and documentation, but do not yet change combat setup or content.
+That task should implement Phase 3 in the narrowest possible slice: consume the
+shared mapping helpers at the rules/sim combat setup boundary, update the
+affected simulator expectations, and leave starter/encounter authoring in local
+deployment coordinates unless the tests prove a specific fixture needs a
+documented content adjustment.

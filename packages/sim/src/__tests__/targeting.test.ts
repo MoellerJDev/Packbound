@@ -169,6 +169,17 @@ describe("combat targeting", () => {
     expect(isTargetInRange(attacker, adjacent)).toBe(false);
   });
 
+  it("uses odd-r combat geometry across the row 3 and row 4 engagement line", () => {
+    const attacker = unit("playerA", "frontline-player", 4, 2, { range: 1 });
+    const adjacentSameColumn = unit("playerB", "frontline-enemy", 3, 2);
+    const adjacentOffsetColumn = unit("playerB", "frontline-offset-enemy", 3, 1);
+    const outsideOddNeighbor = unit("playerB", "frontline-outside-enemy", 3, 3);
+
+    expect(isTargetInRange(attacker, adjacentSameColumn)).toBe(true);
+    expect(isTargetInRange(attacker, adjacentOffsetColumn)).toBe(true);
+    expect(isTargetInRange(attacker, outsideOddNeighbor)).toBe(false);
+  });
+
   it("uses permanent placement origin for nearest enemy targeting", () => {
     const ally = unit("playerA", "ally", 0, 0);
     const nearEnemy = unit("playerB", "near-enemy", 1, 2);

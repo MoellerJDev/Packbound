@@ -1,9 +1,12 @@
 import {
-  BOARD_COLS,
-  BOARD_ROWS,
+  COMBAT_BOARD_COLS,
   asCardInstanceId,
   chargeCostTotal,
+  combatRowRangeForSide,
+  combatRowsForSide,
+  combatSideForRow,
   hexNeighbors,
+  isCombatPositionInBounds,
   positionKey,
   type AbilityEffect,
   type BoardPlacement,
@@ -31,10 +34,12 @@ export const findOpenPosition = (
   const occupied = occupiedPositions(side);
   const rows =
     placement === "Backline"
-      ? side.side === "playerA"
-        ? [BOARD_ROWS - 1]
-        : [0]
-      : [...Array.from({ length: BOARD_ROWS }, (_, index) => index)];
+      ? [
+          side.side === "playerA"
+            ? combatRowRangeForSide(side.side).lastRow
+            : combatRowRangeForSide(side.side).firstRow
+        ]
+      : combatRowsForSide(side.side);
 
   if (placement === "AdjacentToSource" && sourcePosition) {
     const sourceGroundPosition = {
@@ -42,8 +47,13 @@ export const findOpenPosition = (
       col: sourcePosition.col,
       layer: "ground"
     } satisfies BoardPosition;
-    const openAdjacent = hexNeighbors(sourceGroundPosition).find(
-      (position) => !occupied.has(positionKey(position))
+    const openAdjacent = hexNeighbors(
+      sourceGroundPosition,
+      isCombatPositionInBounds
+    ).find(
+      (position) =>
+        combatSideForRow(position.row) === side.side &&
+        !occupied.has(positionKey(position))
     );
     if (openAdjacent) {
       return openAdjacent;
@@ -51,7 +61,7 @@ export const findOpenPosition = (
   }
 
   for (const row of rows) {
-    for (let col = 0; col < BOARD_COLS; col += 1) {
+    for (let col = 0; col < COMBAT_BOARD_COLS; col += 1) {
       const position = { row, col, layer: "ground" } satisfies BoardPosition;
       if (!occupied.has(positionKey(position))) {
         return position;

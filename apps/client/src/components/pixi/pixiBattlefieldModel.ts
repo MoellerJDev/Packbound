@@ -3,6 +3,11 @@ import type {
   BoardGridSummary,
   EngagementPreview
 } from "@packbound/rules";
+import {
+  COMBAT_BOARD_COLS,
+  toCombatPosition,
+  toLocalDeploymentPosition
+} from "@packbound/shared";
 import type {
   BoardLayer,
   BoardPosition,
@@ -105,35 +110,44 @@ const statChipsForCard = (card: BoardGridCardSummary): readonly string[] =>
 const modelCardFor = (
   card: BoardGridCardSummary,
   side: PlayerSide,
-  position: BoardPosition
-): PixiBattlefieldCard => ({
-  cardInstanceId: card.cardInstanceId,
-  defId: card.defId,
-  name: card.name,
-  initials: initialsForName(card.name),
-  side,
-  cardType: card.cardType,
-  layer: card.layer,
-  position,
-  sharedCell: sharedCellForBoardPosition(side, position),
-  visualOffset: { x: 0, y: 0 },
-  statChips: statChipsForCard(card),
-  traits: [...card.traits],
-  keywords: [...card.keywords]
-});
+  localPosition: BoardPosition
+): PixiBattlefieldCard | undefined => {
+  const combatPosition = toCombatPosition(side, localPosition);
+  if (!combatPosition) {
+    return undefined;
+  }
+
+  return {
+    cardInstanceId: card.cardInstanceId,
+    defId: card.defId,
+    name: card.name,
+    initials: initialsForName(card.name),
+    side,
+    cardType: card.cardType,
+    layer: card.layer,
+    position: combatPosition,
+    sharedCell: sharedCellForBoardPosition(side, combatPosition),
+    visualOffset: { x: 0, y: 0 },
+    statChips: statChipsForCard(card),
+    traits: [...card.traits],
+    keywords: [...card.keywords]
+  };
+};
 
 const cardsForBoard = (
   board: BoardGridSummary | undefined,
   side: PlayerSide
 ): readonly PixiBattlefieldCard[] =>
   (board?.cells ?? []).flatMap((cell) =>
-    cell.cards.map((card) =>
-      modelCardFor(card, side, {
+    cell.cards.flatMap((card) => {
+      const modelCard = modelCardFor(card, side, {
         row: cell.row,
         col: cell.col,
         layer: card.layer
-      })
-    )
+      });
+
+      return modelCard ? [modelCard] : [];
+    })
   );
 
 const nativeCoordinateForSharedCell = (
@@ -145,6 +159,19 @@ const nativeCoordinateForSharedCell = (
 
 const sameNativePosition = (left: BoardPosition, right: BoardPosition): boolean =>
   left.row === right.row && left.col === right.col && left.layer === right.layer;
+
+const combatPositionForPlayerPlaceable = (
+  position: BoardPosition
+): BoardPosition | undefined => toCombatPosition("playerA", position);
+
+const playerLocalPositionForSharedCell = (
+  sharedCell: PixiSharedCell
+): BoardPosition | undefined =>
+  toLocalDeploymentPosition("playerA", {
+    row: sharedCell.row,
+    col: sharedCell.col,
+    layer: "ground"
+  });
 
 const sideAwareOffset = (
   card: PixiBattlefieldCard,
@@ -216,7 +243,10 @@ const markerForCell = (
     engagementPreview.nextMove !== undefined &&
     sameNativeCoordinate(engagementPreview.nextMove.to, nativeCoordinate);
   const isPlaceable = placeablePositions.some((position) =>
-    sameNativeCoordinate(position, nativeCoordinate)
+    sameNativeCoordinate(
+      combatPositionForPlayerPlaceable(position) ?? position,
+      nativeCoordinate
+    )
   );
 
   return {
@@ -252,16 +282,20 @@ export const buildPixiBattlefieldModel = ({
   const cells: PixiBattlefieldCell[] = [];
 
   for (let row = 0; row < PIXI_SHARED_ROWS; row += 1) {
-    for (let col = 0; col < playerBoard.cols; col += 1) {
+    for (let col = 0; col < COMBAT_BOARD_COLS; col += 1) {
       const sharedCell = { row, col };
       const nativeCoordinate = nativeCoordinateForSharedCell(sharedCell);
       const placeablePosition = placeablePositions.find((position) =>
-        sameNativeCoordinate(position, nativeCoordinate)
+        sameNativeCoordinate(
+          combatPositionForPlayerPlaceable(position) ?? position,
+          nativeCoordinate
+        )
       );
+      const playerLocalPosition = playerLocalPositionForSharedCell(sharedCell);
       cells.push({
         sharedCell,
         nativePosition: {
-          ...nativeCoordinate,
+          ...(playerLocalPosition ?? nativeCoordinate),
           layer: "ground" as const
         },
         ...(placeablePosition ? { placeablePosition: { ...placeablePosition } } : {}),
@@ -289,7 +323,7 @@ export const buildPixiBattlefieldModel = ({
 
   return {
     rows: PIXI_SHARED_ROWS,
-    cols: playerBoard.cols,
+    cols: COMBAT_BOARD_COLS,
     cells,
     cards,
     ...(selectedCardInstanceId ? { selectedCardInstanceId } : {}),

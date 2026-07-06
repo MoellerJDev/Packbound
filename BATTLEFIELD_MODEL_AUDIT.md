@@ -3,109 +3,110 @@
 ## Purpose
 
 The default route now presents the Pixi battlefield with player-facing side
-labels, side-colored territory, token badges, and selected ally/enemy context.
-That improves first-read clarity, but it is still presentation-only. The
-canonical model remains one shared 4-row by 7-column odd-r offset hex grid.
+labels, side-colored territory, token badges, selected ally/enemy context, and a
+true 8-row combat surface. The implementation is no longer presentation-only:
+combat setup maps each side's local 4-row deployment board into one global
+8-row by 7-column odd-r combat board.
 
-This audit captures the migration impact before changing core board behavior.
-It should be treated as a design and technical checkpoint, not an implementation
-record for an 8-row board.
+This audit captures the split model that now exists after Phase 3. Planning,
+loadout editing, Commander deployment, starter content, and encounter authoring
+remain in local 4-row deployment space. Combat setup, simulator movement/range,
+combat events, Pixi rendering, Pixi click helpers, and default/renderer
+engagement previews now use global combat coordinates.
 
-Phase 2 implementation note: `packages/shared/src/battlefieldModel.ts` now
+Phase 2 implementation note: `packages/shared/src/battlefieldModel.ts`
 defines the future local deployment and global combat coordinate-space constants,
 row ownership helpers, bounds helpers, and local-to-combat mapping helpers. They
-are exported from `packages/shared`, covered by focused unit tests, and are not
-yet wired into combat setup, validation, content, Pixi, browser clicks, or
-current gameplay behavior.
+are exported from `packages/shared` and covered by focused unit tests.
 
-## Current Canonical Model
+Phase 3 implementation note: `packages/rules/src/loadout.ts` and
+`packages/rules/src/encounters.ts` now apply those mapping helpers at the
+rules/sim boundary. Player run boards map to `playerA` combat rows 4-7, and
+encounter boards map to `playerB` combat rows 0-3. Simulator movement and
+summon/recall placement use combat-space bounds and side row ranges. Pixi maps
+local board summaries into the same global rows and keeps click-to-place
+returning player-local positions for reducer actions.
 
-- `packages/shared/src/constants.ts` defines `BOARD_ROWS = 4` and
-  `BOARD_COLS = 7`.
-- `packages/shared/src/board.ts` and `packages/shared/src/utilities.ts` use
-  those constants for bounds, neighbors, and position validation.
-- `BoardPosition` is a plain `{ row, col, layer }` value with no side, no
-  coordinate-space tag, and no distinction between deployment coordinates and
-  combat coordinates.
-- `positionKey` serializes only `layer:row:col`, so two sides cannot currently
-  occupy the same global layer/row/col without relying on separate board
-  objects before combat setup.
-- Odd-r distance is already topology-correct for any row number, but current
-  bounds helpers restrict legal rows to `0..3`.
-- Planning validation, content validation, loadout default placement,
-  Commander deployment scanning, board summaries, engagement preview, Pixi
-  model generation, and simulator placement all assume this 4-row board.
+## Current Model After Phase 3
 
-## Systems That Assume The Shared 4-Row Board
+- `packages/shared/src/constants.ts` still defines `BOARD_ROWS = 4` and
+  `BOARD_COLS = 7` for local deployment and legacy local board helpers.
+- `packages/shared/src/battlefieldModel.ts` defines
+  `LOCAL_DEPLOYMENT_ROWS = 4`, `COMBAT_BOARD_ROWS = 8`, and
+  `COMBAT_BOARD_COLS = 7`.
+- `RunState.board`, starter kit board placements, encounter board placements,
+  board summaries, Commander planning actions, and loadout validation remain
+  local deployment-space data.
+- `buildCombatantSetupForRun` maps player local placements into combat rows
+  4-7. `buildCombatantSetupForEncounter` maps encounter local placements into
+  combat rows 0-3.
+- The simulator now receives already-mapped global combat boards. Movement,
+  range, targeting, combat events, and combat replay positions are global
+  combat positions.
+- `BoardPosition` remains a plain `{ row, col, layer }` value with no embedded
+  coordinate-space tag. Callers must be clear about whether a position is local
+  deployment space or global combat space.
+- `positionKey` still serializes only `layer:row:col`; this is acceptable
+  because local boards are side-owned before setup and combat boards use one
+  global coordinate space.
+- Odd-r distance is topology-correct across the engagement line between rows 3
+  and 4, and tests pin representative adjacency.
 
-### Shared Types And Helpers
+## Systems By Coordinate Space
 
-- `packages/shared/src/constants.ts`: global `BOARD_ROWS` / `BOARD_COLS`.
-- `packages/shared/src/board.ts`: `hexNeighbors` filters with the current
-  4-row bounds.
-- `packages/shared/src/utilities.ts`: `isBoardPositionInBounds` rejects row 4
-  and above.
-- `BoardPosition`, `BoardPlacement`, and combat events carry row/col/layer, but
-  not coordinate-space metadata.
+### Local Deployment Space
 
-### Rules And Validation
+- `packages/shared/src/constants.ts`: `BOARD_ROWS` remains local deployment
+  height.
+- `packages/shared/src/utilities.ts`: `isBoardPositionInBounds` still rejects
+  row 4 and above for planning/content validation.
+- `packages/rules/src/loadout.ts`: loadout actions and legal board placement
+  continue to validate local 4-row player positions.
+- `packages/rules/src/validation.ts`: planning validation remains local.
+- `packages/rules/src/commander.ts`: legal Commander deploy cells scan local
+  deployment rows and then enter the normal board-placement reducer path.
+- `packages/rules/src/boardGrid.ts`: board summaries emit local row/col values.
+- `packages/content/src/catalog.ts`: starter kit and encounter placements are
+  still authored and validated in local deployment coordinates.
+- React/CSS debug boards and full loadout lists remain local planning/debug
+  views.
 
-- `packages/rules/src/loadout.ts`: `getDefaultBoardPositionForCard` scans
-  `0..BOARD_ROWS - 1`; `canPlaceCardOnBoard` validates against current bounds.
-- `packages/rules/src/validation.ts`: planning validation reports out-of-bounds
-  with hardcoded `4x7` copy.
-- `packages/rules/src/commander.ts`: legal Commander deploy cells scan the same
-  4-row board.
-- `packages/rules/src/boardGrid.ts`: summaries emit `rows: BOARD_ROWS`.
-- `packages/rules/src/engagementPreview.ts`: range and next-move markers iterate
-  the 4-row grid.
-- Encounter target labels and action snapshots store the current row/col/layer
-  directly.
+### Global Combat Space
 
-### Content And Authoring
-
-- `packages/content/src/catalog.ts` validates starter kit and encounter board
-  placements against `BOARD_ROWS` / `BOARD_COLS`.
-- `packages/content/src/sampleContent.ts` authored starter and encounter
-  placements use current shared coordinates. Many fixtures place player and
-  enemy Units on the same row to make early combat immediate.
-- Existing content does not declare whether a row means "frontline" or
-  "backline" for that side.
-
-### Simulation
-
-- `packages/sim/src/state.ts` imports placements directly into combat runtime
-  Units without side-based coordinate transformation.
-- `packages/sim/src/targeting.ts` computes target priority from shared
-  `hexDistance`.
-- `packages/sim/src/movement.ts` calls shared `hexStepToward` with current
-  4-row bounds.
-- `packages/sim/src/placement.ts` treats `Backline` as row `3` for playerA and
-  row `0` for playerB inside the same 4-row coordinate system.
-- Combat event metadata records current positions and would change visibly once
-  combat-space coordinates expand.
-
-### Client And Pixi
-
-- `apps/client/src/components/pixi/pixiBattlefieldLayout.ts` sets
-  `PIXI_SHARED_ROWS = BOARD_ROWS`.
-- `sharedCellForBoardPosition` currently returns the native row/col for both
-  `playerA` and `playerB`.
-- `apps/client/src/components/pixi/pixiBattlefieldModel.ts` iterates 4 shared
-  rows and offsets opposing tokens only when they share the same native
-  coordinate.
-- `apps/client/e2e/helpers/browserSmokeHelpers.ts` has hard-coded Pixi click
-  geometry for the 700x420 4-row layout.
-- Browser smoke clicks cells such as `r0 c2`, `r0 c3`, and `r0 c0` directly.
+- `packages/rules/src/loadout.ts`: `buildCombatantSetupForRun` maps player
+  placements to global combat rows.
+- `packages/rules/src/encounters.ts`: `buildCombatantSetupForEncounter` maps
+  encounter placements to global combat rows.
+- `packages/sim/src/state.ts`: imports mapped combat placements directly into
+  runtime Units.
+- `packages/sim/src/movement.ts`: passes combat-space bounds into shared
+  movement stepping.
+- `packages/sim/src/placement.ts`: uses combat-space row ranges for Backline,
+  FirstOpen, adjacent-to-source, summon, recall, and phase-in placement.
+- `packages/sim/src/targeting.ts`: computes target priority with global
+  combat-space `hexDistance`.
+- Combat event metadata records global combat positions.
+- `packages/rules/src/engagementPreview.ts`: remains local by default, but
+  default and renderer routes opt into combat-space preview generation.
+- `apps/client/src/components/pixi/pixiBattlefieldLayout.ts`: now lays out 8
+  shared rows.
+- `apps/client/src/components/pixi/pixiBattlefieldModel.ts`: maps local board
+  summaries into global combat rows and maps clicked player-side combat cells
+  back to local positions for loadout reducers.
+- `apps/client/e2e/helpers/browserSmokeHelpers.ts`: uses the 700x650 8-row
+  Pixi geometry for stable browser smoke clicks.
 
 ### Tests And Reports
 
-- Shared topology tests characterize odd-r behavior and 4-row edge neighbors.
-- Rules, sim, Pixi, and browser tests pin many row 0 / row 3 fixtures.
-- Pixi model tests explicitly expect `model.rows` to be 4 and both sides to map
-  into canonical shared coordinates.
-- `PLAYTEST_REPORT.md` already says the new side labels are useful but not a
-  true two-sided deployment redesign.
+- Shared tests cover mapping helpers, bounds, inverse mapping, and row 3/4
+  odd-r adjacency.
+- Rules tests cover combat setup mapping, no mutation of local run/encounter
+  boards, and preservation of local placement validation.
+- Content tests prove starter and encounter authoring still rejects row 4.
+- Simulator tests cover global setup positions, row 3/4 targeting geometry,
+  combat-space summon/recall placement, and deterministic fixture outcomes.
+- Pixi model and browser smoke tests cover 8-row rendering, player-local
+  click-to-place mapping, and single-canvas stability.
 
 ## Questions Answered
 
@@ -293,19 +294,19 @@ what the player sees and what the simulator uses.
   - `combatRowsForSide(side)`
 - Added tests for frontlines, backlines, round trips, bounds, and odd-r distance
   across rows 3 and 4.
-- Keep current rules, sim, Pixi, and content behavior unchanged.
+- Kept current rules, sim, Pixi, and content behavior unchanged until Phase 3.
 
 ### Phase 3: Migrate Combat Setup
 
-- Apply mapping in the rules/sim boundary before `createInitialState`.
-- Keep `RunState.board` and encounter authoring in local deployment space.
-- Emit combat events in global combat space.
-- Update movement, targeting, engagement preview, combat summaries, and Pixi
-  replay expectations.
-- Update browser coordinate helpers carefully, preferably through semantic or
-  exported layout helpers.
-- Re-run balance smoke and update expected outcome ranges only after reviewing
-  changed fights.
+- Applied mapping in the rules/sim boundary before `createInitialState`.
+- Kept `RunState.board` and encounter authoring in local deployment space.
+- Combat events now use global combat space.
+- Updated movement, targeting, engagement preview, combat fixture expectations,
+  Pixi model expectations, and browser click geometry.
+- Browser smoke still uses helper-driven cell clicks, now against the 8-row
+  Pixi layout.
+- Balance smoke and balance report still run, but starter and encounter
+  placements have not received a dedicated retune pass yet.
 
 ### Phase 4: Content And Readability Pass
 
@@ -319,22 +320,26 @@ what the player sees and what the simulator uses.
 
 ## Key Risks
 
-- Combat outcomes will change once starting distance increases.
-- Movement may become too slow if melee units begin several rows apart without
-  speed/range adjustments.
-- Current content row numbers are not semantically reliable.
-- Browser smoke coordinate clicks will be brittle until helper-driven.
-- `Backline` summon and recall behavior must be redefined for local versus
-  combat space.
-- Combat event and replay consumers need to know which coordinate space they are
-  reading during the transition.
+- Combat outcomes changed where direct simulator fixtures previously relied on
+  compressed same-row starts. The Signal Nest fixture now ends in a draw because
+  the echo and enemy trade on the larger combat board.
+- Movement may feel too slow if melee units begin several rows apart without
+  speed/range/content tuning.
+- Current content row numbers were authored for the earlier shared field and
+  have not had a semantic frontline/backline review.
+- Browser smoke coordinate clicks are helper-driven, but future Pixi layout
+  changes should continue to update the helper rather than individual tests.
+- `Backline` summon and recall behavior is now combat-space side-aware, but it
+  still needs manual pacing validation across starters.
+- Combat event and replay consumers should treat simulator positions as global
+  combat coordinates from this point forward.
 
 ## Recommended Next Task
 
-`feat(sim): map combat setup to global battlefield coordinates`
+`test(playtest): manually validate 8-row Pixi/default battlefield readability`
 
-That task should implement Phase 3 in the narrowest possible slice: consume the
-shared mapping helpers at the rules/sim combat setup boundary, update the
-affected simulator expectations, and leave starter/encounter authoring in local
-deployment coordinates unless the tests prove a specific fixture needs a
-documented content adjustment.
+Phase 3 is implemented in code and automated tests. The next useful step is to
+play the default route and renderer lab at 1280 x 720 and 1440 x 900, compare
+combat preview/replay readability against the text summaries, and decide whether
+the larger board needs content pacing tweaks, Pixi scale changes, or a focused
+frontline/backline content pass.

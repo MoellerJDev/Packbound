@@ -529,6 +529,7 @@ export function App() {
       playerBoard: run.board,
       enemyBoard: currentEncounter?.loadout.board ?? { placements: [] },
       playerActiveCards: run.activeCards,
+      coordinateSpace: isDefaultRoute || isRendererLab ? "combat" : "local",
       ...(effectiveEngagementRef && engagementSide
         ? {
             selectedCardInstanceId: effectiveEngagementRef.cardInstanceId,
@@ -536,7 +537,14 @@ export function App() {
           }
         : {})
     });
-  }, [currentEncounter, effectiveEngagementRef, run.activeCards, run.board]);
+  }, [
+    currentEncounter,
+    effectiveEngagementRef,
+    isDefaultRoute,
+    isRendererLab,
+    run.activeCards,
+    run.board
+  ]);
   const pixiPlacement = useDefaultPixiPlacement({
     boardCols: BOARD_COLS,
     boardRows: BOARD_ROWS,

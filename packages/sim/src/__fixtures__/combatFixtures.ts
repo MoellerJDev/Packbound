@@ -97,21 +97,21 @@ const playerAEmberScraprunner = placement(
   fixturePlayerA,
   "fixture-a",
   "ember_scraprunner",
-  0,
+  4,
   2
 );
 const playerBDebtBoundColossus = placement(
   fixturePlayerB,
   "fixture-b",
   "debt_bound_colossus",
-  0,
-  3
+  3,
+  2
 );
 const playerASignalNest = placement(
   fixturePlayerA,
   "fixture-a",
   "signal_nest",
-  1,
+  4,
   2,
   "support"
 );
@@ -175,16 +175,19 @@ export const combatFixtures: readonly CombatFixture[] = [
       maxDurationMs: 1000
     },
     expected: {
-      winner: "playerB",
-      damageToPlayerA: 1,
+      winner: "draw",
+      damageToPlayerA: 0,
       damageToPlayerB: 0,
       warningCodes: [],
       finalState: {
         unitDefIdsBySide: {
           playerA: [],
+          playerB: []
+        },
+        ashesDefIdsBySide: {
+          playerA: [],
           playerB: [asCardDefId("ember_scraprunner")]
         },
-        ashesDefIdsBySide: { playerA: [], playerB: [] },
         voidUnitDefIdsBySide: { playerA: [], playerB: [] }
       },
       selectedEventSequence: [
@@ -198,7 +201,7 @@ export const combatFixtures: readonly CombatFixture[] = [
           type: "UnitDestroyed",
           unitId: summonedSignalWispUnitId
         },
-        { type: "CombatEnded", winner: "playerB" }
+        { type: "CombatEnded", winner: "draw" }
       ]
     }
   }

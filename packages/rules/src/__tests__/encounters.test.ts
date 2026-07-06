@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { sampleCatalog } from "@packbound/content";
-import type { CombatEvent } from "@packbound/shared";
+import { toCombatPosition, type CombatEvent } from "@packbound/shared";
 
 import {
   advanceRunAfterCombat,
@@ -163,6 +163,16 @@ describe("deterministic encounter selection", () => {
     expect(first.board.placements.map((placement) => placement.defId)).toEqual([
       "ember_scraprunner"
     ]);
+    expect(first.board.placements.map((placement) => placement.position)).toEqual(
+      encounter.loadout.board.placements.map((placement) => {
+        const combatPosition = toCombatPosition("playerB", placement.position);
+        if (!combatPosition) {
+          throw new Error("Expected encounter board placement to map into combat space.");
+        }
+        return combatPosition;
+      })
+    );
+    expect(encounter.loadout.board.placements[0]?.position.row).toBeLessThan(4);
     expect(first.sourceRow.cards.map((card) => card.zone)).toEqual(["sourceRow"]);
     expect(first.spellrail.cards.map((card) => card.zone)).toEqual(["spellrail"]);
   });

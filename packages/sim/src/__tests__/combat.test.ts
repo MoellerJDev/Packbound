@@ -8,6 +8,7 @@ import {
   sampleTraitDefinitions
 } from "@packbound/content";
 import {
+  buildCombatantSetupForEncounter,
   buildCombatantSetupForRun,
   createCardInstance,
   createRunFromStarterKit,
@@ -364,12 +365,12 @@ const relicBoard = (playerId: PlayerId): BoardState => ({
 
 const fullBoardWithRecaller = (ownerId: PlayerId): BoardState => {
   const placements: BoardPlacement[] = [
-    placement(ownerId, "full", "test_recaller", 0, 0, "recaller")
+    placement(ownerId, "full", "test_recaller", 4, 0, "recaller")
   ];
 
-  for (let row = 0; row < 4; row += 1) {
+  for (let row = 4; row < 8; row += 1) {
     for (let col = 0; col < 7; col += 1) {
-      if (row === 0 && col === 0) {
+      if (row === 4 && col === 0) {
         continue;
       }
       placements.push(
@@ -431,6 +432,47 @@ describe("deterministic combat", () => {
 
     expect(second.events).toEqual(first.events);
     expect(second.winner).toEqual(first.winner);
+  });
+
+  it("receives global combat coordinates from rules combat setup", () => {
+    const run = createRunFromStarterKit({
+      seed: "global-combat-setup-seed",
+      catalog: sampleCatalog,
+      starterKitId: "ember_scrappers",
+      playerId: playerA
+    });
+    const encounter = sampleCatalog.encountersById.get("early_ember_pressure");
+    if (!encounter) {
+      throw new Error("Expected early ember encounter");
+    }
+    const playerSetup = buildCombatantSetupForRun(run);
+    const encounterSetup = buildCombatantSetupForEncounter(encounter);
+
+    expect(
+      playerSetup.board.placements.every((placement) => placement.position.row >= 4)
+    ).toBe(true);
+    expect(
+      encounterSetup.board.placements.every((placement) => placement.position.row <= 3)
+    ).toBe(true);
+    expect(run.board.placements.every((placement) => placement.position.row < 4)).toBe(
+      true
+    );
+    expect(
+      encounter.loadout.board.placements.every((placement) => placement.position.row < 4)
+    ).toBe(true);
+
+    const result = resolveCombat({
+      catalog: sampleCatalog,
+      seed: "global-combat-setup-seed",
+      playerA: playerSetup,
+      playerB: encounterSetup,
+      maxDurationMs: 0
+    });
+
+    const playerUnit = result.finalState.units.find((unit) => unit.side === "playerA");
+    const enemyUnit = result.finalState.units.find((unit) => unit.side === "playerB");
+    expect(playerUnit?.position.row).toBeGreaterThanOrEqual(4);
+    expect(enemyUnit?.position.row).toBeLessThanOrEqual(3);
   });
 
   it("moves destroyed non-Echo units to Ashes", () => {

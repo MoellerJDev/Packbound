@@ -2,10 +2,14 @@ import type { ContentCatalog } from "@packbound/content";
 import {
   BOARD_COLS,
   BOARD_ROWS,
+  COMBAT_BOARD_COLS,
+  COMBAT_BOARD_ROWS,
   hexDistance,
   hexNeighbors,
   hexStepToward,
+  isCombatPositionInBounds,
   positionKey,
+  toCombatPosition,
   type BoardPosition,
   type BoardState,
   type CardDefinition,
@@ -58,6 +62,7 @@ export type EngagementPreview = {
 
 export type BuildEngagementPreviewInput = {
   readonly catalog: ContentCatalog;
+  readonly coordinateSpace?: "local" | "combat";
   readonly selectedCardInstanceId?: CardInstanceId;
   readonly selectedSide?: EngagementPreviewSide;
   readonly playerBoard: BoardState;
@@ -93,7 +98,8 @@ const buildUnits = (
   board: BoardState,
   side: EngagementPreviewSide,
   catalog: ContentCatalog,
-  activeCards: ReadonlyMap<CardInstanceId, CardInstance>
+  activeCards: ReadonlyMap<CardInstanceId, CardInstance>,
+  coordinateSpace: NonNullable<BuildEngagementPreviewInput["coordinateSpace"]>
 ): readonly PreviewUnit[] =>
   board.placements
     .map((placement): PreviewUnit | undefined => {
@@ -109,12 +115,19 @@ const buildUnits = (
       if (!stats) {
         return undefined;
       }
+      const position =
+        coordinateSpace === "combat"
+          ? toCombatPosition(side, placement.position)
+          : placement.position;
+      if (!position) {
+        return undefined;
+      }
 
       return {
         instanceId: placement.cardInstanceId,
         name: def.name,
         side,
-        position: placement.position,
+        position,
         attack: stats.attack,
         health: stats.health,
         attackSpeed: stats.attackSpeed,
@@ -138,11 +151,24 @@ const inBoardBounds = (position: BoardPosition): boolean =>
   position.col >= 0 &&
   position.col < BOARD_COLS;
 
-const rangeCellsFor = (unit: PreviewUnit): readonly BoardPosition[] => {
-  const cells: BoardPosition[] = [];
+const inPreviewBounds = (
+  coordinateSpace: NonNullable<BuildEngagementPreviewInput["coordinateSpace"]>,
+  position: BoardPosition
+): boolean =>
+  coordinateSpace === "combat"
+    ? isCombatPositionInBounds(position)
+    : inBoardBounds(position);
 
-  for (let row = 0; row < BOARD_ROWS; row += 1) {
-    for (let col = 0; col < BOARD_COLS; col += 1) {
+const rangeCellsFor = (
+  unit: PreviewUnit,
+  coordinateSpace: NonNullable<BuildEngagementPreviewInput["coordinateSpace"]>
+): readonly BoardPosition[] => {
+  const cells: BoardPosition[] = [];
+  const rows = coordinateSpace === "combat" ? COMBAT_BOARD_ROWS : BOARD_ROWS;
+  const cols = coordinateSpace === "combat" ? COMBAT_BOARD_COLS : BOARD_COLS;
+
+  for (let row = 0; row < rows; row += 1) {
+    for (let col = 0; col < cols; col += 1) {
       const position = { row, col, layer: unit.position.layer };
       if (hexDistance(unit.position, position) <= unit.range) {
         cells.push(position);
@@ -241,12 +267,13 @@ const occupiedGroundPositionKeys = (
 const blockedMovementText = (
   movingUnit: PreviewUnit,
   target: PreviewUnit,
-  occupiedGround: ReadonlySet<string>
+  occupiedGround: ReadonlySet<string>,
+  coordinateSpace: NonNullable<BuildEngagementPreviewInput["coordinateSpace"]>
 ): string => {
   const currentDistance = hexDistance(movingUnit.position, target.position);
-  const closerNeighbors = hexNeighbors(movingUnit.position).filter(
-    (position) => hexDistance(position, target.position) < currentDistance
-  );
+  const closerNeighbors = hexNeighbors(movingUnit.position, (position) =>
+    inPreviewBounds(coordinateSpace, position)
+  ).filter((position) => hexDistance(position, target.position) < currentDistance);
 
   if (closerNeighbors.length === 0) {
     return "Movement blocked by board edge.";
@@ -276,7 +303,8 @@ export const buildEngagementPreview = ({
   playerBoard,
   enemyBoard,
   playerActiveCards,
-  enemyActiveCards
+  enemyActiveCards,
+  coordinateSpace = "local"
 }: BuildEngagementPreviewInput): EngagementPreview => {
   if (!selectedCardInstanceId || !selectedSide) {
     return buildNoSelectionPreview("Select a board Unit or Echo to preview range.");
@@ -286,13 +314,15 @@ export const buildEngagementPreview = ({
     playerBoard,
     "playerA",
     catalog,
-    activeCardsById(playerActiveCards)
+    activeCardsById(playerActiveCards),
+    coordinateSpace
   );
   const enemyUnits = buildUnits(
     enemyBoard,
     "playerB",
     catalog,
-    activeCardsById(enemyActiveCards)
+    activeCardsById(enemyActiveCards),
+    coordinateSpace
   );
   const allUnits = [...playerUnits, ...enemyUnits];
   const selected = allUnits.find(
@@ -319,7 +349,7 @@ export const buildEngagementPreview = ({
   const enemies = selected.side === "playerA" ? enemyUnits : playerUnits;
   const targetResult = selectLikelyTarget(selected, enemies);
   const target = targetResult.target;
-  const rangeCells = rangeCellsFor(selected);
+  const rangeCells = rangeCellsFor(selected, coordinateSpace);
   const selectedPreview: EngagementPreviewSelected = {
     instanceId: selected.instanceId,
     name: selected.name,
@@ -372,9 +402,14 @@ export const buildEngagementPreview = ({
     selected.position,
     target.position,
     occupiedGround,
-    inBoardBounds
+    (position) => inPreviewBounds(coordinateSpace, position)
   );
-  const blockedReason = blockedMovementText(selected, target, occupiedGround);
+  const blockedReason = blockedMovementText(
+    selected,
+    target,
+    occupiedGround,
+    coordinateSpace
+  );
 
   return {
     selected: selectedPreview,

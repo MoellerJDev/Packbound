@@ -5,14 +5,12 @@ import {
   asCardDefId,
   asCardInstanceId,
   asPlayerId,
+  COMBAT_BOARD_ROWS,
   hexDistance,
   type BoardPosition
 } from "@packbound/shared";
 
-import {
-  hexCenterForSharedCell,
-  sharedCellForBoardPosition
-} from "./pixiBattlefieldLayout";
+import { hexCenterForSharedCell } from "./pixiBattlefieldLayout";
 import {
   buildPixiBattlefieldModel,
   pixiCardsShareNativePosition
@@ -117,6 +115,7 @@ const engagementPreview = ({
   },
   rangeCells: [
     playerPosition,
+    ...(inRange ? [enemyPosition] : []),
     { row: playerPosition.row, col: playerPosition.col + 1, layer: "ground" },
     { row: playerPosition.row, col: playerPosition.col - 1, layer: "ground" }
   ],
@@ -150,24 +149,37 @@ const cellAt = (
   );
 
 describe("pixi battlefield model", () => {
-  it("maps both sides into canonical combat coordinates", () => {
-    const playerCell = sharedCellForBoardPosition("playerA", { row: 0, col: 2 });
-    const enemyCell = sharedCellForBoardPosition("playerB", { row: 0, col: 3 });
+  it("maps local deployment boards into global combat coordinates", () => {
+    const playerLocalPosition = { row: 0, col: 2, layer: "ground" } as const;
+    const enemyLocalPosition = { row: 3, col: 2, layer: "ground" } as const;
+    const model = buildPixiBattlefieldModel({
+      playerBoard: playerBoardAt(playerLocalPosition),
+      enemyBoard: enemyBoardAt(enemyLocalPosition),
+      engagementPreview: engagementPreview({
+        playerPosition: { row: 4, col: 2, layer: "ground" },
+        enemyPosition: { row: 3, col: 2, layer: "ground" },
+        inRange: true
+      })
+    });
+    const player = model.cards.find((card) => card.side === "playerA");
+    const enemy = model.cards.find((card) => card.side === "playerB");
 
-    expect(playerCell).toEqual({ row: 0, col: 2 });
-    expect(enemyCell).toEqual({ row: 0, col: 3 });
+    expect(model.rows).toBe(COMBAT_BOARD_ROWS);
+    expect(player?.position).toEqual({ row: 4, col: 2, layer: "ground" });
+    expect(player?.sharedCell).toEqual({ row: 4, col: 2 });
+    expect(enemy?.position).toEqual({ row: 3, col: 2, layer: "ground" });
+    expect(enemy?.sharedCell).toEqual({ row: 3, col: 2 });
 
-    const playerCenter = hexCenterForSharedCell(playerCell);
-    const enemyCenter = hexCenterForSharedCell(enemyCell);
-    expect(Math.abs(enemyCenter.x - playerCenter.x)).toBeLessThan(90);
-    expect(Math.abs(enemyCenter.y - playerCenter.y)).toBeLessThan(8);
+    const playerCenter = hexCenterForSharedCell(player!.sharedCell);
+    const enemyCenter = hexCenterForSharedCell(enemy!.sharedCell);
+    expect(enemyCenter.y).toBeLessThan(playerCenter.y);
   });
 
-  it("marks an adjacent range-1 enemy as attackable on the enemy coordinate", () => {
-    const playerPosition = { row: 0, col: 2, layer: "ground" } as const;
-    const enemyPosition = { row: 0, col: 3, layer: "ground" } as const;
+  it("marks an adjacent range-1 enemy as attackable on the global enemy coordinate", () => {
+    const playerPosition = { row: 4, col: 2, layer: "ground" } as const;
+    const enemyPosition = { row: 3, col: 2, layer: "ground" } as const;
     const model = buildPixiBattlefieldModel({
-      playerBoard: playerBoardAt(playerPosition),
+      playerBoard: playerBoardAt({ row: 0, col: 2, layer: "ground" }),
       enemyBoard: enemyBoardAt(enemyPosition),
       engagementPreview: engagementPreview({
         playerPosition,
@@ -182,11 +194,11 @@ describe("pixi battlefield model", () => {
     expect(cellAt(model, enemyPosition)?.markers.targetInRange).toBe(true);
   });
 
-  it("does not restrict range markers to the selected side's old visual band", () => {
-    const playerPosition = { row: 0, col: 2, layer: "ground" } as const;
-    const enemyPosition = { row: 0, col: 3, layer: "ground" } as const;
+  it("does not restrict range markers to the selected side's local deployment band", () => {
+    const playerPosition = { row: 4, col: 2, layer: "ground" } as const;
+    const enemyPosition = { row: 3, col: 2, layer: "ground" } as const;
     const model = buildPixiBattlefieldModel({
-      playerBoard: playerBoardAt(playerPosition),
+      playerBoard: playerBoardAt({ row: 0, col: 2, layer: "ground" }),
       enemyBoard: enemyBoardAt(enemyPosition),
       engagementPreview: engagementPreview({
         playerPosition,
@@ -195,17 +207,17 @@ describe("pixi battlefield model", () => {
       })
     });
 
-    expect(model.rows).toBe(4);
-    expect(cellAt(model, { row: 0, col: 3 })?.markers.range).toBe(true);
+    expect(model.rows).toBe(COMBAT_BOARD_ROWS);
+    expect(cellAt(model, { row: 3, col: 2 })?.markers.range).toBe(true);
   });
 
-  it("keeps opposing same-coordinate tokens visible with deterministic offsets", () => {
+  it("separates opposing local same-coordinate tokens into side-owned combat rows", () => {
     const sharedPosition = { row: 1, col: 2, layer: "ground" } as const;
     const model = buildPixiBattlefieldModel({
       playerBoard: playerBoardAt(sharedPosition),
       enemyBoard: enemyBoardAt(sharedPosition),
       engagementPreview: engagementPreview({
-        playerPosition: sharedPosition,
+        playerPosition: { row: 5, col: 2, layer: "ground" },
         enemyPosition: sharedPosition,
         inRange: true
       })
@@ -216,15 +228,15 @@ describe("pixi battlefield model", () => {
 
     expect(player).toBeDefined();
     expect(enemy).toBeDefined();
-    expect(pixiCardsShareNativePosition(player!, enemy!)).toBe(true);
-    expect(player?.visualOffset).toEqual(expect.objectContaining({ x: -24 }));
-    expect(enemy?.visualOffset).toEqual(expect.objectContaining({ x: 24 }));
+    expect(pixiCardsShareNativePosition(player!, enemy!)).toBe(false);
+    expect(player?.sharedCell).toEqual({ row: 5, col: 2 });
+    expect(enemy?.sharedCell).toEqual({ row: 1, col: 2 });
   });
 
   it("adds placeable markers and does not mutate input summaries", () => {
-    const playerPosition = { row: 0, col: 2, layer: "ground" } as const;
+    const playerPosition = { row: 4, col: 2, layer: "ground" } as const;
     const enemyPosition = { row: 3, col: 4, layer: "ground" } as const;
-    const playerBoard = playerBoardAt(playerPosition);
+    const playerBoard = playerBoardAt({ row: 0, col: 2, layer: "ground" });
     const enemyBoard = enemyBoardAt(enemyPosition);
     const preview = engagementPreview({
       playerPosition,
@@ -247,16 +259,16 @@ describe("pixi battlefield model", () => {
     });
 
     expect(model.cards.map((card) => card.name)).toEqual([
-      "Ember Scraprunner",
-      "Enemy Scraprunner"
+      "Enemy Scraprunner",
+      "Ember Scraprunner"
     ]);
     expect(model.nextMove).toMatchObject({
       side: "playerA",
-      from: { row: 0, col: 2 },
-      to: { row: 0, col: 3 }
+      from: { row: 4, col: 2 },
+      to: { row: 4, col: 3 }
     });
-    expect(cellAt(model, { row: 2, col: 2 })?.markers.placeable).toBe(true);
-    expect(cellAt(model, { row: 2, col: 2 })?.placeablePosition).toEqual({
+    expect(cellAt(model, { row: 6, col: 2 })?.markers.placeable).toBe(true);
+    expect(cellAt(model, { row: 6, col: 2 })?.placeablePosition).toEqual({
       row: 2,
       col: 2,
       layer: "support"

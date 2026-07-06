@@ -284,6 +284,36 @@ describe("content validation", () => {
     ).toThrow(ContentValidationError);
   });
 
+  it("keeps encounter board authoring in local four-row deployment space", () => {
+    const encounter = sampleEncounters[0];
+    const placement = encounter?.loadout.board.placements[0];
+    if (!encounter || !placement) {
+      throw new Error("Expected a sample encounter placement");
+    }
+
+    const globalRowEncounter = {
+      ...encounter,
+      loadout: {
+        ...encounter.loadout,
+        board: {
+          placements: [
+            {
+              ...placement,
+              position: {
+                ...placement.position,
+                row: 4
+              }
+            }
+          ]
+        }
+      }
+    };
+
+    expect(() =>
+      loadContentCatalog(catalogInput({ encounters: [globalRowEncounter] }))
+    ).toThrow(ContentValidationError);
+  });
+
   it.each([
     {
       name: "board",
@@ -388,6 +418,33 @@ describe("content validation", () => {
           ]
         })
       )
+    ).toThrow(ContentValidationError);
+  });
+
+  it("keeps starter kit board authoring in local four-row deployment space", () => {
+    const starterKit = sampleStarterKits[0];
+    const placement = starterKit?.board.placements[0];
+    if (!starterKit || !placement) {
+      throw new Error("Expected a sample starter kit placement");
+    }
+
+    const globalRowStarterKit = {
+      ...starterKit,
+      board: {
+        placements: [
+          {
+            ...placement,
+            position: {
+              ...placement.position,
+              row: 4
+            }
+          }
+        ]
+      }
+    };
+
+    expect(() =>
+      loadContentCatalog(catalogInput({ starterKits: [globalRowStarterKit] }))
     ).toThrow(ContentValidationError);
   });
 

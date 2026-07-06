@@ -12,8 +12,10 @@ import {
   asCardDefId,
   asCardInstanceId,
   asPlayerId,
+  toCombatPosition,
   type CardDefinition,
-  type CardInstance
+  type CardInstance,
+  type BoardPosition
 } from "@packbound/shared";
 
 import {
@@ -147,15 +149,52 @@ describe("starter kit run creation", () => {
   it("builds player combat setup from RunState", () => {
     const run = createStarterRun("combat-setup-seed");
     const setup = buildCombatantSetupForRun(run);
+    const expectedBoard = {
+      placements: run.board.placements.map((placement) => {
+        const combatPosition = toCombatPosition("playerA", placement.position);
+        if (!combatPosition) {
+          throw new Error("Expected starter board placement to map into combat space.");
+        }
+        return {
+          ...placement,
+          position: combatPosition
+        };
+      })
+    };
 
     expect(setup).toEqual({
       playerId: run.playerId,
-      board: run.board,
+      board: expectedBoard,
       activeCards: run.activeCards,
       sourceRow: run.sourceRow,
       spellrail: run.spellrail
     });
+    expect(run.board.placements[0]?.position.row).toBeLessThan(4);
+    expect(setup.board.placements[0]?.position.row).toBeGreaterThanOrEqual(4);
     expect(JSON.parse(JSON.stringify(setup))).toEqual(setup);
+  });
+
+  it("preserves columns layers and local RunState coordinates when mapping combat setup", () => {
+    const run = createStarterRun("combat-setup-local-preserve-seed");
+    const localPositions = run.board.placements.map((placement) => ({
+      ...placement.position
+    }));
+    const setup = buildCombatantSetupForRun(run);
+
+    setup.board.placements.forEach((placement, index) => {
+      const localPosition = localPositions[index] as BoardPosition | undefined;
+      if (!localPosition) {
+        throw new Error("Expected local position for mapped placement.");
+      }
+
+      expect(placement.position).toMatchObject({
+        row: localPosition.row + 4,
+        col: localPosition.col,
+        layer: localPosition.layer
+      });
+      expect(run.board.placements[index]?.position).toEqual(localPosition);
+      expect(placement.position).not.toBe(run.board.placements[index]?.position);
+    });
   });
 
   it.each(sampleStarterKits)("creates a legal combat setup for $id", (starterKit) => {
@@ -359,6 +398,22 @@ describe("run loadout validation", () => {
     expect(
       validateRunLoadout(overloaded, sampleCatalog).errors.map((error) => error.code)
     ).toContain("BOARD_CHARGE_EXCEEDED");
+  });
+
+  it("still rejects row 4 as a local loadout placement", () => {
+    const run = createStarterRun("local-row-bound-seed");
+    const card = requirePoolCard(run, "signal_nest");
+
+    expect(
+      canPlaceCardOnBoard(run, sampleCatalog, card.instanceId, {
+        row: 4,
+        col: 0,
+        layer: "support"
+      })
+    ).toEqual({
+      ok: false,
+      reason: "Signal Nest cannot be placed outside the board."
+    });
   });
 
   it("rejects loadouts with missing aspect access", () => {

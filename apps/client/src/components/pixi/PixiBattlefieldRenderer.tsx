@@ -146,41 +146,55 @@ const drawBackground = (
     const fieldY = 50;
     const fieldWidth = PIXI_BATTLEFIELD_LAYOUT.width - fieldX * 2;
     const fieldHeight = PIXI_BATTLEFIELD_LAYOUT.height - fieldY - 28;
-    const centerX = PIXI_BATTLEFIELD_LAYOUT.width / 2;
+    const engagementY =
+      PIXI_BATTLEFIELD_LAYOUT.marginY + PIXI_BATTLEFIELD_LAYOUT.rowStep * 3.5;
+    const playerHeight = fieldY + fieldHeight - engagementY;
     root.addChild(
       new Graphics()
-        .roundRect(fieldX, fieldY, fieldWidth / 2, fieldHeight, 16)
-        .fill({ color: PIXI_BATTLEFIELD_THEME.player.fill, alpha: 0.2 })
-    );
-    root.addChild(
-      new Graphics()
-        .roundRect(centerX, fieldY, fieldWidth / 2, fieldHeight, 16)
+        .roundRect(fieldX, fieldY, fieldWidth, engagementY - fieldY, 16)
         .fill({ color: PIXI_BATTLEFIELD_THEME.enemy.fill, alpha: 0.2 })
     );
     root.addChild(
       new Graphics()
-        .moveTo(centerX, fieldY + 6)
-        .lineTo(centerX, fieldY + fieldHeight - 6)
+        .roundRect(fieldX, engagementY, fieldWidth, playerHeight, 16)
+        .fill({ color: PIXI_BATTLEFIELD_THEME.player.fill, alpha: 0.2 })
+    );
+    root.addChild(
+      new Graphics()
+        .moveTo(fieldX + 8, engagementY)
+        .lineTo(fieldX + fieldWidth - 8, engagementY)
         .stroke({ color: PIXI_BATTLEFIELD_THEME.lane, alpha: 0.48, width: 4 })
     );
-    addText(root, "YOUR SIDE", 116, 32, {
-      fill: PIXI_BATTLEFIELD_THEME.player.accent,
-      fontSize: 11,
-      fontWeight: "900",
-      alpha: 0.92
-    });
-    addText(root, "ENEMY SIDE", PIXI_BATTLEFIELD_LAYOUT.width - 116, 32, {
+    addText(root, "ENEMY SIDE", PIXI_BATTLEFIELD_LAYOUT.width / 2, 32, {
       fill: PIXI_BATTLEFIELD_THEME.enemy.accent,
       fontSize: 11,
       fontWeight: "900",
       alpha: 0.92
     });
-    addText(root, "ENGAGEMENT LINE", centerX, 32, {
-      fill: PIXI_BATTLEFIELD_THEME.text,
-      fontSize: 9,
-      fontWeight: "900",
-      alpha: 0.62
-    });
+    addText(
+      root,
+      "YOUR SIDE",
+      PIXI_BATTLEFIELD_LAYOUT.width / 2,
+      PIXI_BATTLEFIELD_LAYOUT.height - 18,
+      {
+        fill: PIXI_BATTLEFIELD_THEME.player.accent,
+        fontSize: 11,
+        fontWeight: "900",
+        alpha: 0.92
+      }
+    );
+    addText(
+      root,
+      "ENGAGEMENT LINE",
+      PIXI_BATTLEFIELD_LAYOUT.width / 2,
+      engagementY - 14,
+      {
+        fill: PIXI_BATTLEFIELD_THEME.text,
+        fontSize: 9,
+        fontWeight: "900",
+        alpha: 0.62
+      }
+    );
     return;
   }
 

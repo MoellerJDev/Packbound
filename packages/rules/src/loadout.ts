@@ -3,14 +3,17 @@ import {
   BOARD_COLS,
   BOARD_ROWS,
   type BoardPosition,
+  type BoardPlacement,
   type BoardState,
   type CardInstance,
   type CardInstanceId,
   isBoardPositionInBounds,
   type PlayerId,
+  type PlayerSide,
   positionKey,
   type SourceRowState,
   type SpellrailState,
+  toCombatPosition,
   type ValidationResult
 } from "@packbound/shared";
 
@@ -301,9 +304,32 @@ export const validateRunLoadout = (
   };
 };
 
+const mapPlacementToCombatPosition = (
+  side: PlayerSide,
+  placement: BoardPlacement
+): BoardPlacement => {
+  const combatPosition = toCombatPosition(side, placement.position);
+  if (!combatPosition) {
+    throw new Error(
+      `Cannot map ${placement.cardInstanceId} from local deployment coordinates to ${side} combat coordinates.`
+    );
+  }
+
+  return {
+    ...copyPlacement(placement),
+    position: combatPosition
+  };
+};
+
+const combatBoardForSide = (board: BoardState, side: PlayerSide): BoardState => ({
+  placements: board.placements.map((placement) =>
+    mapPlacementToCombatPosition(side, placement)
+  )
+});
+
 export const buildCombatantSetupForRun = (run: RunState): RunCombatantSetup => ({
   playerId: run.playerId,
-  board: { placements: run.board.placements.map(copyPlacement) },
+  board: combatBoardForSide(run.board, "playerA"),
   ...(run.activeCards.length > 0 ? { activeCards: run.activeCards.map(copyCard) } : {}),
   sourceRow: {
     maxSlots: run.sourceRow.maxSlots,

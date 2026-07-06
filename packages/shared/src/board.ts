@@ -113,7 +113,10 @@ export const hexDistance = (
   );
 };
 
-export const hexNeighbors = (position: BoardPosition): readonly BoardPosition[] => {
+export const hexNeighbors = (
+  position: BoardPosition,
+  bounds: HexBounds = isHexBoardPositionInBounds
+): readonly BoardPosition[] => {
   const deltas = isHexOffsetRow(position.row) ? HEX_ODD_ROW_DELTAS : HEX_EVEN_ROW_DELTAS;
 
   return deltas
@@ -122,7 +125,7 @@ export const hexNeighbors = (position: BoardPosition): readonly BoardPosition[] 
       col: position.col + delta.col,
       layer: position.layer
     }))
-    .filter(isHexBoardPositionInBounds);
+    .filter(bounds);
 };
 
 export const isHexAdjacent = (
@@ -137,7 +140,7 @@ export const hexStepToward = (
   bounds: HexBounds = isHexBoardPositionInBounds
 ): BoardPosition | undefined => {
   const currentDistance = hexDistance(from, to);
-  const candidates = hexNeighbors(from)
+  const candidates = hexNeighbors(from, bounds)
     .map((position, index) => ({ position, index }))
     .filter(
       ({ position }) =>

@@ -1,6 +1,6 @@
 import {
   BOARD_COLS,
-  BOARD_ROWS,
+  COMBAT_BOARD_ROWS,
   isHexOffsetRow,
   type BoardPosition,
   type PlayerSide
@@ -29,7 +29,7 @@ export type PixiBattlefieldLayout = {
   readonly height: number;
 };
 
-export const PIXI_SHARED_ROWS = BOARD_ROWS;
+export const PIXI_SHARED_ROWS = COMBAT_BOARD_ROWS;
 
 export const PIXI_BATTLEFIELD_LAYOUT: PixiBattlefieldLayout = {
   cols: BOARD_COLS,
@@ -41,7 +41,7 @@ export const PIXI_BATTLEFIELD_LAYOUT: PixiBattlefieldLayout = {
   marginX: 80,
   marginY: 74,
   width: 700,
-  height: 420
+  height: 650
 };
 
 export const sharedCellForBoardPosition = (

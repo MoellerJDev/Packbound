@@ -46,7 +46,7 @@ export const clickPixiCell = async (
 
   const layout = {
     width: 700,
-    height: 420,
+    height: 650,
     marginX: 80,
     marginY: 74,
     hexWidth: 83.138,

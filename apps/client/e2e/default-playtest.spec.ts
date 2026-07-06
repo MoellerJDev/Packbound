@@ -111,12 +111,13 @@ test("default playtest route starts with concise Pixi play surface", async ({ pa
   ).toBeVisible();
   await expect(engagementPreview.getByText("Ember Scraprunner").first()).toBeVisible();
   await expect(
-    engagementPreview.getByText(
-      "Your Ember Scraprunner can attack Enemy Ember Scraprunner now."
-    )
+    engagementPreview.getByText("Your Ember Scraprunner cannot attack yet.")
   ).toBeVisible();
-  await expect(engagementPreview.getByText("Distance 1, range 1.")).toBeVisible();
-  await expect(engagementPreview.getByText("Attack now")).toBeVisible();
+  await expect(
+    engagementPreview.getByText("Target is 4 hexes away, range 1.")
+  ).toBeVisible();
+  await expect(engagementPreview.getByText("Next move: r4 c2 to r3 c1.")).toBeVisible();
+  await expect(engagementPreview.getByText("Out of range")).toBeVisible();
   await expectNoHorizontalScroll(rendererHost);
 
   expectNoBrowserErrors(errors);
@@ -126,7 +127,7 @@ test("default compact inspector can reveal full card details", async ({ page }) 
   const { allyInspector, enemyInspector, errors, rendererHost } =
     await gotoDefaultPlaytestRoute(page);
 
-  await clickPixiCell(page, rendererHost, 0, 2);
+  await clickPixiCell(page, rendererHost, 4, 2);
   await expect(
     allyInspector.getByRole("heading", { name: "Ember Scraprunner" })
   ).toBeVisible();
@@ -203,7 +204,7 @@ test("default loadout tray exposes first-fold loadout edits", async ({ page }) =
   await expect(defaultPlacementHint).toHaveText(
     "Placing Sparkcatch Apprentice. Click a highlighted Pixi cell."
   );
-  await clickPixiCell(page, rendererHost, 0, 0);
+  await clickPixiCell(page, rendererHost, 4, 0);
   await expect(
     boardTray.getByRole("listitem").filter({ hasText: "Sparkcatch Apprentice" }).first()
   ).toBeVisible();
@@ -357,12 +358,12 @@ test("default Pixi board placement supports cancel blocked and legal cells", asy
   await expect(
     defaultEditControls.getByTestId("default-pixi-board-edit-mode")
   ).toHaveText("Inspect");
-  await clickPixiCell(page, rendererHost, 0, 0);
+  await clickPixiCell(page, rendererHost, 4, 0);
   await expect(
     boardPanel.getByRole("listitem").filter({ hasText: "Sparkcatch Apprentice" })
   ).toHaveCount(0);
   await sparkcatchPoolRow.getByRole("button", { name: "Select Board Cell" }).click();
-  await clickPixiCell(page, rendererHost, 0, 2, { x: 0, y: -47 });
+  await clickPixiCell(page, rendererHost, 4, 2, { x: 0, y: -47 });
   await expect(defaultPlacementHint).toContainText(
     "Cannot place Sparkcatch Apprentice at r0 c2 ground:"
   );
@@ -375,7 +376,7 @@ test("default Pixi board placement supports cancel blocked and legal cells", asy
     defaultEditControls.getByTestId("default-pixi-board-edit-mode")
   ).toHaveText("Inspect");
   await sparkcatchPoolRow.getByRole("button", { name: "Select Board Cell" }).click();
-  await clickPixiCell(page, rendererHost, 0, 0);
+  await clickPixiCell(page, rendererHost, 4, 0);
   await expect(defaultPlacementHint).toHaveText(
     "Select a board-placeable Pool card below, then click a highlighted Pixi cell."
   );
@@ -406,7 +407,7 @@ test("default Pixi board return-to-pool works after placement", async ({ page })
   await expect(rendererHost).toBeVisible();
   await expect(rendererHost.locator("canvas")).toHaveCount(1);
   await sparkcatchPoolRow.getByRole("button", { name: "Select Board Cell" }).click();
-  await clickPixiCell(page, rendererHost, 0, 0);
+  await clickPixiCell(page, rendererHost, 4, 0);
   await expect(
     boardPanel.getByRole("listitem").filter({ hasText: "Sparkcatch Apprentice" }).first()
   ).toBeVisible();

@@ -588,7 +588,7 @@ test("renderer lab supports token selection and placement diagnostics", async ({
     .filter({ hasText: "Sparkcatch Apprentice" });
   await sparkcatchRow.getByRole("button", { name: "Select Board Cell" }).click();
   await expect(rendererLab.getByText(/Placing Sparkcatch Apprentice/)).toBeVisible();
-  await clickPixiCell(page, rendererHost, 0, 0);
+  await clickPixiCell(page, rendererHost, 4, 0);
   await expect(rendererLab.getByText(/Placing Sparkcatch Apprentice/)).toHaveCount(0);
   await expect(
     rendererLab

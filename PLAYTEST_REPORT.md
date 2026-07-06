@@ -136,21 +136,21 @@ now uses player-facing copy such as `+2 more cards`, while full loadout lists
 remain available in collapsed Advanced Debug Panels for diagnostics.
 
 Battlefield model audit update after this task: `BATTLEFIELD_MODEL_AUDIT.md`
-now documents why the current side labels are only a presentation fix. The
-canonical model remains a shared 4-row by 7-column odd-r board, with player and
-enemy placements fed directly into the simulator in that same coordinate space.
-The recommended migration is to keep 4-row local deployment boards for run and
-encounter authoring, introduce an explicit 8-row global combat coordinate space,
-and add tested local-to-combat mapping helpers before changing combat setup or
-content.
+documents the split between local deployment and global combat coordinates. The
+current model keeps 4-row local deployment boards for run loadout and encounter
+authoring, while the combat boundary maps those local boards into an 8-row
+global battlefield.
 
 Implementation update after this task: `packages/shared/src/battlefieldModel.ts`
-now contains the Phase 2 coordinate-space helpers for the future battlefield
-model. It defines 4-row local deployment space, 8-row global combat space,
-enemy rows 0-3, player rows 4-7, the engagement line after row 3, side row
-ownership, local-to-combat mapping, inverse mapping, and separate local/combat
-bounds helpers. These helpers are exported and tested, but they are not wired
-into combat setup, Pixi, content, validation, or browser click helpers yet.
+contains the coordinate-space helpers for 4-row local deployment, 8-row global
+combat space, enemy rows 0-3, player rows 4-7, the engagement line after row 3,
+side row ownership, local-to-combat mapping, inverse mapping, and separate
+local/combat bounds helpers. `buildCombatantSetupForRun` and
+`buildCombatantSetupForEncounter` now apply those helpers before simulation.
+Simulator movement, summon/recall placement, combat events, default/renderer
+engagement previews, Pixi rendering, and browser click helpers now use the
+global combat field. Content authoring, planning validation, Board Charge,
+Source Row, Spellrail, and Commander planning placement remain local.
 
 Implementation update after this task: the default Pixi battlefield now has a
 compact `Loadout` control strip for selected Pool cards. It uses existing legal
@@ -1253,15 +1253,15 @@ Note:
   shapes and text rather than final art assets.
 - The default Pixi battlefield now has stronger player-facing side labels,
   side-colored territory bands, side badges, and selected ally/enemy context,
-  but the underlying board is still the canonical shared rules coordinate
-  space. It is not a true two-side deployment redesign.
-- The two-sided battlefield audit recommends an eventual 8-row global combat
-  board, but no behavior has migrated yet. Current planning validation,
-  content authoring, engagement preview, simulator movement/range, Pixi layout,
-  and browser click helpers still assume the shared 4-row board.
-- Shared coordinate-space helpers for local deployment and future global combat
-  positions now exist, but they are deliberately unused by runtime combat setup.
-  Combat outcomes and Pixi positions are still the current shared 4-row model.
+  and it now renders the global 8-row combat field. Run loadout and encounter
+  authoring still use local 4-row deployment coordinates.
+- Combat setup now maps local deployment boards into an 8-row global combat
+  board, but starter and encounter content has not had a dedicated
+  frontline/backline pacing pass after the migration. Some combat distances,
+  movement pacing, and preview readability may need retuning.
+- Planning validation, content validation, Board Charge, Source Row, Spellrail,
+  Commander planning placement, and React/CSS debug board summaries remain
+  intentionally local to each side's 4-row deployment space.
 - Compact inspectors now show rules/ability summary by default, but long cards
   still need thoughtful text editing and richer card-layout polish before a
   cold-start demo.
@@ -1363,22 +1363,22 @@ Note:
 
 Do next:
 
-`feat(sim): map combat setup to global battlefield coordinates`
+`test(playtest): manually validate 8-row Pixi/default battlefield readability`
 
-Why: the shared helper layer now exists and is tested without changing runtime
-behavior. The next narrow migration is to apply those helpers at the rules/sim
-combat setup boundary so combat can use the 8-row global battlefield while run
-loadout and encounter authoring stay in 4-row local deployment space.
+Why: combat setup now maps local deployment boards into the global 8-row field,
+and Pixi/default-route previews render that combat space. The next narrow step
+is to manually verify 1280 x 720 and 1440 x 900 readability, compare replay
+events to Key Moments, and decide whether content pacing, Pixi scale, or
+frontline/backline placement needs the first tuning pass.
 
 Do soon:
 
-- `test(playtest): manually validate 8-row Pixi/default battlefield readability`
+- `feat(content): tune starter and encounter placements for 8-row combat pacing`
 - `test(playtest): manually validate grouped combat key moments across starters`
 - `feat(client): strengthen Board Charge and Source teaching`
 - `feat(client): frame reward packs as a shop step`
 - `design(rules): evaluate pack-to-loadout pacing limits`
 - `design(rules): deepen Commander upgrade choices`
-- `feat(rules): evaluate expanding the canonical board to 6 rows x 10-12 columns`
 - `feat(client): tune Pixi combat effect timing after manual readability pass`
 - `feat(client): add Pixi replay scrub/speed controls`
 - `feat(client): keep selected target and next move visible together in preview labs`

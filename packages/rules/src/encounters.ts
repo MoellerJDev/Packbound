@@ -1,9 +1,11 @@
 import type { ContentCatalog, EncounterDefinition } from "@packbound/content";
+import { toCombatPosition } from "@packbound/shared";
 import type {
   BoardPlacement,
   BoardState,
   CardInstance,
   PlayerId,
+  PlayerSide,
   SourceRowState,
   SpellrailState
 } from "@packbound/shared";
@@ -32,8 +34,27 @@ const copyPlacement = (placement: BoardPlacement): BoardPlacement => ({
   position: { ...placement.position }
 });
 
-const copyBoard = (board: BoardState): BoardState => ({
-  placements: board.placements.map(copyPlacement)
+const mapPlacementToCombatPosition = (
+  side: PlayerSide,
+  placement: BoardPlacement
+): BoardPlacement => {
+  const combatPosition = toCombatPosition(side, placement.position);
+  if (!combatPosition) {
+    throw new Error(
+      `Cannot map ${placement.cardInstanceId} from local deployment coordinates to ${side} combat coordinates.`
+    );
+  }
+
+  return {
+    ...copyPlacement(placement),
+    position: combatPosition
+  };
+};
+
+const combatBoardForSide = (board: BoardState, side: PlayerSide): BoardState => ({
+  placements: board.placements.map((placement) =>
+    mapPlacementToCombatPosition(side, placement)
+  )
 });
 
 const copySourceRow = (sourceRow: SourceRowState): SourceRowState => ({
@@ -125,7 +146,7 @@ export const buildCombatantSetupForEncounter = (
   encounter: EncounterDefinition
 ): EncounterCombatantSetup => ({
   playerId: encounter.loadout.playerId,
-  board: copyBoard(encounter.loadout.board),
+  board: combatBoardForSide(encounter.loadout.board, "playerB"),
   sourceRow: copySourceRow(encounter.loadout.sourceRow),
   spellrail: copySpellrail(encounter.loadout.spellrail),
   ...(encounter.loadout.startingAshes

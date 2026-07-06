@@ -1,4 +1,9 @@
-import { hexStepToward, positionKey, type BoardPosition } from "@packbound/shared";
+import {
+  hexStepToward,
+  isCombatPositionInBounds,
+  positionKey,
+  type BoardPosition
+} from "@packbound/shared";
 
 import { aliveUnits, emit } from "./state";
 import type { MutableCombatState, MutableUnit } from "./types";
@@ -35,7 +40,8 @@ export const nextStepToward = (
   return hexStepToward(
     attacker.position,
     target.position,
-    occupiedGroundPositionKeys(state, attacker)
+    occupiedGroundPositionKeys(state, attacker),
+    isCombatPositionInBounds
   );
 };
 

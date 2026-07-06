@@ -178,6 +178,300 @@ The game can use familiar design concepts, but it should express them through or
 
 This document intentionally uses Packbound-specific terminology.
 
+## Construction And Pack Market Model
+
+Packbound's construction identity should be a **pack-opening roster/loadout
+autobattler**, with a small amount of card-game sequencing where it actually
+helps. It should not become a traditional shuffle-and-draw deckbuilder for
+Units by default.
+
+The player should understand "my build" as:
+
+- the cards I have acquired into my run roster;
+- the constrained active loadout I choose for the next fight;
+- the Sources, Spellrail, Commander, upgrades, and positioning decisions that
+  turn that roster into a machine.
+
+This is a hybrid only in the narrow sense that Techniques, reactions, and the
+Spellrail may later carry deck-like sequencing, timing, or queue-management
+identity. Units, Echoes, Relics, Fields, and Sources should primarily behave
+like roster/loadout pieces that are acquired from packs, held in a limited
+run-owned pool, and committed to an active fight setup.
+
+### Card-Type Construction Roles
+
+- Units and Echoes: roster pieces that occupy ground or air board space when
+  active. They should not normally be shuffled into a draw deck.
+- Relics and Fields: roster/support pieces that occupy support, global, or tile
+  space when active.
+- Sources: resource infrastructure. They belong to the roster, fill Source Row
+  slots when active, grant Aspect access, increase Board Charge, and feed
+  future encounter Combat Charge.
+- Techniques: the most natural place for future deck-like texture. They can be
+  held in a Technique reserve, loaded into Spellrail slots, queued by triggers,
+  and eventually support sequencing, discard, or reaction-like choices without
+  forcing Units into a hand/deck model.
+- Commander and future Signature Relics: persistent identity pieces outside the
+  ordinary shared-pool economy unless a focused design explicitly says
+  otherwise.
+
+### Future Pack Flow
+
+The current prototype opens a purchased reward pack and puts every card into
+the run pool. That was useful for engine validation, but it makes the reward
+loop too permissive: the player can take everything, apply every suggested edit,
+and win without enough commitment.
+
+Future Pack Market direction:
+
+1. A Pack Offer reveals a small set of cards from a pack family.
+2. The player picks a limited number.
+3. Chosen cards enter the player's roster/bench.
+4. Unchosen cards are released back to the shared pool by default.
+5. Suggested edits remain advisory after acquisition; they are not the
+   acquisition mechanic.
+
+First target for early packs: reveal 5 cards and pick 2. This is small enough
+to read, large enough to feel like a pack, and immediately stops the
+"take-everything" reward problem. Later pack definitions can tune reveal count,
+pick count, cost, rarity guarantees, and whether a special pack burns or locks
+unchosen cards.
+
+Default unchosen behavior should be "released," not destroyed. In future
+multiplayer, unpicked reserved copies return to the shared pool. In solo,
+unchosen cards can simply leave the offer unless a special event says a faction
+withholds, taxes, or consumes them.
+
+Offer lifecycle:
+
+- Generate: choose eligible cards from the pack market and, when a finite pool
+  exists, reserve those copies for the offer.
+- Pick: commit selected copies to the player's roster and consume those copies
+  from availability.
+- Release: return unpicked reserved copies to the shared pool, unless a special
+  pack/faction rule says otherwise.
+- Record: store chosen, released, cost, seed, and pool-impact metadata so run
+  history remains replayable.
+
+In a future simultaneous multiplayer room, offer reservation should happen
+authoritatively on the server and include reservation IDs. Picks commit reserved
+copies; expired, rerolled, or unpicked cards release their reservation. Do not
+attempt simultaneous draft resolution in the solo prototype.
+
+### Construction Zones
+
+Use these zone concepts consistently in player-facing copy and future data:
+
+- **Pack Market**: the source of purchasable pack offers. In multiplayer, it is
+  backed by finite shared-pool availability.
+- **Pack Offer**: the visible cards opened from a pack before the player chooses
+  a limited number. Offer cards are not owned until picked.
+- **Roster / Pool**: the run-owned collection. In current code this is
+  `RunState.pool`; player-facing design can increasingly call it the Roster
+  when that is clearer.
+- **Bench**: owned but inactive cards available for future loadout edits. The
+  Bench should become capacity-constrained; active cards do not count while they
+  are committed to Board, Source Row, or Spellrail.
+- **Active Board**: Units/Echoes on ground or air, and Relics/Fields on support
+  or future field/terrain layers, committed to the next fight.
+- **Source Row**: active Sources that provide Aspect access, Board Charge, and
+  Combat Charge/sec.
+- **Spellrail**: active Techniques queued for combat or future encounter
+  triggers.
+- **Command Zone**: the Commander's persistent zone when not deployed. It is
+  private to the run and not drawn from the ordinary shared card pool.
+- **Ashes / Void**: combat or effect zones. Ashes represents destroyed or
+  remembered cards where current mechanics can Recall them; Void represents
+  phased-out temporary absence. These are not market storage.
+- **Sold / Recycled**: cards intentionally removed from the roster for gold,
+  dust, or future economy value. In shared-pool modes, selling should return the
+  consumed copies to availability unless a special effect says they are burned.
+- **Shared Card Pool**: global availability counts for future multiplayer or
+  solo pressure. It is not a player-owned zone.
+
+### Bench And Capacity Direction
+
+Bench limits are important because Packbound has more card types than a
+standard unit-only autobattler. A single tiny bench would punish Sources and
+Techniques too harshly, while an unlimited pool makes pack picks feel free.
+
+Recommended first bench model after pick-limited packs:
+
+- Combat Bench: Units, Echoes, Relics, and Fields share 8 inactive slots.
+- Source Rack: Sources use a separate 6-card reserve.
+- Technique Binder: Techniques use a separate 6-card reserve.
+- Active Board, Source Row, Spellrail, Command Zone, Ashes, and Void do not
+  count against inactive bench capacity.
+- If a pick would exceed capacity, the player must sell/recycle something or
+  skip the pick before leaving the Pack Offer.
+
+This is intentionally simpler than weighted per-card costs. Type-aware lanes
+teach the difference between board pieces, resource infrastructure, and
+Technique sequencing without requiring a full inventory puzzle. Later, rare
+large Units, Signature Relics, or special economy cards can carry extra bench
+weight if playtesting needs it.
+
+### Duplicate Upgrades In The Shared-Pool Model
+
+Duplicate upgrades should be visible shared-pool commitments.
+
+- Picking or buying a copy consumes one finite pool copy.
+- Combining three matching copies should lock those copies into one upgraded
+  instance.
+- The upgraded instance still represents multiple underlying copies for sell,
+  recycle, and shared-pool return accounting.
+- Selling an upgraded card should normally return all represented copies to the
+  shared pool, unless a special burn/recycle rule converts them into another
+  resource.
+- Generic duplicate upgrades should remain separate from authored Commander
+  upgrade choices and future branch/evolution upgrades.
+
+The current implementation already proves a narrow generic combine rule for
+Unit/Echo pool copies. Future shared-pool work should add copy-ledger metadata
+before upgraded-card selling or multiplayer availability depends on it.
+
+## Solo Faction Pressure
+
+Solo should not pretend that seven invisible rival players are drafting full
+boards behind the scenes. Use Option C: encounter factions, route pressure, and
+boss pressure contest parts of the Pack Market in clear, lightweight ways.
+
+The intended feel:
+
+> The league is alive. Factions are buying, hoarding, taxing, or burning parts
+> of the same market I want, but I am not watching fake bots draft entire
+> rosters.
+
+Pressure can be content-driven:
+
+- Ash Debt enemies pressure Shade, Recall, Ashes, and debt cards.
+- Cloudspire enemies pressure Tide, Airborne, Phase, and Barrier cards.
+- Ember enemies pressure Ember, Echo, Scrapper, and explosive Relic cards.
+- Bosses may temporarily lock, tax, drain, or overprice a pack family.
+
+Possible effects, from mild to strong:
+
+- Bias future Pack Offers away from pressured cards.
+- Increase the cost of pressured pack families.
+- Reserve a visible number of shared-pool copies until an encounter is beaten.
+- Offer a route choice: fight the faction now to release the pressure, or route
+  around it and accept scarcity.
+- Burn or withhold unpicked cards only for explicit boss/faction effects.
+
+Communication requirements:
+
+- Show which faction is pressuring which Aspects, archetypes, or card types.
+- Explain whether pressure changes price, odds, copy availability, or unpicked
+  card behavior.
+- Keep the default solo experience private and forgiving at first, then layer
+  pressure over time.
+
+First solo implementation should probably add pressure metadata and UI before
+mechanical scarcity, so players can learn the idea before it changes outcomes.
+
+## Shared Pool Multiplayer Compatibility
+
+Long-term 8-player mode should treat packs as the shop and cards as finite
+copies contested by the lobby.
+
+Future shared-pool model:
+
+- Each card definition has a finite copy count by rarity, type, set, and mode.
+- Pack offer generation reads available copies and cannot offer unavailable
+  cards.
+- Visible offers reserve copies while the offer is pending.
+- Picked or purchased cards commit the reserved copies to the player.
+- Unpicked, rerolled, expired, or released cards return their reserved copies.
+- Sold/recycled cards return copies unless an effect burns them.
+- Duplicate upgrades lock multiple copies into one upgraded card.
+- Starter kits, prototype Commanders, and future authored Commanders are
+  guaranteed/private and do not drain the shared pool.
+- Signature Relics are private Commander-linked objects unless explicitly
+  defined as shared-pool cards later.
+
+Copy counts should be tuned later. Initial architecture only needs the shape:
+definition id, total copies, available copies, reserved copies, committed
+copies, and a reservation/commit audit trail.
+
+Server implications for live rooms:
+
+- The server owns the shared pool.
+- Pack offers are generated from server-authoritative pool state.
+- Reservations need player id, offer id, card definition id, copy count, expiry,
+  and run/round context.
+- Commits and releases must be idempotent so reconnects and retries do not
+  duplicate cards.
+- The client displays offers and submits picks; it does not calculate global
+  availability.
+
+Solo can use the same concepts with one local pool plus faction pressure, but
+it does not need networking or simultaneous resolution.
+
+## Commander And Technique Construction Direction
+
+The current Commander upgrades, `Combat Training` and `Rebind Calibration`, are
+prototype placeholders. Future Commander upgrades should be build-defining
+augments, not ordinary shared-pool card copies.
+
+Good Commander upgrades can:
+
+- bias Pack Market odds toward a risky archetype;
+- discount, tax, or reshape Source/Spellrail economics;
+- unlock a Signature Relic or Commander-linked support object;
+- improve terrain, fences, board resources, or positioning payoffs;
+- add a main-phase action that changes how future packs are evaluated.
+
+They should not compete directly with picking ordinary card copies unless a
+specific reward is framed as a choice between run identity and market depth.
+Packs remain the primary adaptation engine.
+
+Techniques are the best future home for deck-like behavior. A later system
+could make Techniques sequence through Spellrail, draw from a small Technique
+stack, discard into Ashes, or use reaction windows. Do not add full hand/deck
+draw for Units just to make Packbound feel like a card game.
+
+## Recommended First Implementation Slice
+
+The next gameplay implementation should be:
+
+`feat(rules): add pick-limited pack market offers`
+
+Scope for that first slice:
+
+- Rename/reframe reward pack purchase UI as Pack Market / Pack Offer where
+  practical.
+- Keep current pack generation deterministic, but reveal a limited offer and
+  require picking a fixed number, initially reveal 5 and pick 2.
+- Chosen cards enter the current pool/roster.
+- Unchosen cards are recorded as released/discarded for history, but do not
+  enter the run pool.
+- Post-pack suggestions only appear after picks are committed.
+- Do not add finite shared-pool scarcity, bench limits, selling, rerolls,
+  faction pressure mechanics, multiplayer, or drag/drop in the same slice.
+
+This should come before board repositioning, drag/drop, fences, or deeper Pixi
+work because the current "take everything, click every suggestion" reward loop
+undermines the strategic identity. Once the player must choose cards from a
+pack, placement and repositioning work will be supporting real commitments
+instead of smoothing over an overgenerous acquisition model.
+
+## Construction Non-Goals For Now
+
+Do not implement these as side effects of unrelated tasks:
+
+- Full live multiplayer or networking.
+- Simultaneous draft resolution.
+- A finite shared pool that affects real rewards before pick-limited packs are
+  stable.
+- True deck/hand/draw for Units, Echoes, Relics, Sources, or the whole roster.
+- Bench limits and sell/recycle economy in the same slice as pick-limited
+  packs.
+- Drag/drop, board repositioning, or canvas-native inventory drops.
+- Fences, terrain, or board-resource denial.
+- Broad card/content/balance retuning.
+- Full Commander upgrade redesign or Signature Relic implementation.
+- Full shop economy overhaul, reroll economy, or interest streak systems.
+
 ## Future Commander Spine
 
 Packbound should explore a persistent Commander-like starter layer as a future

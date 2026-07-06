@@ -1110,6 +1110,86 @@ Do not hardcode teamups into individual cards.
 These systems include a mix of current prototype surface and future direction.
 Expand them only through focused rules/content tasks with tests.
 
+### Pack Market, Roster, Bench, And Shared Pool
+
+The current prototype reward flow buys a pack and adds every opened card to
+`RunState.pool`. That remains implemented behavior today, but the long-term
+construction model should move toward pick-limited Pack Offers and, later,
+finite shared-pool availability.
+
+Future ownership boundaries:
+
+- `packages/content` owns declarative pack definitions, pack-family costs,
+  future reveal/pick counts, and optional solo faction pressure metadata on
+  encounters, routes, bosses, or reward profiles.
+- `packages/shared` should own serializable shared-pool and offer data types
+  once they exist: pool copy ledgers, pack offer ids, reserved copy records,
+  picked/released offer entries, bench capacity summaries, and sell/recycle
+  result metadata.
+- `packages/rules` owns deterministic Pack Market generation, offer
+  reservation/release in solo runs, pick validation, roster/bench capacity,
+  duplicate-copy accounting, sell/recycle rules, and replayable run actions.
+- `apps/client` presents the Pack Market, offer picks, roster/bench capacity,
+  and suggested loadout edits. It must not decide card availability,
+  reservation, pick legality, or shared-pool copy accounting.
+- A future `apps/server` owns authoritative shared-pool state for live rooms,
+  including simultaneous reservation, commit, release, expiry, reconnect, and
+  retry semantics.
+
+Recommended first implementation slice:
+
+- Add pick-limited pack offers before implementing bench limits or shared-pool
+  scarcity.
+- Keep pack generation deterministic, reveal a small offer, require a fixed
+  number of picks, and add only chosen cards to the current run pool/roster.
+- Record chosen and unchosen cards in run history so future shared-pool and
+  analytics work can reason about released or consumed copies.
+- Keep post-pack suggestions advisory and run them only after picks are
+  committed.
+
+Future shared-pool shape:
+
+```ts
+type SharedCardPoolEntry = {
+  cardDefId: CardDefId;
+  totalCopies: number;
+  availableCopies: number;
+  reservedCopies: number;
+  committedCopies: number;
+};
+
+type PackOfferReservation = {
+  offerId: string;
+  playerId: PlayerId;
+  runId: RunId;
+  round: number;
+  cardDefId: CardDefId;
+  copyCount: number;
+  expiresAt?: string;
+};
+```
+
+Those types should stay plain JSON-serializable data. In solo, they can be
+modeled locally or deferred while the first pick-limited offer flow lands. In
+live multiplayer, they belong behind server validation and must be idempotent.
+
+Roster and bench direction:
+
+- Treat current `RunState.pool` as the implemented owned inactive card store.
+  Player-facing copy may gradually call this the Roster.
+- Add a capacity-aware Bench only after pick-limited pack offers make card
+  acquisition meaningful.
+- Prefer type-aware capacity lanes over one tiny universal bench: Combat Bench
+  for Units/Echoes/Relics/Fields, Source Rack for Sources, and Technique Binder
+  for Techniques.
+- Active Board, Source Row, Spellrail, Command Zone, Ashes, and Void should not
+  count against inactive bench capacity unless a later rule explicitly says so.
+
+Solo faction pressure should be modeled as content/rules data, not fake rival
+player state. Encounter or route pressure can bias offers, tax pack families,
+reserve copies, or visibly withhold archetype slices without simulating seven
+complete AI drafters.
+
 ### Commander, Command Zone, And Rebind
 
 - The current prototype stores one Commander in serializable `RunState` with a
@@ -1187,9 +1267,13 @@ Expand them only through focused rules/content tasks with tests.
 - Pack purchases are replayable RunActions through `applyPackReward`; successful
   purchases spend gold and record cost, gold before, and gold after in reward
   history.
+- Future Pack Market work should split purchase from ownership: buying or
+  choosing a pack can create a pick-limited offer, and only committed picks
+  should enter the run roster.
 - Future discounts and rerolls should remain generated from seeded run state.
 - Balance reports should include broad economy signals such as gold earned,
-  pack affordability, discount frequency, and greed failure cases.
+  pack affordability, pick pressure, released cards, discount frequency, and
+  greed failure cases.
 
 ### Board Resources
 

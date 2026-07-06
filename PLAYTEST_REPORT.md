@@ -437,20 +437,33 @@ repositioning; clicking every available post-pack option can make wins feel too
 automatic; and fences/support-created terrain remains promising but should wait
 until combat readability and pacing are stable.
 
+Design decision after this task: Packbound should lean into a pack-opening
+roster/loadout autobattler model, not a traditional Unit draw-deck model. Packs
+are the shop. Future Pack Offers should reveal a small set of cards and make the
+player pick a limited number, with chosen cards entering the run roster and
+unchosen cards released by default. Units, Echoes, Relics, Fields, and Sources
+should behave as roster/loadout pieces; Techniques and Spellrail are the best
+place for any future deck-like sequencing. The long-term multiplayer-compatible
+model is a finite shared card pool with offer reservation, pick commit, release,
+sell/recycle return, and duplicate upgrades that lock multiple copies. Solo
+should use encounter/faction pressure to bias, tax, reserve, or withhold parts
+of the Pack Market rather than pretending seven fake rival drafters are building
+full rosters in the background.
+
 The biggest remaining Pixi/default-route findings are no longer the absence of
 replay controls, tiny first-pass labels, unvalidated readability, default-route
 confidence, basic default-route edit affordances, an ungrouped default combat
 feed, a debug-grid first screen, or always-expanded inspector detail. Now that
 `/` opens on a tighter Pixi-focused playtest surface with an immediate build
 decision, a first-fold Loadout Tray, and grouped duplicate post-pack
-suggestions, and stabilized default combat playback, the next gaps are richer
-direct-manipulation polish such as board repositioning or eventual drag/drop,
-canvas-native zone editing, and checking that grouped combat/replay copy scales
-beyond the current starter fights.
+suggestions, and stabilized default combat playback, the next highest-value gap
+is no longer board manipulation polish. The acquisition model should first stop
+the "open pack, take everything, click every suggestion" pattern by making pack
+rewards pick-limited.
 
 Recommended next task:
 
-`feat(client): add Pixi board repositioning affordance`
+`feat(rules): add pick-limited pack market offers`
 
 ## 2. Environment And Commands
 
@@ -1418,16 +1431,18 @@ Deferred findings from the same manual pass remain intentionally out of scope:
 
 Do next:
 
-`test(playtest): manually validate corrected default combat playback and row orientation`
+`feat(rules): add pick-limited pack market offers`
 
-Why: the two latest manual blockers were fixed in code: enemy local row 0 now
-maps to the visual frontline and `/` now has compact post-record Pixi combat
-playback. The next narrow step is a short manual pass at 1280 x 720 and
-1440 x 900 to confirm the corrected orientation, playback controls, Key Moments,
-and first-fold layout work together before adding more mechanics.
+Why: the default route is now coherent enough that the main blocker is no
+longer first-fold layout or Pixi manipulation. The acquisition loop still lets
+the player open a pack, keep every card, apply many suggestions, and win too
+easily. Pick-limited Pack Offers should make rewards feel like real commitments
+before adding board repositioning, drag/drop, fences, or deeper Pixi polish.
 
 Do soon:
 
+- `test(playtest): manually validate corrected default combat playback and row
+orientation`
 - `feat(client): clarify reward pack-to-pool card identity`
 - `feat(content): tune starter and encounter placements for 8-row combat pacing`
 - `test(playtest): manually validate grouped combat key moments across starters`

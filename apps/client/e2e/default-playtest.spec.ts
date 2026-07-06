@@ -117,7 +117,9 @@ test("default playtest route starts with concise Pixi play surface", async ({ pa
     engagementPreview.getByText("Target is 2 hexes away, range 1.")
   ).toBeVisible();
   await expect(engagementPreview.getByText("Next move: r4 c2 to r4 c3.")).toBeVisible();
-  await expect(engagementPreview.getByText("Out of range")).toBeVisible();
+  await expect(
+    engagementPreview.getByText("Out of range", { exact: true })
+  ).toBeVisible();
   await expectNoHorizontalScroll(rendererHost);
 
   expectNoBrowserErrors(errors);
@@ -544,8 +546,14 @@ test("default playtest can record combat, claim rewards, and advance", async ({
   const previewPanel = panel(page, "Upcoming Combat Preview");
   await expect(previewPanel).toBeVisible();
   await expect(previewPanel.getByText(/Winner:/)).toBeVisible();
-  await expect(previewPanel.getByRole("heading", { name: "Key Moments" })).toBeVisible();
-  await expect(previewPanel.getByText(/Events shown: \d+ of \d+/)).toBeVisible();
+  const previewKeyMoments = previewPanel
+    .locator("details.combat-feed-details")
+    .filter({ hasText: "Preview Key Moments" });
+  await expect(previewKeyMoments.locator("summary")).toHaveText("Preview Key Moments");
+  expect(
+    await previewKeyMoments.evaluate((node) => (node as HTMLDetailsElement).open)
+  ).toBe(false);
+  await expect(previewPanel.getByRole("heading", { name: "Key Moments" })).toBeHidden();
 
   await page.getByRole("button", { name: "Record Combat" }).click();
 
@@ -558,13 +566,29 @@ test("default playtest can record combat, claim rewards, and advance", async ({
     "default-combat-playback-command-index"
   );
   const playbackLatest = playbackPanel.getByTestId("default-combat-playback-latest");
+  await expect(playbackStatus).toHaveText(/playing|complete/);
+  await expect(playbackCommandIndex).toHaveText(/\d+ \/ [1-9]\d*/);
+  await playbackPanel.getByRole("button", { name: "Reset Combat Playback" }).click();
   await expect(playbackStatus).toHaveText("idle");
   await expect(playbackCommandIndex).toHaveText(/0 \/ [1-9]\d*/);
-  await expect(playbackLatest).toHaveText("No command visualized yet.");
   const beforeStep = await playbackCommandIndex.textContent();
   await playbackPanel.getByRole("button", { name: "Step Combat Playback" }).click();
   await expect(playbackCommandIndex).not.toHaveText(beforeStep ?? "");
+  await expect(playbackStatus).toHaveText("paused");
   await expect(playbackLatest).not.toHaveText("No command visualized yet.");
+  const afterStepIndex = await playbackCommandIndex.textContent();
+  const afterStepStatus = await playbackStatus.textContent();
+  await clickPixiCell(page, rendererHost, 4, 2);
+  await expect(playbackCommandIndex).toHaveText(afterStepIndex ?? "");
+  await expect(playbackStatus).toHaveText(afterStepStatus ?? "");
+  await expect(
+    page
+      .locator(
+        '[data-testid="default-pixi-selection-context"], [data-testid="default-pixi-replay-inspection-note"]'
+      )
+      .filter({ hasText: /Selected ally|Selected enemy|Replay token inspection/ })
+      .first()
+  ).toBeVisible();
   await playbackPanel.getByRole("button", { name: "Reset Combat Playback" }).click();
   await expect(playbackStatus).toHaveText("idle");
   await expect(playbackCommandIndex).toHaveText(/0 \/ [1-9]\d*/);
@@ -573,6 +597,9 @@ test("default playtest can record combat, claim rewards, and advance", async ({
   const recordedPanel = panel(page, "Last Recorded Combat");
   await expect(recordedPanel.getByText(/Winner:/)).toBeVisible();
   await expect(recordedPanel.locator("p.muted").first()).toContainText("Damage:");
+  await expect(
+    recordedPanel.getByText("Skirmish damage resets after combat")
+  ).toBeVisible();
   await expect(recordedPanel.getByText(/Events:/)).toBeVisible();
   await expect(recordedPanel.getByText(/Gold: \+/)).toBeVisible();
   await expect(recordedPanel.locator(".combat-result-strip")).toContainText(

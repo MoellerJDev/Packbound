@@ -50,7 +50,10 @@ const sampleEvents: readonly CombatEvent[] = [
     side: "playerA",
     ownerId: playerA,
     isEcho: true,
-    position: { row: 3, col: 0, layer: "ground" }
+    position: { row: 3, col: 0, layer: "ground" },
+    sourceCardInstanceId: card("signal-nest"),
+    sourceDefId: def("signal_nest"),
+    sourceSide: "playerA"
   },
   {
     type: "UnitMoved",
@@ -138,14 +141,17 @@ const sampleEvents: readonly CombatEvent[] = [
   {
     type: "UnitRecalled",
     timeMs: 1600,
-    unitId: unit("hollow-caller"),
-    cardInstanceId: card("hollow-caller"),
-    defId: def("hollow_caller"),
+    unitId: unit("recalled-scrapper"),
+    cardInstanceId: card("recalled-scrapper"),
+    defId: def("ember_scraprunner"),
     side: "playerA",
     ownerId: playerA,
     isEcho: false,
     from: "ashes",
-    position: { row: 0, col: 1, layer: "ground" }
+    position: { row: 0, col: 1, layer: "ground" },
+    sourceCardInstanceId: card("hollow-caller"),
+    sourceDefId: def("hollow_caller"),
+    sourceSide: "playerA"
   },
   {
     type: "UnitDestroyed",
@@ -283,14 +289,52 @@ describe("combat display summary", () => {
     const text = allText();
 
     expect(text).toContain("Barrier on Vanishing Warden blocked Ember Scraprunner");
-    expect(text).toContain("summoned Signal Wisp Echo");
+    expect(text).toContain("Your Signal Nest summoned Signal Wisp Echo");
     expect(text).toContain(
       "Vanishing Warden moved one hex from r0 c0 ground to r0 c1 ground toward Ember Scraprunner"
     );
     expect(text).toContain("Vanishing Warden phased out");
     expect(text).toContain("Vanishing Warden phased in");
-    expect(text).toContain("recalled Hollow Caller from Ashes");
+    expect(text).toContain("Your Hollow Caller recalled Ember Scraprunner from Ashes");
     expect(text).toContain("Warning TEST_WARNING");
+  });
+
+  it("names recall sources and destination rows for enemy backline recalls", () => {
+    const recallResult: CombatDisplayResultLike = {
+      winner: "playerB",
+      damageToPlayerA: 0,
+      damageToPlayerB: 0,
+      warnings: [],
+      events: [
+        {
+          type: "UnitRecalled",
+          timeMs: 300,
+          unitId: unit("enemy-recalled-scrapper"),
+          cardInstanceId: card("enemy-recalled-scrapper"),
+          defId: def("ember_scraprunner"),
+          side: "playerB",
+          ownerId: playerB,
+          isEcho: false,
+          from: "ashes",
+          position: { row: 0, col: 2, layer: "ground" },
+          sourceCardInstanceId: card("enemy-hollow-caller"),
+          sourceDefId: def("hollow_caller"),
+          sourceSide: "playerB"
+        }
+      ]
+    };
+
+    const text = buildCombatDisplaySummary({
+      catalog: sampleCatalog,
+      combatResult: recallResult,
+      perspectiveSide: "playerA"
+    })
+      .lines.map((line) => line.text)
+      .join("\n");
+
+    expect(text).toContain(
+      "Enemy Hollow Caller recalled Ember Scraprunner from Ashes to enemy backline"
+    );
   });
 
   it("builds stable key-moment groups for long combat results", () => {
@@ -320,6 +364,8 @@ describe("combat display summary", () => {
     expect(text).toContain("Attacks: Enemy Ember Scraprunner -> Vanishing Warden.");
     expect(text).toContain("Techniques: You used Sparkfall.");
     expect(text).toContain("Your Vanishing Warden phased x2");
+    expect(text).toContain("Your Signal Nest summoned Signal Wisp Echo");
+    expect(text).toContain("Your Hollow Caller recalled Ember Scraprunner");
     expect(text).toContain("Warnings: TEST_WARNING.");
     expect(text).toContain(
       "Events shown: 11 of 16. 5 lower-priority events remain in the full feed."

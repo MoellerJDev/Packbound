@@ -1,10 +1,11 @@
 import type { ContentCatalog } from "@packbound/content";
-import type {
-  CardDefId,
-  CombatEvent,
-  CombatWinner,
-  PlayerSide,
-  SimulationWarning
+import {
+  combatRowRangeForSide,
+  type CardDefId,
+  type CombatEvent,
+  type CombatWinner,
+  type PlayerSide,
+  type SimulationWarning
 } from "@packbound/shared";
 
 export type CombatDisplayLine = {
@@ -143,12 +144,44 @@ const boardPositionText = (position: {
   readonly layer: string;
 }): string => `r${position.row} c${position.col} ${position.layer}`;
 
-const positionText = (event: Extract<CombatEvent, { readonly type: "UnitSummoned" }>) =>
-  boardPositionText(event.position);
+const sideAreaText = (side: PlayerSide, perspectiveSide: PlayerSide): string =>
+  side === perspectiveSide ? "your side" : "enemy side";
+
+const rowRoleText = (
+  side: PlayerSide,
+  perspectiveSide: PlayerSide,
+  row: number
+): string | undefined => {
+  const range = combatRowRangeForSide(side);
+  const frontline = side === "playerA" ? range.firstRow : range.lastRow;
+  const backline = side === "playerA" ? range.lastRow : range.firstRow;
+  const owner = side === perspectiveSide ? "your" : "enemy";
+
+  if (row === frontline) {
+    return `${owner} frontline`;
+  }
+  if (row === backline) {
+    return `${owner} backline`;
+  }
+  return undefined;
+};
+
+const positionText = (
+  side: PlayerSide,
+  perspectiveSide: PlayerSide,
+  position: Extract<CombatEvent, { readonly type: "UnitSummoned" }>["position"]
+) => {
+  const role = rowRoleText(side, perspectiveSide, position.row);
+  return role
+    ? `${role} (${boardPositionText(position)})`
+    : `${sideAreaText(side, perspectiveSide)} ${boardPositionText(position)}`;
+};
 
 const recallPositionText = (
-  event: Extract<CombatEvent, { readonly type: "UnitRecalled" }>
-) => boardPositionText(event.position);
+  side: PlayerSide,
+  perspectiveSide: PlayerSide,
+  position: Extract<CombatEvent, { readonly type: "UnitRecalled" }>["position"]
+) => positionText(side, perspectiveSide, position);
 
 const phaseInPositionText = (
   event: Extract<CombatEvent, { readonly type: "UnitPhasedIn" }>
@@ -250,6 +283,21 @@ const abilityTriggerText = (
     default:
       return `${sourceName} triggered when ${causeText}.`;
   }
+};
+
+const sourceLabelForEvent = (
+  catalog: ContentCatalog,
+  event: Extract<CombatEvent, { readonly type: "UnitSummoned" | "UnitRecalled" }>,
+  perspectiveSide: PlayerSide
+): string | undefined => {
+  if (!event.sourceDefId) {
+    return undefined;
+  }
+  const sourceSide = event.sourceSide ?? event.side;
+  return `${possessiveSideLabel(sourceSide, perspectiveSide)} ${cardName(
+    catalog,
+    event.sourceDefId
+  )}`;
 };
 
 const barrierKey = (timeMs: number, targetId: string): string => `${timeMs}:${targetId}`;
@@ -386,26 +434,49 @@ const buildEventLine = (
             )} was destroyed by ${destructionReasonText(event.reason)}.`,
         severity: severityForSide(event.side, perspectiveSide, false)
       };
-    case "UnitSummoned":
+    case "UnitSummoned": {
+      const sourceLabel = sourceLabelForEvent(catalog, event, perspectiveSide);
+      const summonedName = cardName(catalog, event.defId);
       return {
         timeMs: event.timeMs,
         kind: "summon",
-        text: `${sideLabel(event.side, perspectiveSide)} summoned ${cardName(
-          catalog,
-          event.defId
-        )} at ${positionText(event)}.`,
+        text: sourceLabel
+          ? `${sourceLabel} summoned ${summonedName} to ${positionText(
+              event.side,
+              perspectiveSide,
+              event.position
+            )}.`
+          : `${sideLabel(event.side, perspectiveSide)} summoned ${summonedName} at ${positionText(
+              event.side,
+              perspectiveSide,
+              event.position
+            )}.`,
         severity: severityForSide(event.side, perspectiveSide, true)
       };
-    case "UnitRecalled":
+    }
+    case "UnitRecalled": {
+      const sourceLabel = sourceLabelForEvent(catalog, event, perspectiveSide);
+      const recalledName = cardName(catalog, event.defId);
       return {
         timeMs: event.timeMs,
         kind: "recall",
-        text: `${sideLabel(event.side, perspectiveSide)} recalled ${cardName(
-          catalog,
-          event.defId
-        )} from Ashes to ${recallPositionText(event)}.`,
+        text: sourceLabel
+          ? `${sourceLabel} recalled ${recalledName} from Ashes to ${recallPositionText(
+              event.side,
+              perspectiveSide,
+              event.position
+            )}.`
+          : `${sideLabel(
+              event.side,
+              perspectiveSide
+            )} recalled ${recalledName} from Ashes to ${recallPositionText(
+              event.side,
+              perspectiveSide,
+              event.position
+            )}.`,
         severity: severityForSide(event.side, perspectiveSide, true)
       };
+    }
     case "UnitPhasedOut":
       return {
         timeMs: event.timeMs,
@@ -532,22 +603,16 @@ export const buildCombatDisplayKeyMoments = ({
       case "UnitSummoned":
         addCount(
           special,
-          `summon:${event.side}:${event.defId}`,
-          `${sideLabel(event.side, perspectiveSide)} summoned ${cardName(
-            catalog,
-            event.defId
-          )}`,
+          `summon:${event.side}:${event.defId}:${event.sourceDefId ?? ""}`,
+          `${sourceLabelForEvent(catalog, event, perspectiveSide) ?? sideLabel(event.side, perspectiveSide)} summoned ${cardName(catalog, event.defId)}`,
           eventIndex
         );
         break;
       case "UnitRecalled":
         addCount(
           special,
-          `recall:${event.side}:${event.defId}`,
-          `${sideLabel(event.side, perspectiveSide)} recalled ${cardName(
-            catalog,
-            event.defId
-          )}`,
+          `recall:${event.side}:${event.defId}:${event.sourceDefId ?? ""}`,
+          `${sourceLabelForEvent(catalog, event, perspectiveSide) ?? sideLabel(event.side, perspectiveSide)} recalled ${cardName(catalog, event.defId)}`,
           eventIndex
         );
         break;

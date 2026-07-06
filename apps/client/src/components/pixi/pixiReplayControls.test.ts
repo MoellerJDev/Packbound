@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { asCardDefId, asCardInstanceId, type CardInstanceId } from "@packbound/shared";
+import {
+  asCardDefId,
+  asCardInstanceId,
+  type CardDefId,
+  type CardInstanceId
+} from "@packbound/shared";
 
 import type { PixiReplayCommand } from "./pixiCombatReplay";
 import {
@@ -17,6 +22,7 @@ import {
 
 const emberCardId = asCardInstanceId("ember-card");
 const ashCardId = asCardInstanceId("ash-card");
+const hollowCallerDefId = asCardDefId("hollow_caller");
 
 const damageCommand: PixiReplayCommand = {
   type: "damage",
@@ -38,16 +44,17 @@ const appearCommand: PixiReplayCommand = {
   type: "appear",
   timeMs: 480,
   cardInstanceId: emberCardId,
-  side: "playerA",
-  position: { row: 3, col: 0, layer: "ground" },
+  side: "playerB",
+  position: { row: 0, col: 0, layer: "ground" },
+  arrival: { kind: "recalled", sourceDefId: hollowCallerDefId, sourceSide: "playerB" },
   token: {
     cardInstanceId: emberCardId,
     defId: asCardDefId("ember_scraprunner"),
     name: "Ember Scraprunner",
-    side: "playerA",
+    side: "playerB",
     cardType: "Unit",
     layer: "ground",
-    position: { row: 3, col: 0, layer: "ground" },
+    position: { row: 0, col: 0, layer: "ground" },
     statChips: [],
     traits: [],
     keywords: []
@@ -57,6 +64,9 @@ const appearCommand: PixiReplayCommand = {
 const nameMap = new Map<CardInstanceId, string>([
   [emberCardId, "Ember Scraprunner"],
   [ashCardId, "Ash Debt Collector"]
+]);
+const cardNamesByDefId = new Map<CardDefId, string>([
+  [hollowCallerDefId, "Hollow Caller"]
 ]);
 
 describe("pixi replay controls", () => {
@@ -206,8 +216,24 @@ describe("pixi replay controls", () => {
 
   it("summarizes appear commands with source token names", () => {
     expect(
-      summarizePixiReplayCommand(appearCommand, { cardNameByInstanceId: nameMap })
-    ).toBe("Ember Scraprunner appeared at r3 c0.");
+      summarizePixiReplayCommand(appearCommand, {
+        cardNameByInstanceId: nameMap,
+        cardNamesByDefId
+      })
+    ).toBe("Enemy Hollow Caller recalled Ember Scraprunner to enemy backline (r0 c0).");
+  });
+
+  it("summarizes destroyed commands as markers rather than living occupants", () => {
+    expect(
+      summarizePixiReplayCommand(
+        {
+          type: "destroyed",
+          timeMs: 640,
+          cardInstanceId: emberCardId
+        },
+        { cardNameByInstanceId: nameMap }
+      )
+    ).toBe("Ember Scraprunner was destroyed; its marker is not a living unit.");
   });
 
   it("limits visual replay commands to the renderer command cap", () => {

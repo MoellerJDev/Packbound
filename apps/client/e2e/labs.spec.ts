@@ -34,7 +34,12 @@ test("engagement lab shows out-of-range target and next-move preview", async ({
     engagementPreview.getByText("Target is 3 hexes away, range 1.")
   ).toBeVisible();
   await expect(engagementPreview.getByText("Next move: r2 c1 to r2 c2.")).toBeVisible();
-  await expect(engagementPreview.getByText("Out of range")).toBeVisible();
+  await expect(
+    engagementPreview.getByText("Out of range", { exact: true })
+  ).toBeVisible();
+  await expect(
+    engagementPreview.getByText("Out of range: moving toward target.")
+  ).toBeVisible();
   await expect(
     engagementPreview.getByText("Likely target: nearest valid enemy.")
   ).toBeVisible();

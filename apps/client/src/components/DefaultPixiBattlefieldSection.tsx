@@ -44,6 +44,7 @@ export type DefaultPixiBattlefieldView = {
   readonly playerHealth: number;
   readonly selectedAllyInspection: CardInspection | undefined;
   readonly selectedEnemyInspection: CardInspection | undefined;
+  readonly replayTokenInspectionNotice?: string;
 };
 
 export type DefaultPixiBattlefieldController = {
@@ -384,6 +385,14 @@ export const DefaultPixiBattlefieldSection = ({
         >
           {selectionContextText(view)}
         </p>
+        {view.replayTokenInspectionNotice ? (
+          <p
+            className="default-pixi-selection-context warning"
+            data-testid="default-pixi-replay-inspection-note"
+          >
+            {view.replayTokenInspectionNotice}
+          </p>
+        ) : null}
         <PixiBattlefieldRenderer
           model={view.pixiBattlefieldModel}
           presentation="playerFacing"

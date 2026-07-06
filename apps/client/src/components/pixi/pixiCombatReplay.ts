@@ -58,6 +58,12 @@ export type PixiReplayCommand =
       readonly cardInstanceId: CardInstanceId;
       readonly side: PlayerSide;
       readonly position: BoardPosition;
+      readonly arrival: {
+        readonly kind: "summoned" | "recalled" | "phasedIn";
+        readonly sourceCardInstanceId?: CardInstanceId;
+        readonly sourceDefId?: CardDefId;
+        readonly sourceSide?: PlayerSide;
+      };
       readonly token: PixiReplayTokenDescriptor;
     }
   | {
@@ -143,6 +149,24 @@ export const combatEventsToPixiReplayCommands = (
             cardInstanceId: event.cardInstanceId,
             side: event.side,
             position: event.position,
+            arrival: {
+              kind:
+                event.type === "UnitSummoned"
+                  ? "summoned"
+                  : event.type === "UnitRecalled"
+                    ? "recalled"
+                    : "phasedIn",
+              ...("sourceCardInstanceId" in event &&
+              event.sourceCardInstanceId !== undefined
+                ? { sourceCardInstanceId: event.sourceCardInstanceId }
+                : {}),
+              ...("sourceDefId" in event && event.sourceDefId !== undefined
+                ? { sourceDefId: event.sourceDefId }
+                : {}),
+              ...("sourceSide" in event && event.sourceSide !== undefined
+                ? { sourceSide: event.sourceSide }
+                : {})
+            },
             token: replayTokenForAppearEvent(event, options)
           }
         ];

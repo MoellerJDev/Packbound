@@ -128,7 +128,10 @@ export const summonUnit = (
     side: unit.side,
     ownerId: unit.ownerId,
     isEcho: unit.isEcho,
-    position
+    position,
+    sourceCardInstanceId: source.cardInstanceId,
+    sourceDefId: source.def.id,
+    sourceSide: source.sideState.side
   });
 
   resolveAbilities(
@@ -210,7 +213,10 @@ export const recallUnit = (
     ownerId: unit.ownerId,
     isEcho: unit.isEcho,
     from: "ashes",
-    position
+    position,
+    sourceCardInstanceId: source.cardInstanceId,
+    sourceDefId: source.def.id,
+    sourceSide: source.sideState.side
   });
 
   resolveAbilities(

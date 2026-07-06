@@ -634,6 +634,15 @@ export function App() {
   )} / ${rendererReplayCommands.length}`;
   const rendererReplayLatestSummary =
     rendererReplay.latestCommandSummary ?? "No command visualized yet.";
+  const defaultCombatReplayHasVisualState =
+    defaultCombatReplayCommands.length > 0 &&
+    (defaultCombatReplay.commandIndex > 0 || defaultCombatReplay.status !== "idle");
+  const rendererReplayHasVisualState =
+    rendererReplayCommands.length > 0 &&
+    (rendererReplay.commandIndex > 0 || rendererReplay.status !== "idle");
+  const shouldPreserveReplaySelectionModel =
+    (isDefaultRoute && defaultCombatReplayHasVisualState) ||
+    (isRendererLab && rendererReplayHasVisualState);
   const selectedAllyInspection = useMemo(() => {
     if (!effectiveAllyCardRef) {
       return undefined;
@@ -670,6 +679,12 @@ export function App() {
 
     return card ? inspectEncounterCard({ catalog: sampleCatalog, card }) : undefined;
   }, [currentEncounter, effectiveEnemyCardRef]);
+  const replayTokenInspectionNotice =
+    defaultCombatReplayHasVisualState &&
+    ((selectedAllyCardRef?.type === "run" && !selectedAllyInspection) ||
+      (selectedEnemyCardRef?.type === "encounterBoard" && !selectedEnemyInspection))
+      ? "Replay token inspection is not available yet for this temporary combat token."
+      : undefined;
   const rendererInspectorIsEnemy = selectedEngagementRef?.type === "encounterBoard";
   const rendererInspection = rendererInspectorIsEnemy
     ? selectedEnemyInspection
@@ -1110,7 +1125,14 @@ export function App() {
       encounterId: currentEncounter.id,
       result: combat
     });
-    setDefaultCombatReplay((current) => resetPixiReplay(current));
+    const combatReplayCommandCount = limitPixiReplayCommands(
+      combatEventsToPixiReplayCommands(combat.events, {
+        cardNamesByDefId
+      })
+    ).length;
+    setDefaultCombatReplay((current) =>
+      playPixiReplay(resetPixiReplay(current), combatReplayCommandCount)
+    );
     setRun((currentRun) =>
       applyRunAction(currentRun, sampleCatalog, {
         type: "recordCombatResult",
@@ -1278,7 +1300,10 @@ export function App() {
         rendererReplayCommands.length,
         nextCommandIndex,
         command,
-        { cardNameByInstanceId: rendererReplayCardNameByInstanceId },
+        {
+          cardNameByInstanceId: rendererReplayCardNameByInstanceId,
+          cardNamesByDefId
+        },
         resetKey
       )
     );
@@ -1295,7 +1320,10 @@ export function App() {
         defaultCombatReplayCommands.length,
         nextCommandIndex,
         command,
-        { cardNameByInstanceId: defaultCombatReplayCardNameByInstanceId },
+        {
+          cardNameByInstanceId: defaultCombatReplayCardNameByInstanceId,
+          cardNamesByDefId
+        },
         resetKey
       )
     );
@@ -1305,7 +1333,9 @@ export function App() {
     pixiPlacement.controller.clearPlacement();
     if (card.side === "playerA") {
       setSelectedAllyCardRef({ type: "run", cardInstanceId: card.cardInstanceId });
-      setSelectedEngagementRef({ type: "run", cardInstanceId: card.cardInstanceId });
+      if (!shouldPreserveReplaySelectionModel) {
+        setSelectedEngagementRef({ type: "run", cardInstanceId: card.cardInstanceId });
+      }
       return;
     }
 
@@ -1313,10 +1343,12 @@ export function App() {
       type: "encounterBoard",
       cardInstanceId: card.cardInstanceId
     });
-    setSelectedEngagementRef({
-      type: "encounterBoard",
-      cardInstanceId: card.cardInstanceId
-    });
+    if (!shouldPreserveReplaySelectionModel) {
+      setSelectedEngagementRef({
+        type: "encounterBoard",
+        cardInstanceId: card.cardInstanceId
+      });
+    }
   };
 
   const placePixiSelectedCardOnCell = (position: BoardPosition) => {
@@ -1456,6 +1488,7 @@ export function App() {
     playerGold: run.playerGold,
     playerHealth: run.playerHealth,
     placementHint: pixiPlacement.view.placementHint,
+    ...(replayTokenInspectionNotice ? { replayTokenInspectionNotice } : {}),
     selectedAllyInspection,
     selectedEnemyInspection
   } satisfies DefaultPixiBattlefieldView;

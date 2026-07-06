@@ -1,4 +1,9 @@
-import type { CardInstanceId } from "@packbound/shared";
+import {
+  combatRowRangeForSide,
+  type CardDefId,
+  type CardInstanceId,
+  type PlayerSide
+} from "@packbound/shared";
 
 import type { PixiReplayCommand } from "./pixiCombatReplay";
 
@@ -13,6 +18,7 @@ export type PixiReplayControlsState = {
 };
 
 export type PixiReplayCommandSummaryOptions = {
+  readonly cardNamesByDefId?: ReadonlyMap<CardDefId, string>;
   readonly cardNameByInstanceId?: ReadonlyMap<CardInstanceId, string>;
 };
 
@@ -103,6 +109,56 @@ const nameForCardId = (
   options: PixiReplayCommandSummaryOptions
 ): string => options.cardNameByInstanceId?.get(cardInstanceId) ?? cardInstanceId;
 
+const nameForDefId = (
+  cardDefId: CardDefId,
+  options: PixiReplayCommandSummaryOptions
+): string => options.cardNamesByDefId?.get(cardDefId) ?? cardDefId;
+
+const sideLabel = (side: PlayerSide): string => (side === "playerA" ? "Player" : "Enemy");
+
+const sideAreaLabel = (side: PlayerSide): string =>
+  side === "playerA" ? "your side" : "enemy side";
+
+const rowRoleLabel = (side: PlayerSide, row: number): string | undefined => {
+  const range = combatRowRangeForSide(side);
+  const frontline = side === "playerA" ? range.firstRow : range.lastRow;
+  const backline = side === "playerA" ? range.lastRow : range.firstRow;
+
+  if (row === frontline) {
+    return `${side === "playerA" ? "your" : "enemy"} frontline`;
+  }
+  if (row === backline) {
+    return `${side === "playerA" ? "your" : "enemy"} backline`;
+  }
+  return undefined;
+};
+
+const positionSummary = (command: Extract<PixiReplayCommand, { type: "appear" }>) => {
+  const role = rowRoleLabel(command.side, command.position.row);
+  const coordinate = `r${command.position.row} c${command.position.col}`;
+  return role
+    ? `${role} (${coordinate})`
+    : `${sideAreaLabel(command.side)} ${coordinate}`;
+};
+
+const sourceNameForAppearCommand = (
+  command: Extract<PixiReplayCommand, { type: "appear" }>,
+  options: PixiReplayCommandSummaryOptions
+): string | undefined => {
+  if (command.arrival.sourceDefId) {
+    return `${sideLabel(command.arrival.sourceSide ?? command.side)} ${nameForDefId(
+      command.arrival.sourceDefId,
+      options
+    )}`;
+  }
+  if (command.arrival.sourceCardInstanceId) {
+    return `${sideLabel(
+      command.arrival.sourceSide ?? command.side
+    )} ${nameForCardId(command.arrival.sourceCardInstanceId, options)}`;
+  }
+  return undefined;
+};
+
 export const summarizePixiReplayCommand = (
   command: PixiReplayCommand,
   options: PixiReplayCommandSummaryOptions = {}
@@ -115,9 +171,24 @@ export const summarizePixiReplayCommand = (
     case "damage":
       return `${nameForCardId(command.targetCardInstanceId, options)} took ${command.amount} damage.`;
     case "destroyed":
-      return `${nameForCardId(command.cardInstanceId, options)} was destroyed.`;
-    case "appear":
-      return `${command.token.name} appeared at r${command.position.row} c${command.position.col}.`;
+      return `${nameForCardId(command.cardInstanceId, options)} was destroyed; its marker is not a living unit.`;
+    case "appear": {
+      const sourceName = sourceNameForAppearCommand(command, options);
+      const destination = positionSummary(command);
+      switch (command.arrival.kind) {
+        case "summoned":
+          return sourceName
+            ? `${sourceName} summoned ${command.token.name} to ${destination}.`
+            : `${command.token.name} was summoned to ${destination}.`;
+        case "recalled":
+          return sourceName
+            ? `${sourceName} recalled ${command.token.name} to ${destination}.`
+            : `${command.token.name} returned from Ashes to ${destination}.`;
+        case "phasedIn":
+          return `${command.token.name} phased in at ${destination}.`;
+      }
+      return `${command.token.name} appeared at ${destination}.`;
+    }
     case "phaseOut":
       return `${nameForCardId(command.cardInstanceId, options)} phased out.`;
   }

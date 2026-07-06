@@ -148,6 +148,9 @@ export type CombatEvent =
       readonly ownerId: PlayerId;
       readonly isEcho: boolean;
       readonly position: BoardPosition;
+      readonly sourceCardInstanceId?: CardInstanceId;
+      readonly sourceDefId?: CardDefId;
+      readonly sourceSide?: PlayerSide;
     }
   | {
       readonly type: "UnitRecalled";
@@ -160,6 +163,9 @@ export type CombatEvent =
       readonly isEcho: boolean;
       readonly from: "ashes";
       readonly position: BoardPosition;
+      readonly sourceCardInstanceId?: CardInstanceId;
+      readonly sourceDefId?: CardDefId;
+      readonly sourceSide?: PlayerSide;
     }
   | {
       readonly type: "UnitPhasedOut";

@@ -116,6 +116,19 @@ const testCards: readonly CardDefinition[] = [
     stats: { attack: 1, health: 5, attackSpeed: 5, range: 1 }
   },
   {
+    id: asCardDefId("test_ranged_attacker"),
+    name: "Test Ranged Attacker",
+    set: "test_lab",
+    rarity: "common",
+    cardType: "Unit",
+    aspects: ["Gleam"],
+    cost: { generic: 1 },
+    tags: ["Archer"],
+    keywords: ["Quickstart"],
+    abilities: [],
+    stats: { attack: 1, health: 5, attackSpeed: 5, range: 2 }
+  },
+  {
     id: asCardDefId("test_guard_target"),
     name: "Test Guard Target",
     set: "test_lab",
@@ -719,7 +732,10 @@ describe("deterministic combat", () => {
       defId: asCardDefId("signal_wisp_echo"),
       side: "playerA",
       ownerId: playerA,
-      isEcho: true
+      isEcho: true,
+      sourceCardInstanceId: asCardInstanceId("a:signal_nest"),
+      sourceDefId: asCardDefId("signal_nest"),
+      sourceSide: "playerA"
     });
     expect(result.finalState.ashes.playerA).toHaveLength(0);
   });
@@ -839,7 +855,10 @@ describe("deterministic combat", () => {
       defId: asCardDefId("test_phase_probe"),
       side: "playerA",
       ownerId: playerA,
-      isEcho: false
+      isEcho: false,
+      sourceCardInstanceId: asCardInstanceId("a:test_recaller:0"),
+      sourceDefId: asCardDefId("test_recaller"),
+      sourceSide: "playerA"
     });
     expect(result.finalState.ashes.playerA).toHaveLength(1);
   });
@@ -913,6 +932,61 @@ describe("deterministic combat", () => {
     expect(firstAttack).toMatchObject({
       targetId: unitId("playerB", guard.cardInstanceId)
     });
+  });
+
+  it("lets ranged units attack without moving when their target is already in range", () => {
+    const archer = placement(playerA, "a", "test_ranged_attacker", 4, 2, "archer");
+    const target = placement(playerB, "b", "test_endless_wall", 3, 2, "target");
+
+    const result = resolve({
+      playerA: combatant(playerA, board(archer)),
+      playerB: combatant(playerB, board(target)),
+      maxDurationMs: 100
+    });
+
+    expect(
+      result.events.filter(
+        (event) =>
+          event.type === "UnitMoved" && event.cardInstanceId === archer.cardInstanceId
+      )
+    ).toHaveLength(0);
+    expect(
+      result.events.find(
+        (event) =>
+          event.type === "UnitAttacked" &&
+          event.attackerCardInstanceId === archer.cardInstanceId
+      )
+    ).toMatchObject({
+      targetCardInstanceId: target.cardInstanceId
+    });
+  });
+
+  it("moves ranged units toward targets only when the target is out of range", () => {
+    const archer = placement(playerA, "a", "test_ranged_attacker", 4, 2, "archer");
+    const target = placement(playerB, "b", "test_endless_wall", 0, 2, "target");
+
+    const result = resolve({
+      playerA: combatant(playerA, board(archer)),
+      playerB: combatant(playerB, board(target)),
+      maxDurationMs: 100
+    });
+
+    const archerMoves = result.events.filter(
+      (event): event is Extract<CombatEvent, { readonly type: "UnitMoved" }> =>
+        event.type === "UnitMoved" && event.cardInstanceId === archer.cardInstanceId
+    );
+    expect(archerMoves).toHaveLength(1);
+    expect(archerMoves[0]).toMatchObject({
+      from: { row: 4, col: 2, layer: "ground" },
+      targetCardInstanceId: target.cardInstanceId
+    });
+    expect(
+      result.events.find(
+        (event) =>
+          event.type === "UnitAttacked" &&
+          event.attackerCardInstanceId === archer.cardInstanceId
+      )
+    ).toBeUndefined();
   });
 
   it("max duration creates a draw and warning", () => {

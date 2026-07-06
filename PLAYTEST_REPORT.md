@@ -411,20 +411,46 @@ latest-pack suggestions now name common blockers such as full Source Row slots,
 full Spellrail slots, insufficient Board Charge, and occupied ground/support
 layers instead of only asking the player to inspect the card.
 
+Implementation update after this task: default combat playback now starts
+automatically after `Record Combat`, and selecting a Pixi token during playback
+no longer resets replay positions or command progress. If a clicked replay token
+cannot map back to a current loadout/encounter inspection target, the default
+route keeps playback stable and shows a clear replay-inspection fallback note.
+Destroyed replay commands now remove the living token and leave only a small
+ashes-style marker, so later movement onto that cell should no longer read as a
+unit moving onto a living corpse. Summon and recall events now carry source
+metadata where the simulator knows it, and Key Moments / replay summaries can
+say things like `Enemy Hollow Caller recalled Ember Scraprunner to enemy
+backline`. Ranged attack behavior was audited and pinned in tests: range-2 units
+attack without moving when the selected target is already in range, and move
+toward the target only when out of range. Upcoming Combat Preview still exposes
+deterministic winner/damage information, but full Key Moments are now collapsed
+until the player records the fight. Recorded combat also teaches the current
+autobattler rule: skirmish damage resets after combat and the loadout persists
+unless a card effect says otherwise.
+
+Deferred design notes after this task: Commander upgrades still feel mechanical
+and should become build-defining later; the pack-to-pool loop remains closer to
+a loadout autobattler than a deck/hand/draw deckbuilder; suggested edits and
+`Select Board Cell` still choose default placements rather than player-owned
+repositioning; clicking every available post-pack option can make wins feel too
+automatic; and fences/support-created terrain remains promising but should wait
+until combat readability and pacing are stable.
+
 The biggest remaining Pixi/default-route findings are no longer the absence of
 replay controls, tiny first-pass labels, unvalidated readability, default-route
 confidence, basic default-route edit affordances, an ungrouped default combat
 feed, a debug-grid first screen, or always-expanded inspector detail. Now that
 `/` opens on a tighter Pixi-focused playtest surface with an immediate build
 decision, a first-fold Loadout Tray, and grouped duplicate post-pack
-suggestions, the next gaps are richer direct-manipulation polish such as
-drag/drop or canvas-native zone editing, scrub or speed controls in Renderer
-Lab, and checking that grouped combat copy scales beyond the current starter
-fights.
+suggestions, and stabilized default combat playback, the next gaps are richer
+direct-manipulation polish such as board repositioning or eventual drag/drop,
+canvas-native zone editing, and checking that grouped combat/replay copy scales
+beyond the current starter fights.
 
 Recommended next task:
 
-`feat(client): add Pixi replay scrub/speed controls`
+`feat(client): add Pixi board repositioning affordance`
 
 ## 2. Environment And Commands
 

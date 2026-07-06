@@ -72,6 +72,12 @@ export const CombatResultPanel = ({
             </div>
           </dl>
           <p className="flow-note">{lastRecorded.flowNote}</p>
+          {isDefaultRoute ? (
+            <p className="flow-note">
+              Skirmish damage resets after combat; your loadout persists unless a card
+              effect says otherwise.
+            </p>
+          ) : null}
           {lastRecorded.displaySummary ? (
             <>
               {isDefaultRoute ? (
@@ -138,7 +144,10 @@ export const CombatResultPanel = ({
       </dl>
       {isDefaultRoute ? (
         <>
-          <CombatSummaryView mode="keyMoments" summary={upcoming.displaySummary} />
+          <details className="combat-feed-details">
+            <summary>Preview Key Moments</summary>
+            <CombatSummaryView mode="keyMoments" summary={upcoming.displaySummary} />
+          </details>
           <details className="combat-feed-details">
             <summary>Preview Event Feed</summary>
             <CombatSummaryView mode="eventFeed" summary={upcoming.displaySummary} />

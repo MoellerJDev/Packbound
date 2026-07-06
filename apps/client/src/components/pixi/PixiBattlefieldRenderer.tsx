@@ -634,27 +634,56 @@ const flashTokenRing = async (
   ring.destroy();
 };
 
-const markDestroyed = (token: TokenView): void => {
-  token.container.alpha = 0.46;
-  token.container.addChild(
+const addDestroyedMarker = (layer: Container, token: TokenView): Container => {
+  const marker = new Container();
+  marker.position.copyFrom(token.container.position);
+  marker.alpha = 0.78;
+  marker.addChild(
     new Graphics()
-      .circle(0, 0, 35)
-      .fill({ color: PIXI_BATTLEFIELD_THEME.destroyed, alpha: 0.72 })
-      .stroke({ color: 0xffe1d0, alpha: 0.96, width: 4 })
+      .circle(0, 0, 26)
+      .fill({ color: 0x1c1716, alpha: 0.86 })
+      .stroke({ color: PIXI_BATTLEFIELD_THEME.destroyed, alpha: 0.9, width: 3 })
   );
-  token.container.addChild(
+  marker.addChild(
     new Graphics()
-      .moveTo(-20, -20)
-      .lineTo(20, 20)
-      .moveTo(-20, 20)
-      .lineTo(20, -20)
-      .stroke({ color: 0xffe1d0, alpha: 0.96, width: 5 })
+      .moveTo(-15, -15)
+      .lineTo(15, 15)
+      .moveTo(-15, 15)
+      .lineTo(15, -15)
+      .stroke({ color: 0xffe1d0, alpha: 0.92, width: 4 })
   );
-  addText(token.container, "X", 0, 0, {
+  addText(marker, "ASH", 0, 1, {
     fill: 0xffe1d0,
-    fontSize: 26,
+    fontSize: 10,
     fontWeight: "900"
   });
+  layer.addChild(marker);
+  return marker;
+};
+
+const flashPointRing = async (
+  app: Application,
+  effectLayer: Container,
+  x: number,
+  y: number,
+  color: number,
+  durationMs: number,
+  isCancelled: () => boolean
+): Promise<void> => {
+  const ring = new Container();
+  ring.position.set(x, y);
+  ring.addChild(new Graphics().circle(0, 0, 36).stroke({ color, alpha: 0.9, width: 4 }));
+  effectLayer.addChild(ring);
+  await animate(
+    app,
+    durationMs,
+    (progress) => {
+      ring.scale.set(1 + progress * 0.48);
+      ring.alpha = 1 - progress;
+    },
+    isCancelled
+  );
+  ring.destroy();
 };
 
 const playCommand = async (
@@ -733,11 +762,15 @@ const playCommand = async (
       if (!token) {
         return;
       }
-      markDestroyed(token);
-      await flashTokenRing(
+      const { x, y } = token.container.position;
+      addDestroyedMarker(effectLayer, token);
+      tokensByCardId.delete(command.cardInstanceId);
+      token.container.destroy({ children: true });
+      await flashPointRing(
         app,
         effectLayer,
-        token,
+        x,
+        y,
         PIXI_BATTLEFIELD_THEME.destroyed,
         240,
         isCancelled

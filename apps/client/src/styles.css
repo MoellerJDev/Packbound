@@ -297,6 +297,15 @@ h4 {
   margin: -2px 0 0;
 }
 
+.default-pixi-selection-context.warning {
+  background: #3a3020;
+  border: 1px solid #725d2f;
+  border-radius: 6px;
+  color: #ffe6ad;
+  margin: 0;
+  padding: 8px 10px;
+}
+
 .default-pixi-stage .pixi-renderer-host {
   height: min(58vh, 600px);
   min-height: 500px;

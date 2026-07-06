@@ -101,6 +101,13 @@ export const EngagementPreviewPanel = ({
               }.`}
         </p>
       ) : null}
+      {target ? (
+        <p>
+          {target.inRange
+            ? "In range: attacks without moving."
+            : "Out of range: moving toward target."}
+        </p>
+      ) : null}
       {preview.nextMove ? (
         <p>
           Next move: {formatCoordinate(preview.nextMove.from)} to{" "}

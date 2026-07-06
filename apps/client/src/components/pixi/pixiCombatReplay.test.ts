@@ -13,6 +13,8 @@ import { combatEventsToPixiReplayCommands } from "./pixiCombatReplay";
 const playerId = asPlayerId("player");
 const recalledCardInstanceId = asCardInstanceId("recalled-ember");
 const recalledDefId = asCardDefId("ember_scraprunner");
+const recallSourceCardInstanceId = asCardInstanceId("hollow-caller");
+const recallSourceDefId = asCardDefId("hollow_caller");
 const summonedCardInstanceId = asCardInstanceId("summoned-wisp");
 const summonedDefId = asCardDefId("cloud_wisp");
 
@@ -29,7 +31,10 @@ describe("pixi combat replay commands", () => {
         ownerId: playerId,
         isEcho: false,
         from: "ashes",
-        position: { row: 3, col: 0, layer: "ground" }
+        position: { row: 3, col: 0, layer: "ground" },
+        sourceCardInstanceId: recallSourceCardInstanceId,
+        sourceDefId: recallSourceDefId,
+        sourceSide: "playerA"
       }
     ];
 
@@ -44,6 +49,12 @@ describe("pixi combat replay commands", () => {
         cardInstanceId: recalledCardInstanceId,
         side: "playerA",
         position: { row: 3, col: 0, layer: "ground" },
+        arrival: {
+          kind: "recalled",
+          sourceCardInstanceId: recallSourceCardInstanceId,
+          sourceDefId: recallSourceDefId,
+          sourceSide: "playerA"
+        },
         token: {
           cardInstanceId: recalledCardInstanceId,
           defId: recalledDefId,
@@ -84,6 +95,7 @@ describe("pixi combat replay commands", () => {
         cardInstanceId: summonedCardInstanceId,
         side: "playerB",
         position: { row: 1, col: 4, layer: "air" },
+        arrival: { kind: "summoned" },
         token: {
           cardInstanceId: summonedCardInstanceId,
           defId: summonedDefId,

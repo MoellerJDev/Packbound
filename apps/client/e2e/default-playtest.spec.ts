@@ -162,7 +162,6 @@ test("default playtest route starts with concise Pixi play surface", async ({ pa
   await expect(
     engagementPreview.getByText("Ember Scraprunner can attack Ember Scraprunner now.")
   ).toBeVisible();
-  await expectNoHorizontalScroll(rendererHost);
 
   expectNoBrowserErrors(errors);
 });

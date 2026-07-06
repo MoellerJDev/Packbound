@@ -92,6 +92,13 @@ been added as a general Packbound agent guide, replacing the stale one-off
 default-Pixi handoff prompt that had been copied into the working tree during
 the audit.
 
+Hardening update after this task: coverage-guided pure tests now cover
+board-only teamup activation and combat targeting edge cases, and the default
+route file has been split into focused route components without changing the
+default play surface. Coverage thresholds remain conservative because React
+component coverage is still intentionally browser-smoke-driven rather than
+shallow-render-driven.
+
 Implementation update after this task: the default Pixi battlefield now has a
 compact `Loadout` control strip for selected Pool cards. It uses existing legal
 loadout actions to expose `Add to Source Row` for selected Sources and

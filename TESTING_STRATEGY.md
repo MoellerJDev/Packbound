@@ -72,6 +72,24 @@ thresholds only after adding meaningful pure tests or extracting testable view
 models. Do not raise a threshold above the latest stable measured baseline, and
 avoid writing low-value tests just to move a percentage.
 
+### Coverage-Guided Hardening Notes
+
+The July 2026 hardening pass used `pnpm test:coverage` plus file-size scans
+before editing. The highest-value pure gaps were board-only teamup activation
+and combat targeting edge behavior, so new tests cover `calculateTeamups`
+thresholds, support placements, unknown trait/card ignores, Guard vs AntiAir
+target priority, Airborne target ordering, clamped range checks, placement-origin
+targeting, and alive-only tag selectors.
+
+That pass intentionally did not chase React component coverage by adding shallow
+render tests. Instead, `DefaultRunRoute.tsx` was split into focused route
+components while preserving browser smoke coverage. Future client hardening
+should continue extracting pure view-model helpers when behavior is worth
+testing directly, and should use Playwright only for stable route wiring that a
+player can observe. The post-pass measured baseline was about 58.8%
+statements/lines, 80.84% branches, and 91.32% functions, so thresholds stayed
+at 55/55/80/90.
+
 ### Content Validation
 
 Content schemas and catalog validation should reject malformed card, pack,

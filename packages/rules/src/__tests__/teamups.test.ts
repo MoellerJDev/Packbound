@@ -5,12 +5,16 @@ import {
   asCardDefId,
   asCardInstanceId,
   asPlayerId,
+  type BoardPlacement,
+  type BoardState,
+  type CardDefinition,
   type CardInstance
 } from "@packbound/shared";
 
 import {
   addCardToSourceRow,
   buildRunTraitSummary,
+  calculateTeamups,
   createCardInstance,
   createRunFromStarterKit,
   removeCardFromSourceRow,
@@ -46,6 +50,21 @@ const poolCard = (run: RunState, defId: string, suffix = defId): CardInstance =>
 const withPoolCard = (run: RunState, card: CardInstance): RunState => ({
   ...run,
   pool: [...run.pool, card]
+});
+
+const teamupPlacement = (
+  defId: string,
+  index: number,
+  layer: BoardPlacement["position"]["layer"] = "ground"
+): BoardPlacement => ({
+  cardInstanceId: asCardInstanceId(`teamup-board:${defId}:${index}`),
+  defId: asCardDefId(defId),
+  ownerId: asPlayerId("teamup-player"),
+  position: { row: index, col: 2, layer }
+});
+
+const teamupBoard = (...placements: readonly BoardPlacement[]): BoardState => ({
+  placements
 });
 
 describe("run trait summaries", () => {
@@ -177,5 +196,91 @@ describe("run trait summaries", () => {
       "Phase Step"
     ]);
     expect(phase?.cards.every((card) => card.cardInstanceId.length > 0)).toBe(true);
+  });
+});
+
+describe("board teamup activation", () => {
+  it("activates board-only trait thresholds deterministically", () => {
+    const teamups = calculateTeamups(
+      sampleCatalog,
+      teamupBoard(
+        teamupPlacement("ember_scraprunner", 0),
+        teamupPlacement("cinder_scout", 1)
+      )
+    );
+
+    expect(teamups.map((teamup) => teamup.teamupId)).toEqual(["ember", "scrapper"]);
+    expect(teamups).toMatchObject([
+      {
+        teamupId: "ember",
+        count: 2,
+        tier: 1,
+        sourceInstanceIds: [
+          asCardInstanceId("teamup-board:ember_scraprunner:0"),
+          asCardInstanceId("teamup-board:cinder_scout:1")
+        ]
+      },
+      {
+        teamupId: "scrapper",
+        count: 2,
+        tier: 1,
+        sourceInstanceIds: [
+          asCardInstanceId("teamup-board:ember_scraprunner:0"),
+          asCardInstanceId("teamup-board:cinder_scout:1")
+        ]
+      }
+    ]);
+    expect(JSON.parse(JSON.stringify(teamups))).toEqual(teamups);
+  });
+
+  it("counts support placements and higher thresholds without requiring run zones", () => {
+    const teamups = calculateTeamups(
+      sampleCatalog,
+      teamupBoard(
+        teamupPlacement("ember_scraprunner", 0),
+        teamupPlacement("cinder_scout", 1),
+        teamupPlacement("sparkcatch_apprentice", 2),
+        teamupPlacement("signal_nest", 3, "support")
+      )
+    );
+
+    expect(teamups.find((teamup) => teamup.teamupId === "ember")).toMatchObject({
+      count: 4,
+      tier: 2
+    });
+    expect(teamups.find((teamup) => teamup.teamupId === "echo_fodder")).toMatchObject({
+      count: 3,
+      tier: 2
+    });
+  });
+
+  it("ignores unknown card definitions and traits that are not in the catalog", () => {
+    const cinderScout = sampleCatalog.cardsById.get(asCardDefId("cinder_scout"));
+    if (!cinderScout) {
+      throw new Error("Expected cinder_scout in sample catalog");
+    }
+    const missingTraitCard: CardDefinition = {
+      ...cinderScout,
+      id: asCardDefId("test_missing_trait_card"),
+      traits: ["test_missing_trait"]
+    };
+    const catalogWithMissingTrait = {
+      ...sampleCatalog,
+      cards: [...sampleCatalog.cards, missingTraitCard],
+      cardsById: new Map([
+        ...sampleCatalog.cardsById,
+        [missingTraitCard.id, missingTraitCard] as const
+      ])
+    };
+
+    expect(
+      calculateTeamups(
+        catalogWithMissingTrait,
+        teamupBoard(
+          teamupPlacement("test_missing_trait_card", 0),
+          teamupPlacement("test_unknown_card", 1)
+        )
+      )
+    ).toEqual([]);
   });
 });

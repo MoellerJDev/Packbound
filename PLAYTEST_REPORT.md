@@ -260,6 +260,12 @@ full Commander lifecycle history, combat model notes, reward rationale details,
 and long combat event feeds are now collapsed by default on `/`. Labs keep their
 verbose diagnostic surfaces.
 
+Test architecture update after this task: Vitest coverage now runs from the
+root with V8 coverage, conservative global thresholds, and a CI coverage step
+between unit tests and build. Browser smoke is split into default-route workflow
+coverage plus lab coverage with shared test-only helpers, so future Pixi and
+loadout checks should not rebuild monolithic route tours.
+
 Implementation update after this task: the default route now shows compact
 post-pack loadout suggestions after a reward pack is opened. The rules layer
 builds a deterministic `Suggested next edits` summary from only the latest

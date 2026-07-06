@@ -39,9 +39,38 @@ Manual playtesting checklist
 
 ### Static Checks
 
-Run `pnpm format:check`, `pnpm lint`, `pnpm typecheck`, and `pnpm build` before
-shipping changes. These catch style drift, import mistakes, type holes, and
-package boundary issues.
+Run `pnpm format:check`, `pnpm lint`, `pnpm typecheck`, `pnpm test`,
+`pnpm test:coverage`, and `pnpm build` before shipping source changes. These
+catch style drift, import mistakes, type holes, unit regressions, coverage
+regressions, and package boundary issues.
+
+### Coverage
+
+Run `pnpm test:coverage` locally for the Vitest V8 coverage report. CI runs the
+same command through `pnpm test:coverage:ci` after the normal unit test step and
+before build. Reports are written to `coverage/`, which is intentionally ignored
+by git.
+
+Coverage currently includes source under `packages/rules/src`,
+`packages/sim/src`, `packages/content/src`, and `apps/client/src`. It excludes
+tests, Playwright specs, config/build files, generated output, scripts,
+declarations, `dist`, `coverage`, and `node_modules`.
+
+The initial thresholds are deliberately conservative and are rounded down from
+the measured baseline:
+
+- Statements: 55%
+- Lines: 55%
+- Branches: 80%
+- Functions: 90%
+
+These thresholds are meant to prevent large accidental regressions, not to
+pretend the client has mature unit coverage. The first measured baseline was
+about 58.65% statements/lines, 80.88% branches, and 91.93% functions, with pure
+rules/content/sim packages much healthier than React component coverage. Raise
+thresholds only after adding meaningful pure tests or extracting testable view
+models. Do not raise a threshold above the latest stable measured baseline, and
+avoid writing low-value tests just to move a percentage.
 
 ### Content Validation
 
@@ -128,19 +157,10 @@ remain the automated pass/fail guardrails.
 ### UI Smoke Tests
 
 The debug client has small Playwright smoke tests for the current browser loop,
-engagement lab, priority lab, and duplicate-upgrade path. They start the Vite
-client, load the app, verify the Battlefield, Ally Inspector, Enemy Inspector,
-and stat text, inspect an ally and enemy board card independently, ready and
-record combat, open a reward, verify latest reward markers, advance the run,
-exercise the `?scenario=engagement-lab` next-move preview, exercise the
-`?scenario=priority-lab` phase/priority/stack/skirmish panel, and use a
-debug-only upgrade lab scenario to click an actual Unit upgrade, inspect the
-upgraded stats, and verify the Upgrade Progress panel/inspector wording for
-that stable duplicate scenario. The debug-loop smoke also checks that reward
-explanations render without asserting exact visual layout. CI installs
-Playwright Chromium and runs the same smoke tests with `pnpm test:browser`.
-Keep this layer focused on stable text and roles. Avoid screenshots, broad
-brittle snapshots, animation timing, and visual assertions.
+engagement lab, priority lab, renderer lab, and duplicate-upgrade path. CI
+installs Playwright Chromium and runs the same smoke tests with
+`pnpm test:browser`. Keep this layer focused on stable text and roles. Avoid
+screenshots, broad brittle snapshots, animation timing, and visual assertions.
 
 The default-route smoke is intentionally split across focused tests instead of
 one large end-to-end tour. Keep `/` coverage divided between the concise Pixi
@@ -148,6 +168,22 @@ playtest surface, Pixi edit controls, Commander controls, and the combat/reward
 loop so each test stays well below the 30-second CI timeout. Rapid Pixi replay
 edge cases and detailed view-model behavior should live in unit tests or focused
 diagnostic-route smoke, not in the default-route playtest loop.
+
+Current browser smoke structure:
+
+- `apps/client/e2e/default-playtest.spec.ts` covers `/` by workflow.
+- `apps/client/e2e/labs.spec.ts` covers engagement, priority, renderer, and
+  upgrade labs.
+- `apps/client/e2e/helpers/browserSmokeHelpers.ts` holds small shared test-only
+  helpers such as browser error capture, panel lookup, Pixi cell clicks, and
+  default-route setup.
+
+If a browser smoke test approaches 20 seconds locally, split or tighten it
+before it reaches CI's 30-second per-test timeout. Increasing Playwright
+timeouts should be a last resort after removing redundant assertions, isolating
+expensive Pixi coordinate-click paths, and moving pure behavior into unit tests.
+Future mechanics should start with rules, simulator, content, or view-model
+tests before adding one stable browser check for the user-visible route wiring.
 
 ### Manual Playtesting
 

@@ -4,19 +4,25 @@ import { sampleCatalog } from "@packbound/content";
 import {
   applyRunAction,
   buildEngagementPreview,
+  buildCombatantSetupForEncounter,
+  buildCombatantSetupForRun,
   createRunFromStarterKit,
+  getCurrentEncounter,
   getUpgradeableCardGroups,
   type RunState
 } from "@packbound/rules";
 import { asCardInstanceId, asPlayerId, positionKey } from "@packbound/shared";
+import { buildCombatDisplaySummary, resolveCombat } from "@packbound/sim";
 
 import {
+  DEFAULT_PLAYTEST_SCENARIO_ID,
   DEBUG_ENGAGEMENT_MELEE_CARD_DEF_ID,
   DEBUG_ENGAGEMENT_RANGED_CARD_DEF_ID,
   DEBUG_ENGAGEMENT_SCENARIO_ID,
   DEBUG_PRIORITY_SCENARIO_ID,
   DEBUG_UPGRADE_CARD_DEF_ID,
   DEBUG_UPGRADE_SCENARIO_ID,
+  applyDefaultPlaytestScenario,
   applyDebugScenario,
   debugScenarioFromSearch
 } from "./debugScenarios";
@@ -93,6 +99,76 @@ describe("debug upgrade scenarios", () => {
       }
     ]);
     expect(JSON.parse(JSON.stringify(scenarioRun))).toEqual(scenarioRun);
+  });
+
+  it("adds a deterministic upgrade-ready default playtest setup", () => {
+    const run = createBaseRun();
+    const scenarioRun = applyDefaultPlaytestScenario(run);
+    const copies = scenarioRun.pool.filter(
+      (card) => card.defId === DEBUG_UPGRADE_CARD_DEF_ID
+    );
+
+    expect(copies).toHaveLength(3);
+    expect(copies.map((card) => card.instanceId)).toEqual([
+      asCardInstanceId(
+        `${run.runId}:debug-scenario:${DEFAULT_PLAYTEST_SCENARIO_ID}:cinder_scout:0`
+      ),
+      asCardInstanceId(
+        `${run.runId}:debug-scenario:${DEFAULT_PLAYTEST_SCENARIO_ID}:cinder_scout:1`
+      ),
+      asCardInstanceId(
+        `${run.runId}:debug-scenario:${DEFAULT_PLAYTEST_SCENARIO_ID}:cinder_scout:2`
+      )
+    ]);
+    expect(getUpgradeableCardGroups(scenarioRun, sampleCatalog)).toMatchObject([
+      {
+        defId: DEBUG_UPGRADE_CARD_DEF_ID,
+        name: "Cinder Scout",
+        availableCopies: 3,
+        requiredCopies: 3,
+        upgradeLevel: 0,
+        nextUpgradeLevel: 1,
+        eligible: true
+      }
+    ]);
+    expect(JSON.parse(JSON.stringify(scenarioRun))).toEqual(scenarioRun);
+  });
+
+  it("resolves deterministic combat for the default playtest setup", () => {
+    const run = applyDefaultPlaytestScenario(createBaseRun());
+    const combatReadyRun = applyRunAction(run, sampleCatalog, {
+      type: "markCombatReady"
+    });
+    const encounter = getCurrentEncounter(combatReadyRun, sampleCatalog);
+
+    if (!encounter) {
+      throw new Error("Expected prepared encounter for default playtest setup.");
+    }
+
+    const combat = resolveCombat({
+      catalog: sampleCatalog,
+      seed: `default-playtest-combat:${combatReadyRun.seed}:${combatReadyRun.currentRound}:${encounter.id}`,
+      playerA: buildCombatantSetupForRun(combatReadyRun),
+      playerB: buildCombatantSetupForEncounter(encounter)
+    });
+    const summary = buildCombatDisplaySummary({
+      catalog: sampleCatalog,
+      combatResult: combat,
+      perspectiveSide: "playerA"
+    });
+
+    expect(combat.warnings).toEqual([]);
+    expect(["draw", "playerB"]).toContain(combat.winner);
+    expect(combat.damageToPlayerA).toBeGreaterThanOrEqual(0);
+    expect(combat.damageToPlayerA).toBeLessThanOrEqual(2);
+    expect(combat.damageToPlayerB).toBeGreaterThanOrEqual(0);
+    expect(combat.damageToPlayerB).toBeLessThanOrEqual(2);
+    expect(combat.events.some((event) => event.type === "UnitAttacked")).toBe(true);
+    expect(combat.events.some((event) => event.type === "UnitDestroyed")).toBe(true);
+    expect(summary.eventCount).toBe(combat.events.length);
+    expect(summary.keyMoments.rawEventCount).toBe(combat.events.length);
+    expect(summary.keyMoments.lines.map((line) => line.kind)).toContain("destroyed");
+    expect(summary.keyMoments.hiddenEventCount).toBeGreaterThanOrEqual(0);
   });
 
   it("sets up a deterministic engagement lab with an out-of-range melee preview", () => {

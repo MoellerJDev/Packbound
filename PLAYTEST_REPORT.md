@@ -110,6 +110,18 @@ Browser smoke exercises Source Row return, Spellrail return, Board return after
 Pixi placement, Commander inspect/deploy/return, and verifies Renderer Lab replay
 controls remain absent on `/`.
 
+Implementation update after this task: `/` is now the Pixi-focused 10-minute
+playtest route rather than the old debug-grid landing surface. The default run
+uses a shared default-playtest setup extracted from the upgrade-lab duplicate
+fixture, so a new run opens with an immediate Cinder Scout upgrade/build
+decision while preserving starter selection, Pixi board placement, Source Row
+and Spellrail moves, return-to-pool, Commander controls, ready/record combat,
+reward pack opening, Commander upgrades, post-pack suggestions, and Advance.
+The old default debug grid remains available inside collapsed `Advanced Debug
+Panels`, while `?scenario=upgrade-lab` remains a separate diagnostic route.
+Automated coverage now includes the deterministic default playtest setup and a
+default combat expectation against that setup.
+
 Implementation update after this task: combat summaries now include deterministic
 `Key Moments` grouping built in `packages/sim` beside the existing display
 summary helper. Default-route upcoming and recorded combat panels show the
@@ -285,17 +297,19 @@ source lifecycle behavior, or Pixi-default behavior changed. Targeted typecheck
 and browser smoke passed during the pass. Remaining client bloat is mostly
 renderer-lab state/controller setup and top-level App state coordination.
 
-The biggest remaining Pixi findings are no longer the absence of replay controls,
-tiny first-pass labels, unvalidated readability, default-route confidence, basic
-default-route edit affordances, or an ungrouped default combat feed. Now that
-Pixi is primary on `/`, the next gaps are scrub or speed controls in Renderer
-Lab, richer direct-manipulation polish such as drag/drop or canvas-native zone
-editing, and manual validation that the new grouped combat copy scales beyond
-the current starter fights.
+The biggest remaining Pixi/default-route findings are no longer the absence of
+replay controls, tiny first-pass labels, unvalidated readability, default-route
+confidence, basic default-route edit affordances, an ungrouped default combat
+feed, or a debug-grid first screen. Now that `/` opens on a Pixi-focused
+playtest surface with an immediate build decision, the next gaps are manual
+validation of the new 10-minute playtest flow, richer direct-manipulation polish
+such as drag/drop or canvas-native zone editing, scrub or speed controls in
+Renderer Lab, and checking that grouped combat copy scales beyond the current
+starter fights.
 
 Recommended next task:
 
-`feat(client): add Pixi replay scrub/speed controls`
+`test(playtest): manually validate default Pixi playtest route`
 
 ## 2. Environment And Commands
 
@@ -1025,6 +1039,9 @@ Note:
 
 - Pixi is now the primary default battlefield, but it still uses generated
   shapes and text rather than final art assets.
+- The default route now starts as a Pixi-focused playtest surface with an
+  immediate duplicate-upgrade build decision, but that exact 10-minute route
+  flow still needs a fresh manual playtest pass after this implementation.
 - The React/CSS Hex Arena remains available as a collapsed debug fallback on `/`
   and `?scenario=renderer-lab`.
 - The default route now hides/collapses most developer bloat and supports
@@ -1109,16 +1126,18 @@ Note:
 
 Do next:
 
-`feat(client): add Pixi replay scrub/speed controls`
+`test(playtest): manually validate default Pixi playtest route`
 
-Why: `/` now has a real Pixi board-edit mode for Pool-to-board placement,
-selected-card Source Row / Spellrail moves, return-to-pool, compact Commander
-actions, and grouped combat key moments. Renderer Lab still has only
-Play/Pause/Step/Reset, so long replays need scrub/speed controls before visual
-combat review feels fluid.
+Why: `/` now opens on the Pixi-first playtest route with an immediate
+upgrade/build decision, direct Pixi board placement, selected-card Source Row /
+Spellrail moves, return-to-pool, compact Commander actions, grouped combat key
+moments, rewards, Commander upgrades, post-pack suggestions, and round advance.
+The route is covered by browser smoke and deterministic combat tests, but it
+needs a focused manual 10-minute pass before the next UI or rules slice.
 
 Do soon:
 
+- `feat(client): add Pixi replay scrub/speed controls`
 - `feat(client): improve post-pack blocked-reason copy for Source capacity and board layers`
 - `test(playtest): manually validate grouped combat key moments across starters`
 - `feat(rules): evaluate expanding the canonical board to 6 rows x 10-12 columns`

@@ -1,14 +1,15 @@
 import type { ReactNode } from "react";
 
 import type { EncounterDefinition } from "@packbound/content";
-import type {
-  CommanderUpgradeId,
-  LoadoutAction,
-  PostPackLoadoutSuggestionSummary,
-  RewardChoice,
-  RewardOfferExplanation,
-  TraitSummary,
-  UpgradeProgressGroup
+import {
+  describeUpgradeProgressGroup,
+  type CommanderUpgradeId,
+  type LoadoutAction,
+  type PostPackLoadoutSuggestionSummary,
+  type RewardChoice,
+  type RewardOfferExplanation,
+  type TraitSummary,
+  type UpgradeProgressGroup
 } from "@packbound/rules";
 import type { CardDefId, CardInstanceId, ValidationError } from "@packbound/shared";
 
@@ -26,6 +27,11 @@ import {
   type CommanderUpgradePanelView
 } from "../components/CommanderUpgradePanel";
 import {
+  DefaultPixiBattlefieldSection,
+  type DefaultPixiBattlefieldController,
+  type DefaultPixiBattlefieldView
+} from "../components/DefaultPixiBattlefieldSection";
+import {
   LoadoutZonesPanel,
   type LoadoutZonesPanelView
 } from "../components/LoadoutZonesPanel";
@@ -39,6 +45,7 @@ import {
 import { TraitSummaryView } from "../components/TraitSummaryView";
 
 export type DefaultRunRouteView = {
+  readonly battlefield: DefaultPixiBattlefieldView;
   readonly combat: {
     readonly lastRecorded: LastRecordedCombatPanelView;
     readonly upcoming: UpcomingCombatPanelView | undefined;
@@ -74,6 +81,7 @@ export type DefaultRunRouteView = {
 };
 
 export type DefaultRunRouteController = {
+  readonly battlefield: DefaultPixiBattlefieldController;
   readonly cardName: (defId: CardDefId) => string;
   readonly onApplyCommanderUpgrade: (choiceId: CommanderUpgradeId) => void;
   readonly onApplyPostPackSuggestion: (
@@ -183,14 +191,96 @@ const CurrentEncounterDetails = ({
   </>
 );
 
-export const DefaultRunRoute = ({
+const PlanningCheckPanel = ({
+  view
+}: {
+  readonly view: DefaultRunRouteView["planningCheck"];
+}) => (
+  <div className="panel" data-testid="planning-check-panel">
+    <h2>Planning Check</h2>
+    <div className={view.ok ? "status ok" : "status error"}>
+      {view.ok ? "Legal" : "Illegal"}
+    </div>
+    <ul className="message-list">
+      {view.errors.map((error) => (
+        <li key={`${error.code}:${error.cardInstanceId ?? "state"}`}>{error.message}</li>
+      ))}
+    </ul>
+  </div>
+);
+
+const DefaultPlaytestDecisionPanel = ({
+  controller,
+  view
+}: {
+  readonly controller: DefaultRunRouteController;
+  readonly view: DefaultRunRouteView;
+}) => {
+  const readyUpgrade = view.loadoutZonesView.readyUpgradeGroups[0];
+
+  return (
+    <section
+      className="panel default-playtest-decision-panel"
+      data-testid="default-playtest-decision-panel"
+      aria-labelledby="default-playtest-decision-heading"
+    >
+      <div className="default-playtest-decision-copy">
+        <h2 id="default-playtest-decision-heading">Current Decision</h2>
+        <p className="next-action" data-testid="default-playtest-decision">
+          {view.runGuide.nextActionMessage}
+        </p>
+      </div>
+      <dl className="run-stats default-playtest-status-grid">
+        {view.runGuide.stats.map((stat) => (
+          <div key={stat.label}>
+            <dt>{stat.label}</dt>
+            <dd>{stat.value}</dd>
+          </div>
+        ))}
+        <div>
+          <dt>Loadout</dt>
+          <dd>{view.planningCheck.ok ? "Legal" : "Needs fix"}</dd>
+        </div>
+        <div>
+          <dt>Board Charge</dt>
+          <dd>{view.loadoutZonesView.resourceSummary.boardChargeText}</dd>
+        </div>
+      </dl>
+      <div className="default-playtest-upgrade-card">
+        <h3>Build Decision</h3>
+        {readyUpgrade ? (
+          <>
+            <p data-testid="default-playtest-upgrade-copy">
+              {describeUpgradeProgressGroup(readyUpgrade)}
+            </p>
+            <button
+              type="button"
+              data-testid="default-playtest-upgrade-button"
+              onClick={() => controller.onUpgradeGroup(readyUpgrade)}
+              disabled={!view.loadoutZonesView.editable}
+            >
+              Upgrade
+            </button>
+          </>
+        ) : (
+          <p className="muted">
+            No duplicate upgrade is ready. Use Pixi controls, rewards, or Pool cards to
+            tune the loadout.
+          </p>
+        )}
+      </div>
+    </section>
+  );
+};
+
+const DefaultRouteDebugPanels = ({
   controller,
   view
 }: {
   readonly controller: DefaultRunRouteController;
   readonly view: DefaultRunRouteView;
 }) => (
-  <section className="debug-grid">
+  <>
     <RunGuidePanel
       isDefaultRoute={view.isDefaultRoute}
       nextActionMessage={view.runGuide.nextActionMessage}
@@ -208,11 +298,6 @@ export const DefaultRunRoute = ({
       onInspect={controller.onInspectCommander}
       onDeploy={controller.onDeployCommander}
       onReturn={controller.onReturnCommander}
-    />
-    <CommanderUpgradePanel
-      variant="panel"
-      view={view.commanderUpgradePanelView}
-      onApplyUpgrade={controller.onApplyCommanderUpgrade}
     />
 
     {view.isDefaultRoute ? (
@@ -242,32 +327,7 @@ export const DefaultRunRoute = ({
       </div>
     )}
 
-    {view.isDefaultRoute && view.planningCheck.ok ? (
-      <details className="panel advanced-panel" data-testid="planning-check-panel">
-        <summary className="advanced-summary">
-          <h2>Planning Check</h2>
-          <span>Legal</span>
-        </summary>
-        <div className="advanced-panel-body">
-          <div className="status ok">Legal</div>
-          <p className="muted">Loadout validation passed.</p>
-        </div>
-      </details>
-    ) : (
-      <div className="panel" data-testid="planning-check-panel">
-        <h2>Planning Check</h2>
-        <div className={view.planningCheck.ok ? "status ok" : "status error"}>
-          {view.planningCheck.ok ? "Legal" : "Illegal"}
-        </div>
-        <ul className="message-list">
-          {view.planningCheck.errors.map((error) => (
-            <li key={`${error.code}:${error.cardInstanceId ?? "state"}`}>
-              {error.message}
-            </li>
-          ))}
-        </ul>
-      </div>
-    )}
+    <PlanningCheckPanel view={view.planningCheck} />
 
     {view.isDefaultRoute ? (
       <details className="panel advanced-panel" data-testid="traits-panel">
@@ -286,6 +346,24 @@ export const DefaultRunRoute = ({
       </div>
     )}
 
+    <LoadoutZonesPanel
+      cardName={controller.cardName}
+      renderLoadoutActions={controller.renderLoadoutActions}
+      view={view.loadoutZonesView}
+      onUpgradeGroup={controller.onUpgradeGroup}
+    />
+  </>
+);
+
+const DebugGridRoute = ({
+  controller,
+  view
+}: {
+  readonly controller: DefaultRunRouteController;
+  readonly view: DefaultRunRouteView;
+}) => (
+  <section className="debug-grid">
+    <DefaultRouteDebugPanels controller={controller} view={view} />
     <RewardChoicesPanel
       collapseExplanations={view.isDefaultRoute}
       description={view.rewards.description}
@@ -294,21 +372,11 @@ export const DefaultRunRoute = ({
       playerGold={view.rewards.playerGold}
       rewardChoices={view.rewards.rewardChoices}
     />
-
-    {view.isDefaultRoute && view.postPackSuggestions.latestOpenedCardCount > 0 ? (
-      <PostPackSuggestionsPanel
-        summary={view.postPackSuggestions}
-        onApplySuggestion={controller.onApplyPostPackSuggestion}
-      />
-    ) : null}
-
-    <LoadoutZonesPanel
-      cardName={controller.cardName}
-      renderLoadoutActions={controller.renderLoadoutActions}
-      view={view.loadoutZonesView}
-      onUpgradeGroup={controller.onUpgradeGroup}
+    <CommanderUpgradePanel
+      variant="panel"
+      view={view.commanderUpgradePanelView}
+      onApplyUpgrade={controller.onApplyCommanderUpgrade}
     />
-
     <CombatResultPanel
       isDefaultRoute={view.isDefaultRoute}
       lastRecorded={view.combat.lastRecorded}
@@ -317,3 +385,81 @@ export const DefaultRunRoute = ({
     />
   </section>
 );
+
+const DefaultPlaytestRoute = ({
+  controller,
+  view
+}: {
+  readonly controller: DefaultRunRouteController;
+  readonly view: DefaultRunRouteView;
+}) => {
+  const showRewards =
+    view.rewards.rewardChoices.length > 0 ||
+    view.commanderUpgradePanelView.phase === "reward";
+
+  return (
+    <section className="default-playtest-route" data-testid="default-playtest-route">
+      <DefaultPlaytestDecisionPanel controller={controller} view={view} />
+      <DefaultPixiBattlefieldSection
+        controller={controller.battlefield}
+        view={view.battlefield}
+      />
+      <div className="default-playtest-loop-grid">
+        <CombatResultPanel
+          isDefaultRoute
+          lastRecorded={view.combat.lastRecorded}
+          showDeveloperDetails={view.showDeveloperDetails}
+          upcoming={view.combat.upcoming}
+        />
+        {showRewards ? (
+          <>
+            <RewardChoicesPanel
+              collapseExplanations
+              description={view.rewards.description}
+              explanationsByChoiceId={view.rewards.explanationsByChoiceId}
+              onOpenReward={controller.onOpenReward}
+              playerGold={view.rewards.playerGold}
+              rewardChoices={view.rewards.rewardChoices}
+            />
+            <CommanderUpgradePanel
+              variant="panel"
+              view={view.commanderUpgradePanelView}
+              onApplyUpgrade={controller.onApplyCommanderUpgrade}
+            />
+          </>
+        ) : null}
+        {view.postPackSuggestions.latestOpenedCardCount > 0 ? (
+          <PostPackSuggestionsPanel
+            summary={view.postPackSuggestions}
+            onApplySuggestion={controller.onApplyPostPackSuggestion}
+          />
+        ) : null}
+      </div>
+      <details
+        className="panel advanced-panel default-playtest-debug"
+        data-testid="advanced-debug-panels"
+      >
+        <summary className="advanced-summary" data-testid="advanced-debug-panels-summary">
+          <h2>Advanced Debug Panels</h2>
+          <span>Loadout lists, opponent details, traits, Command Zone audit</span>
+        </summary>
+        <div className="advanced-panel-body debug-grid default-playtest-debug-grid">
+          <DefaultRouteDebugPanels controller={controller} view={view} />
+        </div>
+      </details>
+    </section>
+  );
+};
+
+export const DefaultRunRoute = ({
+  controller,
+  view
+}: {
+  readonly controller: DefaultRunRouteController;
+  readonly view: DefaultRunRouteView;
+}) =>
+  view.isDefaultRoute ? (
+    <DefaultPlaytestRoute controller={controller} view={view} />
+  ) : (
+    <DebugGridRoute controller={controller} view={view} />
+  );

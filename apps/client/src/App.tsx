@@ -70,7 +70,6 @@ import {
   type BattlefieldSectionView
 } from "./components/BattlefieldSection";
 import {
-  DefaultPixiBattlefieldSection,
   type DefaultPixiBattlefieldController,
   type DefaultPixiBattlefieldView
 } from "./components/DefaultPixiBattlefieldSection";
@@ -107,6 +106,7 @@ import type { RunGuideStat, RunGuideStep } from "./components/RunGuidePanel";
 import {
   DEBUG_PRIORITY_SCENARIO_ID,
   DEBUG_RENDERER_SCENARIO_ID,
+  applyDefaultPlaytestScenario,
   applyDebugScenario,
   debugScenarioFromSearch
 } from "./debugScenarios";
@@ -153,21 +153,26 @@ const combatResultForAction = (result: CombatResultLike): CombatResultLike => ({
   ...(result.rulesVersion ? { rulesVersion: result.rulesVersion } : {})
 });
 
-const createDebugRun = (starterKitId: string): RunState =>
-  applyDebugScenario(
-    applyRunAction(
-      createRunFromStarterKit({
-        seed: `${runSeed}:${starterKitId}`,
-        catalog: sampleCatalog,
-        starterKitId,
-        playerId,
-        maxRounds: 3
-      }),
-      sampleCatalog,
-      { type: "prepareEncounter" }
-    ),
-    activeDebugScenarioId
+const createPreparedRun = (starterKitId: string): RunState =>
+  applyRunAction(
+    createRunFromStarterKit({
+      seed: `${runSeed}:${starterKitId}`,
+      catalog: sampleCatalog,
+      starterKitId,
+      playerId,
+      maxRounds: 3
+    }),
+    sampleCatalog,
+    { type: "prepareEncounter" }
   );
+
+const createDebugRun = (starterKitId: string): RunState => {
+  const preparedRun = createPreparedRun(starterKitId);
+
+  return activeDebugScenarioId === undefined
+    ? applyDefaultPlaytestScenario(preparedRun)
+    : applyDebugScenario(preparedRun, activeDebugScenarioId);
+};
 
 const firstStarterKitId = sampleCatalog.starterKits[0]?.id ?? "ember_scrappers";
 const PRIORITY_LAB_TARGET_PLAYER_COMBAT_CHARGE = 3;
@@ -1380,6 +1385,7 @@ export function App() {
     renderDebugBoard
   } satisfies DefaultPixiBattlefieldController;
   const defaultRunRouteView = {
+    battlefield: defaultPixiBattlefieldView,
     combat: {
       lastRecorded: lastRecordedCombatPanelView,
       upcoming: upcomingCombatPanelView
@@ -1414,6 +1420,7 @@ export function App() {
     traitSummary
   } satisfies DefaultRunRouteView;
   const defaultRunRouteController = {
+    battlefield: defaultPixiBattlefieldController,
     cardName,
     onApplyCommanderUpgrade: applyCommanderUpgrade,
     onApplyPostPackSuggestion: performLoadoutAction,
@@ -1527,13 +1534,6 @@ export function App() {
           </button>
         </div>
       </section>
-
-      {isDefaultRoute ? (
-        <DefaultPixiBattlefieldSection
-          controller={defaultPixiBattlefieldController}
-          view={defaultPixiBattlefieldView}
-        />
-      ) : null}
 
       {!isDefaultRoute && !isRendererLab ? (
         <BattlefieldSection

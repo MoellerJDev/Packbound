@@ -226,7 +226,7 @@ export const DefaultPixiBattlefieldSection = ({
         <h2 id="battlefield-heading">Battlefield</h2>
         <p className="muted">
           Pixi is the primary battlefield for this encounter. Click a token to inspect it,
-          then use the panels below to tune the run.
+          then use the nearby card, loadout, and Commander controls to tune the run.
         </p>
       </div>
       <dl className="battlefield-run-strip">

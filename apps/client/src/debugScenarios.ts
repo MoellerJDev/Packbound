@@ -11,6 +11,7 @@ export const DEBUG_UPGRADE_SCENARIO_ID = "upgrade-lab";
 export const DEBUG_ENGAGEMENT_SCENARIO_ID = "engagement-lab";
 export const DEBUG_PRIORITY_SCENARIO_ID = "priority-lab";
 export const DEBUG_RENDERER_SCENARIO_ID = "renderer-lab";
+export const DEFAULT_PLAYTEST_SCENARIO_ID = "default-playtest";
 
 export type DebugScenarioId =
   | typeof DEBUG_UPGRADE_SCENARIO_ID
@@ -35,34 +36,42 @@ export const isDebugScenarioId = (
 
 const debugScenarioInstanceId = (
   run: RunState,
-  scenarioId: DebugScenarioId,
+  scenarioId: DebugScenarioId | typeof DEFAULT_PLAYTEST_SCENARIO_ID,
   defId: CardDefId,
   index: number
 ) => asCardInstanceId(`${run.runId}:debug-scenario:${scenarioId}:${defId}:${index}`);
 
-const upgradeLabCard = (run: RunState, index: number): CardInstance =>
+const upgradeReadyCard = (
+  run: RunState,
+  scenarioId: DebugScenarioId | typeof DEFAULT_PLAYTEST_SCENARIO_ID,
+  index: number
+): CardInstance =>
   createCardInstance({
     ownerId: run.playerId,
     defId: DEBUG_UPGRADE_CARD_DEF_ID,
     zone: "pool",
     upgradeLevel: 0,
-    instanceId: debugScenarioInstanceId(
-      run,
-      DEBUG_UPGRADE_SCENARIO_ID,
-      DEBUG_UPGRADE_CARD_DEF_ID,
-      index
-    )
+    instanceId: debugScenarioInstanceId(run, scenarioId, DEBUG_UPGRADE_CARD_DEF_ID, index)
   });
 
-export const applyUpgradeLabScenario = (run: RunState): RunState => ({
+const applyUpgradeReadyScenario = (
+  run: RunState,
+  scenarioId: DebugScenarioId | typeof DEFAULT_PLAYTEST_SCENARIO_ID
+): RunState => ({
   ...run,
   pool: [
     ...run.pool,
     ...Array.from({ length: DEBUG_UPGRADE_COPY_COUNT }, (_unused, index) =>
-      upgradeLabCard(run, index)
+      upgradeReadyCard(run, scenarioId, index)
     )
   ]
 });
+
+export const applyDefaultPlaytestScenario = (run: RunState): RunState =>
+  applyUpgradeReadyScenario(run, DEFAULT_PLAYTEST_SCENARIO_ID);
+
+export const applyUpgradeLabScenario = (run: RunState): RunState =>
+  applyUpgradeReadyScenario(run, DEBUG_UPGRADE_SCENARIO_ID);
 
 const engagementLabCard = (
   run: RunState,

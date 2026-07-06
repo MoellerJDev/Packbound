@@ -2,7 +2,8 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 
 const panel = (page: Page, heading: string): Locator =>
   page.locator(".panel").filter({
-    has: page.getByRole("heading", { name: heading, exact: true })
+    has: page.getByRole("heading", { name: heading, exact: true }),
+    hasNot: page.getByTestId("advanced-debug-panels-summary")
   });
 
 const captureBrowserErrors = (page: Page) => {
@@ -72,8 +73,30 @@ test("debug loop can inspect, preview, record, reward, and advance", async ({ pa
 
   await expect(page.getByRole("heading", { name: "Packbound" })).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "What now?", exact: true })
+    page.getByRole("heading", { name: "Current Decision", exact: true })
   ).toBeVisible();
+  const playtestRoute = page.getByTestId("default-playtest-route");
+  const decisionPanel = page.getByTestId("default-playtest-decision-panel");
+  await expect(decisionPanel.getByTestId("default-playtest-decision")).toBeVisible();
+  await expect(decisionPanel.getByText("Round")).toBeVisible();
+  await expect(decisionPanel.getByText("Phase")).toBeVisible();
+  await expect(decisionPanel.getByText("Board Charge")).toBeVisible();
+  await expect(decisionPanel.getByTestId("default-playtest-upgrade-copy")).toContainText(
+    "Cinder Scout"
+  );
+  await decisionPanel.getByTestId("default-playtest-upgrade-button").click();
+  await expect(decisionPanel.getByText("No duplicate upgrade is ready.")).toBeVisible();
+  await expect(page.getByTestId("post-pack-suggestions-panel")).toHaveCount(0);
+  const advancedDebug = page.getByTestId("advanced-debug-panels");
+  await expect(advancedDebug).toBeVisible();
+  expect(await advancedDebug.evaluate((node) => (node as HTMLDetailsElement).open)).toBe(
+    false
+  );
+  await expect(advancedDebug.getByText("Advanced Debug Panels")).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "What now?", exact: true })
+  ).toBeHidden();
+  await page.getByTestId("advanced-debug-panels-summary").click();
   const runStatePanel = panel(page, "What now?");
   await expect(runStatePanel.getByText("Prepare your loadout")).toBeVisible();
   await expect(runStatePanel.getByText("Start combat")).toBeVisible();
@@ -81,7 +104,6 @@ test("debug loop can inspect, preview, record, reward, and advance", async ({ pa
   await expect(runStatePanel.getByText("Choose rewards")).toBeVisible();
   await expect(runStatePanel.getByText("Advance to next fight")).toBeVisible();
   await expect(runStatePanel.getByText("Run details")).toBeVisible();
-  await expect(page.getByTestId("post-pack-suggestions-panel")).toHaveCount(0);
   const opponentDetails = panel(page, "Opponent Details");
   await expect(opponentDetails).toBeVisible();
   expect(
@@ -92,10 +114,7 @@ test("debug loop can inspect, preview, record, reward, and advance", async ({ pa
   );
   const planningDetails = panel(page, "Planning Check");
   await expect(planningDetails).toBeVisible();
-  expect(
-    await planningDetails.evaluate((node) => (node as HTMLDetailsElement).open)
-  ).toBe(false);
-  await expect(planningDetails.locator(".advanced-summary span")).toHaveText("Legal");
+  await expect(planningDetails.getByText("Legal")).toBeVisible();
   const traitDetails = panel(page, "Traits / Teamups");
   await expect(traitDetails).toBeVisible();
   expect(await traitDetails.evaluate((node) => (node as HTMLDetailsElement).open)).toBe(
@@ -159,7 +178,7 @@ test("debug loop can inspect, preview, record, reward, and advance", async ({ pa
   const sourceRowPanel = panel(page, "Source Row");
   const spellrailPanel = panel(page, "Spellrail");
   const poolPanel = panel(page, "Pool Cards");
-  const battlefield = page.locator(".battlefield-section");
+  const battlefield = playtestRoute.locator(".battlefield-section");
   const rendererHost = page.getByTestId("pixi-renderer-host");
   const allyInspector = battlefield.locator(".battlefield-inspector.ally");
   const enemyInspector = battlefield.locator(".battlefield-inspector.enemy");

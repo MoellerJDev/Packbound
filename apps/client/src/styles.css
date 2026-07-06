@@ -681,6 +681,63 @@ h4 {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.default-playtest-route {
+  display: grid;
+  gap: 16px;
+}
+
+.default-playtest-decision-panel {
+  align-items: start;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(260px, 1fr) minmax(360px, 1.2fr) minmax(280px, 0.8fr);
+}
+
+.default-playtest-decision-panel h2,
+.default-playtest-decision-panel h3 {
+  margin-top: 0;
+}
+
+.default-playtest-decision-panel .next-action {
+  margin-bottom: 0;
+}
+
+.default-playtest-status-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.default-playtest-upgrade-card {
+  background: #f4f8f5;
+  border: 1px solid #d9e4df;
+  border-radius: 6px;
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+}
+
+.default-playtest-upgrade-card p {
+  color: #244532;
+  font-weight: 800;
+}
+
+.default-playtest-upgrade-card button {
+  justify-self: start;
+}
+
+.default-playtest-loop-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.default-playtest-debug {
+  margin-top: 2px;
+}
+
+.default-playtest-debug-grid {
+  align-items: start;
+}
+
 .panel {
   background: #fbfcfa;
   border: 1px solid #cfd9d5;
@@ -1907,6 +1964,10 @@ pre {
 }
 
 @media (max-width: 1100px) {
+  .default-playtest-decision-panel {
+    grid-template-columns: 1fr;
+  }
+
   .battlefield-layout {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1960,6 +2021,15 @@ pre {
 
   .debug-grid {
     grid-template-columns: 1fr;
+  }
+
+  .default-playtest-decision-panel,
+  .default-playtest-loop-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .default-playtest-status-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   button {

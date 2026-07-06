@@ -15,6 +15,7 @@
     "test:coverage": "vitest run --coverage",
     "test:coverage:ci": "vitest run --coverage",
     "test:browser": "playwright test",
+    "test:browser:ci": "playwright test --workers=1",
     "test:watch": "vitest",
     "lint": "eslint .",
     "format": "prettier --write .",

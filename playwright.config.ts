@@ -6,6 +6,7 @@ export default defineConfig({
   preserveOutput: "never",
   retries: process.env.CI ? 1 : 0,
   reporter: [["list"]],
+  workers: process.env.CI ? 1 : undefined,
   use: {
     baseURL: "http://127.0.0.1:4173",
     screenshot: "off",

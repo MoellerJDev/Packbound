@@ -54,7 +54,7 @@ jobs:
         run: pnpm exec playwright install --with-deps chromium
 
       - name: Browser smoke test
-        run: pnpm test:browser
+        run: pnpm test:browser:ci
 
   deploy-pages:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'

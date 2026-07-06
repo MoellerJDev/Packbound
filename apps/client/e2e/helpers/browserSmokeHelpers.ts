@@ -38,6 +38,8 @@ export const clickPixiCell = async (
   col: number,
   offset: { readonly x: number; readonly y: number } = { x: 0, y: 0 }
 ) => {
+  await expect(rendererHost).toBeVisible();
+  await expect(rendererHost.locator("canvas")).toHaveCount(1);
   await rendererHost.scrollIntoViewIfNeeded();
   const box = await rendererHost.boundingBox();
   expect(box).not.toBeNull();

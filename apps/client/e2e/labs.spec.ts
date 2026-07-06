@@ -450,6 +450,44 @@ test("renderer lab loads Pixi battlefield canvas and replay controls", async ({
   await expect(rendererCommandZone.getByTestId("command-zone-location")).toHaveText(
     "command"
   );
+
+  const replayStatus = page.getByTestId("renderer-replay-status");
+  const replayCommandIndex = page.getByTestId("renderer-replay-command-index");
+  const replayLatest = page.getByTestId("renderer-replay-latest");
+  await expect(replayStatus).toHaveText("idle");
+  await expect(replayCommandIndex).toHaveText(/0 \/ \d+/);
+  await expect(replayLatest).toHaveText("No command visualized yet.");
+  const playReplay = rendererLab.getByRole("button", { name: "Play Replay" });
+  const pauseReplay = rendererLab.getByRole("button", { name: "Pause Replay" });
+  const stepReplay = rendererLab.getByRole("button", { name: "Step Replay" });
+  const resetReplay = rendererLab.getByRole("button", { name: "Reset Replay" });
+  await expect(playReplay).toBeVisible();
+  await expect(pauseReplay).toBeVisible();
+  await expect(stepReplay).toBeVisible();
+  await expect(resetReplay).toBeVisible();
+
+  expect(errors.pageErrors).toEqual([]);
+  expect(errors.consoleErrors).toEqual([]);
+});
+
+test("renderer lab supports Commander diagnostics", async ({ page }) => {
+  const errors = captureBrowserErrors(page);
+
+  await page.goto("/?scenario=renderer-lab");
+
+  const rendererLab = page.locator(".renderer-lab-section");
+  const rendererHost = page.getByTestId("pixi-renderer-host");
+  const inspector = rendererLab.locator(".renderer-inspector-panel");
+  const rendererCommandZone = rendererLab.getByTestId("command-zone-panel");
+
+  await expect(rendererHost).toBeVisible();
+  await expect(rendererHost.locator("canvas")).toHaveCount(1);
+  await expect(rendererCommandZone.getByTestId("command-zone-card-name")).toHaveText(
+    "Sparkcatch Apprentice"
+  );
+  await expect(rendererCommandZone.getByTestId("command-zone-location")).toHaveText(
+    "command"
+  );
   await expect(rendererCommandZone.getByTestId("commander-deploy-count")).toHaveText("0");
   await expect(rendererCommandZone.getByTestId("commander-upgrade-level")).toHaveText(
     "Lv 0"
@@ -521,6 +559,24 @@ test("renderer lab loads Pixi battlefield canvas and replay controls", async ({
     )
   ).toBeVisible();
   await expect(rendererHost.locator("canvas")).toHaveCount(1);
+
+  expect(errors.pageErrors).toEqual([]);
+  expect(errors.consoleErrors).toEqual([]);
+});
+
+test("renderer lab supports token selection and placement diagnostics", async ({
+  page
+}) => {
+  const errors = captureBrowserErrors(page);
+
+  await page.goto("/?scenario=renderer-lab");
+
+  const rendererLab = page.locator(".renderer-lab-section");
+  const rendererHost = page.getByTestId("pixi-renderer-host");
+  const inspector = rendererLab.locator(".renderer-inspector-panel");
+
+  await expect(rendererHost).toBeVisible();
+  await expect(rendererHost.locator("canvas")).toHaveCount(1);
   await clickPixiCell(page, rendererHost, 0, 3);
   await expect(inspector.getByText(/Unit \| encounter \| Ember/)).toBeVisible();
 
@@ -541,28 +597,36 @@ test("renderer lab loads Pixi battlefield canvas and replay controls", async ({
       .getByRole("listitem")
       .filter({ hasText: "Sparkcatch Apprentice" })
   ).toBeVisible();
+  await expect(rendererHost.locator("canvas")).toHaveCount(1);
 
+  expect(errors.pageErrors).toEqual([]);
+  expect(errors.consoleErrors).toEqual([]);
+});
+
+test("renderer lab replay controls step reset play and pause", async ({ page }) => {
+  const errors = captureBrowserErrors(page);
+
+  await page.goto("/?scenario=renderer-lab");
+
+  const rendererLab = page.locator(".renderer-lab-section");
+  const rendererHost = page.getByTestId("pixi-renderer-host");
   const replayStatus = page.getByTestId("renderer-replay-status");
   const replayCommandIndex = page.getByTestId("renderer-replay-command-index");
   const replayLatest = page.getByTestId("renderer-replay-latest");
-  await expect(replayStatus).toHaveText("idle");
-  await expect(replayCommandIndex).toHaveText(/0 \/ \d+/);
-  await expect(replayLatest).toHaveText("No command visualized yet.");
   const playReplay = rendererLab.getByRole("button", { name: "Play Replay" });
   const pauseReplay = rendererLab.getByRole("button", { name: "Pause Replay" });
   const stepReplay = rendererLab.getByRole("button", { name: "Step Replay" });
   const resetReplay = rendererLab.getByRole("button", { name: "Reset Replay" });
-  await playReplay.scrollIntoViewIfNeeded();
+
+  await expect(rendererHost).toBeVisible();
+  await expect(rendererHost.locator("canvas")).toHaveCount(1);
+  await expect(replayStatus).toHaveText("idle");
+  await expect(replayCommandIndex).toHaveText(/0 \/ \d+/);
+  await expect(replayLatest).toHaveText("No command visualized yet.");
   await expect(playReplay).toBeVisible();
   await expect(pauseReplay).toBeVisible();
   await expect(stepReplay).toBeVisible();
   await expect(resetReplay).toBeVisible();
-  await playReplay.click();
-  await expect(replayStatus).toHaveText("playing");
-  await pauseReplay.click();
-  await expect(replayStatus).toHaveText("paused");
-  await expect(rendererHost.locator("canvas")).toHaveCount(1);
-  await page.waitForTimeout(500);
   const beforeStep = await replayCommandIndex.textContent();
   await stepReplay.click();
   await expect(replayCommandIndex).not.toHaveText(beforeStep ?? "");
@@ -570,6 +634,11 @@ test("renderer lab loads Pixi battlefield canvas and replay controls", async ({
   await resetReplay.click();
   await expect(replayStatus).toHaveText("idle");
   await expect(replayCommandIndex).toHaveText(/0 \/ \d+/);
+  await expect(rendererHost.locator("canvas")).toHaveCount(1);
+  await playReplay.click();
+  await expect(replayStatus).toHaveText("playing");
+  await pauseReplay.click();
+  await expect(replayStatus).toHaveText("paused");
   await expect(rendererHost.locator("canvas")).toHaveCount(1);
 
   expect(errors.pageErrors).toEqual([]);

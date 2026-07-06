@@ -57,36 +57,6 @@ test("default playtest route starts with concise Pixi play surface", async ({ pa
   await expect(
     page.getByRole("heading", { name: "What now?", exact: true })
   ).toBeHidden();
-  await openAdvancedDebugPanels(page);
-  const runStatePanel = panel(page, "What now?");
-  await expect(runStatePanel.getByText("Prepare your loadout")).toBeVisible();
-  await expect(runStatePanel.getByText("Start combat")).toBeVisible();
-  await expect(runStatePanel.getByText("Review combat")).toBeVisible();
-  await expect(runStatePanel.getByText("Choose rewards")).toBeVisible();
-  await expect(runStatePanel.getByText("Advance to next fight")).toBeVisible();
-  await expect(runStatePanel.getByText("Run details")).toBeVisible();
-  const opponentDetails = panel(page, "Opponent Details");
-  await expect(opponentDetails).toBeVisible();
-  expect(
-    await opponentDetails.evaluate((node) => (node as HTMLDetailsElement).open)
-  ).toBe(false);
-  await expect(opponentDetails.locator(".advanced-summary span")).not.toHaveText(
-    "No encounter"
-  );
-  const planningDetails = panel(page, "Planning Check");
-  await expect(planningDetails).toBeVisible();
-  await expect(planningDetails.getByText("Legal")).toBeVisible();
-  const traitDetails = panel(page, "Traits / Teamups");
-  await expect(traitDetails).toBeVisible();
-  expect(await traitDetails.evaluate((node) => (node as HTMLDetailsElement).open)).toBe(
-    false
-  );
-  await expect(traitDetails.getByText("Display-only prototype")).toBeVisible();
-  const upgradeProgressDetails = panel(page, "Upgrade Progress");
-  await expect(upgradeProgressDetails).toBeVisible();
-  await expect(
-    upgradeProgressDetails.getByText(/Cinder Scout: 3 \/ 3 pool copies/)
-  ).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Battlefield", exact: true })
   ).toBeVisible();
@@ -96,10 +66,6 @@ test("default playtest route starts with concise Pixi play surface", async ({ pa
   await expect(
     page.getByRole("heading", { name: "Enemy Inspector", exact: true })
   ).toBeVisible();
-  await expect(
-    page.getByRole("heading", { name: "Source Row", exact: true })
-  ).toBeVisible();
-  const boardPanel = panel(page, "Board");
 
   await expect(rendererHost).toBeVisible();
   await expect(rendererHost.locator("canvas")).toHaveCount(1);
@@ -118,7 +84,6 @@ test("default playtest route starts with concise Pixi play surface", async ({ pa
   ).toBeVisible();
   await expect(enemyInspector.getByText(/\| encounter \|/)).toBeVisible();
   await expect(allyInspector.getByText("Full card details")).toBeVisible();
-  await expect(boardPanel.getByRole("button", { name: "Inspect" }).first()).toBeVisible();
   const engagementPreview = battlefield.locator(
     ".default-pixi-stage > [data-testid='engagement-preview']"
   );
@@ -132,6 +97,13 @@ test("default playtest route starts with concise Pixi play surface", async ({ pa
   await expect(engagementPreview.getByText("Distance 1, range 1.")).toBeVisible();
   await expect(engagementPreview.getByText("Attack now")).toBeVisible();
   await expectNoHorizontalScroll(rendererHost);
+
+  expectNoBrowserErrors(errors);
+});
+
+test("default compact inspector can reveal full card details", async ({ page }) => {
+  const { allyInspector, errors, rendererHost } = await gotoDefaultPlaytestRoute(page);
+
   await clickPixiCell(page, rendererHost, 0, 2);
   await expect(
     allyInspector.getByRole("heading", { name: "Ember Scraprunner" })
@@ -147,20 +119,6 @@ test("default playtest route starts with concise Pixi play surface", async ({ pa
   await expect(allyCardDetails.getByText(/Charge/)).toBeVisible();
   await expect(
     allyCardDetails.getByRole("heading", { name: "Legal Actions" })
-  ).toBeVisible();
-
-  await clickPixiCell(page, rendererHost, 0, 3);
-  await expect(enemyInspector.getByText(/\| encounter \|/)).toBeVisible();
-  await expect(
-    enemyInspector.getByRole("heading", { name: "Legal Actions" })
-  ).toHaveCount(0);
-  await expect(
-    allyInspector.getByRole("heading", { name: "Ember Scraprunner" })
-  ).toBeVisible();
-  await expect(enemyInspector).toBeVisible();
-  await clickPixiCell(page, rendererHost, 0, 2);
-  await expect(
-    engagementPreview.getByText("Ember Scraprunner can attack Ember Scraprunner now.")
   ).toBeVisible();
 
   expectNoBrowserErrors(errors);

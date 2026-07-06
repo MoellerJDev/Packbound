@@ -187,6 +187,11 @@ loop so each test stays well below the 30-second CI timeout. Rapid Pixi replay
 edge cases and detailed view-model behavior should live in unit tests or focused
 diagnostic-route smoke, not in the default-route playtest loop.
 
+CI runs browser smoke with `pnpm test:browser:ci`, which forces one Playwright
+worker. Local `pnpm test:browser` may still use Playwright's local worker
+default, but CI should keep Pixi/WebGL smoke serial because canvas-heavy route
+tests have shown actionability contention under parallel load on GitHub Actions.
+
 Current browser smoke structure:
 
 - `apps/client/e2e/default-playtest.spec.ts` covers `/` by workflow.
@@ -195,6 +200,15 @@ Current browser smoke structure:
 - `apps/client/e2e/helpers/browserSmokeHelpers.ts` holds small shared test-only
   helpers such as browser error capture, panel lookup, Pixi cell clicks, and
   default-route setup.
+
+The default first-screen smoke should stay a route sanity check: current
+decision, Loadout Tray, Pixi canvas, collapsed Advanced Debug, compact
+inspectors, no renderer-lab controls on `/`, and horizontal overflow. Deep
+interactions such as expanding full card details belong in separate focused
+tests. Renderer Lab should likewise stay split between load/control presence,
+Commander diagnostics, placement/token coordinate clicks, and replay controls.
+Keep coordinate-click coverage isolated and re-locate elements after state
+changes.
 
 If a browser smoke test approaches 20 seconds locally, split or tighten it
 before it reaches CI's 30-second per-test timeout. Increasing Playwright

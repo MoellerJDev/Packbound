@@ -99,6 +99,13 @@ default play surface. Coverage thresholds remain conservative because React
 component coverage is still intentionally browser-smoke-driven rather than
 shallow-render-driven.
 
+CI stabilization update after this task: browser smoke now has an explicit
+`pnpm test:browser:ci` command that runs Playwright with one worker, and CI uses
+that script for Pixi/WebGL smoke. The default first-screen smoke no longer
+expands full card details or performs repeated Pixi clicks, and Renderer Lab
+smoke is split across load/control presence, Commander diagnostics, placement,
+and replay-control tests.
+
 Implementation update after this task: the default Pixi battlefield now has a
 compact `Loadout` control strip for selected Pool cards. It uses existing legal
 loadout actions to expose `Add to Source Row` for selected Sources and

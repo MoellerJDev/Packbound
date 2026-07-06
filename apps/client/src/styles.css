@@ -1797,6 +1797,50 @@ h4 {
   overflow-wrap: anywhere;
 }
 
+.combat-key-moments {
+  background: #f4f8f5;
+  border: 1px solid #d9e4df;
+  border-radius: 6px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+}
+
+.combat-key-moments h3 {
+  font-size: 0.86rem;
+  margin: 0 0 8px;
+}
+
+.combat-key-moment-lines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.combat-key-moment {
+  align-items: baseline;
+  border-top: 1px solid #dce5e0;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 112px minmax(0, 1fr);
+  padding: 8px 0;
+}
+
+.combat-key-moment:first-child {
+  border-top: 0;
+}
+
+.combat-key-moment.good {
+  color: #1f5d30;
+}
+
+.combat-key-moment.bad {
+  color: #88342f;
+}
+
+.combat-key-moment.warning {
+  color: #3f6974;
+}
+
 .combat-lines {
   list-style: none;
   margin: 0;

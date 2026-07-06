@@ -9,7 +9,11 @@ import {
   type CombatEvent
 } from "@packbound/shared";
 
-import { buildCombatDisplaySummary, type CombatDisplayResultLike } from "../index";
+import {
+  buildCombatDisplayKeyMoments,
+  buildCombatDisplaySummary,
+  type CombatDisplayResultLike
+} from "../index";
 
 const playerA = asPlayerId("display-summary:player-a");
 const playerB = asPlayerId("display-summary:player-b");
@@ -213,6 +217,15 @@ const allText = (): string =>
     .lines.map((line) => line.text)
     .join("\n");
 
+const keyMomentText = (result: CombatDisplayResultLike = sampleResult): string =>
+  buildCombatDisplayKeyMoments({
+    catalog: sampleCatalog,
+    combatResult: result,
+    perspectiveSide: "playerA"
+  })
+    .lines.map((line) => line.text)
+    .join("\n");
+
 describe("combat display summary", () => {
   it("builds a deterministic summary for the same combat result", () => {
     expect(buildSummary()).toEqual(buildSummary());
@@ -278,5 +291,116 @@ describe("combat display summary", () => {
     expect(text).toContain("Vanishing Warden phased in");
     expect(text).toContain("recalled Hollow Caller from Ashes");
     expect(text).toContain("Warning TEST_WARNING");
+  });
+
+  it("builds stable key-moment groups for long combat results", () => {
+    const summary = buildSummary();
+
+    expect(summary.keyMoments.rawEventCount).toBe(sampleEvents.length);
+    expect(summary.keyMoments.summarizedEventCount).toBe(11);
+    expect(summary.keyMoments.hiddenEventCount).toBe(5);
+    expect(summary.keyMoments.lines.map((line) => line.kind)).toEqual([
+      "outcome",
+      "damage",
+      "destroyed",
+      "majorDamage",
+      "attacks",
+      "techniques",
+      "special",
+      "warnings",
+      "events"
+    ]);
+  });
+
+  it("summarizes destroyed units, major damage, attacks, techniques, and warnings", () => {
+    const text = keyMomentText();
+
+    expect(text).toContain("Destroyed: Your Signal Wisp Echo; Enemy Ember Scraprunner.");
+    expect(text).toContain("Major damage: Sparkfall -> Ember Scraprunner for 2.");
+    expect(text).toContain("Attacks: Enemy Ember Scraprunner -> Vanishing Warden.");
+    expect(text).toContain("Techniques: You used Sparkfall.");
+    expect(text).toContain("Your Vanishing Warden phased x2");
+    expect(text).toContain("Warnings: TEST_WARNING.");
+    expect(text).toContain(
+      "Events shown: 11 of 16. 5 lower-priority events remain in the full feed."
+    );
+  });
+
+  it("does not hide events for short combat results", () => {
+    const shortResult: CombatDisplayResultLike = {
+      winner: "playerB",
+      damageToPlayerA: 1,
+      damageToPlayerB: 0,
+      warnings: [],
+      events: [
+        { type: "CombatStarted", timeMs: 0 },
+        {
+          type: "DamageDealt",
+          timeMs: 100,
+          sourceId: unit("enemy-scrapper"),
+          sourceCardInstanceId: card("enemy-scrapper"),
+          sourceDefId: def("ember_scraprunner"),
+          sourceSide: "playerB",
+          targetId: unit("warden"),
+          targetCardInstanceId: card("warden"),
+          targetDefId: def("vanishing_warden"),
+          targetSide: "playerA",
+          amount: 1,
+          damageType: "attack"
+        },
+        {
+          type: "UnitDestroyed",
+          timeMs: 200,
+          unitId: unit("warden"),
+          cardInstanceId: card("warden"),
+          defId: def("vanishing_warden"),
+          side: "playerA",
+          ownerId: playerA,
+          isEcho: false,
+          reason: "combatDamage"
+        },
+        { type: "CombatEnded", timeMs: 300, winner: "playerB" }
+      ]
+    };
+
+    const keyMoments = buildCombatDisplayKeyMoments({
+      catalog: sampleCatalog,
+      combatResult: shortResult,
+      perspectiveSide: "playerA"
+    });
+
+    expect(keyMoments.summarizedEventCount).toBe(4);
+    expect(keyMoments.hiddenEventCount).toBe(0);
+    expect(keyMoments.lines.at(-1)?.text).toBe(
+      "Events shown: 4 of 4. Full feed stays available."
+    );
+  });
+
+  it("handles empty combat results", () => {
+    const emptyResult: CombatDisplayResultLike = {
+      winner: "draw",
+      damageToPlayerA: 0,
+      damageToPlayerB: 0,
+      events: [],
+      warnings: []
+    };
+
+    const keyMoments = buildCombatDisplayKeyMoments({
+      catalog: sampleCatalog,
+      combatResult: emptyResult,
+      perspectiveSide: "playerA"
+    });
+
+    expect(keyMoments).toMatchObject({
+      rawEventCount: 0,
+      summarizedEventCount: 0,
+      hiddenEventCount: 0
+    });
+    expect(keyMoments.lines.map((line) => line.text)).toEqual([
+      "Outcome: Combat ends in a draw.",
+      "Damage: You -0, Enemy -0.",
+      "Warnings: none.",
+      "Events shown: 0 of 0. Full feed stays available."
+    ]);
   });
 });

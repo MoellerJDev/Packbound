@@ -75,9 +75,18 @@ export const CombatResultPanel = ({
           {lastRecorded.displaySummary ? (
             <>
               {isDefaultRoute ? (
+                <CombatSummaryView
+                  mode="keyMoments"
+                  summary={lastRecorded.displaySummary}
+                />
+              ) : null}
+              {isDefaultRoute ? (
                 <details className="combat-feed-details">
                   <summary>Combat Event Feed</summary>
-                  <CombatSummaryView summary={lastRecorded.displaySummary} />
+                  <CombatSummaryView
+                    mode="eventFeed"
+                    summary={lastRecorded.displaySummary}
+                  />
                 </details>
               ) : (
                 <CombatSummaryView summary={lastRecorded.displaySummary} />
@@ -127,10 +136,13 @@ export const CombatResultPanel = ({
           </div>
         </dl>
         {isDefaultRoute ? (
-          <details className="combat-feed-details">
-            <summary>Preview Event Feed</summary>
-            <CombatSummaryView summary={upcoming.displaySummary} />
-          </details>
+          <>
+            <CombatSummaryView mode="keyMoments" summary={upcoming.displaySummary} />
+            <details className="combat-feed-details">
+              <summary>Preview Event Feed</summary>
+              <CombatSummaryView mode="eventFeed" summary={upcoming.displaySummary} />
+            </details>
+          </>
         ) : (
           <CombatSummaryView summary={upcoming.displaySummary} />
         )}

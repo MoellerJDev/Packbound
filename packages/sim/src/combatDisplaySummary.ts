@@ -27,6 +27,28 @@ export type CombatDisplayLine = {
   readonly severity?: "info" | "good" | "bad" | "warning";
 };
 
+export type CombatDisplayKeyMomentLine = {
+  readonly kind:
+    | "outcome"
+    | "damage"
+    | "destroyed"
+    | "majorDamage"
+    | "attacks"
+    | "techniques"
+    | "special"
+    | "warnings"
+    | "events";
+  readonly text: string;
+  readonly severity?: "info" | "good" | "bad" | "warning";
+};
+
+export type CombatDisplayKeyMoments = {
+  readonly rawEventCount: number;
+  readonly summarizedEventCount: number;
+  readonly hiddenEventCount: number;
+  readonly lines: readonly CombatDisplayKeyMomentLine[];
+};
+
 export type CombatDisplaySummary = {
   readonly title: string;
   readonly winner: CombatWinner;
@@ -34,6 +56,7 @@ export type CombatDisplaySummary = {
   readonly damageToPlayerB: number;
   readonly eventCount: number;
   readonly warningCodes: readonly string[];
+  readonly keyMoments: CombatDisplayKeyMoments;
   readonly lines: readonly CombatDisplayLine[];
 };
 
@@ -53,6 +76,9 @@ export type BuildCombatDisplaySummaryInput = {
 };
 
 const DEFAULT_MAX_LINES = 48;
+const SHORT_COMBAT_EVENT_COUNT = 12;
+const MAX_MAJOR_DAMAGE_LINES = 3;
+const MAX_GROUPED_ITEMS = 5;
 
 const sideLabel = (side: PlayerSide, perspectiveSide: PlayerSide): string =>
   side === perspectiveSide ? "You" : "Enemy";
@@ -62,6 +88,54 @@ const possessiveSideLabel = (side: PlayerSide, perspectiveSide: PlayerSide): str
 
 const cardName = (catalog: ContentCatalog, defId: CardDefId): string =>
   catalog.cardsById.get(defId)?.name ?? defId;
+
+type CountedLabel = {
+  readonly label: string;
+  readonly count: number;
+  readonly firstIndex: number;
+};
+
+type DamageHighlight = {
+  readonly text: string;
+  readonly amount: number;
+  readonly timeMs: number;
+  readonly eventIndex: number;
+};
+
+const addCount = (
+  counts: Map<string, CountedLabel>,
+  key: string,
+  label: string,
+  eventIndex: number
+): void => {
+  const existing = counts.get(key);
+  counts.set(key, {
+    label,
+    count: (existing?.count ?? 0) + 1,
+    firstIndex: existing?.firstIndex ?? eventIndex
+  });
+};
+
+const sortedCounts = (counts: Map<string, CountedLabel>): readonly CountedLabel[] =>
+  Array.from(counts.values()).sort(
+    (left, right) => right.count - left.count || left.firstIndex - right.firstIndex
+  );
+
+const countTotal = (counts: readonly CountedLabel[]): number =>
+  counts.reduce((total, item) => total + item.count, 0);
+
+const formatCountedLabels = (counts: Map<string, CountedLabel>): string => {
+  const items = sortedCounts(counts);
+  const visible = items.slice(0, MAX_GROUPED_ITEMS);
+  const hidden = items.slice(MAX_GROUPED_ITEMS);
+  const parts = visible.map((item) =>
+    item.count > 1 ? `${item.label} x${item.count}` : item.label
+  );
+  const hiddenCount = countTotal(hidden);
+  return hiddenCount > 0 ? `${parts.join("; ")}; ${hiddenCount} more` : parts.join("; ");
+};
+
+const hasCounts = (counts: Map<string, CountedLabel>): boolean => counts.size > 0;
 
 const boardPositionText = (position: {
   readonly row: number;
@@ -85,6 +159,21 @@ const winnerTitle = (winner: CombatWinner, perspectiveSide: PlayerSide): string 
     return "Combat ends in a draw";
   }
   return winner === perspectiveSide ? "You win combat" : "Enemy wins combat";
+};
+
+const damageText = (
+  combatResult: Pick<CombatDisplayResultLike, "damageToPlayerA" | "damageToPlayerB">,
+  perspectiveSide: PlayerSide
+): string => {
+  const damageToYou =
+    perspectiveSide === "playerA"
+      ? combatResult.damageToPlayerA
+      : combatResult.damageToPlayerB;
+  const damageToEnemy =
+    perspectiveSide === "playerA"
+      ? combatResult.damageToPlayerB
+      : combatResult.damageToPlayerA;
+  return `Damage: You -${damageToYou}, Enemy -${damageToEnemy}.`;
 };
 
 const severityForSide = (
@@ -356,6 +445,239 @@ const buildEventLine = (
   }
 };
 
+export const buildCombatDisplayKeyMoments = ({
+  catalog,
+  combatResult,
+  perspectiveSide = "playerA"
+}: Omit<BuildCombatDisplaySummaryInput, "maxLines">): CombatDisplayKeyMoments => {
+  const lines: CombatDisplayKeyMomentLine[] = [
+    {
+      kind: "outcome",
+      text: `Outcome: ${winnerTitle(combatResult.winner, perspectiveSide)}.`,
+      severity:
+        combatResult.winner === "draw"
+          ? "info"
+          : severityForSide(combatResult.winner, perspectiveSide, true)
+    },
+    {
+      kind: "damage",
+      text: damageText(combatResult, perspectiveSide),
+      severity: "info"
+    }
+  ];
+
+  const destroyed = new Map<string, CountedLabel>();
+  const attacks = new Map<string, CountedLabel>();
+  const techniques = new Map<string, CountedLabel>();
+  const special = new Map<string, CountedLabel>();
+  const damageHighlights: DamageHighlight[] = [];
+  let highlightedEventCount = combatResult.events.some(
+    (event) => event.type === "CombatEnded"
+  )
+    ? 1
+    : 0;
+
+  combatResult.events.forEach((event, eventIndex) => {
+    switch (event.type) {
+      case "UnitDestroyed": {
+        addCount(
+          destroyed,
+          `${event.side}:${event.defId}:${event.isEcho}`,
+          `${possessiveSideLabel(event.side, perspectiveSide)} ${cardName(
+            catalog,
+            event.defId
+          )}`,
+          eventIndex
+        );
+        break;
+      }
+      case "UnitAttacked": {
+        addCount(
+          attacks,
+          `${event.attackerSide}:${event.attackerDefId}:${event.targetDefId}`,
+          `${possessiveSideLabel(
+            event.attackerSide,
+            perspectiveSide
+          )} ${cardName(catalog, event.attackerDefId)} -> ${cardName(
+            catalog,
+            event.targetDefId
+          )}`,
+          eventIndex
+        );
+        break;
+      }
+      case "DamageDealt": {
+        if (event.amount <= 0) {
+          break;
+        }
+        const sourceName = event.sourceDefId
+          ? cardName(catalog, event.sourceDefId)
+          : "effect";
+        damageHighlights.push({
+          text: `${sourceName} -> ${cardName(catalog, event.targetDefId)} for ${event.amount}`,
+          amount: event.amount,
+          timeMs: event.timeMs,
+          eventIndex
+        });
+        break;
+      }
+      case "TechniqueUsed":
+        addCount(
+          techniques,
+          `${event.side}:${event.defId}`,
+          `${sideLabel(event.side, perspectiveSide)} used ${cardName(catalog, event.defId)}`,
+          eventIndex
+        );
+        break;
+      case "UnitSummoned":
+        addCount(
+          special,
+          `summon:${event.side}:${event.defId}`,
+          `${sideLabel(event.side, perspectiveSide)} summoned ${cardName(
+            catalog,
+            event.defId
+          )}`,
+          eventIndex
+        );
+        break;
+      case "UnitRecalled":
+        addCount(
+          special,
+          `recall:${event.side}:${event.defId}`,
+          `${sideLabel(event.side, perspectiveSide)} recalled ${cardName(
+            catalog,
+            event.defId
+          )}`,
+          eventIndex
+        );
+        break;
+      case "UnitPhasedOut":
+      case "UnitPhasedIn":
+        addCount(
+          special,
+          `phase:${event.side}:${event.defId}`,
+          `${possessiveSideLabel(event.side, perspectiveSide)} ${cardName(
+            catalog,
+            event.defId
+          )} phased`,
+          eventIndex
+        );
+        break;
+      case "AbilityTriggered":
+        addCount(
+          special,
+          `trigger:${event.sourceSide}:${event.sourceDefId}:${event.trigger}`,
+          `${cardName(catalog, event.sourceDefId)} triggered`,
+          eventIndex
+        );
+        break;
+      case "TechniqueInterrupted":
+        addCount(special, "technique-interrupted", "Technique interrupted", eventIndex);
+        break;
+      case "CombatStarted":
+      case "CombatEnded":
+      case "CombatChargeGained":
+      case "TraitActivated":
+      case "TechniqueQueued":
+      case "UnitMoved":
+      case "StatusApplied":
+      case "StatusRemoved":
+        break;
+    }
+  });
+
+  if (hasCounts(destroyed)) {
+    const items = sortedCounts(destroyed);
+    highlightedEventCount += countTotal(items);
+    lines.push({
+      kind: "destroyed",
+      text: `Destroyed: ${formatCountedLabels(destroyed)}.`,
+      severity: "warning"
+    });
+  }
+
+  if (damageHighlights.length > 0) {
+    const majorDamage = damageHighlights
+      .slice()
+      .sort(
+        (left, right) =>
+          right.amount - left.amount ||
+          left.timeMs - right.timeMs ||
+          left.eventIndex - right.eventIndex
+      )
+      .slice(0, MAX_MAJOR_DAMAGE_LINES);
+    highlightedEventCount += majorDamage.length;
+    lines.push({
+      kind: "majorDamage",
+      text: `Major damage: ${majorDamage.map((damage) => damage.text).join("; ")}.`,
+      severity: "info"
+    });
+  }
+
+  if (hasCounts(attacks)) {
+    const items = sortedCounts(attacks);
+    highlightedEventCount += countTotal(items);
+    lines.push({
+      kind: "attacks",
+      text: `Attacks: ${formatCountedLabels(attacks)}.`,
+      severity: "info"
+    });
+  }
+
+  if (hasCounts(techniques)) {
+    const items = sortedCounts(techniques);
+    highlightedEventCount += countTotal(items);
+    lines.push({
+      kind: "techniques",
+      text: `Techniques: ${formatCountedLabels(techniques)}.`,
+      severity: "info"
+    });
+  }
+
+  if (hasCounts(special)) {
+    const items = sortedCounts(special);
+    highlightedEventCount += countTotal(items);
+    lines.push({
+      kind: "special",
+      text: `Special: ${formatCountedLabels(special)}.`,
+      severity: "info"
+    });
+  }
+
+  lines.push({
+    kind: "warnings",
+    text:
+      combatResult.warnings.length > 0
+        ? `Warnings: ${combatResult.warnings.map((warning) => warning.code).join(", ")}.`
+        : "Warnings: none.",
+    severity: combatResult.warnings.length > 0 ? "warning" : "info"
+  });
+
+  const rawEventCount = combatResult.events.length;
+  const summarizedEventCount =
+    rawEventCount <= SHORT_COMBAT_EVENT_COUNT
+      ? rawEventCount
+      : Math.min(rawEventCount, highlightedEventCount);
+  const hiddenEventCount = rawEventCount - summarizedEventCount;
+  lines.push({
+    kind: "events",
+    text:
+      hiddenEventCount > 0
+        ? `Events shown: ${summarizedEventCount} of ${rawEventCount}. ${hiddenEventCount} lower-priority event${
+            hiddenEventCount === 1 ? "" : "s"
+          } remain in the full feed.`
+        : `Events shown: ${rawEventCount} of ${rawEventCount}. Full feed stays available.`,
+    severity: hiddenEventCount > 0 ? "warning" : "info"
+  });
+
+  return {
+    rawEventCount,
+    summarizedEventCount,
+    hiddenEventCount,
+    lines
+  };
+};
+
 export const buildCombatDisplaySummary = ({
   catalog,
   combatResult,
@@ -404,6 +726,11 @@ export const buildCombatDisplaySummary = ({
     damageToPlayerB: combatResult.damageToPlayerB,
     eventCount: combatResult.events.length,
     warningCodes: combatResult.warnings.map((warning) => warning.code),
+    keyMoments: buildCombatDisplayKeyMoments({
+      catalog,
+      combatResult,
+      perspectiveSide
+    }),
     lines
   };
 };

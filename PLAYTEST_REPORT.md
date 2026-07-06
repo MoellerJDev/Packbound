@@ -110,6 +110,15 @@ Browser smoke exercises Source Row return, Spellrail return, Board return after
 Pixi placement, Commander inspect/deploy/return, and verifies Renderer Lab replay
 controls remain absent on `/`.
 
+Implementation update after this task: combat summaries now include deterministic
+`Key Moments` grouping built in `packages/sim` beside the existing display
+summary helper. Default-route upcoming and recorded combat panels show the
+grouped winner, damage, destroyed, major damage, attacks, Techniques, special
+events, warnings, and event-count/hidden-count text immediately, while the full
+combat event feed remains available behind the existing collapsed details.
+Renderer Lab's Combat Feed Sample uses the same summary object and keeps the raw
+line feed visible for diagnostics.
+
 Planning update after the Commander design refactor: design docs now frame a
 future Commander / Command Zone / Rebind Tax / Signature Relic direction as a
 real card-like run identity layer, not a hero-power button. This task adds the
@@ -277,15 +286,16 @@ and browser smoke passed during the pass. Remaining client bloat is mostly
 renderer-lab state/controller setup and top-level App state coordination.
 
 The biggest remaining Pixi findings are no longer the absence of replay controls,
-tiny first-pass labels, unvalidated readability, default-route confidence, or
-basic default-route edit affordances. Now that Pixi is primary on `/`, the next
-gaps are long-feed grouping/filtering, scrub or speed controls in Renderer Lab,
-and broader direct-manipulation polish such as drag/drop or richer canvas-native
-zone editing.
+tiny first-pass labels, unvalidated readability, default-route confidence, basic
+default-route edit affordances, or an ungrouped default combat feed. Now that
+Pixi is primary on `/`, the next gaps are scrub or speed controls in Renderer
+Lab, richer direct-manipulation polish such as drag/drop or canvas-native zone
+editing, and manual validation that the new grouped combat copy scales beyond
+the current starter fights.
 
 Recommended next task:
 
-`feat(client): group or filter long combat summary events`
+`feat(client): add Pixi replay scrub/speed controls`
 
 ## 2. Environment And Commands
 
@@ -1045,7 +1055,7 @@ Note:
   selected-card and clicked-cell failures, but they still show only one concise
   reason at a time.
 - Replay controls now cover Play/Resume, Pause, Step, and Reset, but there is no
-  scrubber, speed control, event grouping, or filtered command list yet.
+  scrubber, speed control, or filtered command list yet.
 - Step advances one visual command when playback is idle or paused. If clicked
   while a paused command animation is still settling, the renderer waits for that
   command to settle and then advances one additional deterministic command.
@@ -1092,24 +1102,25 @@ Note:
 - Combat simulation remains deterministic and unchanged.
 - Traits/teamups remain display-only.
 - Duplicate upgrades remain generic +1 ATK/+1 HP combines.
-- Combat summaries and feeds still need grouping/filtering for longer fights.
+- Combat summaries now have deterministic key-moment grouping, but the copy has
+  not had a broad manual pass across many longer future fights.
 
 ## 13. Recommended Next Tasks
 
 Do next:
 
-`feat(client): group or filter long combat summary events`
+`feat(client): add Pixi replay scrub/speed controls`
 
 Why: `/` now has a real Pixi board-edit mode for Pool-to-board placement,
-selected-card Source Row / Spellrail moves, return-to-pool, and compact
-Commander actions beside the primary battlefield. The most visible remaining
-readability issue during normal play is that longer combat summaries and feeds
-still read as dense event dumps once fights become busy.
+selected-card Source Row / Spellrail moves, return-to-pool, compact Commander
+actions, and grouped combat key moments. Renderer Lab still has only
+Play/Pause/Step/Reset, so long replays need scrub/speed controls before visual
+combat review feels fluid.
 
 Do soon:
 
 - `feat(client): improve post-pack blocked-reason copy for Source capacity and board layers`
-- `feat(client): add Pixi replay scrub/speed controls`
+- `test(playtest): manually validate grouped combat key moments across starters`
 - `feat(rules): evaluate expanding the canonical board to 6 rows x 10-12 columns`
 - `feat(client): tune Pixi combat effect timing after manual readability pass`
 - `feat(client): keep selected target and next move visible together in preview labs`

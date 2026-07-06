@@ -496,26 +496,30 @@ test("debug loop can inspect, preview, record, reward, and advance", async ({ pa
   const previewPanel = panel(page, "Upcoming Combat Preview");
   await expect(previewPanel).toBeVisible();
   await expect(previewPanel.getByText(/Winner:/)).toBeVisible();
+  await expect(previewPanel.getByRole("heading", { name: "Key Moments" })).toBeVisible();
+  await expect(previewPanel.getByText(/Events shown: \d+ of \d+/)).toBeVisible();
 
   await page.getByRole("button", { name: "Record Combat" }).click();
 
   const recordedPanel = panel(page, "Last Recorded Combat");
   await expect(recordedPanel.getByText(/Winner:/)).toBeVisible();
-  await expect(recordedPanel.getByText(/Damage:/)).toBeVisible();
+  await expect(recordedPanel.locator("p.muted").first()).toContainText("Damage:");
   await expect(recordedPanel.getByText(/Events:/)).toBeVisible();
   await expect(recordedPanel.getByText(/Gold: \+/)).toBeVisible();
   await expect(recordedPanel.locator(".combat-result-strip")).toContainText(
     "No combat return"
   );
+  await expect(recordedPanel.getByRole("heading", { name: "Key Moments" })).toBeVisible();
+  await expect(recordedPanel.getByText(/Events shown: \d+ of \d+/)).toBeVisible();
   const combatFeed = recordedPanel.locator("details.combat-feed-details");
   await expect(combatFeed).toBeVisible();
   expect(await combatFeed.evaluate((node) => (node as HTMLDetailsElement).open)).toBe(
     false
   );
   await combatFeed.getByText("Combat Event Feed").click();
-  await expect(recordedPanel.getByText("Damage to you", { exact: true })).toBeVisible();
-  await expect(recordedPanel.getByText("Damage to enemy", { exact: true })).toBeVisible();
-  await expect(recordedPanel.getByText("Warnings", { exact: true })).toBeVisible();
+  await expect(combatFeed.getByText("Damage to you", { exact: true })).toBeVisible();
+  await expect(combatFeed.getByText("Damage to enemy", { exact: true })).toBeVisible();
+  await expect(combatFeed.getByText("Warnings", { exact: true })).toBeVisible();
 
   const commanderUpgradePanel = panel(page, "Commander Upgrades");
   await expect(

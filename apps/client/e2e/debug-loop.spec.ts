@@ -291,9 +291,21 @@ test("default loadout tray exposes first-fold loadout edits", async ({ page }) =
 
   await expect(loadoutTray).toBeVisible();
   await expect(poolTray.getByText("Sparkcatch Apprentice")).toBeVisible();
+  await expect(loadoutTray.getByTestId("default-loadout-tray-education")).toContainText(
+    "Board Charge limits deployed board cards"
+  );
+  await expect(loadoutTray.getByTestId("default-loadout-tray-education")).toContainText(
+    "Spellrail slots hold Techniques"
+  );
+  await expect(poolTray).toContainText("Cards waiting to be assigned");
   await expect(boardTray.getByText("Ember Scraprunner")).toBeVisible();
+  await expect(boardTray).toContainText("Units/Echoes use ground");
+  await expect(boardTray).toContainText("Relics/Fields use support");
   await expect(sourcesTray.getByText("Ember Source")).toBeVisible();
+  await expect(sourcesTray).toContainText("Source slots");
+  await expect(sourcesTray).toContainText("Combat Charge/sec");
   await expect(spellrailTray.getByText("Sparkfall")).toBeVisible();
+  await expect(spellrailTray).toContainText("Techniques use Spellrail slots");
   await expect(page.getByText("Renderer Feed")).toHaveCount(0);
 
   const sparkcatchPoolRow = poolTray

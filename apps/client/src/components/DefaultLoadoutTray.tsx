@@ -45,6 +45,7 @@ const DefaultLoadoutTrayCard = ({
 const DefaultLoadoutTrayZone = ({
   children,
   emptyText,
+  helperText,
   itemCount,
   moreCount,
   title,
@@ -52,6 +53,7 @@ const DefaultLoadoutTrayZone = ({
 }: {
   readonly children: ReactNode;
   readonly emptyText: string;
+  readonly helperText: string;
   readonly itemCount: number;
   readonly moreCount: number;
   readonly title: string;
@@ -59,6 +61,7 @@ const DefaultLoadoutTrayZone = ({
 }) => (
   <section className="default-loadout-tray-zone" data-testid={testId}>
     <h3>{title}</h3>
+    <p className="default-loadout-tray-helper">{helperText}</p>
     <ol className="default-loadout-tray-list">
       {itemCount > 0 ? (
         children
@@ -110,6 +113,13 @@ export const DefaultLoadoutTray = ({
           <p className="muted">
             Select, place, and move key cards without opening the debug panels.
           </p>
+          <p
+            className="default-loadout-tray-rule-note"
+            data-testid="default-loadout-tray-education"
+          >
+            Board Charge limits deployed board cards. Source slots limit Sources;
+            Spellrail slots hold Techniques.
+          </p>
         </div>
         <dl className="default-loadout-tray-resources">
           <div>
@@ -132,6 +142,7 @@ export const DefaultLoadoutTray = ({
           title="Pool"
           testId="default-loadout-tray-pool"
           emptyText="No Pool cards are currently available."
+          helperText="Cards waiting to be assigned; use the shown action to place or slot them."
           itemCount={poolCards.length}
           moreCount={Math.max(0, view.poolCards.length - poolCards.length)}
         >
@@ -142,6 +153,7 @@ export const DefaultLoadoutTray = ({
           title="Board"
           testId="default-loadout-tray-board"
           emptyText="No board cards are deployed."
+          helperText="Units/Echoes use ground. Relics/Fields use support and still spend Board Charge."
           itemCount={boardCards.length}
           moreCount={Math.max(0, view.boardPlacements.length - boardCards.length)}
         >
@@ -163,6 +175,7 @@ export const DefaultLoadoutTray = ({
           title="Sources"
           testId="default-loadout-tray-sources"
           emptyText="No Source Row cards."
+          helperText="Sources fill Source slots, raise Board Charge capacity, and add Combat Charge/sec."
           itemCount={sourceCards.length}
           moreCount={Math.max(0, view.sourceCards.length - sourceCards.length)}
         >
@@ -173,6 +186,7 @@ export const DefaultLoadoutTray = ({
           title="Spellrail"
           testId="default-loadout-tray-spellrail"
           emptyText="No Spellrail cards."
+          helperText="Techniques use Spellrail slots and wait here for combat triggers."
           itemCount={spellrailCards.length}
           moreCount={Math.max(0, view.spellrailCards.length - spellrailCards.length)}
         >

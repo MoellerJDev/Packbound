@@ -324,20 +324,27 @@ and `Return to Pool` actions used by the full loadout lists. Full loadout lists
 remain available under `Advanced Debug Panels`, but ordinary editing no longer
 requires opening that panel first.
 
+Implementation update after this task: the first-fold `Loadout Tray` now carries
+short education copy for the confusing loadout constraints. It explains that
+Units/Echoes use the ground layer, Relics/Fields use support, Board Charge
+limits deployed board cards, Source slots limit Sources, Sources add Combat
+Charge/sec, and Techniques live in Spellrail slots. This is a UI clarity pass
+only; rules, validation, loadout actions, Pixi placement, combat, content, and
+rewards did not change.
+
 The biggest remaining Pixi/default-route findings are no longer the absence of
 replay controls, tiny first-pass labels, unvalidated readability, default-route
 confidence, basic default-route edit affordances, an ungrouped default combat
 feed, a debug-grid first screen, or always-expanded inspector detail. Now that
 `/` opens on a tighter Pixi-focused playtest surface with an immediate build
-decision and a first-fold Loadout Tray, the next gaps are clearer
-board/support-layer education, richer direct-manipulation polish such as
-drag/drop or canvas-native zone editing, scrub or speed controls in Renderer
-Lab, and checking that grouped combat copy scales beyond the current starter
-fights.
+decision and a first-fold Loadout Tray, the next gaps are richer
+direct-manipulation polish such as drag/drop or canvas-native zone editing,
+cleaner post-pack suggestion grouping, scrub or speed controls in Renderer Lab,
+and checking that grouped combat copy scales beyond the current starter fights.
 
 Recommended next task:
 
-`feat(client): clarify board layer and loadout cost education`
+`feat(client): group duplicate post-pack suggestions by card name`
 
 ## 2. Environment And Commands
 
@@ -1167,8 +1174,9 @@ Note:
   1440 x 900 plus a 1280 x 720 sanity pass. It is close to showable with light
   narration, and the first-fold `Loadout Tray` now exposes ordinary
   Pool/Board/Source Row/Spellrail editing without opening Advanced Debug Panels.
-  It is still not a cold-start demo because those controls are compact, capped,
-  button-driven affordances rather than board-native manipulation.
+  It now carries short layer/resource education, but it is still not a
+  cold-start demo because those controls are compact, capped, button-driven
+  affordances rather than board-native manipulation.
 - The React/CSS Hex Arena remains available as a collapsed debug fallback on `/`
   and `?scenario=renderer-lab`.
 - The default route now hides/collapses most developer bloat and supports
@@ -1254,19 +1262,18 @@ Note:
 
 Do next:
 
-`feat(client): clarify board layer and loadout cost education`
+`feat(client): group duplicate post-pack suggestions by card name`
 
-Why: the tightened `/` route now has first-fold loadout editing, but the next
-confusion is why a card belongs on ground vs support, how Board Charge / Source
-Row capacity constrains placement, and why some legal moves are shown as compact
-buttons rather than canvas-native drops. Teaching those constraints would make
-the default route more showable without changing rules, combat, content, or
-Pixi renderer behavior.
+Why: the tightened `/` route now has first-fold loadout editing plus concise
+layer and resource education. The next visible repetition is that post-pack
+suggestions can list several copies of the same card separately, which makes the
+reward-to-loadout bridge noisier than the rest of the default route. Grouping
+those suggestions would improve clarity without changing rules, combat, content,
+or Pixi renderer behavior.
 
 Do soon:
 
 - `feat(client): add Pixi replay scrub/speed controls`
-- `feat(client): group duplicate post-pack suggestions by card name`
 - `feat(client): improve post-pack blocked-reason copy for Source capacity and board layers`
 - `test(playtest): manually validate grouped combat key moments across starters`
 - `feat(rules): evaluate expanding the canonical board to 6 rows x 10-12 columns`

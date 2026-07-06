@@ -802,6 +802,13 @@ h4 {
   margin: 0;
 }
 
+.default-loadout-tray-rule-note {
+  color: #355860;
+  font-size: 0.84rem;
+  font-weight: 800;
+  margin-top: 6px;
+}
+
 .default-loadout-tray-resources {
   display: grid;
   gap: 8px;
@@ -842,6 +849,13 @@ h4 {
 .default-loadout-tray-zone h3 {
   color: #244532;
   font-size: 0.9rem;
+}
+
+.default-loadout-tray-helper {
+  color: #587071;
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.35;
 }
 
 .default-loadout-tray-list {

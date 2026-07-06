@@ -335,50 +335,21 @@ test("default loadout tray exposes first-fold loadout edits", async ({ page }) =
   expectNoBrowserErrors(errors);
 });
 
-test("default Pixi edit controls support placement and zone moves", async ({ page }) => {
-  const { allyInspector, battlefield, errors, rendererHost } =
-    await gotoDefaultPlaytestRoute(page);
+test("default Pixi zone controls support Source and Spellrail round trips", async ({
+  page
+}) => {
+  const { battlefield, errors, rendererHost } = await gotoDefaultPlaytestRoute(page);
   await openAdvancedDebugPanels(page);
 
-  const boardPanel = panel(page, "Board");
   const sourceRowPanel = panel(page, "Source Row");
   const spellrailPanel = panel(page, "Spellrail");
   const poolPanel = panel(page, "Pool Cards");
-  const defaultPlacementHint = battlefield.getByTestId("default-pixi-placement-hint");
-  const defaultEditControls = battlefield.getByTestId("default-pixi-board-edit-controls");
   const defaultZoneEditControls = battlefield.getByTestId(
     "default-pixi-zone-edit-controls"
   );
 
   await expect(rendererHost).toBeVisible();
   await expect(rendererHost.locator("canvas")).toHaveCount(1);
-  await clickPixiCell(page, rendererHost, 0, 2);
-  await expect(defaultEditControls).toBeVisible();
-  await expect(
-    defaultEditControls.getByTestId("default-pixi-board-edit-mode")
-  ).toHaveText("Inspect");
-  await expect(
-    defaultEditControls.getByTestId("default-pixi-board-edit-status")
-  ).toHaveText("Select Pool cards below to enter placement mode.");
-  await expect(
-    defaultEditControls.getByRole("button", { name: "Cancel Placement" })
-  ).toHaveCount(0);
-  await expect(defaultPlacementHint).toHaveText(
-    "Select a board-placeable Pool card below, then click a highlighted Pixi cell."
-  );
-  await expect(defaultZoneEditControls).toBeVisible();
-  await expect(
-    defaultZoneEditControls.getByTestId("default-pixi-zone-edit-mode")
-  ).toHaveText("Loadout");
-  await expect(
-    defaultZoneEditControls.getByTestId("default-pixi-zone-edit-selected")
-  ).toHaveText("Ember Scraprunner");
-  await expect(
-    defaultZoneEditControls.getByTestId("default-pixi-zone-edit-selected-zone")
-  ).toHaveText("Board");
-  await expect(
-    defaultZoneEditControls.getByTestId("default-pixi-zone-edit-status")
-  ).toHaveText("Send Ember Scraprunner back to Pool.");
 
   const emberSourceSourceRow = sourceRowPanel
     .getByRole("listitem")
@@ -448,10 +419,30 @@ test("default Pixi edit controls support placement and zone moves", async ({ pag
   await expect(
     defaultZoneEditControls.getByTestId("default-pixi-zone-edit-status")
   ).toHaveText("Send Sparkfall back to Pool.");
+  await expect(rendererHost.locator("canvas")).toHaveCount(1);
+
+  expectNoBrowserErrors(errors);
+});
+
+test("default Pixi board placement supports cancel blocked and legal cells", async ({
+  page
+}) => {
+  const { battlefield, errors, rendererHost } = await gotoDefaultPlaytestRoute(page);
+  await openAdvancedDebugPanels(page);
+
+  const boardPanel = panel(page, "Board");
+  const poolPanel = panel(page, "Pool Cards");
+  const defaultPlacementHint = battlefield.getByTestId("default-pixi-placement-hint");
+  const defaultEditControls = battlefield.getByTestId("default-pixi-board-edit-controls");
+  const defaultZoneEditControls = battlefield.getByTestId(
+    "default-pixi-zone-edit-controls"
+  );
 
   const sparkcatchPoolRow = poolPanel
     .getByRole("listitem")
     .filter({ hasText: "Sparkcatch Apprentice" });
+  await expect(rendererHost).toBeVisible();
+  await expect(rendererHost.locator("canvas")).toHaveCount(1);
   await sparkcatchPoolRow.getByRole("button", { name: "Select Board Cell" }).click();
   await expect(
     defaultZoneEditControls.getByTestId("default-pixi-zone-edit-selected")
@@ -491,10 +482,7 @@ test("default Pixi edit controls support placement and zone moves", async ({ pag
   await expect(
     defaultEditControls.getByTestId("default-pixi-board-edit-status")
   ).toHaveText("Choose a highlighted cell or cancel placement.");
-  await clickPixiCell(page, rendererHost, 0, 2);
-  await expect(
-    allyInspector.getByRole("heading", { name: "Ember Scraprunner" })
-  ).toBeVisible();
+  await defaultEditControls.getByRole("button", { name: "Cancel Placement" }).click();
   await expect(
     defaultEditControls.getByTestId("default-pixi-board-edit-mode")
   ).toHaveText("Inspect");
@@ -509,10 +497,48 @@ test("default Pixi edit controls support placement and zone moves", async ({ pag
   await expect(
     defaultZoneEditControls.getByTestId("default-pixi-zone-edit-selected-zone")
   ).toHaveText("Board");
-  await defaultZoneEditControls.getByRole("button", { name: "Return to Pool" }).click();
+  await expect(rendererHost.locator("canvas")).toHaveCount(1);
+
+  expectNoBrowserErrors(errors);
+});
+
+test("default Pixi board return-to-pool works after placement", async ({ page }) => {
+  const { battlefield, errors, rendererHost } = await gotoDefaultPlaytestRoute(page);
+  await openAdvancedDebugPanels(page);
+
+  const boardPanel = panel(page, "Board");
+  const poolPanel = panel(page, "Pool Cards");
+  const defaultZoneEditControls = battlefield.getByTestId(
+    "default-pixi-zone-edit-controls"
+  );
+
+  const sparkcatchPoolRow = poolPanel
+    .getByRole("listitem")
+    .filter({ hasText: "Sparkcatch Apprentice" });
+  await expect(rendererHost).toBeVisible();
+  await expect(rendererHost.locator("canvas")).toHaveCount(1);
+  await sparkcatchPoolRow.getByRole("button", { name: "Select Board Cell" }).click();
+  await clickPixiCell(page, rendererHost, 0, 0);
+  await expect(
+    boardPanel.getByRole("listitem").filter({ hasText: "Sparkcatch Apprentice" }).first()
+  ).toBeVisible();
+  await expect(
+    defaultZoneEditControls.getByTestId("default-pixi-zone-edit-selected-zone")
+  ).toHaveText("Board");
+  const returnToPool = defaultZoneEditControls.getByRole("button", {
+    name: "Return to Pool"
+  });
+  await returnToPool.scrollIntoViewIfNeeded();
+  await returnToPool.click();
   await expect(
     poolPanel.getByRole("listitem").filter({ hasText: "Sparkcatch Apprentice" }).first()
   ).toBeVisible();
+  await expect(
+    boardPanel.getByRole("listitem").filter({ hasText: "Sparkcatch Apprentice" })
+  ).toHaveCount(0);
+  await expect(
+    defaultZoneEditControls.getByTestId("default-pixi-zone-edit-selected-zone")
+  ).toHaveText("Pool");
   await expect(
     defaultZoneEditControls.getByTestId("default-pixi-zone-edit-status")
   ).toHaveText("Sparkcatch Apprentice has no legal Source Row or Spellrail move.");

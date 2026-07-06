@@ -19,6 +19,7 @@ import type {
   DefaultPixiLoadoutEditView,
   DefaultPixiZoneEditAction
 } from "../viewModels/defaultPixiLoadoutEditView";
+import type { DefaultPixiCommanderEditView } from "../viewModels/defaultPixiCommanderEditView";
 
 export type DefaultPixiBattlefieldView = {
   readonly currentRound: number;
@@ -26,6 +27,7 @@ export type DefaultPixiBattlefieldView = {
   readonly engagementPreview: EngagementPreview;
   readonly phase: string;
   readonly boardEditControls: DefaultPixiBoardEditControlsView;
+  readonly commanderEditControls: DefaultPixiCommanderEditView;
   readonly loadoutEditControls: DefaultPixiLoadoutEditView;
   readonly pixiBattlefieldModel: PixiBattlefieldModel;
   readonly placementHint: DefaultPixiPlacementHintView;
@@ -40,6 +42,9 @@ export type DefaultPixiBattlefieldController = {
   readonly onCellSelect: (position: BoardPosition) => void;
   readonly onBlockedCellSelect?: (position: BoardPosition) => void;
   readonly onApplyZoneEditAction: (action: DefaultPixiZoneEditAction) => void;
+  readonly onDeployCommander: () => void;
+  readonly onInspectCommander: () => void;
+  readonly onReturnCommander: () => void;
   readonly onTokenSelect: (card: PixiBattlefieldCard) => void;
   readonly renderDebugBoard: () => ReactNode;
 };
@@ -132,6 +137,14 @@ const DefaultPixiLoadoutEditControls = ({
           <dd data-testid="default-pixi-zone-edit-selected">{view.selectedCardName}</dd>
         </div>
       ) : null}
+      {view.mode === "selected" ? (
+        <div>
+          <dt>Zone</dt>
+          <dd data-testid="default-pixi-zone-edit-selected-zone">
+            {view.selectedZoneLabel}
+          </dd>
+        </div>
+      ) : null}
     </dl>
     <div className="button-row compact">
       {view.actions.map((action) => (
@@ -145,6 +158,55 @@ const DefaultPixiLoadoutEditControls = ({
       ))}
     </div>
     <p data-testid="default-pixi-zone-edit-status">{view.statusText}</p>
+  </div>
+);
+
+const DefaultPixiCommanderEditControls = ({
+  onDeployCommander,
+  onInspectCommander,
+  onReturnCommander,
+  view
+}: {
+  readonly onDeployCommander: () => void;
+  readonly onInspectCommander: () => void;
+  readonly onReturnCommander: () => void;
+  readonly view: DefaultPixiCommanderEditView;
+}) => (
+  <div
+    className="default-pixi-edit-controls default-pixi-commander-edit-controls"
+    data-testid="default-pixi-commander-edit-controls"
+  >
+    <dl>
+      <div>
+        <dt>Mode</dt>
+        <dd data-testid="default-pixi-commander-edit-mode">{view.modeLabel}</dd>
+      </div>
+      <div>
+        <dt>Commander</dt>
+        <dd data-testid="default-pixi-commander-edit-selected">{view.commanderName}</dd>
+      </div>
+      <div>
+        <dt>Zone</dt>
+        <dd data-testid="default-pixi-commander-edit-zone">{view.zoneLabel}</dd>
+      </div>
+    </dl>
+    <div className="button-row compact">
+      <button
+        type="button"
+        className="secondary"
+        disabled={!view.canInspect}
+        onClick={onInspectCommander}
+      >
+        Inspect Commander
+      </button>
+      <button type="button" disabled={!view.canDeploy} onClick={onDeployCommander}>
+        Deploy Commander
+      </button>
+      <button type="button" disabled={!view.canReturn} onClick={onReturnCommander}>
+        Return to Command
+      </button>
+    </div>
+    <p data-testid="default-pixi-commander-edit-status">{view.statusText}</p>
   </div>
 );
 
@@ -217,6 +279,12 @@ export const DefaultPixiBattlefieldSection = ({
         <DefaultPixiLoadoutEditControls
           view={view.loadoutEditControls}
           onApplyZoneEditAction={controller.onApplyZoneEditAction}
+        />
+        <DefaultPixiCommanderEditControls
+          view={view.commanderEditControls}
+          onDeployCommander={controller.onDeployCommander}
+          onInspectCommander={controller.onInspectCommander}
+          onReturnCommander={controller.onReturnCommander}
         />
         <DefaultPixiPlacementHint hint={view.placementHint} />
         <EngagementPreviewPanel preview={view.engagementPreview} />

@@ -57,22 +57,23 @@ describe("default Pixi loadout edit view", () => {
     const view = buildDefaultPixiLoadoutEditView({
       catalog: sampleCatalog,
       run: createBaseRun(),
-      selectedPoolCardId: undefined
+      selectedCardId: undefined
     });
 
     expect(view).toEqual({
       mode: "idle",
       modeLabel: "Loadout",
-      statusText: "Select a Pool card below to send it to Source Row or Spellrail.",
+      statusText:
+        "Select a Pool, Board, Source Row, or Spellrail card below to edit its loadout zone.",
       actions: []
     });
   });
 
-  it("ignores a selected id that is not currently in the pool", () => {
+  it("ignores a selected id that is not currently in an editable loadout zone", () => {
     const view = buildDefaultPixiLoadoutEditView({
       catalog: sampleCatalog,
       run: createBaseRun(),
-      selectedPoolCardId: asCardInstanceId("missing-pool-card")
+      selectedCardId: asCardInstanceId("missing-pool-card")
     });
 
     expect(view.mode).toBe("idle");
@@ -85,13 +86,15 @@ describe("default Pixi loadout edit view", () => {
     const view = buildDefaultPixiLoadoutEditView({
       catalog: sampleCatalog,
       run,
-      selectedPoolCardId: card.instanceId
+      selectedCardId: card.instanceId
     });
 
     expect(view).toMatchObject({
       mode: "selected",
       selectedCardInstanceId: card.instanceId,
       selectedCardName: "Ember Source",
+      selectedZone: "pool",
+      selectedZoneLabel: "Pool",
       statusText: "Send Ember Source to Source Row or Spellrail."
     });
     expect(view.actions).toEqual([
@@ -105,13 +108,15 @@ describe("default Pixi loadout edit view", () => {
     const view = buildDefaultPixiLoadoutEditView({
       catalog: sampleCatalog,
       run,
-      selectedPoolCardId: card.instanceId
+      selectedCardId: card.instanceId
     });
 
     expect(view).toMatchObject({
       mode: "selected",
       selectedCardInstanceId: card.instanceId,
       selectedCardName: "Sparkfall",
+      selectedZone: "pool",
+      selectedZoneLabel: "Pool",
       statusText: "Send Sparkfall to Source Row or Spellrail."
     });
     expect(view.actions).toEqual([{ type: "addToSpellrail", label: "Add to Spellrail" }]);
@@ -123,13 +128,110 @@ describe("default Pixi loadout edit view", () => {
     const view = buildDefaultPixiLoadoutEditView({
       catalog: sampleCatalog,
       run,
-      selectedPoolCardId: card.instanceId
+      selectedCardId: card.instanceId
     });
 
     expect(view).toMatchObject({
       mode: "selected",
       selectedCardName: "Sparkcatch Apprentice",
+      selectedZone: "pool",
+      selectedZoneLabel: "Pool",
       statusText: "Sparkcatch Apprentice has no legal Source Row or Spellrail move.",
+      actions: []
+    });
+  });
+
+  it("returns a Pool affordance for a selected Board card", () => {
+    const run = createBaseRun();
+    const placement = run.board.placements[0];
+    if (!placement) {
+      throw new Error("Expected starter board placement.");
+    }
+    const view = buildDefaultPixiLoadoutEditView({
+      catalog: sampleCatalog,
+      run,
+      selectedCardId: placement.cardInstanceId
+    });
+
+    expect(view).toMatchObject({
+      mode: "selected",
+      selectedCardInstanceId: placement.cardInstanceId,
+      selectedCardName: "Ember Scraprunner",
+      selectedZone: "board",
+      selectedZoneLabel: "Board",
+      statusText: "Send Ember Scraprunner back to Pool."
+    });
+    expect(view.actions).toEqual([{ type: "returnToPool", label: "Return to Pool" }]);
+  });
+
+  it("returns a Pool affordance for a selected Source Row card", () => {
+    const run = createBaseRun();
+    const card = run.sourceRow.cards[0];
+    if (!card) {
+      throw new Error("Expected starter Source Row card.");
+    }
+    const view = buildDefaultPixiLoadoutEditView({
+      catalog: sampleCatalog,
+      run,
+      selectedCardId: card.instanceId
+    });
+
+    expect(view).toMatchObject({
+      mode: "selected",
+      selectedCardInstanceId: card.instanceId,
+      selectedCardName: "Ember Source",
+      selectedZone: "sourceRow",
+      selectedZoneLabel: "Source Row",
+      statusText: "Send Ember Source back to Pool."
+    });
+    expect(view.actions).toEqual([{ type: "returnToPool", label: "Return to Pool" }]);
+  });
+
+  it("returns a Pool affordance for a selected Spellrail card", () => {
+    const run = createBaseRun();
+    const card = run.spellrail.cards[0];
+    if (!card) {
+      throw new Error("Expected starter Spellrail card.");
+    }
+    const view = buildDefaultPixiLoadoutEditView({
+      catalog: sampleCatalog,
+      run,
+      selectedCardId: card.instanceId
+    });
+
+    expect(view).toMatchObject({
+      mode: "selected",
+      selectedCardInstanceId: card.instanceId,
+      selectedCardName: "Sparkfall",
+      selectedZone: "spellrail",
+      selectedZoneLabel: "Spellrail",
+      statusText: "Send Sparkfall back to Pool."
+    });
+    expect(view.actions).toEqual([{ type: "returnToPool", label: "Return to Pool" }]);
+  });
+
+  it("shows blocked return copy for selected active cards outside planning", () => {
+    const planningRun = createBaseRun();
+    const card = planningRun.sourceRow.cards[0];
+    if (!card) {
+      throw new Error("Expected starter Source Row card.");
+    }
+    const combatReadyRun = applyRunAction(planningRun, sampleCatalog, {
+      type: "markCombatReady"
+    });
+
+    const view = buildDefaultPixiLoadoutEditView({
+      catalog: sampleCatalog,
+      run: combatReadyRun,
+      selectedCardId: card.instanceId
+    });
+
+    expect(view).toMatchObject({
+      mode: "selected",
+      selectedCardName: "Ember Source",
+      selectedZone: "sourceRow",
+      selectedZoneLabel: "Source Row",
+      statusText: "Ember Source has no legal return action.",
       actions: []
     });
   });

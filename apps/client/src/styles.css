@@ -294,11 +294,13 @@ h4 {
   padding: 0 12px;
 }
 
-.default-pixi-loadout-edit-controls .button-row {
+.default-pixi-loadout-edit-controls .button-row,
+.default-pixi-commander-edit-controls .button-row {
   justify-content: flex-start;
 }
 
-.default-pixi-loadout-edit-controls .button-row:empty {
+.default-pixi-loadout-edit-controls .button-row:empty,
+.default-pixi-commander-edit-controls .button-row:empty {
   display: none;
 }
 

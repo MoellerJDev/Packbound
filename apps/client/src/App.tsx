@@ -130,6 +130,7 @@ import {
   buildDefaultPixiLoadoutEditView,
   type DefaultPixiZoneEditAction
 } from "./viewModels/defaultPixiLoadoutEditView";
+import { buildDefaultPixiCommanderEditView } from "./viewModels/defaultPixiCommanderEditView";
 import { sameBoardPosition } from "./viewModels/defaultPixiPlacementView";
 
 const playerId = asPlayerId("debug-player");
@@ -540,19 +541,16 @@ export function App() {
   });
   const pixiPlacementCard = pixiPlacement.view.selectedPlacementCard;
   const pixiPlaceablePositions = pixiPlacement.view.placeablePositions;
-  const selectedPoolCardIdForPixiZoneEdit =
-    selectedAllyCardRef?.type === "run" &&
-    run.pool.some((card) => card.instanceId === selectedAllyCardRef.cardInstanceId)
-      ? selectedAllyCardRef.cardInstanceId
-      : undefined;
+  const selectedCardIdForPixiZoneEdit =
+    selectedAllyCardRef?.type === "run" ? selectedAllyCardRef.cardInstanceId : undefined;
   const pixiLoadoutEditView = useMemo(
     () =>
       buildDefaultPixiLoadoutEditView({
         catalog: sampleCatalog,
         run,
-        selectedPoolCardId: selectedPoolCardIdForPixiZoneEdit
+        selectedCardId: selectedCardIdForPixiZoneEdit
       }),
-    [run, selectedPoolCardIdForPixiZoneEdit]
+    [run, selectedCardIdForPixiZoneEdit]
   );
   const pixiBattlefieldModel = useMemo(
     () =>
@@ -764,6 +762,17 @@ export function App() {
     upgradeLevel: run.commander?.card.upgradeLevel ?? 0,
     zone: run.commander?.card.zone ?? "none"
   } satisfies CommandZonePanelView;
+  const pixiCommanderEditView = buildDefaultPixiCommanderEditView({
+    commanderName: commandZoneView.commanderName,
+    deployBlockedReason: commanderDeployCheck.ok
+      ? undefined
+      : commanderDeployCheck.reason,
+    hasCommander: commandZoneView.hasCommander,
+    returnBlockedReason: commanderReturnCheck.ok
+      ? undefined
+      : commanderReturnCheck.reason,
+    zone: commandZoneView.zone
+  });
   const commanderUpgradePanelView = {
     choices: commanderUpgradeChoices,
     currentLevel: run.commander?.card.upgradeLevel ?? 0,
@@ -1345,6 +1354,7 @@ export function App() {
     engagementPreview,
     phase,
     boardEditControls: pixiPlacement.view.boardEditControls,
+    commanderEditControls: pixiCommanderEditView,
     loadoutEditControls: pixiLoadoutEditView,
     pixiBattlefieldModel,
     playerGold: run.playerGold,
@@ -1360,9 +1370,12 @@ export function App() {
     onApplyZoneEditAction: applyPixiZoneEditAction,
     onCancelPlacement: pixiPlacement.controller.clearPlacement,
     onCellSelect: placePixiSelectedCardOnCell,
+    onDeployCommander: deployCommanderFromCommand,
     ...(pixiPlacementCard && isDefaultRoute
       ? { onBlockedCellSelect: pixiPlacement.controller.selectBlockedCell }
       : {}),
+    onInspectCommander: inspectCommander,
+    onReturnCommander: returnCommanderFromBoard,
     onTokenSelect: selectPixiToken,
     renderDebugBoard
   } satisfies DefaultPixiBattlefieldController;

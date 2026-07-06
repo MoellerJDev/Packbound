@@ -339,6 +339,12 @@ legal action while preserving all actual card instances in the pool. Suggestions
 with the same card name but different action availability stay separate, so the
 copy does not hide blocked or different-action cases.
 
+Implementation update after this task: post-pack suggestion construction has
+been extracted from `runClarity.ts` into a focused rules helper. Unavailable
+latest-pack suggestions now name common blockers such as full Source Row slots,
+full Spellrail slots, insufficient Board Charge, and occupied ground/support
+layers instead of only asking the player to inspect the card.
+
 The biggest remaining Pixi/default-route findings are no longer the absence of
 replay controls, tiny first-pass labels, unvalidated readability, default-route
 confidence, basic default-route edit affordances, an ungrouped default combat
@@ -346,13 +352,13 @@ feed, a debug-grid first screen, or always-expanded inspector detail. Now that
 `/` opens on a tighter Pixi-focused playtest surface with an immediate build
 decision, a first-fold Loadout Tray, and grouped duplicate post-pack
 suggestions, the next gaps are richer direct-manipulation polish such as
-drag/drop or canvas-native zone editing, stronger post-pack blocked-reason copy,
-scrub or speed controls in Renderer Lab, and checking that grouped combat copy
-scales beyond the current starter fights.
+drag/drop or canvas-native zone editing, scrub or speed controls in Renderer
+Lab, and checking that grouped combat copy scales beyond the current starter
+fights.
 
 Recommended next task:
 
-`feat(client): improve post-pack blocked-reason copy for Source capacity and board layers`
+`feat(client): add Pixi replay scrub/speed controls`
 
 ## 2. Environment And Commands
 
@@ -443,14 +449,14 @@ Manual path played:
 
 Scorecard:
 
-| Category                         | Score | Finding                                                                                                                                       |
-| -------------------------------- | ----- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| First-screen clarity             | 4 / 5 | `Current Decision` and the immediate upgrade are clear, but "tune your board" points to controls that are below the fold or inside debug UI.  |
-| Battlefield readability          | 4 / 5 | Pixi is visually central, tokens/stats are readable at both tested sizes, and compact inspectors help, but support/ground layers need help.   |
-| Action/control clarity           | 3 / 5 | Inspect/Place/Loadout/Commander modes work and blocked reasons are good, but the source lists are hidden under `Advanced Debug Panels`.       |
-| Combat understanding             | 4 / 5 | Combat Preview and Key Moments explain winner, damage, destroyed units, and triggers well enough without opening the full feed.               |
-| Reward/advance clarity           | 4 / 5 | Pack cost, after-purchase gold, Commander upgrade, Advance, and post-pack suggestions are understandable, though duplicate suggestions recur. |
-| Overall 10-minute demo viability | 4 / 5 | Close to showable with light narration; not yet a cold first-time demo because core editing affordances still feel tucked away.               |
+| Category                         | Score | Finding                                                                                                                                      |
+| -------------------------------- | ----- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| First-screen clarity             | 4 / 5 | `Current Decision` and the immediate upgrade are clear, but "tune your board" points to controls that are below the fold or inside debug UI. |
+| Battlefield readability          | 4 / 5 | Pixi is visually central, tokens/stats are readable at both tested sizes, and compact inspectors help, but support/ground layers need help.  |
+| Action/control clarity           | 3 / 5 | Inspect/Place/Loadout/Commander modes work and blocked reasons are good, but the source lists are hidden under `Advanced Debug Panels`.      |
+| Combat understanding             | 4 / 5 | Combat Preview and Key Moments explain winner, damage, destroyed units, and triggers well enough without opening the full feed.              |
+| Reward/advance clarity           | 4 / 5 | Pack cost, after-purchase gold, Commander upgrade, Advance, and post-pack suggestions are understandable; duplicate rows are now grouped.    |
+| Overall 10-minute demo viability | 4 / 5 | Close to showable with light narration; not yet a cold first-time demo because core editing affordances still feel tucked away.              |
 
 What worked:
 
@@ -623,10 +629,12 @@ details` view is still verbose when simulator facts, legal actions, blocked
 - New reward cards are only movable after advancing back to planning. The Pool
   summary and Suggested next edits panel now state whether new cards can be
   moved now or after `Advance`.
-- Cards with no available move used to say only `No legal action`; they now say
-  `Inspect for blocked reason`, which points players toward the inspector.
-- Support and ground cards can share row/column coordinates, but the default UI
-  does not explicitly explain layers well enough during loadout edits.
+- Cards with no available move used to say only `No legal action`; post-pack
+  suggestions now call out common blockers like Source Row slots, Spellrail
+  slots, Board Charge, and occupied ground/support layers.
+- Support and ground cards can share row/column coordinates. The Loadout Tray
+  now teaches ground/support at a high level, but Pixi placement is still a
+  compact button-driven affordance rather than a fully visual layer editor.
 
 ### Meaningful Decisions
 
@@ -702,12 +710,11 @@ details` view is still verbose when simulator facts, legal actions, blocked
 1. Collapse default-route debug panels: Current Encounter details, legal Planning
    Check, display-only Traits, idle Upgrade Progress, and full Commander
    lifecycle.
-2. Make post-pack suggestions explain why an otherwise interesting new card is
-   blocked by Source capacity, Board Charge, or layer occupancy.
+2. Add Pixi replay scrub/speed controls so long replays are easier to revisit.
 3. Group combat summaries into headline beats: Techniques, first deaths,
    Commander lifecycle, winner/damage, and hidden details.
-4. Add layer copy near Board/Pixi placement so ground/support sharing is
-   understandable without reading architecture docs.
+4. Add stronger canvas-native layer affordances so ground/support sharing is
+   visible during placement, not only explained in tray copy.
 5. Add a compact "why this pack" detail state that can show duplicate/fixing
    reasons without reopening the full reward explanation list.
 
@@ -1195,9 +1202,9 @@ Note:
   final drag/drop or canvas-native zone editing.
 - Post-pack suggestions are deterministic and use existing legal actions only.
   They look only at the latest opened pack, group duplicate same-action copies
-  for display, suggest at most a few forward edits, and do not reason about
-  long-term build quality, source swaps, duplicate upgrade timing, or
-  board-layer education beyond short copy.
+  for display, explain common immediate blockers, suggest at most a few forward
+  edits, and do not reason about long-term build quality, source swaps, or
+  duplicate upgrade timing.
 - Reward explanations now rank duplicate progress, duplicate potential, fixing
   pressure, active trait matches, and economy ahead of near-trait and broad bias
   text, but they are still lightweight pack-level hints rather than a full draft
@@ -1271,17 +1278,17 @@ Note:
 
 Do next:
 
-`feat(client): improve post-pack blocked-reason copy for Source capacity and board layers`
+`feat(client): add Pixi replay scrub/speed controls`
 
 Why: the tightened `/` route now has first-fold loadout editing, concise layer
-and resource education, and grouped duplicate post-pack suggestions. The next
-clarity gap is when suggestions are unavailable: the current copy still points
-players toward inspection instead of explaining common blockers such as Source
-capacity, Board Charge, or occupied ground/support layers.
+and resource education, grouped duplicate post-pack suggestions, and clearer
+blocked copy for common loadout constraints. The next visible comprehension gap
+is still long Pixi combat playback: Play/Pause/Step/Reset work, but longer
+Renderer Lab replays need a scrub or speed affordance to revisit specific moves,
+attacks, recalls, and destroyed markers.
 
 Do soon:
 
-- `feat(client): add Pixi replay scrub/speed controls`
 - `test(playtest): manually validate grouped combat key moments across starters`
 - `feat(rules): evaluate expanding the canonical board to 6 rows x 10-12 columns`
 - `feat(client): tune Pixi combat effect timing after manual readability pass`

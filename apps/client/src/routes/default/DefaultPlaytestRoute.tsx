@@ -2,6 +2,7 @@ import { CombatResultPanel } from "../../components/CombatResultPanel";
 import { CommanderUpgradePanel } from "../../components/CommanderUpgradePanel";
 import { DefaultLoadoutTray } from "../../components/DefaultLoadoutTray";
 import { DefaultPixiBattlefieldSection } from "../../components/DefaultPixiBattlefieldSection";
+import { PackOfferPanel } from "../../components/PackOfferPanel";
 import { PostPackSuggestionsPanel } from "../../components/PostPackSuggestionsPanel";
 import { RewardChoicesPanel } from "../../components/RewardChoicesPanel";
 import type {
@@ -20,6 +21,7 @@ type DefaultPlaytestRouteProps = {
 export const DefaultPlaytestRoute = ({ view, controller }: DefaultPlaytestRouteProps) => {
   const showRewards =
     view.rewards.rewardChoices.length > 0 ||
+    view.rewards.pendingPackOffer !== undefined ||
     view.commanderUpgradePanelView.phase === "reward";
 
   return (
@@ -51,6 +53,13 @@ export const DefaultPlaytestRoute = ({ view, controller }: DefaultPlaytestRouteP
               playerGold={view.rewards.playerGold}
               rewardChoices={view.rewards.rewardChoices}
             />
+            {view.rewards.pendingPackOffer ? (
+              <PackOfferPanel
+                cardName={controller.cardName}
+                offer={view.rewards.pendingPackOffer}
+                onCommit={controller.onCommitPackOfferPicks}
+              />
+            ) : null}
             <CommanderUpgradePanel
               variant="panel"
               view={view.commanderUpgradePanelView}

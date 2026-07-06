@@ -645,23 +645,45 @@ test("default playtest can record combat, claim rewards, and advance", async ({
     commanderUpgradePanel.getByTestId("commander-latest-upgrade")
   ).toContainText("Combat Training");
 
-  const rewardPanel = panel(page, "Reward Choices");
-  await expect(rewardPanel.getByText(/Cost \d+ gold/).first()).toBeVisible();
-  await expect(rewardPanel.getByText(/After purchase: \d+ gold/).first()).toBeVisible();
-  const rewardExplanation = rewardPanel.locator(".reward-explanation-details").first();
+  const packMarketPanel = panel(page, "Pack Market");
+  await expect(packMarketPanel.getByText(/Cost \d+ gold/).first()).toBeVisible();
+  await expect(
+    packMarketPanel.getByText(/After purchase: \d+ gold/).first()
+  ).toBeVisible();
+  const rewardExplanation = packMarketPanel
+    .locator(".reward-explanation-details")
+    .first();
   await expect(rewardExplanation.locator(".reward-headline")).toBeVisible();
   expect(
     await rewardExplanation.evaluate((node) => (node as HTMLDetailsElement).open)
   ).toBe(false);
   await rewardExplanation.locator("summary").click();
-  await expect(rewardPanel.locator(".reward-reasons li").first()).toBeVisible();
+  await expect(packMarketPanel.locator(".reward-reasons li").first()).toBeVisible();
   await expect(
-    rewardPanel
+    packMarketPanel
       .getByText(/Biased toward|Matches active|Can add Aspect|Can contain/)
       .first()
   ).toBeVisible();
-  await expect(rewardPanel.getByRole("button", { name: "Open" }).first()).toBeVisible();
-  await rewardPanel.getByRole("button", { name: "Open" }).first().click();
+  await expect(
+    packMarketPanel.getByRole("button", { name: "Open Pack Offer" }).first()
+  ).toBeVisible();
+  await packMarketPanel.getByRole("button", { name: "Open Pack Offer" }).first().click();
+
+  await expect(page.getByTestId("post-pack-suggestions-panel")).toHaveCount(0);
+  const packOffer = page.getByTestId("pack-offer-panel");
+  await expect(packOffer.getByRole("heading", { name: "Pack Offer" })).toBeVisible();
+  await expect(packOffer).toContainText(/pick 2 of 5/i);
+  await expect(packOffer.getByTestId("pack-offer-card")).toHaveCount(5);
+  await expect(packOffer.getByTestId("pack-offer-pick-count")).toHaveText(
+    "Selected 0 / 2"
+  );
+  await expect(page.getByRole("button", { name: "Advance" })).toBeDisabled();
+  await packOffer.getByTestId("pack-offer-card").nth(0).getByRole("checkbox").check();
+  await packOffer.getByTestId("pack-offer-card").nth(1).getByRole("checkbox").check();
+  await expect(packOffer.getByTestId("pack-offer-pick-count")).toHaveText(
+    "Selected 2 / 2"
+  );
+  await packOffer.getByRole("button", { name: "Commit Pack Picks" }).click();
 
   const postPackSuggestions = page.getByTestId("post-pack-suggestions-panel");
   await expect(postPackSuggestions).toBeVisible();

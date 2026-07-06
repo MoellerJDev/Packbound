@@ -343,8 +343,8 @@ stronger headline, and near-trait-only overlap now uses cautious copy instead of
 claiming a pack is likely to support the current trait direction.
 
 Maintenance update after this task: `App.tsx` panel and route extraction is
-broader now. Earlier focused components cover the run guide, Command Zone,
-reward choices, post-pack suggestions, combat result/preview panels, Commander
+broader now. Earlier focused components cover the run guide, Command Zone, Pack
+Market choices, post-pack suggestions, combat result/preview panels, Commander
 upgrades, and the default-route Board, Source Row, Spellrail, Upgrade Progress,
 and Pool Cards sections. Renderer Lab now lives in `RendererLabRoute`, Priority
 Lab route-specific action-source, target, can-submit, unavailable-text,
@@ -352,7 +352,7 @@ combat-charge, and callback wiring live in `PriorityLabRoute`, and this pass
 extracted Battlefield / Hex Arena rendering into `BattlefieldSection` and
 `HexArenaView`. This pass moved the default debug-grid route composition into
 `DefaultRunRoute`, including Run Guide, Command Zone, Commander Upgrades,
-Opponent Details, Planning Check, Traits / Teamups, Reward Choices, post-pack
+Opponent Details, Planning Check, Traits / Teamups, Pack Market choices, post-pack
 suggestions, loadout zones, combat panels, and current encounter details.
 `App.tsx` dropped from about 2309 lines before the panel extraction work to
 about 1528 lines now, including about 164 lines removed in this DefaultRunRoute
@@ -439,31 +439,40 @@ until combat readability and pacing are stable.
 
 Design decision after this task: Packbound should lean into a pack-opening
 roster/loadout autobattler model, not a traditional Unit draw-deck model. Packs
-are the shop. Future Pack Offers should reveal a small set of cards and make the
-player pick a limited number, with chosen cards entering the run roster and
-unchosen cards released by default. Units, Echoes, Relics, Fields, and Sources
-should behave as roster/loadout pieces; Techniques and Spellrail are the best
-place for any future deck-like sequencing. The long-term multiplayer-compatible
-model is a finite shared card pool with offer reservation, pick commit, release,
+are the shop. Pack Offers reveal a small set of cards and make the player pick a
+limited number, with chosen cards entering the run roster and unchosen cards
+released by default. Units, Echoes, Relics, Fields, and Sources should behave as
+roster/loadout pieces; Techniques and Spellrail are the best place for any
+future deck-like sequencing. The long-term multiplayer-compatible model is a
+finite shared card pool with offer reservation, pick commit, release,
 sell/recycle return, and duplicate upgrades that lock multiple copies. Solo
 should use encounter/faction pressure to bias, tax, reserve, or withhold parts
 of the Pack Market rather than pretending seven fake rival drafters are building
 full rosters in the background.
+
+Implementation update after this task: reward pack opening now uses a
+pick-limited Pack Market flow. Buying a reward pack pays the pack cost once and
+creates a pending Pack Offer instead of adding every revealed card to Pool.
+Current offers reveal up to 5 cards and require exactly 2 picks when possible.
+Committing picks adds only those chosen cards to Pool, records the released
+offer cards in reward history, clears the pending offer, and unlocks post-pack
+suggested edits only after the commit step.
 
 The biggest remaining Pixi/default-route findings are no longer the absence of
 replay controls, tiny first-pass labels, unvalidated readability, default-route
 confidence, basic default-route edit affordances, an ungrouped default combat
 feed, a debug-grid first screen, or always-expanded inspector detail. Now that
 `/` opens on a tighter Pixi-focused playtest surface with an immediate build
-decision, a first-fold Loadout Tray, and grouped duplicate post-pack
-suggestions, and stabilized default combat playback, the next highest-value gap
-is no longer board manipulation polish. The acquisition model should first stop
-the "open pack, take everything, click every suggestion" pattern by making pack
-rewards pick-limited.
+decision, a first-fold Loadout Tray, grouped duplicate post-pack suggestions,
+stabilized default combat playback, and pick-limited Pack Offers, the next
+highest-value gap is no longer board manipulation polish. The acquisition model
+now needs manual pacing validation: are reveal 5 / pick 2 offers readable,
+strategic, and strict enough before bench limits, sell/recycle, or finite shared
+pool scarcity arrive?
 
 Recommended next task:
 
-`feat(rules): add pick-limited pack market offers`
+`test(playtest): manually validate pick-limited Pack Market flow`
 
 ## 2. Environment And Commands
 
@@ -774,8 +783,8 @@ details` view is still verbose when simulator facts, legal actions, blocked
   most useful first-screen surfaces.
 - Command Zone is useful because it shows a real deploy action, tax, and zone
   state.
-- Reward Choices are useful because they expose costs, affordability, pack bias,
-  and duplicate/fixing hints.
+- Pack Market choices are useful because they expose costs, affordability, pack
+  bias, and duplicate/fixing hints.
 - Pool Cards are useful after a pack because new cards are marked and can be
   inspected.
 - Suggested next edits is useful after a pack because it narrows the latest
@@ -1304,7 +1313,8 @@ the default route:
 Deferred findings from the same manual pass remain intentionally out of scope:
 
 - Commander upgrades still feel generic and prototype-like.
-- Reward packs still need stronger pack-to-pool identity and shop-like framing.
+- Reward packs now use Pack Market / Pack Offer framing, but the new reveal 5 /
+  pick 2 pacing still needs a fresh manual pass.
 - Cards staying on board between fights can read as autobattler-like until the
   game teaches why Packbound loadout persistence is intentional.
 - Direct manipulation still wants future drag/drop, repositioning, and more
@@ -1346,6 +1356,12 @@ Deferred findings from the same manual pass remain intentionally out of scope:
   return-to-pool for selected active loadout cards, and compact Commander
   controls near the battlefield. These are still button affordances rather than
   final drag/drop or canvas-native zone editing.
+- Reward pack purchase now creates a pending Pack Offer before cards become
+  owned. Current reward offers reveal up to 5 cards, require 2 picks when
+  possible, charge gold on purchase, add only committed picks to Pool, and
+  release unchosen offer cards in reward history. This is still a solo/local
+  prototype: no finite shared-pool availability, reservation ids, rerolls,
+  bench capacity, selling, faction pressure, or server authority exists yet.
 - Post-pack suggestions are deterministic and use existing legal actions only.
   They look only at the latest opened pack, group duplicate same-action copies
   for display, explain common immediate blockers, suggest at most a few forward
@@ -1421,23 +1437,25 @@ Deferred findings from the same manual pass remain intentionally out of scope:
 - Duplicate upgrades remain generic +1 ATK/+1 HP combines.
 - Combat summaries now have deterministic key-moment grouping, but the copy has
   not had a broad manual pass across many longer future fights.
-- Deferred design concerns from the latest manual playtest remain: reward flow
-  likely wants shop-style framing, pack-to-loadout pacing may need a future
-  deployment-limiting or deck/hand/draw pass, Commander upgrades need more
-  build-defining depth, and Board Charge / Sources / Combat Charge need stronger
-  conceptual teaching.
+- Deferred design concerns from the latest manual playtest remain: the new Pack
+  Market flow needs manual pacing validation, future bench/sell/shared-pool
+  pressure may be needed once pick-limited rewards settle, Commander upgrades
+  need more build-defining depth, and Board Charge / Sources / Combat Charge
+  need stronger conceptual teaching.
 
 ## 14. Recommended Next Tasks
 
 Do next:
 
-`feat(rules): add pick-limited pack market offers`
+`test(playtest): manually validate pick-limited Pack Market flow`
 
 Why: the default route is now coherent enough that the main blocker is no
-longer first-fold layout or Pixi manipulation. The acquisition loop still lets
-the player open a pack, keep every card, apply many suggestions, and win too
-easily. Pick-limited Pack Offers should make rewards feel like real commitments
-before adding board repositioning, drag/drop, fences, or deeper Pixi polish.
+longer first-fold layout, Pixi manipulation, or the old take-everything reward
+flow. The new Pack Market flow should be manually tested through at least one
+full reward/advance loop to verify reveal 5 / pick 2 feels readable,
+restrictive enough, and compatible with Commander upgrades plus post-pack
+suggestions before adding bench limits, sell/recycle, finite shared-pool
+scarcity, or board repositioning.
 
 Do soon:
 
@@ -1447,7 +1465,7 @@ orientation`
 - `feat(content): tune starter and encounter placements for 8-row combat pacing`
 - `test(playtest): manually validate grouped combat key moments across starters`
 - `feat(client): strengthen Board Charge and Source teaching`
-- `feat(client): frame reward packs as a shop step`
+- `feat(client): polish Pack Offer card readability`
 - `design(rules): evaluate pack-to-loadout pacing limits`
 - `design(rules): deepen Commander upgrade choices`
 - `feat(client): tune Pixi combat effect timing after manual readability pass`

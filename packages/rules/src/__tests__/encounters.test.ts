@@ -7,6 +7,7 @@ import {
   advanceRunAfterCombat,
   applyPackReward,
   buildCombatantSetupForEncounter,
+  commitPackOfferPicks,
   createRun,
   getCurrentEncounter,
   getCurrentRewardChoices,
@@ -50,7 +51,16 @@ const applyFirstReward = (run: RunState): RunState => {
   if (!choice) {
     throw new Error("Expected a reward choice");
   }
-  return applyPackReward(run, sampleCatalog, choice.id);
+  const pending = applyPackReward(run, sampleCatalog, choice.id);
+  const pendingOffer = pending.pendingPackOffer;
+  if (!pendingOffer) {
+    throw new Error("Expected a pending Pack Offer");
+  }
+
+  return commitPackOfferPicks(
+    pending,
+    pendingOffer.cards.slice(0, pendingOffer.pickLimit).map((card) => card.instanceId)
+  );
 };
 
 const completeRound = (run: RunState): RunState => {

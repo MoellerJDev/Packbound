@@ -4,6 +4,7 @@ import type { EncounterDefinition } from "@packbound/content";
 import type {
   CommanderUpgradeId,
   LoadoutAction,
+  PendingPackOffer,
   PostPackLoadoutSuggestionSummary,
   RewardChoice,
   RewardOfferExplanation,
@@ -48,6 +49,7 @@ export type DefaultRunRouteView = {
   readonly rewards: {
     readonly description: string;
     readonly explanationsByChoiceId: ReadonlyMap<string, RewardOfferExplanation>;
+    readonly pendingPackOffer: PendingPackOffer | undefined;
     readonly playerGold: number;
     readonly rewardChoices: readonly RewardChoice[];
   };
@@ -75,6 +77,7 @@ export type DefaultRunRouteController = {
   readonly onInspectEncounterSource: (cardInstanceId: CardInstanceId) => void;
   readonly onInspectEncounterSpellrail: (cardInstanceId: CardInstanceId) => void;
   readonly onOpenReward: (choiceId: string) => void;
+  readonly onCommitPackOfferPicks: (cardInstanceIds: readonly CardInstanceId[]) => void;
   readonly onReturnCommander: () => void;
   readonly onUpgradeGroup: (group: UpgradeProgressGroup) => void;
   readonly renderLoadoutActions: (cardInstanceId: CardInstanceId) => ReactNode;

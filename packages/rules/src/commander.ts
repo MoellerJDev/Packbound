@@ -373,7 +373,8 @@ export const applyCommanderUpgradeChoice = (
 
   return {
     ...run,
-    phase: hasPackRewardForRound(run) ? "combatResolved" : run.phase,
+    phase:
+      hasPackRewardForRound(run) && !run.pendingPackOffer ? "combatResolved" : run.phase,
     commander: nextCommander,
     activeCards: run.activeCards.map((activeCard) =>
       activeCard.instanceId === commander.card.instanceId

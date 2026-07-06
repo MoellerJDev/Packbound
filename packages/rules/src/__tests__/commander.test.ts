@@ -8,6 +8,7 @@ import {
   asUnitInstanceId,
   type BoardPosition,
   type CardInstance,
+  type CardInstanceId,
   type CombatEvent
 } from "@packbound/shared";
 
@@ -15,6 +16,7 @@ import {
   applyRunAction,
   applyRunActions,
   applyPackReward,
+  commitPackOfferPicks,
   canDeployCommander,
   canPlaceCardOnBoard,
   canReturnCommanderToCommand,
@@ -96,6 +98,25 @@ const firstPackRewardChoiceId = (run: RunState): string => {
   }
   return choice.id;
 };
+
+const pendingOfferPickIds = (run: RunState): readonly CardInstanceId[] => {
+  const pendingOffer = run.pendingPackOffer;
+  if (!pendingOffer) {
+    throw new Error("Expected a pending Pack Offer");
+  }
+
+  return pendingOffer.cards
+    .slice(0, pendingOffer.pickLimit)
+    .map((card) => card.instanceId);
+};
+
+const commitPendingPackOffer = (run: RunState): RunState =>
+  commitPackOfferPicks(run, pendingOfferPickIds(run));
+
+const applyAndCommitPackReward = (run: RunState): RunState =>
+  commitPendingPackOffer(
+    applyPackReward(run, sampleCatalog, firstPackRewardChoiceId(run))
+  );
 
 const commanderLifecycleTypes = (run: RunState): readonly string[] =>
   run.commander?.lifecycleHistory.map((entry) => entry.type) ?? [];
@@ -845,11 +866,7 @@ describe("command zone commander prototype", () => {
       type: "applyCommanderUpgradeChoice",
       choiceId: "combat_training"
     });
-    const packed = applyPackReward(
-      trained,
-      sampleCatalog,
-      firstPackRewardChoiceId(trained)
-    );
+    const packed = applyAndCommitPackReward(trained);
     const nextPlanning = applyRunAction(packed, sampleCatalog, {
       type: "advanceRunAfterCombat"
     });
@@ -889,11 +906,7 @@ describe("command zone commander prototype", () => {
       type: "applyCommanderUpgradeChoice",
       choiceId: "rebind_calibration"
     });
-    const packed = applyPackReward(
-      calibrated,
-      sampleCatalog,
-      firstPackRewardChoiceId(calibrated)
-    );
+    const packed = applyAndCommitPackReward(calibrated);
     const nextPlanning = applyRunAction(packed, sampleCatalog, {
       type: "advanceRunAfterCombat"
     });
@@ -954,13 +967,15 @@ describe("command zone commander prototype", () => {
     const packed = applyPackReward(reward, sampleCatalog, packChoiceId);
 
     expect(packed.phase).toBe("reward");
+    expect(packed.pendingPackOffer).toBeDefined();
     expect(getCurrentRewardChoices(packed, sampleCatalog)).toEqual([]);
     expect(getCurrentCommanderUpgradeChoices(packed)).toHaveLength(2);
     expect(() => applyPackReward(packed, sampleCatalog, packChoiceId)).toThrow(
-      /Unknown reward choice/
+      /Cannot open another reward pack while Pack Offer/
     );
 
-    const upgraded = applyRunAction(packed, sampleCatalog, {
+    const committed = commitPendingPackOffer(packed);
+    const upgraded = applyRunAction(committed, sampleCatalog, {
       type: "applyCommanderUpgradeChoice",
       choiceId: "combat_training"
     });

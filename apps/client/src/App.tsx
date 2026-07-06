@@ -702,6 +702,7 @@ export function App() {
   const packRewardClaimedThisRound = run.rewardHistory.some(
     (entry) => entry.type === "pack" && entry.round === run.currentRound
   );
+  const pendingPackOffer = run.pendingPackOffer;
   const commanderUpgradeClaimedThisRound =
     !run.commander ||
     run.commander.upgradeHistory.some((entry) => entry.round === run.currentRound);
@@ -759,9 +760,11 @@ export function App() {
         label: "Choose rewards",
         detail:
           phase === "reward"
-            ? rewardBucketsDone
-              ? "Pack and Commander rewards are claimed."
-              : "Open one pack and choose one Commander upgrade."
+            ? pendingPackOffer
+              ? `Pick ${pendingPackOffer.pickLimit} cards from the pending Pack Offer.`
+              : rewardBucketsDone
+                ? "Pack and Commander rewards are claimed."
+                : "Open one pack and choose one Commander upgrade."
             : "Rewards unlock after combat.",
         state:
           phase === "reward"
@@ -788,6 +791,7 @@ export function App() {
     commanderUpgradeClaimedThisRound,
     latestCombatSummary,
     packRewardClaimedThisRound,
+    pendingPackOffer,
     phase,
     validation.ok
   ]);
@@ -862,11 +866,13 @@ export function App() {
     upgradeProgressGroups
   } satisfies LoadoutZonesPanelView;
   const rewardChoicesDescription = canApplyReward(run)
-    ? rewardChoices.length > 0
-      ? "Choose one pack. New cards go to the Pool for the next planning step."
-      : commanderUpgradeClaimedThisRound
-        ? "Pack reward claimed. Advance when ready."
-        : "Pack reward claimed. Choose a Commander upgrade to finish rewards."
+    ? pendingPackOffer
+      ? `Pack paid. Pick ${pendingPackOffer.pickLimit} cards from the Pack Offer to add to Pool.`
+      : rewardChoices.length > 0
+        ? "Choose one pack offer. You will pick the cards that enter Pool."
+        : commanderUpgradeClaimedThisRound
+          ? "Pack reward claimed. Advance when ready."
+          : "Pack reward claimed. Choose a Commander upgrade to finish rewards."
     : "Rewards appear after combat is recorded.";
   const runGuideStats = [
     {
@@ -896,7 +902,9 @@ export function App() {
           latestCombatSummary.goldEarned
         } gold. ${
           phase === "reward"
-            ? "Claim one pack and one Commander upgrade before advancing."
+            ? pendingPackOffer
+              ? "Choose cards from the Pack Offer before advancing."
+              : "Claim one pack and one Commander upgrade before advancing."
             : packRewardClaimedThisRound && commanderUpgradeClaimedThisRound
               ? "Rewards are complete; Advance starts the next planning round."
               : "Finish any remaining reward before advancing."
@@ -1147,6 +1155,15 @@ export function App() {
       applyRunAction(currentRun, sampleCatalog, {
         type: "applyPackReward",
         choiceId
+      })
+    );
+  };
+
+  const commitPackOffer = (cardInstanceIds: readonly CardInstanceId[]) => {
+    setRun((currentRun) =>
+      applyRunAction(currentRun, sampleCatalog, {
+        type: "commitPackOfferPicks",
+        cardInstanceIds
       })
     );
   };
@@ -1536,6 +1553,7 @@ export function App() {
     rewards: {
       description: rewardChoicesDescription,
       explanationsByChoiceId: rewardOfferExplanationByChoiceId,
+      pendingPackOffer,
       playerGold: run.playerGold,
       rewardChoices
     },
@@ -1559,6 +1577,7 @@ export function App() {
     onInspectEncounterSource: inspectEncounterSource,
     onInspectEncounterSpellrail: inspectEncounterSpellrail,
     onOpenReward: openReward,
+    onCommitPackOfferPicks: commitPackOffer,
     onReturnCommander: returnCommanderFromBoard,
     onUpgradeGroup: upgradeGroup,
     renderLoadoutActions

@@ -83,8 +83,34 @@ export type RewardHistoryEntry = {
   readonly goldBefore: number;
   readonly goldAfter: number;
   readonly openedPackSeed: string;
+  readonly offerId?: string;
+  readonly pickLimit?: number;
+  readonly offeredCardDefIds?: readonly CardDefId[];
+  readonly offeredCardInstanceIds?: readonly CardInstanceId[];
+  readonly chosenCardDefIds?: readonly CardDefId[];
+  readonly chosenCardInstanceIds?: readonly CardInstanceId[];
+  readonly releasedCardDefIds?: readonly CardDefId[];
+  readonly releasedCardInstanceIds?: readonly CardInstanceId[];
   readonly cardDefIds: readonly CardDefId[];
   readonly cardInstanceIds: readonly CardInstanceId[];
+};
+
+export type PendingPackOffer = {
+  readonly id: string;
+  readonly round: number;
+  readonly choiceId: string;
+  readonly packId: PackId;
+  readonly packName: string;
+  readonly cost: number;
+  readonly goldBefore: number;
+  readonly goldAfter: number;
+  readonly openedPackSeed: string;
+  readonly revealCount: number;
+  readonly pickLimit: number;
+  readonly cards: readonly CardInstance[];
+  readonly slots: PackOpenResult["slots"];
+  readonly generatedCardDefIds: readonly CardDefId[];
+  readonly generatedCardInstanceIds: readonly CardInstanceId[];
 };
 
 export type CommanderUpgradeId = "combat_training" | "rebind_calibration";
@@ -186,6 +212,7 @@ export type RunState = {
   readonly ashes: readonly CardInstance[];
   readonly void: readonly CardInstance[];
   readonly currentRewardChoices: readonly RewardChoice[];
+  readonly pendingPackOffer?: PendingPackOffer;
   readonly rewardHistory: readonly RewardHistoryEntry[];
   readonly openedPacks: readonly PackOpenResult[];
   readonly combatHistory: readonly CombatSummary[];

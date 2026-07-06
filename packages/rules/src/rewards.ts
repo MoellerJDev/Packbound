@@ -11,6 +11,9 @@ export const hasPackRewardForCurrentRound = (run: RunState): boolean =>
     (entry) => entry.type === "pack" && entry.round === run.currentRound
   );
 
+export const hasPendingPackOffer = (run: RunState): boolean =>
+  run.pendingPackOffer !== undefined;
+
 const packChoiceForRun = (
   run: RunState,
   pack: PackDefinition,
@@ -75,6 +78,10 @@ export const getCurrentRewardChoices = (
   catalog: ContentCatalog
 ): readonly RewardChoice[] => {
   if (run.status !== "active" || run.phase !== "reward") {
+    return [];
+  }
+
+  if (hasPendingPackOffer(run)) {
     return [];
   }
 

@@ -118,6 +118,10 @@ export const getRunNextActionMessage = (
         return "Next: rewards will appear after combat.";
       }
 
+      if (run.pendingPackOffer) {
+        return `Next: pick ${run.pendingPackOffer.pickLimit} from ${run.pendingPackOffer.packName}.`;
+      }
+
       const packRewardClaimed = run.rewardHistory.some(
         (entry) => entry.type === "pack" && entry.round === run.currentRound
       );

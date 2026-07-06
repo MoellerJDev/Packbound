@@ -18,6 +18,7 @@ import {
 import {
   advanceRunAfterCombat,
   applyPackReward,
+  commitPackOfferPicks,
   markCombatReady,
   recordCombatResult,
   type CombatResultLike
@@ -61,6 +62,10 @@ export type RunAction =
       readonly encounterId: string;
     }
   | { readonly type: "applyPackReward"; readonly choiceId: string }
+  | {
+      readonly type: "commitPackOfferPicks";
+      readonly cardInstanceIds: readonly CardInstanceId[];
+    }
   | { readonly type: "advanceRunAfterCombat" };
 
 export type RunActionLogEntry = {
@@ -105,6 +110,8 @@ export const applyRunAction = (
       });
     case "applyPackReward":
       return applyPackReward(run, catalog, action.choiceId);
+    case "commitPackOfferPicks":
+      return commitPackOfferPicks(run, action.cardInstanceIds);
     case "advanceRunAfterCombat":
       return advanceRunAfterCombat(run, catalog);
   }

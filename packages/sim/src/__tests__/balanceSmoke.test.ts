@@ -8,6 +8,7 @@ import {
   getCurrentEncounter,
   getCurrentRewardChoices,
   applyCommanderUpgradeChoice,
+  commitPackOfferPicks,
   markCombatReady,
   prepareEncounterForRound,
   recordCombatResult,
@@ -159,6 +160,14 @@ describe("balance smoke fixtures", () => {
 
     const poolSizeBeforeReward = run.pool.length;
     run = applyPackReward(run, sampleCatalog, rewardChoice.id);
+    const pendingOffer = run.pendingPackOffer;
+    if (!pendingOffer) {
+      throw new Error(`Expected a pending Pack Offer for ${starterKitId}`);
+    }
+    run = commitPackOfferPicks(
+      run,
+      pendingOffer.cards.slice(0, pendingOffer.pickLimit).map((card) => card.instanceId)
+    );
     expect(run.openedPacks).toHaveLength(1);
     expect(run.pool.length).toBeGreaterThan(poolSizeBeforeReward);
 

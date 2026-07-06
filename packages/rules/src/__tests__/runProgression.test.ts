@@ -1,16 +1,24 @@
 import { describe, expect, it } from "vitest";
 
 import { sampleCatalog } from "@packbound/content";
-import { asPackId, type CombatEvent } from "@packbound/shared";
+import {
+  asCardInstanceId,
+  asPackId,
+  type CardInstanceId,
+  type CombatEvent
+} from "@packbound/shared";
 
 import {
   advanceRunAfterCombat,
   applyPackReward,
   canApplyReward,
   canRecordCombat,
+  commitPackOfferPicks,
   createRun,
   getCurrentRewardChoices,
   markCombatReady,
+  PACK_OFFER_PICK_COUNT,
+  PACK_OFFER_REVEAL_COUNT,
   prepareEncounterForRound,
   recordCombatResult,
   type CombatResultLike,
@@ -39,7 +47,24 @@ const firstRewardChoiceId = (run: RunState): string => {
 };
 
 const applyFirstReward = (run: RunState): RunState =>
+  commitPendingPackOffer(applyFirstPackReward(run));
+
+const applyFirstPackReward = (run: RunState): RunState =>
   applyPackReward(run, sampleCatalog, firstRewardChoiceId(run));
+
+const firstPendingOfferPickIds = (run: RunState): readonly CardInstanceId[] => {
+  const pendingOffer = run.pendingPackOffer;
+  if (!pendingOffer) {
+    throw new Error("Expected a pending Pack Offer");
+  }
+
+  return pendingOffer.cards
+    .slice(0, pendingOffer.pickLimit)
+    .map((card) => card.instanceId);
+};
+
+const commitPendingPackOffer = (run: RunState): RunState =>
+  commitPackOfferPicks(run, firstPendingOfferPickIds(run));
 
 const prepareRun = (run: RunState): RunState =>
   prepareEncounterForRound(run, sampleCatalog);
@@ -79,18 +104,62 @@ describe("run progression skeleton", () => {
     expect(canApplyReward(first)).toBe(true);
   });
 
-  it("opens the same pack reward into the same cards for the same run seed", () => {
-    const first = applyFirstReward(rewardRun(createRun({ seed: "pack-seed" })));
-    const second = applyFirstReward(rewardRun(createRun({ seed: "pack-seed" })));
+  it("opens the same pending Pack Offer for the same run seed", () => {
+    const first = applyFirstPackReward(rewardRun(createRun({ seed: "pack-seed" })));
+    const second = applyFirstPackReward(rewardRun(createRun({ seed: "pack-seed" })));
 
-    expect(second.openedPacks).toEqual(first.openedPacks);
-    expect(second.pool.map((card) => card.defId)).toEqual(
-      first.pool.map((card) => card.defId)
-    );
-    expect(first.phase).toBe("combatResolved");
+    expect(first.pendingPackOffer).toEqual(second.pendingPackOffer);
+    expect(first.pendingPackOffer?.cards).toHaveLength(PACK_OFFER_REVEAL_COUNT);
+    expect(first.pendingPackOffer?.pickLimit).toBe(PACK_OFFER_PICK_COUNT);
+    expect(first.openedPacks).toEqual([]);
+    expect(first.pool).toEqual([]);
+    expect(first.rewardHistory).toEqual([]);
+    expect(first.phase).toBe("reward");
   });
 
-  it("applying a pack reward adds cards to pool and reward history", () => {
+  it("commits exactly the chosen Pack Offer cards to pool and releases the rest", () => {
+    const rewarded = rewardRun(createRun({ seed: "pack-commit-seed" }));
+    const pending = applyFirstPackReward(rewarded);
+    const pendingOffer = pending.pendingPackOffer;
+    if (!pendingOffer) {
+      throw new Error("Expected a pending Pack Offer");
+    }
+    const chosenIds = firstPendingOfferPickIds(pending);
+    const releasedIds = pendingOffer.cards
+      .filter((card) => !chosenIds.includes(card.instanceId))
+      .map((card) => card.instanceId);
+
+    const committed = commitPackOfferPicks(pending, chosenIds);
+
+    expect(committed.pendingPackOffer).toBeUndefined();
+    expect(committed.pool.map((card) => card.instanceId)).toEqual(chosenIds);
+    expect(committed.pool.every((card) => card.zone === "pool")).toBe(true);
+    expect(committed.openedPacks).toHaveLength(1);
+    expect(committed.openedPacks[0]?.cards.map((card) => card.instanceId)).toEqual(
+      chosenIds
+    );
+    expect(committed.openedPacks[0]?.slots.map((slot) => slot.cardInstanceId)).toEqual(
+      chosenIds
+    );
+    expect(committed.rewardHistory).toHaveLength(1);
+    expect(committed.rewardHistory[0]).toMatchObject({
+      offerId: pendingOffer.id,
+      pickLimit: pendingOffer.pickLimit,
+      offeredCardInstanceIds: pendingOffer.cards.map((card) => card.instanceId),
+      chosenCardInstanceIds: chosenIds,
+      releasedCardInstanceIds: releasedIds,
+      cardInstanceIds: chosenIds,
+      cost: pendingOffer.cost,
+      goldBefore: rewarded.playerGold,
+      goldAfter: rewarded.playerGold - pendingOffer.cost
+    });
+    for (const releasedId of releasedIds) {
+      expect(committed.pool.map((card) => card.instanceId)).not.toContain(releasedId);
+    }
+    expect(committed.phase).toBe("combatResolved");
+  });
+
+  it("purchasing a Pack Offer charges gold once and does not add revealed cards to pool", () => {
     const rewarded = rewardRun(createRun({ seed: "history-seed" }));
     const choice = getCurrentRewardChoices(rewarded, sampleCatalog)[0];
     if (!choice) {
@@ -98,20 +167,64 @@ describe("run progression skeleton", () => {
     }
     const rewardedSnapshot = JSON.parse(JSON.stringify(rewarded)) as typeof rewarded;
 
-    const run = applyPackReward(rewarded, sampleCatalog, choice.id);
+    const pending = applyPackReward(rewarded, sampleCatalog, choice.id);
 
     expect(rewarded).toEqual(rewardedSnapshot);
-    expect(run.pool.length).toBeGreaterThan(0);
-    expect(run.openedPacks).toHaveLength(1);
-    expect(run.rewardHistory).toHaveLength(1);
-    expect(run.rewardHistory[0]?.cardInstanceIds).toHaveLength(run.pool.length);
-    expect(run.rewardHistory[0]).toMatchObject({
+    expect(pending.playerGold).toBe(rewarded.playerGold - choice.cost);
+    expect(pending.pool).toEqual(rewarded.pool);
+    expect(pending.openedPacks).toEqual([]);
+    expect(pending.rewardHistory).toEqual([]);
+    expect(pending.currentRewardChoices).toHaveLength(0);
+    expect(pending.pendingPackOffer).toMatchObject({
+      packId: choice.packId,
       cost: choice.cost,
       goldBefore: rewarded.playerGold,
       goldAfter: rewarded.playerGold - choice.cost
     });
-    expect(run.playerGold).toBe(rewarded.playerGold - choice.cost);
-    expect(run.currentRewardChoices).toHaveLength(0);
+    expect(pending.pendingPackOffer?.cards.every((card) => card.zone === "pack")).toBe(
+      true
+    );
+
+    const committed = commitPendingPackOffer(pending);
+
+    expect(committed.playerGold).toBe(pending.playerGold);
+    expect(committed.rewardHistory[0]).toMatchObject({
+      cost: choice.cost,
+      goldBefore: rewarded.playerGold,
+      goldAfter: rewarded.playerGold - choice.cost
+    });
+  });
+
+  it("rejects invalid Pack Offer picks without mutating the pending offer", () => {
+    const pending = applyFirstPackReward(rewardRun(createRun({ seed: "invalid-picks" })));
+    const pendingSnapshot = JSON.parse(JSON.stringify(pending)) as typeof pending;
+    const ids = firstPendingOfferPickIds(pending);
+
+    expect(() => commitPackOfferPicks(pending, ids.slice(0, 1))).toThrow(
+      /requires exactly 2 picks; received 1/
+    );
+    expect(() =>
+      commitPackOfferPicks(pending, [
+        ...ids,
+        pending.pendingPackOffer?.cards[2]?.instanceId ?? ids[0]!
+      ])
+    ).toThrow(/requires exactly 2 picks; received 3/);
+    expect(() => commitPackOfferPicks(pending, [ids[0]!, ids[0]!])).toThrow(
+      /duplicate card ids/
+    );
+    expect(() =>
+      commitPackOfferPicks(pending, [ids[0]!, asCardInstanceId("unknown-card")])
+    ).toThrow(/not in the pending Pack Offer/);
+    expect(pending).toEqual(pendingSnapshot);
+  });
+
+  it("rejects committing without a pending offer or after the offer is resolved", () => {
+    const rewarded = rewardRun(createRun({ seed: "commit-guards" }));
+    const pending = applyFirstPackReward(rewarded);
+    const committed = commitPendingPackOffer(pending);
+
+    expect(() => commitPackOfferPicks(rewarded, [])).toThrow(/No pending Pack Offer/);
+    expect(() => commitPackOfferPicks(committed, [])).toThrow(/phase is combatResolved/);
   });
 
   it("recording combat applies player damage, adds gold, and stores a summary", () => {
@@ -153,6 +266,15 @@ describe("run progression skeleton", () => {
     expect(choice.affordable).toBe(false);
     expect(() => applyPackReward(run, sampleCatalog, choice.id)).toThrow(/Cannot afford/);
     expect(run).toEqual(snapshot);
+  });
+
+  it("prevents buying another reward pack while a Pack Offer is unresolved", () => {
+    const pending = applyFirstPackReward(rewardRun(createRun({ seed: "pending-block" })));
+
+    expect(getCurrentRewardChoices(pending, sampleCatalog)).toEqual([]);
+    expect(() => applyPackReward(pending, sampleCatalog, "anything")).toThrow(
+      /Cannot open another reward pack while Pack Offer/
+    );
   });
 
   it("keeps at least one reward choice affordable in default reward flows", () => {

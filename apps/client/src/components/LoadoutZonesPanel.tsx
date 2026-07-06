@@ -217,7 +217,7 @@ export const LoadoutZonesPanel = ({
             <small>{view.latestOpenedPack.seed}</small>
           </div>
         ) : (
-          <p className="muted">Open rewards to grow the pool.</p>
+          <p className="muted">Open and commit Pack Offers to grow the pool.</p>
         )}
         <ol className="card-list">
           {view.poolCards.map((card) => {

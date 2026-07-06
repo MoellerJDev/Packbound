@@ -90,6 +90,7 @@ const withUpgradeCopies = (run: RunState): RunState => ({
 
 const zoneCardIds = (run: RunState): readonly CardInstanceId[] => [
   ...run.pool.map((card) => card.instanceId),
+  ...(run.pendingPackOffer?.cards.map((card) => card.instanceId) ?? []),
   ...run.activeCards.map((card) => card.instanceId),
   ...run.sourceRow.cards.map((card) => card.instanceId),
   ...run.spellrail.cards.map((card) => card.instanceId),

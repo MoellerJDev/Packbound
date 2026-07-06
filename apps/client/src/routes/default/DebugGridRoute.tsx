@@ -1,5 +1,6 @@
 import { CombatResultPanel } from "../../components/CombatResultPanel";
 import { CommanderUpgradePanel } from "../../components/CommanderUpgradePanel";
+import { PackOfferPanel } from "../../components/PackOfferPanel";
 import { RewardChoicesPanel } from "../../components/RewardChoicesPanel";
 import type {
   DefaultRunRouteController,
@@ -24,6 +25,13 @@ export const DebugGridRoute = ({ view, controller }: DebugGridRouteProps) => (
       playerGold={view.rewards.playerGold}
       rewardChoices={view.rewards.rewardChoices}
     />
+    {view.rewards.pendingPackOffer ? (
+      <PackOfferPanel
+        cardName={controller.cardName}
+        offer={view.rewards.pendingPackOffer}
+        onCommit={controller.onCommitPackOfferPicks}
+      />
+    ) : null}
     <CommanderUpgradePanel
       variant="panel"
       view={view.commanderUpgradePanelView}

@@ -53,7 +53,7 @@ export const RewardChoicesPanel = ({
   readonly rewardChoices: readonly RewardChoice[];
 }) => (
   <div className="panel">
-    <h2>Reward Choices</h2>
+    <h2>Pack Market</h2>
     <p className="muted">{description}</p>
     <ol className="card-list">
       {rewardChoices.map((choice) => {
@@ -83,7 +83,7 @@ export const RewardChoicesPanel = ({
               onClick={() => onOpenReward(choice.id)}
               disabled={!choice.affordable}
             >
-              Open
+              Open Pack Offer
             </button>
           </li>
         );

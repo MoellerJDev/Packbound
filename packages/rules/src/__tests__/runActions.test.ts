@@ -64,6 +64,17 @@ const firstRewardChoiceId = (run: RunState): string => {
   return choice.id;
 };
 
+const pendingOfferPickIds = (run: RunState): readonly CardInstanceId[] => {
+  const pendingOffer = run.pendingPackOffer;
+  if (!pendingOffer) {
+    throw new Error("Expected a pending Pack Offer");
+  }
+
+  return pendingOffer.cards
+    .slice(0, pendingOffer.pickLimit)
+    .map((card) => card.instanceId);
+};
+
 const toRunAction = (
   cardInstanceId: CardInstanceId,
   action: LoadoutAction
@@ -134,6 +145,11 @@ describe("run action reducer", () => {
       });
       expect(run.combatHistory.at(-1)?.goldEarned).toBe(6);
       dispatch({ type: "applyPackReward", choiceId: firstRewardChoiceId(run) });
+      expect(run.pendingPackOffer).toBeDefined();
+      dispatch({
+        type: "commitPackOfferPicks",
+        cardInstanceIds: pendingOfferPickIds(run)
+      });
       const firstPurchase = run.rewardHistory.at(-1);
       if (!firstPurchase) {
         throw new Error("Expected first reward purchase history");
@@ -157,6 +173,10 @@ describe("run action reducer", () => {
         combatResult: combatResult("round-2")
       });
       dispatch({ type: "applyPackReward", choiceId: firstRewardChoiceId(run) });
+      dispatch({
+        type: "commitPackOfferPicks",
+        cardInstanceIds: pendingOfferPickIds(run)
+      });
       dispatch({
         type: "applyCommanderUpgradeChoice",
         choiceId: "combat_training"

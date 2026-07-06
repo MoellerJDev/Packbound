@@ -577,7 +577,7 @@ test("renderer lab supports token selection and placement diagnostics", async ({
 
   await expect(rendererHost).toBeVisible();
   await expect(rendererHost.locator("canvas")).toHaveCount(1);
-  await clickPixiCell(page, rendererHost, 0, 3);
+  await clickPixiCell(page, rendererHost, 3, 3);
   await expect(inspector.getByText(/Unit \| encounter \| Ember/)).toBeVisible();
 
   const poolBench = rendererLab

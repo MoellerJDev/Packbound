@@ -1247,18 +1247,45 @@ Note:
 - Browser console errors, if any.
 - Whether there was horizontal scroll or clipping.
 
-## 12. Known Limitations
+## 12. Manual Blocker Follow-Up: Enemy Frontline And Default Combat Playback
+
+Follow-up pass after the 8-row migration found two showstopper-level issues in
+the default route:
+
+- Enemy melee authored in encounter local row 0 appeared on the visual enemy
+  back row. The implemented mapping now treats local row 0 as frontline for both
+  sides: player local rows map to combat rows 4-7 and enemy local rows mirror to
+  combat rows 3-0.
+- Recording combat on `/` immediately changed panels and rewards but did not
+  show the board process. The default Pixi battlefield now shows a compact
+  `Combat Playback` panel after `Record Combat`, with status, command count,
+  latest command summary, and Play/Pause, Step, and Reset controls backed by the
+  existing Pixi replay controller and command conversion path.
+
+Deferred findings from the same manual pass remain intentionally out of scope:
+
+- Commander upgrades still feel generic and prototype-like.
+- Reward packs still need stronger pack-to-pool identity and shop-like framing.
+- Cards staying on board between fights can read as autobattler-like until the
+  game teaches why Packbound loadout persistence is intentional.
+- Direct manipulation still wants future drag/drop, repositioning, and more
+  explicit Commander placement choices.
+- Fences, terrain, and obstacles remain good future design space, but they
+  should wait until the core battlefield flow is easier to read.
+
+## 13. Known Limitations
 
 - Pixi is now the primary default battlefield, but it still uses generated
   shapes and text rather than final art assets.
 - The default Pixi battlefield now has stronger player-facing side labels,
   side-colored territory bands, side badges, and selected ally/enemy context,
   and it now renders the global 8-row combat field. Run loadout and encounter
-  authoring still use local 4-row deployment coordinates.
+  authoring still use local 4-row deployment coordinates, with local row 0
+  treated as the frontline for both sides at the combat setup boundary.
 - Combat setup now maps local deployment boards into an 8-row global combat
-  board, but starter and encounter content has not had a dedicated
-  frontline/backline pacing pass after the migration. Some combat distances,
-  movement pacing, and preview readability may need retuning.
+  board, including mirrored enemy local rows. Starter and encounter content has
+  not had a dedicated frontline/backline pacing pass after the migration. Some
+  combat distances, movement pacing, and preview readability may need retuning.
 - Planning validation, content validation, Board Charge, Source Row, Spellrail,
   Commander planning placement, and React/CSS debug board summaries remain
   intentionally local to each side's 4-row deployment space.
@@ -1302,8 +1329,10 @@ Note:
 - Default Pixi placement hints use existing placement validation reasons for
   selected-card and clicked-cell failures, but they still show only one concise
   reason at a time.
-- Replay controls now cover Play/Resume, Pause, Step, and Reset, but there is no
-  scrubber, speed control, or filtered command list yet.
+- Replay controls now cover Play/Resume, Pause, Step, and Reset in Renderer Lab,
+  and the default route exposes compact playback for the most recently recorded
+  current-round combat. There is still no scrubber, speed control, or filtered
+  command list yet.
 - Step advances one visual command when playback is idle or paused. If clicked
   while a paused command animation is still settling, the renderer waits for that
   command to settle and then advances one additional deterministic command.
@@ -1359,20 +1388,21 @@ Note:
   build-defining depth, and Board Charge / Sources / Combat Charge need stronger
   conceptual teaching.
 
-## 13. Recommended Next Tasks
+## 14. Recommended Next Tasks
 
 Do next:
 
-`test(playtest): manually validate 8-row Pixi/default battlefield readability`
+`test(playtest): manually validate corrected default combat playback and row orientation`
 
-Why: combat setup now maps local deployment boards into the global 8-row field,
-and Pixi/default-route previews render that combat space. The next narrow step
-is to manually verify 1280 x 720 and 1440 x 900 readability, compare replay
-events to Key Moments, and decide whether content pacing, Pixi scale, or
-frontline/backline placement needs the first tuning pass.
+Why: the two latest manual blockers were fixed in code: enemy local row 0 now
+maps to the visual frontline and `/` now has compact post-record Pixi combat
+playback. The next narrow step is a short manual pass at 1280 x 720 and
+1440 x 900 to confirm the corrected orientation, playback controls, Key Moments,
+and first-fold layout work together before adding more mechanics.
 
 Do soon:
 
+- `feat(client): clarify reward pack-to-pool card identity`
 - `feat(content): tune starter and encounter placements for 8-row combat pacing`
 - `test(playtest): manually validate grouped combat key moments across starters`
 - `feat(client): strengthen Board Charge and Source teaching`

@@ -151,7 +151,7 @@ const cellAt = (
 describe("pixi battlefield model", () => {
   it("maps local deployment boards into global combat coordinates", () => {
     const playerLocalPosition = { row: 0, col: 2, layer: "ground" } as const;
-    const enemyLocalPosition = { row: 3, col: 2, layer: "ground" } as const;
+    const enemyLocalPosition = { row: 0, col: 2, layer: "ground" } as const;
     const model = buildPixiBattlefieldModel({
       playerBoard: playerBoardAt(playerLocalPosition),
       enemyBoard: enemyBoardAt(enemyLocalPosition),
@@ -180,7 +180,7 @@ describe("pixi battlefield model", () => {
     const enemyPosition = { row: 3, col: 2, layer: "ground" } as const;
     const model = buildPixiBattlefieldModel({
       playerBoard: playerBoardAt({ row: 0, col: 2, layer: "ground" }),
-      enemyBoard: enemyBoardAt(enemyPosition),
+      enemyBoard: enemyBoardAt({ row: 0, col: 2, layer: "ground" }),
       engagementPreview: engagementPreview({
         playerPosition,
         enemyPosition,
@@ -199,7 +199,7 @@ describe("pixi battlefield model", () => {
     const enemyPosition = { row: 3, col: 2, layer: "ground" } as const;
     const model = buildPixiBattlefieldModel({
       playerBoard: playerBoardAt({ row: 0, col: 2, layer: "ground" }),
-      enemyBoard: enemyBoardAt(enemyPosition),
+      enemyBoard: enemyBoardAt({ row: 0, col: 2, layer: "ground" }),
       engagementPreview: engagementPreview({
         playerPosition,
         enemyPosition,
@@ -218,7 +218,7 @@ describe("pixi battlefield model", () => {
       enemyBoard: enemyBoardAt(sharedPosition),
       engagementPreview: engagementPreview({
         playerPosition: { row: 5, col: 2, layer: "ground" },
-        enemyPosition: sharedPosition,
+        enemyPosition: { row: 2, col: 2, layer: "ground" },
         inRange: true
       })
     });
@@ -230,14 +230,14 @@ describe("pixi battlefield model", () => {
     expect(enemy).toBeDefined();
     expect(pixiCardsShareNativePosition(player!, enemy!)).toBe(false);
     expect(player?.sharedCell).toEqual({ row: 5, col: 2 });
-    expect(enemy?.sharedCell).toEqual({ row: 1, col: 2 });
+    expect(enemy?.sharedCell).toEqual({ row: 2, col: 2 });
   });
 
   it("adds placeable markers and does not mutate input summaries", () => {
     const playerPosition = { row: 4, col: 2, layer: "ground" } as const;
     const enemyPosition = { row: 3, col: 4, layer: "ground" } as const;
     const playerBoard = playerBoardAt({ row: 0, col: 2, layer: "ground" });
-    const enemyBoard = enemyBoardAt(enemyPosition);
+    const enemyBoard = enemyBoardAt({ row: 0, col: 4, layer: "ground" });
     const preview = engagementPreview({
       playerPosition,
       enemyPosition,

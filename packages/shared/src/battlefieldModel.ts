@@ -23,7 +23,13 @@ export const ENEMY_COMBAT_ROW_RANGE: CombatRowRange = {
 };
 
 const PLAYER_COMBAT_ROWS = [4, 5, 6, 7] as const;
-const ENEMY_COMBAT_ROWS = [0, 1, 2, 3] as const;
+const ENEMY_COMBAT_ROWS = [3, 2, 1, 0] as const;
+
+const enemyLocalRowToCombatRow = (localRow: number): number =>
+  ENEMY_COMBAT_ROW_RANGE.lastRow - localRow;
+
+const enemyCombatRowToLocalRow = (combatRow: number): number =>
+  ENEMY_COMBAT_ROW_RANGE.lastRow - combatRow;
 
 export const combatRowsForSide = (side: PlayerSide): readonly number[] =>
   side === "playerA" ? PLAYER_COMBAT_ROWS : ENEMY_COMBAT_ROWS;
@@ -78,7 +84,9 @@ export const toCombatPosition = (
   return {
     ...localPosition,
     row:
-      side === "playerA" ? localPosition.row + LOCAL_DEPLOYMENT_ROWS : localPosition.row
+      side === "playerA"
+        ? localPosition.row + LOCAL_DEPLOYMENT_ROWS
+        : enemyLocalRowToCombatRow(localPosition.row)
   };
 };
 
@@ -96,6 +104,8 @@ export const toLocalDeploymentPosition = (
   return {
     ...combatPosition,
     row:
-      side === "playerA" ? combatPosition.row - LOCAL_DEPLOYMENT_ROWS : combatPosition.row
+      side === "playerA"
+        ? combatPosition.row - LOCAL_DEPLOYMENT_ROWS
+        : enemyCombatRowToLocalRow(combatPosition.row)
   };
 };

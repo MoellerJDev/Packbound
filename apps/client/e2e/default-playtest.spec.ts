@@ -114,9 +114,9 @@ test("default playtest route starts with concise Pixi play surface", async ({ pa
     engagementPreview.getByText("Your Ember Scraprunner cannot attack yet.")
   ).toBeVisible();
   await expect(
-    engagementPreview.getByText("Target is 4 hexes away, range 1.")
+    engagementPreview.getByText("Target is 2 hexes away, range 1.")
   ).toBeVisible();
-  await expect(engagementPreview.getByText("Next move: r4 c2 to r3 c1.")).toBeVisible();
+  await expect(engagementPreview.getByText("Next move: r4 c2 to r4 c3.")).toBeVisible();
   await expect(engagementPreview.getByText("Out of range")).toBeVisible();
   await expectNoHorizontalScroll(rendererHost);
 
@@ -147,7 +147,7 @@ test("default compact inspector can reveal full card details", async ({ page }) 
     allyCardDetails.getByRole("heading", { name: "Legal Actions" })
   ).toBeVisible();
 
-  await clickPixiCell(page, rendererHost, 0, 3);
+  await clickPixiCell(page, rendererHost, 3, 3);
   await expect(
     enemyInspector.getByRole("heading", { name: "Ember Scraprunner" })
   ).toBeVisible();
@@ -531,7 +531,7 @@ test("default Commander controls support inspect deploy and return", async ({ pa
 test("default playtest can record combat, claim rewards, and advance", async ({
   page
 }) => {
-  const { decisionPanel, errors } = await gotoDefaultPlaytestRoute(page);
+  const { decisionPanel, errors, rendererHost } = await gotoDefaultPlaytestRoute(page);
 
   await expect(decisionPanel.getByTestId("default-playtest-upgrade-copy")).toContainText(
     "Cinder Scout"
@@ -548,6 +548,27 @@ test("default playtest can record combat, claim rewards, and advance", async ({
   await expect(previewPanel.getByText(/Events shown: \d+ of \d+/)).toBeVisible();
 
   await page.getByRole("button", { name: "Record Combat" }).click();
+
+  const playbackPanel = page.getByTestId("default-combat-playback");
+  await expect(
+    playbackPanel.getByRole("heading", { name: "Combat Playback" })
+  ).toBeVisible();
+  const playbackStatus = playbackPanel.getByTestId("default-combat-playback-status");
+  const playbackCommandIndex = playbackPanel.getByTestId(
+    "default-combat-playback-command-index"
+  );
+  const playbackLatest = playbackPanel.getByTestId("default-combat-playback-latest");
+  await expect(playbackStatus).toHaveText("idle");
+  await expect(playbackCommandIndex).toHaveText(/0 \/ [1-9]\d*/);
+  await expect(playbackLatest).toHaveText("No command visualized yet.");
+  const beforeStep = await playbackCommandIndex.textContent();
+  await playbackPanel.getByRole("button", { name: "Step Combat Playback" }).click();
+  await expect(playbackCommandIndex).not.toHaveText(beforeStep ?? "");
+  await expect(playbackLatest).not.toHaveText("No command visualized yet.");
+  await playbackPanel.getByRole("button", { name: "Reset Combat Playback" }).click();
+  await expect(playbackStatus).toHaveText("idle");
+  await expect(playbackCommandIndex).toHaveText(/0 \/ [1-9]\d*/);
+  await expect(rendererHost.locator("canvas")).toHaveCount(1);
 
   const recordedPanel = panel(page, "Last Recorded Combat");
   await expect(recordedPanel.getByText(/Winner:/)).toBeVisible();

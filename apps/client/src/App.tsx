@@ -264,6 +264,9 @@ export function App() {
   const [selectedEngagementRef, setSelectedEngagementRef] = useState<
     BoardSelectedCardRef | undefined
   >();
+  const [defaultCombatReplay, setDefaultCombatReplay] = useState(
+    createPixiReplayControlsState
+  );
   const [rendererReplay, setRendererReplay] = useState(createPixiReplayControlsState);
   const [selectedTargetProbeCardInstanceId, setSelectedTargetProbeCardInstanceId] =
     useState<CardInstanceId | undefined>();
@@ -462,6 +465,17 @@ export function App() {
       ),
     [rendererLabCombat]
   );
+  const defaultCombatReplayCommands = useMemo(
+    () =>
+      lastRecordedCombat && lastRecordedCombat.round === run.currentRound
+        ? limitPixiReplayCommands(
+            combatEventsToPixiReplayCommands(lastRecordedCombat.result.events, {
+              cardNamesByDefId
+            })
+          )
+        : [],
+    [lastRecordedCombat, run.currentRound]
+  );
   const latestCombatSummary = run.combatHistory.at(-1);
   const latestOpenedPack = run.openedPacks.at(-1);
   const latestRewardHistoryEntry = run.rewardHistory.at(-1);
@@ -596,6 +610,24 @@ export function App() {
     }
     return byInstanceId;
   }, [pixiBattlefieldModel.cards, rendererReplayCommands]);
+  const defaultCombatReplayCardNameByInstanceId = useMemo(() => {
+    const byInstanceId = new Map<CardInstanceId, string>();
+    for (const card of pixiBattlefieldModel.cards) {
+      byInstanceId.set(card.cardInstanceId, card.name);
+    }
+    for (const command of defaultCombatReplayCommands) {
+      if (command.type === "appear") {
+        byInstanceId.set(command.cardInstanceId, command.token.name);
+      }
+    }
+    return byInstanceId;
+  }, [defaultCombatReplayCommands, pixiBattlefieldModel.cards]);
+  const defaultCombatReplayCommandCountText = `${Math.min(
+    defaultCombatReplay.commandIndex,
+    defaultCombatReplayCommands.length
+  )} / ${defaultCombatReplayCommands.length}`;
+  const defaultCombatReplayLatestSummary =
+    defaultCombatReplay.latestCommandSummary ?? "No command visualized yet.";
   const rendererReplayCommandCountText = `${Math.min(
     rendererReplay.commandIndex,
     rendererReplayCommands.length
@@ -886,6 +918,7 @@ export function App() {
     setSelectedEngagementRef(undefined);
     pixiPlacement.controller.clearPlacement();
     setSelectedTargetProbeCardInstanceId(undefined);
+    setDefaultCombatReplay((current) => resetPixiReplay(current));
     setRendererReplay((current) => resetPixiReplay(current));
   };
 
@@ -1077,6 +1110,7 @@ export function App() {
       encounterId: currentEncounter.id,
       result: combat
     });
+    setDefaultCombatReplay((current) => resetPixiReplay(current));
     setRun((currentRun) =>
       applyRunAction(currentRun, sampleCatalog, {
         type: "recordCombatResult",
@@ -1110,6 +1144,7 @@ export function App() {
     setSelectedEngagementRef(undefined);
     pixiPlacement.controller.clearPlacement();
     setSelectedTargetProbeCardInstanceId(undefined);
+    setDefaultCombatReplay((current) => resetPixiReplay(current));
     setRendererReplay((current) => resetPixiReplay(current));
     setRun((currentRun) =>
       applyRunAction(currentRun, sampleCatalog, { type: "advanceRunAfterCombat" })
@@ -1212,6 +1247,26 @@ export function App() {
     setRendererReplay((current) => resetPixiReplay(current));
   };
 
+  const playDefaultCombatPlayback = () => {
+    setDefaultCombatReplay((current) =>
+      playPixiReplay(current, defaultCombatReplayCommands.length)
+    );
+  };
+
+  const pauseDefaultCombatPlayback = () => {
+    setDefaultCombatReplay((current) => pausePixiReplay(current));
+  };
+
+  const stepDefaultCombatPlayback = () => {
+    setDefaultCombatReplay((current) =>
+      stepPixiReplay(current, defaultCombatReplayCommands.length)
+    );
+  };
+
+  const resetDefaultCombatPlayback = () => {
+    setDefaultCombatReplay((current) => resetPixiReplay(current));
+  };
+
   const completeRendererReplayCommand = (
     nextCommandIndex: number,
     command: PixiReplayCommand,
@@ -1224,6 +1279,23 @@ export function App() {
         nextCommandIndex,
         command,
         { cardNameByInstanceId: rendererReplayCardNameByInstanceId },
+        resetKey
+      )
+    );
+  };
+
+  const completeDefaultCombatPlaybackCommand = (
+    nextCommandIndex: number,
+    command: PixiReplayCommand,
+    resetKey: number
+  ) => {
+    setDefaultCombatReplay((current) =>
+      completePixiReplayCommand(
+        current,
+        defaultCombatReplayCommands.length,
+        nextCommandIndex,
+        command,
+        { cardNameByInstanceId: defaultCombatReplayCardNameByInstanceId },
         resetKey
       )
     );
@@ -1362,6 +1434,17 @@ export function App() {
     hexArena: hexArenaController
   } satisfies BattlefieldSectionController;
   const defaultPixiBattlefieldView = {
+    ...(defaultCombatReplayCommands.length > 0
+      ? {
+          combatPlayback: {
+            commandCountText: defaultCombatReplayCommandCountText,
+            commands: defaultCombatReplayCommands,
+            latestSummary: defaultCombatReplayLatestSummary,
+            recordedEventCount: lastRecordedCombat?.result.events.length ?? 0,
+            replay: defaultCombatReplay
+          }
+        }
+      : {}),
     currentRound: run.currentRound,
     encounterName: currentEncounter?.name ?? "None",
     engagementPreview,
@@ -1388,7 +1471,12 @@ export function App() {
       ? { onBlockedCellSelect: pixiPlacement.controller.selectBlockedCell }
       : {}),
     onInspectCommander: inspectCommander,
+    onPauseCombatPlayback: pauseDefaultCombatPlayback,
+    onPlayCombatPlayback: playDefaultCombatPlayback,
+    onReplayCommandComplete: completeDefaultCombatPlaybackCommand,
+    onResetCombatPlayback: resetDefaultCombatPlayback,
     onReturnCommander: returnCommanderFromBoard,
+    onStepCombatPlayback: stepDefaultCombatPlayback,
     onTokenSelect: selectPixiToken,
     renderDebugBoard
   } satisfies DefaultPixiBattlefieldController;

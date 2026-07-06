@@ -53,7 +53,7 @@ describe("future two-sided battlefield coordinate model", () => {
   });
 
   it("defines side row ranges around the engagement line", () => {
-    expect(combatRowsForSide("playerB")).toEqual([0, 1, 2, 3]);
+    expect(combatRowsForSide("playerB")).toEqual([3, 2, 1, 0]);
     expect(combatRowsForSide("playerA")).toEqual([4, 5, 6, 7]);
     expect(combatRowRangeForSide("playerB")).toEqual({ firstRow: 0, lastRow: 3 });
     expect(combatRowRangeForSide("playerA")).toEqual({ firstRow: 4, lastRow: 7 });
@@ -76,11 +76,11 @@ describe("future two-sided battlefield coordinate model", () => {
     expect(toCombatPosition("playerA", position(3, 2))).toEqual(position(7, 2));
   });
 
-  it("maps all enemy local deployment rows into the upper combat half", () => {
-    expect(toCombatPosition("playerB", position(0, 2))).toEqual(position(0, 2));
-    expect(toCombatPosition("playerB", position(1, 2))).toEqual(position(1, 2));
-    expect(toCombatPosition("playerB", position(2, 2))).toEqual(position(2, 2));
-    expect(toCombatPosition("playerB", position(3, 2))).toEqual(position(3, 2));
+  it("maps all enemy local deployment rows into the upper combat half with local row 0 as frontline", () => {
+    expect(toCombatPosition("playerB", position(0, 2))).toEqual(position(3, 2));
+    expect(toCombatPosition("playerB", position(1, 2))).toEqual(position(2, 2));
+    expect(toCombatPosition("playerB", position(2, 2))).toEqual(position(1, 2));
+    expect(toCombatPosition("playerB", position(3, 2))).toEqual(position(0, 2));
   });
 
   it("preserves columns and layers without mutating input positions", () => {
@@ -99,10 +99,10 @@ describe("future two-sided battlefield coordinate model", () => {
     expect(toLocalDeploymentPosition("playerA", position(6, 2))).toEqual(position(2, 2));
     expect(toLocalDeploymentPosition("playerA", position(7, 3))).toEqual(position(3, 3));
 
-    expect(toLocalDeploymentPosition("playerB", position(0, 0))).toEqual(position(0, 0));
-    expect(toLocalDeploymentPosition("playerB", position(1, 1))).toEqual(position(1, 1));
-    expect(toLocalDeploymentPosition("playerB", position(2, 2))).toEqual(position(2, 2));
-    expect(toLocalDeploymentPosition("playerB", position(3, 3))).toEqual(position(3, 3));
+    expect(toLocalDeploymentPosition("playerB", position(3, 0))).toEqual(position(0, 0));
+    expect(toLocalDeploymentPosition("playerB", position(2, 1))).toEqual(position(1, 1));
+    expect(toLocalDeploymentPosition("playerB", position(1, 2))).toEqual(position(2, 2));
+    expect(toLocalDeploymentPosition("playerB", position(0, 3))).toEqual(position(3, 3));
   });
 
   it("does not inverse-map opposite-side or out-of-bounds combat rows", () => {

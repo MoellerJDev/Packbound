@@ -163,6 +163,14 @@ describe("deterministic encounter selection", () => {
     expect(first.board.placements.map((placement) => placement.defId)).toEqual([
       "ember_scraprunner"
     ]);
+    expect(encounter.loadout.board.placements[0]?.position).toMatchObject({
+      row: 0,
+      col: 3
+    });
+    expect(first.board.placements[0]?.position).toMatchObject({
+      row: 3,
+      col: 3
+    });
     expect(first.board.placements.map((placement) => placement.position)).toEqual(
       encounter.loadout.board.placements.map((placement) => {
         const combatPosition = toCombatPosition("playerB", placement.position);

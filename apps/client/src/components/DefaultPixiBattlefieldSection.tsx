@@ -11,6 +11,8 @@ import type {
   PixiBattlefieldCard,
   PixiBattlefieldModel
 } from "./pixi/pixiBattlefieldModel";
+import type { PixiReplayCommand } from "./pixi/pixiCombatReplay";
+import type { PixiReplayControlsState } from "./pixi/pixiReplayControls";
 import type {
   DefaultPixiBoardEditControlsView,
   DefaultPixiPlacementHintView
@@ -22,6 +24,13 @@ import type {
 import type { DefaultPixiCommanderEditView } from "../viewModels/defaultPixiCommanderEditView";
 
 export type DefaultPixiBattlefieldView = {
+  readonly combatPlayback?: {
+    readonly commandCountText: string;
+    readonly commands: readonly PixiReplayCommand[];
+    readonly latestSummary: string;
+    readonly recordedEventCount: number;
+    readonly replay: PixiReplayControlsState;
+  };
   readonly currentRound: number;
   readonly encounterName: string;
   readonly engagementPreview: EngagementPreview;
@@ -44,7 +53,16 @@ export type DefaultPixiBattlefieldController = {
   readonly onApplyZoneEditAction: (action: DefaultPixiZoneEditAction) => void;
   readonly onDeployCommander: () => void;
   readonly onInspectCommander: () => void;
+  readonly onPauseCombatPlayback: () => void;
+  readonly onPlayCombatPlayback: () => void;
+  readonly onReplayCommandComplete: (
+    nextCommandIndex: number,
+    command: PixiReplayCommand,
+    resetKey: number
+  ) => void;
+  readonly onResetCombatPlayback: () => void;
   readonly onReturnCommander: () => void;
+  readonly onStepCombatPlayback: () => void;
   readonly onTokenSelect: (card: PixiBattlefieldCard) => void;
   readonly renderDebugBoard: () => ReactNode;
 };
@@ -210,6 +228,87 @@ const DefaultPixiCommanderEditControls = ({
   </div>
 );
 
+const DefaultCombatPlaybackPanel = ({
+  controller,
+  playback
+}: {
+  readonly controller: Pick<
+    DefaultPixiBattlefieldController,
+    | "onPauseCombatPlayback"
+    | "onPlayCombatPlayback"
+    | "onResetCombatPlayback"
+    | "onStepCombatPlayback"
+  >;
+  readonly playback: NonNullable<DefaultPixiBattlefieldView["combatPlayback"]>;
+}) => (
+  <div className="default-combat-playback" data-testid="default-combat-playback">
+    <div>
+      <h3>Combat Playback</h3>
+      <p>
+        Replay the recorded combat on the Pixi board. Key Moments remain the text summary;
+        this shows the board process.
+      </p>
+    </div>
+    <dl>
+      <div>
+        <dt>Status</dt>
+        <dd data-testid="default-combat-playback-status">{playback.replay.status}</dd>
+      </div>
+      <div>
+        <dt>Event commands</dt>
+        <dd data-testid="default-combat-playback-command-index">
+          {playback.commandCountText}
+        </dd>
+      </div>
+      <div>
+        <dt>Recorded events</dt>
+        <dd>{playback.recordedEventCount}</dd>
+      </div>
+    </dl>
+    <p className="renderer-replay-latest" data-testid="default-combat-playback-latest">
+      {playback.latestSummary}
+    </p>
+    <div className="button-row compact">
+      <button
+        type="button"
+        onClick={controller.onPlayCombatPlayback}
+        disabled={playback.commands.length === 0 || playback.replay.status === "playing"}
+      >
+        {playback.replay.status === "paused"
+          ? "Resume Combat Playback"
+          : "Play Combat Playback"}
+      </button>
+      <button
+        type="button"
+        className="secondary"
+        onClick={controller.onPauseCombatPlayback}
+        disabled={playback.replay.status !== "playing"}
+      >
+        Pause Combat Playback
+      </button>
+      <button
+        type="button"
+        className="secondary"
+        onClick={controller.onStepCombatPlayback}
+        disabled={
+          playback.commands.length === 0 ||
+          playback.replay.status === "playing" ||
+          playback.replay.status === "complete"
+        }
+      >
+        Step Combat Playback
+      </button>
+      <button
+        type="button"
+        className="secondary"
+        onClick={controller.onResetCombatPlayback}
+      >
+        Reset Combat Playback
+      </button>
+    </div>
+  </div>
+);
+
 const selectionContextText = ({
   selectedAllyInspection,
   selectedEnemyInspection
@@ -288,11 +387,12 @@ export const DefaultPixiBattlefieldSection = ({
         <PixiBattlefieldRenderer
           model={view.pixiBattlefieldModel}
           presentation="playerFacing"
-          replayCommands={[]}
-          replayStatus="idle"
-          replayCommandIndex={0}
-          replayResetKey={0}
-          replayStepRequestKey={0}
+          replayCommands={view.combatPlayback?.commands ?? []}
+          replayStatus={view.combatPlayback?.replay.status ?? "idle"}
+          replayCommandIndex={view.combatPlayback?.replay.commandIndex ?? 0}
+          replayResetKey={view.combatPlayback?.replay.resetKey ?? 0}
+          replayStepRequestKey={view.combatPlayback?.replay.stepRequestKey ?? 0}
+          onReplayCommandComplete={controller.onReplayCommandComplete}
           onTokenSelect={controller.onTokenSelect}
           onCellSelect={controller.onCellSelect}
           {...(controller.onBlockedCellSelect
@@ -318,6 +418,12 @@ export const DefaultPixiBattlefieldSection = ({
           </div>
           <DefaultPixiPlacementHint hint={view.placementHint} />
         </div>
+        {view.combatPlayback ? (
+          <DefaultCombatPlaybackPanel
+            controller={controller}
+            playback={view.combatPlayback}
+          />
+        ) : null}
         <EngagementPreviewPanel preview={view.engagementPreview} playerFacingLabels />
         <details className="renderer-debug-board default-pixi-debug-board">
           <summary>React/CSS Debug Board</summary>

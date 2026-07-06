@@ -21,8 +21,9 @@ are exported from `packages/shared` and covered by focused unit tests.
 
 Phase 3 implementation note: `packages/rules/src/loadout.ts` and
 `packages/rules/src/encounters.ts` now apply those mapping helpers at the
-rules/sim boundary. Player run boards map to `playerA` combat rows 4-7, and
-encounter boards map to `playerB` combat rows 0-3. Simulator movement and
+rules/sim boundary. Player run boards map to `playerA` combat rows 4-7. Enemy
+encounter boards mirror into `playerB` combat rows 3-0 so local row 0 is the
+frontline for both sides. Simulator movement and
 summon/recall placement use combat-space bounds and side row ranges. Pixi maps
 local board summaries into the same global rows and keeps click-to-place
 returning player-local positions for reducer actions.
@@ -39,7 +40,7 @@ returning player-local positions for reducer actions.
   local deployment-space data.
 - `buildCombatantSetupForRun` maps player local placements into combat rows
   4-7. `buildCombatantSetupForEncounter` maps encounter local placements into
-  combat rows 0-3.
+  mirrored combat rows 3-0.
 - The simulator now receives already-mapped global combat boards. Movement,
   range, targeting, combat events, and combat replay positions are global
   combat positions.
@@ -150,21 +151,20 @@ the lower half of the battlefield.
 Yes. Keep local deployment rows for `RunState` loadout editing and encounter
 authoring if possible, then map to global combat rows at combat setup.
 
-Recommended first mapping:
+Implemented mapping:
 
 - `playerA` local row 0 -> combat row 4
 - `playerA` local row 1 -> combat row 5
 - `playerA` local row 2 -> combat row 6
 - `playerA` local row 3 -> combat row 7
-- `playerB` local row 0 -> combat row 0
-- `playerB` local row 1 -> combat row 1
-- `playerB` local row 2 -> combat row 2
-- `playerB` local row 3 -> combat row 3
+- `playerB` local row 0 -> combat row 3
+- `playerB` local row 1 -> combat row 2
+- `playerB` local row 2 -> combat row 1
+- `playerB` local row 3 -> combat row 0
 
-That mapping assumes local row 0 is closest to the engagement line for playerA
-and local row 3 is closest to the engagement line for playerB only if content is
-re-authored. Existing content is not consistent enough to migrate mechanically
-without a content pass.
+That mapping means local row 0 is the frontline for both sides, which keeps
+starter and encounter authoring readable while putting enemy melee units near
+the engagement line instead of in the visual back row.
 
 ### 5. Should display mirror enemy placements only visually?
 
@@ -325,8 +325,9 @@ what the player sees and what the simulator uses.
   the echo and enemy trade on the larger combat board.
 - Movement may feel too slow if melee units begin several rows apart without
   speed/range/content tuning.
-- Current content row numbers were authored for the earlier shared field and
-  have not had a semantic frontline/backline review.
+- Current content row numbers were authored for the earlier shared field. Enemy
+  row 0 now behaves as frontline, but starter and encounter pacing still need a
+  broader frontline/backline review.
 - Browser smoke coordinate clicks are helper-driven, but future Pixi layout
   changes should continue to update the helper rather than individual tests.
 - `Backline` summon and recall behavior is now combat-space side-aware, but it

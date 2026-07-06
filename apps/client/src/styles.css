@@ -421,6 +421,59 @@ h4 {
   padding: 9px 11px;
 }
 
+.default-combat-playback {
+  background: #16262d;
+  border: 1px solid #30474f;
+  border-radius: 8px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 10px 12px;
+}
+
+.default-combat-playback h3 {
+  color: #f7fbf8;
+  font-size: 0.9rem;
+  margin: 0 0 4px;
+}
+
+.default-combat-playback p {
+  color: #c7d8d2;
+  font-size: 0.82rem;
+  font-weight: 800;
+  margin: 0;
+}
+
+.default-combat-playback dl {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  justify-content: flex-end;
+  margin: 0;
+}
+
+.default-combat-playback dt {
+  color: #9eb4af;
+  font-size: 0.66rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.default-combat-playback dd {
+  color: #f7fbf8;
+  font-weight: 900;
+  margin: 2px 0 0;
+}
+
+.default-combat-playback .renderer-replay-latest,
+.default-combat-playback .button-row {
+  grid-column: 1 / -1;
+}
+
+.default-combat-playback .button-row {
+  justify-content: flex-start;
+}
+
 .battlefield-board-side {
   min-width: 0;
 }

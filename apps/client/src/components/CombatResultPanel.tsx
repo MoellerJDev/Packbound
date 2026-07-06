@@ -30,8 +30,8 @@ export const CombatResultPanel = ({
   readonly lastRecorded: LastRecordedCombatPanelView;
   readonly showDeveloperDetails: boolean;
   readonly upcoming: UpcomingCombatPanelView | undefined;
-}) => (
-  <>
+}) => {
+  const recordedPanel = (
     <div className="panel wide">
       <h2>Last Recorded Combat</h2>
       {lastRecorded.summary ? (
@@ -106,58 +106,86 @@ export const CombatResultPanel = ({
         <p className="muted">No combat has been recorded for this run.</p>
       )}
     </div>
+  );
 
-    {upcoming ? (
-      <div className="panel wide">
-        <h2>Upcoming Combat Preview</h2>
-        <p className="muted">
-          Preview only, not yet recorded. Winner: {upcoming.combat.winner} | Events:{" "}
-          {upcoming.combat.events.length}
-        </p>
-        <dl className="combat-result-strip">
-          <div>
-            <dt>Winner</dt>
-            <dd>{upcoming.combat.winner}</dd>
+  const upcomingPanel = upcoming ? (
+    <div className="panel wide">
+      <h2>Upcoming Combat Preview</h2>
+      <p className="muted">
+        Preview only, not yet recorded. Winner: {upcoming.combat.winner} | Events:{" "}
+        {upcoming.combat.events.length}
+      </p>
+      <dl className="combat-result-strip">
+        <div>
+          <dt>Winner</dt>
+          <dd>{upcoming.combat.winner}</dd>
+        </div>
+        <div>
+          <dt>Damage</dt>
+          <dd>
+            You {upcoming.combat.damageToPlayerA} / Enemy{" "}
+            {upcoming.combat.damageToPlayerB}
+          </dd>
+        </div>
+        <div>
+          <dt>Events</dt>
+          <dd>{upcoming.combat.events.length}</dd>
+        </div>
+        <div>
+          <dt>Warnings</dt>
+          <dd>{upcoming.combat.warnings.length}</dd>
+        </div>
+      </dl>
+      {isDefaultRoute ? (
+        <>
+          <CombatSummaryView mode="keyMoments" summary={upcoming.displaySummary} />
+          <details className="combat-feed-details">
+            <summary>Preview Event Feed</summary>
+            <CombatSummaryView mode="eventFeed" summary={upcoming.displaySummary} />
+          </details>
+        </>
+      ) : (
+        <CombatSummaryView summary={upcoming.displaySummary} />
+      )}
+      {showDeveloperDetails ? (
+        <RawDebugDetails
+          label="Developer event JSON"
+          value={{
+            phase: upcoming.phase,
+            currentEncounterId: upcoming.currentEncounterId ?? null,
+            events: upcoming.combat.events,
+            warnings: upcoming.combat.warnings
+          }}
+        />
+      ) : null}
+    </div>
+  ) : null;
+
+  if (isDefaultRoute) {
+    return (
+      <>
+        {!lastRecorded.summary && !upcoming ? (
+          <div
+            className="panel wide default-combat-status-panel"
+            data-testid="default-combat-preview-status"
+          >
+            <h2>Combat Preview</h2>
+            <p className="muted">
+              Ready Combat when the board looks good. The preview, Key Moments, and Record
+              Combat action will appear here.
+            </p>
           </div>
-          <div>
-            <dt>Damage</dt>
-            <dd>
-              You {upcoming.combat.damageToPlayerA} / Enemy{" "}
-              {upcoming.combat.damageToPlayerB}
-            </dd>
-          </div>
-          <div>
-            <dt>Events</dt>
-            <dd>{upcoming.combat.events.length}</dd>
-          </div>
-          <div>
-            <dt>Warnings</dt>
-            <dd>{upcoming.combat.warnings.length}</dd>
-          </div>
-        </dl>
-        {isDefaultRoute ? (
-          <>
-            <CombatSummaryView mode="keyMoments" summary={upcoming.displaySummary} />
-            <details className="combat-feed-details">
-              <summary>Preview Event Feed</summary>
-              <CombatSummaryView mode="eventFeed" summary={upcoming.displaySummary} />
-            </details>
-          </>
-        ) : (
-          <CombatSummaryView summary={upcoming.displaySummary} />
-        )}
-        {showDeveloperDetails ? (
-          <RawDebugDetails
-            label="Developer event JSON"
-            value={{
-              phase: upcoming.phase,
-              currentEncounterId: upcoming.currentEncounterId ?? null,
-              events: upcoming.combat.events,
-              warnings: upcoming.combat.warnings
-            }}
-          />
         ) : null}
-      </div>
-    ) : null}
-  </>
-);
+        {upcomingPanel}
+        {lastRecorded.summary ? recordedPanel : null}
+      </>
+    );
+  }
+
+  return (
+    <>
+      {recordedPanel}
+      {upcomingPanel}
+    </>
+  );
+};

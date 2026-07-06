@@ -126,6 +126,8 @@ test("default playtest route starts with concise Pixi play surface", async ({ pa
     "Cinder Scout"
   );
   await expect(page.getByTestId("post-pack-suggestions-panel")).toHaveCount(0);
+  await expect(page.getByTestId("default-combat-preview-status")).toBeVisible();
+  await expect(panel(page, "Last Recorded Combat")).toHaveCount(0);
   const advancedDebug = page.getByTestId("advanced-debug-panels");
   await expect(advancedDebug).toBeVisible();
   expect(await advancedDebug.evaluate((node) => (node as HTMLDetailsElement).open)).toBe(
@@ -199,6 +201,7 @@ test("default playtest route starts with concise Pixi play surface", async ({ pa
   await expect(allyInspector.getByText("1 HP").first()).toBeVisible();
   await expect(allyInspector.getByText("1.3 AS").first()).toBeVisible();
   await expect(allyInspector.getByText("1 RNG").first()).toBeVisible();
+  await expect(allyInspector.getByText("Full card details")).toBeVisible();
   await expect(boardPanel.getByRole("button", { name: "Inspect" }).first()).toBeVisible();
   const engagementPreview = battlefield.locator(
     ".default-pixi-stage > [data-testid='engagement-preview']"
@@ -218,14 +221,20 @@ test("default playtest route starts with concise Pixi play surface", async ({ pa
     allyInspector.getByRole("heading", { name: "Ember Scraprunner" })
   ).toBeVisible();
   await expect(allyInspector.getByText(/Unit \| board \| Ember/)).toBeVisible();
-  await expect(allyInspector.getByText("Cost")).toBeVisible();
-  await expect(allyInspector.getByText(/Charge/)).toBeVisible();
-  await expect(allyInspector.getByText("Attack speed: 1.3 AS")).toBeVisible();
+  const allyCardDetails = allyInspector.locator("details.card-inspector-details-toggle");
+  await expect(allyCardDetails).toBeVisible();
+  expect(
+    await allyCardDetails.evaluate((node) => (node as HTMLDetailsElement).open)
+  ).toBe(false);
+  await allyCardDetails.locator("summary").click();
+  await expect(allyCardDetails.getByText("Cost")).toBeVisible();
+  await expect(allyCardDetails.getByText(/Charge/)).toBeVisible();
+  await expect(allyCardDetails.getByText("Attack speed: 1.3 AS")).toBeVisible();
   await expect(
-    allyInspector.getByText(/used by the simulator attack timer/)
+    allyCardDetails.getByText(/used by the simulator attack timer/)
   ).toBeVisible();
   await expect(
-    allyInspector.getByRole("heading", { name: "Legal Actions" })
+    allyCardDetails.getByRole("heading", { name: "Legal Actions" })
   ).toBeVisible();
 
   await clickPixiCell(page, rendererHost, 0, 3);

@@ -225,8 +225,8 @@ export const DefaultPixiBattlefieldSection = ({
       <div>
         <h2 id="battlefield-heading">Battlefield</h2>
         <p className="muted">
-          Pixi is the primary battlefield for this encounter. Click a token to inspect it,
-          then use the nearby card, loadout, and Commander controls to tune the run.
+          Click tokens to inspect them, then use the action strip below the board to tune
+          the run.
         </p>
       </div>
       <dl className="battlefield-run-strip">
@@ -255,6 +255,7 @@ export const DefaultPixiBattlefieldSection = ({
         <CardInspectorView
           inspection={view.selectedAllyInspection}
           emptyText="Select an ally token, pool, Source Row, or Spellrail card."
+          variant="compact"
         />
       </aside>
 
@@ -272,21 +273,25 @@ export const DefaultPixiBattlefieldSection = ({
             ? { onBlockedCellSelect: controller.onBlockedCellSelect }
             : {})}
         />
-        <DefaultPixiBoardEditControls
-          view={view.boardEditControls}
-          onCancelPlacement={controller.onCancelPlacement}
-        />
-        <DefaultPixiLoadoutEditControls
-          view={view.loadoutEditControls}
-          onApplyZoneEditAction={controller.onApplyZoneEditAction}
-        />
-        <DefaultPixiCommanderEditControls
-          view={view.commanderEditControls}
-          onDeployCommander={controller.onDeployCommander}
-          onInspectCommander={controller.onInspectCommander}
-          onReturnCommander={controller.onReturnCommander}
-        />
-        <DefaultPixiPlacementHint hint={view.placementHint} />
+        <div className="default-pixi-action-area" aria-label="Battlefield actions">
+          <div className="default-pixi-action-grid">
+            <DefaultPixiBoardEditControls
+              view={view.boardEditControls}
+              onCancelPlacement={controller.onCancelPlacement}
+            />
+            <DefaultPixiLoadoutEditControls
+              view={view.loadoutEditControls}
+              onApplyZoneEditAction={controller.onApplyZoneEditAction}
+            />
+            <DefaultPixiCommanderEditControls
+              view={view.commanderEditControls}
+              onDeployCommander={controller.onDeployCommander}
+              onInspectCommander={controller.onInspectCommander}
+              onReturnCommander={controller.onReturnCommander}
+            />
+          </div>
+          <DefaultPixiPlacementHint hint={view.placementHint} />
+        </div>
         <EngagementPreviewPanel preview={view.engagementPreview} />
         <details className="renderer-debug-board default-pixi-debug-board">
           <summary>React/CSS Debug Board</summary>
@@ -302,6 +307,7 @@ export const DefaultPixiBattlefieldSection = ({
           inspection={view.selectedEnemyInspection}
           emptyText="Select an enemy token, Source Row, or Spellrail card."
           showLegalActions={false}
+          variant="compact"
         />
       </aside>
     </div>

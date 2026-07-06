@@ -196,6 +196,12 @@ h4 {
   grid-template-columns: minmax(190px, 0.72fr) minmax(0, 2.1fr) minmax(190px, 0.72fr);
 }
 
+.default-pixi-battlefield-section .battlefield-layout {
+  grid-template-columns:
+    minmax(168px, 0.48fr) minmax(0, 2.7fr)
+    minmax(168px, 0.48fr);
+}
+
 .battlefield-inspector,
 .battlefield-board {
   background: #fbfcfa;
@@ -210,6 +216,12 @@ h4 {
   min-height: 520px;
   overflow: auto;
   padding: 14px;
+}
+
+.default-pixi-battlefield-section .battlefield-inspector {
+  max-height: 560px;
+  min-height: 0;
+  padding: 12px;
 }
 
 .battlefield-inspector h3 {
@@ -236,8 +248,23 @@ h4 {
 }
 
 .default-pixi-stage .pixi-renderer-host {
-  height: min(62vh, 640px);
-  min-height: 520px;
+  height: min(58vh, 600px);
+  min-height: 500px;
+}
+
+.default-pixi-action-area {
+  background: #16262d;
+  border: 1px solid #30474f;
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+}
+
+.default-pixi-action-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .default-pixi-debug-board {
@@ -294,6 +321,31 @@ h4 {
   padding: 0 12px;
 }
 
+.default-pixi-action-area .default-pixi-edit-controls {
+  align-content: start;
+  align-items: start;
+  gap: 7px;
+  grid-template-columns: 1fr;
+  padding: 8px 9px;
+}
+
+.default-pixi-action-area .default-pixi-edit-controls dl {
+  gap: 6px 12px;
+}
+
+.default-pixi-action-area .default-pixi-edit-controls p {
+  font-size: 0.8rem;
+}
+
+.default-pixi-action-area .button-row.compact {
+  gap: 6px;
+}
+
+.default-pixi-action-area .button-row.compact button {
+  min-height: 30px;
+  padding: 0 9px;
+}
+
 .default-pixi-loadout-edit-controls .button-row,
 .default-pixi-commander-edit-controls .button-row {
   justify-content: flex-start;
@@ -308,7 +360,7 @@ h4 {
   color: #c7d8d2;
   font-size: 0.88rem;
   font-weight: 800;
-  margin: -2px 0 0;
+  margin: 0;
 }
 
 .default-pixi-placement-note.blocked {
@@ -689,8 +741,8 @@ h4 {
 .default-playtest-decision-panel {
   align-items: start;
   display: grid;
-  gap: 14px;
-  grid-template-columns: minmax(260px, 1fr) minmax(360px, 1.2fr) minmax(280px, 0.8fr);
+  gap: 12px;
+  grid-template-columns: minmax(240px, 0.9fr) minmax(320px, 1.1fr) minmax(260px, 0.8fr);
 }
 
 .default-playtest-decision-panel h2,
@@ -704,6 +756,10 @@ h4 {
 
 .default-playtest-status-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.default-playtest-decision-panel.panel {
+  padding: 12px 14px;
 }
 
 .default-playtest-upgrade-card {
@@ -722,6 +778,10 @@ h4 {
 
 .default-playtest-upgrade-card button {
   justify-self: start;
+}
+
+.default-combat-status-panel {
+  background: #f4f8f5;
 }
 
 .default-playtest-loop-grid {
@@ -1246,6 +1306,52 @@ h4 {
 .card-inspector h3 {
   font-size: 1.08rem;
   margin: 0 0 2px;
+}
+
+.compact-card-inspector {
+  display: grid;
+  gap: 8px;
+}
+
+.compact-card-inspector h3 {
+  font-size: 1rem;
+}
+
+.compact-card-inspector .muted {
+  font-size: 0.78rem;
+  margin: 0;
+}
+
+.compact-inspector-chips {
+  gap: 4px;
+}
+
+.compact-inspector-summary {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+
+.compact-inspector-summary div {
+  background: #f4f8f5;
+  border: 1px solid #d9e4df;
+  border-radius: 6px;
+  min-width: 0;
+  padding: 6px 7px;
+}
+
+.compact-inspector-summary dt {
+  color: #5d6870;
+  font-size: 0.66rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.compact-inspector-summary dd {
+  font-size: 0.82rem;
+  font-weight: 800;
+  margin: 2px 0 0;
+  overflow-wrap: anywhere;
 }
 
 .inspector-stats {
@@ -1982,6 +2088,10 @@ pre {
     order: -1;
   }
 
+  .default-pixi-action-grid {
+    grid-template-columns: 1fr;
+  }
+
   .battlefield-inspector {
     min-height: 360px;
   }
@@ -2002,6 +2112,11 @@ pre {
   }
 
   .pixi-renderer-host {
+    height: 560px;
+    min-height: 480px;
+  }
+
+  .default-pixi-stage .pixi-renderer-host {
     height: 560px;
     min-height: 480px;
   }

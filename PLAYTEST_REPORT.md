@@ -297,19 +297,28 @@ source lifecycle behavior, or Pixi-default behavior changed. Targeted typecheck
 and browser smoke passed during the pass. Remaining client bloat is mostly
 renderer-lab state/controller setup and top-level App state coordination.
 
+Implementation update after this task: the default Pixi playtest route has a
+tighter presentation pass. Ally and Enemy inspectors now show compact
+name/type/stat/cost summaries with `Full card details` collapsed by default,
+the Pixi board action controls are grouped into one compact strip below the
+canvas, the initial combat area shows a `Combat Preview` status card instead of
+an empty recorded-combat panel, and the decision panel uses denser spacing. This
+is a layout-only/client presentation pass; rules, combat, loadout legality,
+rewards, content, and Pixi renderer behavior did not change.
+
 The biggest remaining Pixi/default-route findings are no longer the absence of
 replay controls, tiny first-pass labels, unvalidated readability, default-route
 confidence, basic default-route edit affordances, an ungrouped default combat
-feed, or a debug-grid first screen. Now that `/` opens on a Pixi-focused
-playtest surface with an immediate build decision, the next gaps are manual
-validation of the new 10-minute playtest flow, richer direct-manipulation polish
-such as drag/drop or canvas-native zone editing, scrub or speed controls in
-Renderer Lab, and checking that grouped combat copy scales beyond the current
-starter fights.
+feed, a debug-grid first screen, or always-expanded inspector detail. Now that
+`/` opens on a tighter Pixi-focused playtest surface with an immediate build
+decision, the next gaps are manual validation of the refreshed 10-minute
+playtest flow, richer direct-manipulation polish such as drag/drop or
+canvas-native zone editing, scrub or speed controls in Renderer Lab, and
+checking that grouped combat copy scales beyond the current starter fights.
 
 Recommended next task:
 
-`test(playtest): manually validate default Pixi playtest route`
+`test(playtest): manually validate tightened default Pixi playtest route`
 
 ## 2. Environment And Commands
 
@@ -432,8 +441,8 @@ combat, Commander, encounter, card, or Pixi-default behavior changed.
 
 ### Still Blocking Spike Viability
 
-- The default route is clearer, but it still relies on list buttons rather than
-  direct board editing for most loadout actions.
+- The default route is clearer, but non-board zone management still relies on
+  compact buttons rather than canvas-native direct manipulation.
 - New pack cards are still only movable after advancing back to planning. The
   new post-pack suggestions explain that timing and apply legal next edits, but
   they are intentionally not automatic and not available during reward choice.
@@ -462,13 +471,13 @@ combat, Commander, encounter, card, or Pixi-default behavior changed.
 
 ### What Still Feels Like A Debug Lab
 
-- Card inspectors are useful but verbose. Design metadata, simulator stat facts,
-  upgrade progress, legal actions, and blocked reasons all compete for attention
-  in the first minute.
-- Source Row and Spellrail now have compact Pixi-adjacent controls for selected
-  Pool cards, but return-to-pool, Commander, and most zone management still use
-  list-style buttons. They are playable, but still feel like a debug loadout
-  editor rather than a board-first game interface.
+- Card inspectors are compact by default now, but the expanded `Full card
+details` view is still verbose when simulator facts, legal actions, blocked
+  reasons, design metadata, and upgrade context are all open at once.
+- Source Row, Spellrail, return-to-pool, and Commander lifecycle actions now
+  have compact Pixi-adjacent controls, but they are still button-driven. They
+  are playable, but still feel like a debug loadout editor rather than a
+  board-first game interface.
 - Current Encounter, legal Planning Check, display-only Traits / Teamups, idle
   Upgrade Progress, and long combat feeds are now collapsed on `/`, but the
   collapsed labels still reveal that this is a prototype shell.

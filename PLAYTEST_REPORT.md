@@ -135,6 +135,15 @@ players to avoid or open debug panels in normal-flow copy. Capped zone overflow
 now uses player-facing copy such as `+2 more cards`, while full loadout lists
 remain available in collapsed Advanced Debug Panels for diagnostics.
 
+Battlefield model audit update after this task: `BATTLEFIELD_MODEL_AUDIT.md`
+now documents why the current side labels are only a presentation fix. The
+canonical model remains a shared 4-row by 7-column odd-r board, with player and
+enemy placements fed directly into the simulator in that same coordinate space.
+The recommended migration is to keep 4-row local deployment boards for run and
+encounter authoring, introduce an explicit 8-row global combat coordinate space,
+and add tested local-to-combat mapping helpers before changing combat setup or
+content.
+
 Implementation update after this task: the default Pixi battlefield now has a
 compact `Loadout` control strip for selected Pool cards. It uses existing legal
 loadout actions to expose `Add to Source Row` for selected Sources and
@@ -1238,6 +1247,10 @@ Note:
   side-colored territory bands, side badges, and selected ally/enemy context,
   but the underlying board is still the canonical shared rules coordinate
   space. It is not a true two-side deployment redesign.
+- The two-sided battlefield audit recommends an eventual 8-row global combat
+  board, but no behavior has migrated yet. Current planning validation,
+  content authoring, engagement preview, simulator movement/range, Pixi layout,
+  and browser click helpers still assume the shared 4-row board.
 - Compact inspectors now show rules/ability summary by default, but long cards
   still need thoughtful text editing and richer card-layout polish before a
   cold-start demo.
@@ -1339,16 +1352,17 @@ Note:
 
 Do next:
 
-`test(playtest): manually validate battlefield side clarity and card summaries`
+`test(shared): add battlefield coordinate-space mapping helpers`
 
-Why: this task addressed the biggest default-route comprehension issue with
-player-facing side labels, token side badges, selected ally/enemy context, and
-compact `What it does` inspector summaries. The safest next move is a short
-manual pass to confirm those changes actually fix the first-read battlefield
-confusion before building larger systems on top.
+Why: the latest audit confirms the default route should probably become a true
+two-sided battlefield, but changing `BOARD_ROWS` directly would mix planning and
+combat dimensions and silently alter combat outcomes. The safest next move is a
+tested helper layer for 4-row local deployment coordinates and 8-row global
+combat coordinates, without changing simulator setup yet.
 
 Do soon:
 
+- `feat(rules): migrate combat setup to 8-row combat coordinates`
 - `test(playtest): manually validate grouped combat key moments across starters`
 - `feat(client): strengthen Board Charge and Source teaching`
 - `feat(client): frame reward packs as a shop step`

@@ -780,6 +780,129 @@ h4 {
   justify-self: start;
 }
 
+.default-loadout-tray {
+  display: grid;
+  gap: 12px;
+  padding: 12px 14px;
+}
+
+.default-loadout-tray-header {
+  align-items: start;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(220px, 1fr) minmax(320px, 0.9fr);
+}
+
+.default-loadout-tray h2,
+.default-loadout-tray h3 {
+  margin: 0;
+}
+
+.default-loadout-tray p {
+  margin: 0;
+}
+
+.default-loadout-tray-resources {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+}
+
+.default-loadout-tray-resources div {
+  border-left: 3px solid #9dc2ad;
+  padding-left: 8px;
+}
+
+.default-loadout-tray-resources dt {
+  color: #587071;
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.default-loadout-tray-resources dd {
+  color: #1f2b32;
+  font-weight: 900;
+  margin: 2px 0 0;
+}
+
+.default-loadout-tray-zones {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1.1fr) repeat(3, minmax(0, 1fr));
+}
+
+.default-loadout-tray-zone {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.default-loadout-tray-zone h3 {
+  color: #244532;
+  font-size: 0.9rem;
+}
+
+.default-loadout-tray-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.default-loadout-tray-card,
+.default-loadout-tray-empty {
+  align-items: start;
+  border-top: 1px solid #dce5e0;
+  display: grid;
+  gap: 6px;
+  min-height: 42px;
+  padding: 7px 0;
+}
+
+.default-loadout-tray-card-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.default-loadout-tray-card .card-name-cell {
+  gap: 6px;
+  min-width: 0;
+}
+
+.default-loadout-tray-card .card-name-cell span {
+  color: #1f2b32;
+  font-size: 0.9rem;
+  font-weight: 900;
+  min-width: 0;
+}
+
+.default-loadout-tray-card small,
+.default-loadout-tray-empty span,
+.default-loadout-tray-more {
+  color: #587071;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.default-loadout-tray .mini-actions {
+  justify-content: flex-start;
+}
+
+.default-loadout-tray .mini-actions button {
+  font-size: 0.78rem;
+  min-height: 28px;
+  padding: 0 8px;
+  width: auto;
+}
+
+.default-loadout-tray .mini-actions small {
+  color: #7b5a31;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
 .default-combat-status-panel {
   background: #f4f8f5;
 }
@@ -2074,6 +2197,11 @@ pre {
     grid-template-columns: 1fr;
   }
 
+  .default-loadout-tray-header,
+  .default-loadout-tray-zones {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .battlefield-layout {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -2139,11 +2267,17 @@ pre {
   }
 
   .default-playtest-decision-panel,
+  .default-loadout-tray-header,
+  .default-loadout-tray-zones,
   .default-playtest-loop-grid {
     grid-template-columns: 1fr;
   }
 
   .default-playtest-status-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .default-loadout-tray-resources {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 

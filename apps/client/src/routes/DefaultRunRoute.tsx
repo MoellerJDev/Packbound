@@ -31,6 +31,7 @@ import {
   type DefaultPixiBattlefieldController,
   type DefaultPixiBattlefieldView
 } from "../components/DefaultPixiBattlefieldSection";
+import { DefaultLoadoutTray } from "../components/DefaultLoadoutTray";
 import {
   LoadoutZonesPanel,
   type LoadoutZonesPanelView
@@ -400,6 +401,11 @@ const DefaultPlaytestRoute = ({
   return (
     <section className="default-playtest-route" data-testid="default-playtest-route">
       <DefaultPlaytestDecisionPanel controller={controller} view={view} />
+      <DefaultLoadoutTray
+        cardName={controller.cardName}
+        renderLoadoutActions={controller.renderLoadoutActions}
+        view={view.loadoutZonesView}
+      />
       <DefaultPixiBattlefieldSection
         controller={controller.battlefield}
         view={view.battlefield}

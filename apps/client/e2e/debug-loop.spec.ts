@@ -1,7 +1,7 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
 const panel = (page: Page, heading: string): Locator =>
-  page.locator(".panel").filter({
+  page.locator(".panel:not(.default-loadout-tray)").filter({
     has: page.getByRole("heading", { name: heading, exact: true }),
     hasNot: page.getByTestId("advanced-debug-panels-summary")
   });
@@ -128,6 +128,23 @@ test("default playtest route starts with concise Pixi play surface", async ({ pa
   await expect(page.getByTestId("post-pack-suggestions-panel")).toHaveCount(0);
   await expect(page.getByTestId("default-combat-preview-status")).toBeVisible();
   await expect(panel(page, "Last Recorded Combat")).toHaveCount(0);
+  const loadoutTray = page.getByTestId("default-loadout-tray");
+  await expect(loadoutTray).toBeVisible();
+  await expect(
+    loadoutTray.getByRole("heading", { name: "Loadout Tray", exact: true })
+  ).toBeVisible();
+  await expect(loadoutTray.getByTestId("default-loadout-tray-pool")).toContainText(
+    "Pool"
+  );
+  await expect(loadoutTray.getByTestId("default-loadout-tray-board")).toContainText(
+    "Board"
+  );
+  await expect(loadoutTray.getByTestId("default-loadout-tray-sources")).toContainText(
+    "Sources"
+  );
+  await expect(loadoutTray.getByTestId("default-loadout-tray-spellrail")).toContainText(
+    "Spellrail"
+  );
   const advancedDebug = page.getByTestId("advanced-debug-panels");
   await expect(advancedDebug).toBeVisible();
   expect(await advancedDebug.evaluate((node) => (node as HTMLDetailsElement).open)).toBe(
@@ -252,6 +269,56 @@ test("default playtest route starts with concise Pixi play surface", async ({ pa
     engagementPreview.getByText("Ember Scraprunner can attack Ember Scraprunner now.")
   ).toBeVisible();
   await expectNoHorizontalScroll(rendererHost);
+
+  expectNoBrowserErrors(errors);
+});
+
+test("default loadout tray exposes first-fold loadout edits", async ({ page }) => {
+  const { battlefield, errors, rendererHost } = await gotoDefaultPlaytestRoute(page);
+
+  const advancedDebug = page.getByTestId("advanced-debug-panels");
+  await expect(advancedDebug).toBeVisible();
+  expect(await advancedDebug.evaluate((node) => (node as HTMLDetailsElement).open)).toBe(
+    false
+  );
+
+  const loadoutTray = page.getByTestId("default-loadout-tray");
+  const poolTray = loadoutTray.getByTestId("default-loadout-tray-pool");
+  const boardTray = loadoutTray.getByTestId("default-loadout-tray-board");
+  const sourcesTray = loadoutTray.getByTestId("default-loadout-tray-sources");
+  const spellrailTray = loadoutTray.getByTestId("default-loadout-tray-spellrail");
+  const defaultPlacementHint = battlefield.getByTestId("default-pixi-placement-hint");
+
+  await expect(loadoutTray).toBeVisible();
+  await expect(poolTray.getByText("Sparkcatch Apprentice")).toBeVisible();
+  await expect(boardTray.getByText("Ember Scraprunner")).toBeVisible();
+  await expect(sourcesTray.getByText("Ember Source")).toBeVisible();
+  await expect(spellrailTray.getByText("Sparkfall")).toBeVisible();
+  await expect(page.getByText("Renderer Feed")).toHaveCount(0);
+
+  const sparkcatchPoolRow = poolTray
+    .getByRole("listitem")
+    .filter({ hasText: "Sparkcatch Apprentice" });
+  await sparkcatchPoolRow.getByRole("button", { name: "Select Board Cell" }).click();
+  await expect(defaultPlacementHint).toHaveText(
+    "Placing Sparkcatch Apprentice. Click a highlighted Pixi cell."
+  );
+  await clickPixiCell(page, rendererHost, 0, 0);
+  await expect(
+    boardTray.getByRole("listitem").filter({ hasText: "Sparkcatch Apprentice" }).first()
+  ).toBeVisible();
+
+  const emberSourceTrayRow = sourcesTray
+    .getByRole("listitem")
+    .filter({ hasText: "Ember Source" });
+  await emberSourceTrayRow.getByRole("button", { name: "Return to Pool" }).click();
+  await expect(sourcesTray.getByText("No Source Row cards.")).toBeVisible();
+
+  await openAdvancedDebugPanels(page);
+  await expect(panel(page, "Pool Cards")).toBeVisible();
+  await expect(panel(page, "Source Row")).toBeVisible();
+  await expect(panel(page, "Spellrail")).toBeVisible();
+  await expect(rendererHost.locator("canvas")).toHaveCount(1);
 
   expectNoBrowserErrors(errors);
 });

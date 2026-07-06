@@ -1,0 +1,184 @@
+import type { ReactNode } from "react";
+
+import type { CardDefId, CardInstance, CardInstanceId } from "@packbound/shared";
+
+import type { LoadoutZonesPanelView } from "./LoadoutZonesPanel";
+import { UpgradeBadge } from "./upgradeBadges";
+
+const POOL_CARD_LIMIT = 4;
+const ACTIVE_ZONE_CARD_LIMIT = 3;
+
+const activeCardUpgradeLevel = (
+  activeCards: LoadoutZonesPanelView["activeCards"],
+  cardInstanceId: CardInstanceId
+): number =>
+  activeCards.find((card) => card.instanceId === cardInstanceId)?.upgradeLevel ?? 0;
+
+const formatPosition = (
+  placement: LoadoutZonesPanelView["boardPlacements"][number]
+): string =>
+  `r${placement.position.row} c${placement.position.col} ${placement.position.layer}`;
+
+const DefaultLoadoutTrayCard = ({
+  actions,
+  meta,
+  name,
+  upgradeLevel
+}: {
+  readonly actions: ReactNode;
+  readonly meta: string;
+  readonly name: string;
+  readonly upgradeLevel: number;
+}) => (
+  <li className="default-loadout-tray-card">
+    <div className="default-loadout-tray-card-copy">
+      <div className="card-name-cell">
+        <span>{name}</span>
+        <UpgradeBadge level={upgradeLevel} />
+      </div>
+      <small>{meta}</small>
+    </div>
+    {actions}
+  </li>
+);
+
+const DefaultLoadoutTrayZone = ({
+  children,
+  emptyText,
+  itemCount,
+  moreCount,
+  title,
+  testId
+}: {
+  readonly children: ReactNode;
+  readonly emptyText: string;
+  readonly itemCount: number;
+  readonly moreCount: number;
+  readonly title: string;
+  readonly testId: string;
+}) => (
+  <section className="default-loadout-tray-zone" data-testid={testId}>
+    <h3>{title}</h3>
+    <ol className="default-loadout-tray-list">
+      {itemCount > 0 ? (
+        children
+      ) : (
+        <li className="default-loadout-tray-empty">
+          <span>{emptyText}</span>
+        </li>
+      )}
+    </ol>
+    {moreCount > 0 ? (
+      <p className="default-loadout-tray-more">+{moreCount} more in Advanced Debug</p>
+    ) : null}
+  </section>
+);
+
+export const DefaultLoadoutTray = ({
+  cardName,
+  renderLoadoutActions,
+  view
+}: {
+  readonly cardName: (defId: CardDefId) => string;
+  readonly renderLoadoutActions: (cardInstanceId: CardInstanceId) => ReactNode;
+  readonly view: LoadoutZonesPanelView;
+}) => {
+  const boardCards = view.boardPlacements.slice(0, ACTIVE_ZONE_CARD_LIMIT);
+  const sourceCards = view.sourceCards.slice(0, ACTIVE_ZONE_CARD_LIMIT);
+  const spellrailCards = view.spellrailCards.slice(0, ACTIVE_ZONE_CARD_LIMIT);
+  const poolCards = view.poolCards.slice(0, POOL_CARD_LIMIT);
+
+  const renderCard = (card: CardInstance, meta: string) => (
+    <DefaultLoadoutTrayCard
+      key={card.instanceId}
+      name={cardName(card.defId)}
+      meta={meta}
+      upgradeLevel={card.upgradeLevel}
+      actions={renderLoadoutActions(card.instanceId)}
+    />
+  );
+
+  return (
+    <section
+      className="panel default-loadout-tray"
+      data-testid="default-loadout-tray"
+      aria-labelledby="default-loadout-tray-heading"
+    >
+      <div className="default-loadout-tray-header">
+        <div>
+          <h2 id="default-loadout-tray-heading">Loadout Tray</h2>
+          <p className="muted">
+            Select, place, and move key cards without opening the debug panels.
+          </p>
+        </div>
+        <dl className="default-loadout-tray-resources">
+          <div>
+            <dt>Board Charge</dt>
+            <dd>{view.resourceSummary.boardChargeText}</dd>
+          </div>
+          <div>
+            <dt>Sources</dt>
+            <dd>{view.resourceSummary.sourceSlotsText}</dd>
+          </div>
+          <div>
+            <dt>Combat Charge/sec</dt>
+            <dd>{view.resourceSummary.combatChargePerSecondText}</dd>
+          </div>
+        </dl>
+      </div>
+
+      <div className="default-loadout-tray-zones">
+        <DefaultLoadoutTrayZone
+          title="Pool"
+          testId="default-loadout-tray-pool"
+          emptyText="No Pool cards are currently available."
+          itemCount={poolCards.length}
+          moreCount={Math.max(0, view.poolCards.length - poolCards.length)}
+        >
+          {poolCards.map((card) => renderCard(card, "Pool"))}
+        </DefaultLoadoutTrayZone>
+
+        <DefaultLoadoutTrayZone
+          title="Board"
+          testId="default-loadout-tray-board"
+          emptyText="No board cards are deployed."
+          itemCount={boardCards.length}
+          moreCount={Math.max(0, view.boardPlacements.length - boardCards.length)}
+        >
+          {boardCards.map((placement) => (
+            <DefaultLoadoutTrayCard
+              key={placement.cardInstanceId}
+              name={cardName(placement.defId)}
+              meta={formatPosition(placement)}
+              upgradeLevel={activeCardUpgradeLevel(
+                view.activeCards,
+                placement.cardInstanceId
+              )}
+              actions={renderLoadoutActions(placement.cardInstanceId)}
+            />
+          ))}
+        </DefaultLoadoutTrayZone>
+
+        <DefaultLoadoutTrayZone
+          title="Sources"
+          testId="default-loadout-tray-sources"
+          emptyText="No Source Row cards."
+          itemCount={sourceCards.length}
+          moreCount={Math.max(0, view.sourceCards.length - sourceCards.length)}
+        >
+          {sourceCards.map((card) => renderCard(card, "Source Row"))}
+        </DefaultLoadoutTrayZone>
+
+        <DefaultLoadoutTrayZone
+          title="Spellrail"
+          testId="default-loadout-tray-spellrail"
+          emptyText="No Spellrail cards."
+          itemCount={spellrailCards.length}
+          moreCount={Math.max(0, view.spellrailCards.length - spellrailCards.length)}
+        >
+          {spellrailCards.map((card) => renderCard(card, "Spellrail"))}
+        </DefaultLoadoutTrayZone>
+      </div>
+    </section>
+  );
+};

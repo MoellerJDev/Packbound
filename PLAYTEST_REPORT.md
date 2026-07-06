@@ -316,20 +316,28 @@ largest remaining friction is that key loadout-editing lists still live under
 falls below the first fold at 1280 x 720. A first-time player can understand the
 loop with light narration, but the route is not yet a cold-start demo.
 
+Implementation update after this task: `/` now has a compact first-fold
+`Loadout Tray` between the Current Decision card and the Pixi battlefield. The
+tray surfaces Pool, Board, Source Row, and Spellrail rows with the same existing
+legal `Inspect`, `Select Board Cell`, `Add to Source Row`, `Add to Spellrail`,
+and `Return to Pool` actions used by the full loadout lists. Full loadout lists
+remain available under `Advanced Debug Panels`, but ordinary editing no longer
+requires opening that panel first.
+
 The biggest remaining Pixi/default-route findings are no longer the absence of
 replay controls, tiny first-pass labels, unvalidated readability, default-route
 confidence, basic default-route edit affordances, an ungrouped default combat
 feed, a debug-grid first screen, or always-expanded inspector detail. Now that
 `/` opens on a tighter Pixi-focused playtest surface with an immediate build
-decision, the next gaps are first-fold access to ordinary loadout editing,
-clearer board/support-layer education, richer direct-manipulation polish such
-as drag/drop or canvas-native zone editing, scrub or speed controls in Renderer
+decision and a first-fold Loadout Tray, the next gaps are clearer
+board/support-layer education, richer direct-manipulation polish such as
+drag/drop or canvas-native zone editing, scrub or speed controls in Renderer
 Lab, and checking that grouped combat copy scales beyond the current starter
 fights.
 
 Recommended next task:
 
-`feat(client): surface default loadout controls in first-fold tray`
+`feat(client): clarify board layer and loadout cost education`
 
 ## 2. Environment And Commands
 
@@ -1157,9 +1165,10 @@ Note:
   shapes and text rather than final art assets.
 - The tightened default Pixi route has now had a fresh 10-minute manual pass at
   1440 x 900 plus a 1280 x 720 sanity pass. It is close to showable with light
-  narration, but not yet a cold-start demo because core loadout lists remain
-  under `Advanced Debug Panels` and the Pixi action strip sits below the first
-  fold at 1280 x 720.
+  narration, and the first-fold `Loadout Tray` now exposes ordinary
+  Pool/Board/Source Row/Spellrail editing without opening Advanced Debug Panels.
+  It is still not a cold-start demo because those controls are compact, capped,
+  button-driven affordances rather than board-native manipulation.
 - The React/CSS Hex Arena remains available as a collapsed debug fallback on `/`
   and `?scenario=renderer-lab`.
 - The default route now hides/collapses most developer bloat and supports
@@ -1195,7 +1204,8 @@ Note:
   while a paused command animation is still settling, the renderer waits for that
   command to settle and then advances one additional deterministic command.
 - Default-route Source Row, Spellrail, and return-to-pool controls use selected
-  cards and existing legal actions; they are not Pixi canvas drop zones.
+  cards, first-fold tray rows, and existing legal actions; they are not Pixi
+  canvas drop zones.
 - Newly materialized appear/recall tokens use event metadata; if a card is not
   in the initial board model, stat chips, traits, and keywords are currently
   empty.
@@ -1244,14 +1254,14 @@ Note:
 
 Do next:
 
-`feat(client): surface default loadout controls in first-fold tray`
+`feat(client): clarify board layer and loadout cost education`
 
-Why: the tightened `/` route now plays through a coherent 10-minute loop, but
-the manual pass showed that first-time loadout editing still depends on opening
-`Advanced Debug Panels` and scrolling below the Pixi canvas. A small first-fold
-tray for selected Pool/Board/Source/Spellrail actions would make the default
-route more showable without changing rules, combat, content, or Pixi renderer
-behavior.
+Why: the tightened `/` route now has first-fold loadout editing, but the next
+confusion is why a card belongs on ground vs support, how Board Charge / Source
+Row capacity constrains placement, and why some legal moves are shown as compact
+buttons rather than canvas-native drops. Teaching those constraints would make
+the default route more showable without changing rules, combat, content, or
+Pixi renderer behavior.
 
 Do soon:
 

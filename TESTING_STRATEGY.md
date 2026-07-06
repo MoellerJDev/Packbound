@@ -142,6 +142,13 @@ Playwright Chromium and runs the same smoke tests with `pnpm test:browser`.
 Keep this layer focused on stable text and roles. Avoid screenshots, broad
 brittle snapshots, animation timing, and visual assertions.
 
+The default-route smoke is intentionally split across focused tests instead of
+one large end-to-end tour. Keep `/` coverage divided between the concise Pixi
+playtest surface, Pixi edit controls, Commander controls, and the combat/reward
+loop so each test stays well below the 30-second CI timeout. Rapid Pixi replay
+edge cases and detailed view-model behavior should live in unit tests or focused
+diagnostic-route smoke, not in the default-route playtest loop.
+
 ### Manual Playtesting
 
 Automated tests cannot answer whether a run feels good. Manual checks should

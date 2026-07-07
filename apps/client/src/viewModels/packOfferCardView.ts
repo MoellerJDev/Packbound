@@ -103,7 +103,7 @@ const boardFitCopy = ({
 
   if (check.reason.includes("Board uses") || check.reason.includes("Board Charge")) {
     return {
-      fitText: `Likely blocked: ${check.reason} Add Source capacity or return a board card before using this pick.`,
+      fitText: `Likely blocked: ${check.reason} Need more Board Charge? Add or swap Sources, or return a board card before using this pick.`,
       fitTone: "warning"
     };
   }

@@ -946,6 +946,35 @@ h4 {
   margin: 2px 0 0;
 }
 
+.default-loadout-resource-basics {
+  background: #f4f8f5;
+  border: 1px solid #dce5e0;
+  border-radius: 8px;
+  grid-column: 1 / -1;
+  padding: 8px 10px;
+}
+
+.default-loadout-resource-basics summary {
+  color: #244532;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.default-loadout-resource-basics ul {
+  display: grid;
+  gap: 5px;
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+
+.default-loadout-resource-basics li {
+  color: #587071;
+  font-size: 0.8rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
 .default-loadout-tray-zones {
   display: grid;
   gap: 14px;

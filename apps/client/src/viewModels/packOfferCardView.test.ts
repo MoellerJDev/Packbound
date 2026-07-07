@@ -142,6 +142,8 @@ describe("pack offer card view", () => {
     expect(view.fitText).toContain("Likely blocked");
     expect(view.fitText).toContain("Board");
     expect(view.fitText).toContain("Source");
+    expect(view.fitText).toContain("Need more Board Charge?");
+    expect(view.fitText).toContain("Add or swap Sources");
   });
 
   it("falls back when a card definition is missing", () => {

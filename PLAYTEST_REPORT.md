@@ -477,7 +477,7 @@ variance; combat playback is much more understandable; future movement may
 animate more fluidly while keeping cell-based rules; a compact post-combat
 summary screen/panel would help later; Commander upgrades still feel bland and
 may need build-defining perk-tree-like choices; Board Charge, Sources, and
-Combat Charge/sec still need stronger teaching; and one later fight ended in a
+Combat Charge/sec needed stronger teaching; and one later fight ended in a
 draw often enough that draw frequency should be reviewed later.
 
 Implementation update after this task: Pack Offer cards now show compact
@@ -488,6 +488,13 @@ Board Charge, Aspect access, Combat Charge/sec, and Source slots. Techniques
 explain Spellrail slots. Board permanents surface likely immediate placement or
 likely Board Charge / Aspect / cell blockers using existing rules helpers.
 
+Implementation update after this task: the first-fold `Loadout Tray` now adds a
+compact collapsed `Resource basics` block next to the existing resource
+counters. It defines Board Charge, Sources, Source Row, Combat Charge/sec, and
+Spellrail in short player-facing sentences without changing any rules or
+layout flow. Pack Offer Board Charge warnings also now point at the existing
+fix: add or swap Sources, or return a board card before using the pick.
+
 The biggest remaining Pixi/default-route findings are no longer the absence of
 replay controls, tiny first-pass labels, unvalidated readability, default-route
 confidence, basic default-route edit affordances, an ungrouped default combat
@@ -495,14 +502,15 @@ feed, a debug-grid first screen, or always-expanded inspector detail. Now that
 `/` opens on a tighter Pixi-focused playtest surface with an immediate build
 decision, a first-fold Loadout Tray, grouped duplicate post-pack suggestions,
 stabilized default combat playback, pick-limited Pack Offers, and more readable
-Pack Offer card rows, the next highest-value gap is no longer board manipulation
-polish. The acquisition model now needs a fresh manual validation pass: do the
-new offer facts make reveal 5 / pick 2 strategic enough before bench limits,
-sell/recycle, or finite shared-pool scarcity arrive?
+Pack Offer card rows plus compact resource teaching, the next highest-value gap
+is no longer board manipulation polish. The acquisition model now needs a fresh
+manual validation pass: do the new offer facts and resource definitions make
+reveal 5 / pick 2 strategic enough before bench limits, sell/recycle, or finite
+shared-pool scarcity arrive?
 
 Recommended next task:
 
-`test(playtest): manually validate improved Pack Offer readability`
+`test(playtest): manually validate improved Pack Offer readability and resource teaching`
 
 ## 2. Environment And Commands
 
@@ -1475,19 +1483,20 @@ Deferred findings from the same manual pass remain intentionally out of scope:
 - Deferred design concerns from the latest manual playtest remain: the new Pack
   Market flow needs manual pacing validation, future bench/sell/shared-pool
   pressure may be needed once pick-limited rewards settle, Commander upgrades
-  need more build-defining depth, and Board Charge / Sources / Combat Charge
-  need stronger conceptual teaching.
+  need more build-defining depth, and the new Board Charge / Sources / Combat
+  Charge teaching needs a manual cold-read pass.
 
 ## 14. Recommended Next Tasks
 
 Do next:
 
-`test(playtest): manually validate improved Pack Offer readability`
+`test(playtest): manually validate improved Pack Offer readability and resource teaching`
 
 Why: the default route is now coherent enough that the main blocker is no
 longer first-fold layout, Pixi manipulation, or the old take-everything reward
-flow. The new Pack Offer rows should be manually tested through at least one
-full reward/advance loop to verify type, stats, effect, and fit/warning copy
+flow. The new Pack Offer rows and compact resource definitions should be
+manually tested through at least one full reward/advance loop to verify type,
+stats, effect, fit/warning copy, Board Charge, Sources, and Combat Charge/sec
 make reveal 5 / pick 2 feel readable, strategic, and compatible with Commander
 upgrades plus post-pack suggestions before adding bench limits, sell/recycle,
 finite shared-pool scarcity, or board repositioning.
@@ -1499,7 +1508,6 @@ orientation`
 - `feat(client): clarify reward pack-to-pool card identity`
 - `feat(content): tune starter and encounter placements for 8-row combat pacing`
 - `test(playtest): manually validate grouped combat key moments across starters`
-- `feat(client): strengthen Board Charge and Source teaching`
 - `design(rules): evaluate pack-to-loadout pacing limits`
 - `design(rules): deepen Commander upgrade choices`
 - `feat(client): tune Pixi combat effect timing after manual readability pass`

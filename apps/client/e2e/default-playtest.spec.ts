@@ -414,6 +414,20 @@ test("default loadout tray exposes first-fold loadout edits", async ({ page }) =
   await expect(loadoutTray.getByTestId("default-loadout-tray-education")).toContainText(
     "Spellrail slots hold Techniques"
   );
+  const resourceBasics = loadoutTray.getByTestId("default-loadout-resource-basics");
+  await expect(resourceBasics.locator("summary")).toHaveText("Resource basics");
+  expect(await resourceBasics.evaluate((node) => (node as HTMLDetailsElement).open)).toBe(
+    false
+  );
+  await resourceBasics.locator("summary").click();
+  await expect(resourceBasics).toContainText(
+    "Board Charge limits how many Board cards you can deploy."
+  );
+  await expect(resourceBasics).toContainText(
+    "Sources are active resource cards in the Source Row"
+  );
+  await expect(resourceBasics).toContainText("Combat Charge/sec is combat energy");
+  await expect(resourceBasics).toContainText("Spellrail holds active Techniques");
   await expect(poolTray).toContainText("Cards waiting to be assigned");
   await expect(boardTray.getByText("Ember Scraprunner")).toBeVisible();
   await expect(boardTray).toContainText("Units/Echoes use ground");

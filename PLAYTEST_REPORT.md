@@ -517,18 +517,18 @@ post-pack suggestions occupy the right rail. Narrow screens still fall back to
 a stacked layout, and Advanced Debug Panels remain collapsed and secondary.
 
 Manual dashboard follow-up after that pass: the dashboard is meaningfully
-better, but the center column was still taller than it needed to be because Ally
-Inspector and Enemy Inspector sat below the Pixi canvas. The next tightening
-should flank the battlefield with those inspectors on comfortable desktop
-widths, give the Loadout Tray slightly more room for readable card rows, and
-make the duplicate `Select Board Cell` / `Place on Board` affordances read as
-one manual board-placement action.
+better, but the attempted wide-screen Ally / Enemy inspector side rails made the
+center column worse. They squeezed the Pixi board, and the inspector card text
+wrapped into narrow unreadable columns. The `Place on Board` consolidation was
+good and should stay, but the battlefield should keep the full center width and
+put full inspectors in wider cards below the board.
 
-Implementation update after this task: the default dashboard now tightens those
-two cockpit issues. On wide desktop screens, Ally Inspector and Enemy Inspector
-frame the Pixi battlefield as side rails; medium and narrow widths stack the
-same inspector content back under the board. The first-fold Loadout Tray now
-uses a single `Place on Board` button for board-placeable Pool cards; that
+Implementation update after this task: the default dashboard keeps the
+Loadout Tray / Battlefield / Current Decision three-panel structure, but the
+Battlefield panel no longer squeezes Pixi between narrow inspector rails. The
+Pixi stage is restored as a full-width center anchor, with Ally Inspector and
+Enemy Inspector rendered as wider cards below it. The first-fold Loadout Tray
+still uses a single `Place on Board` button for board-placeable Pool cards; that
 button starts the existing highlighted-cell placement mode rather than
 auto-placing into a default cell. Full debug loadout lists keep the generic
 rules-action buttons for diagnostics.
@@ -538,14 +538,15 @@ replay controls, tiny first-pass labels, unvalidated readability, default-route
 confidence, basic default-route edit affordances, an ungrouped default combat
 feed, a debug-grid first screen, always-expanded inspector detail, or
 pre-combat exact winner spoilers. Now that `/` opens on a tighter Pixi-focused
-playtest surface with an immediate build decision, side-rail battlefield
-inspectors on wide desktop, grouped duplicate post-pack suggestions, stabilized
-default combat playback, pick-limited Pack Offers, more readable Pack Offer card
-rows, compact resource teaching, softer combat forecasting, and a compact
-recorded-combat recap, the next highest-value gap is no longer board
-manipulation polish. The default cockpit now needs a fresh manual validation
-pass: does the tightened dashboard make the battlefield feel like the anchor
-while preserving readable Pack Offer, resource, forecast, and recap decisions?
+playtest surface with an immediate build decision, a full-width center
+battlefield, wider inspector cards below the board, grouped duplicate post-pack
+suggestions, stabilized default combat playback, pick-limited Pack Offers, more
+readable Pack Offer card rows, compact resource teaching, softer combat
+forecasting, and a compact recorded-combat recap, the next highest-value gap is
+no longer board manipulation polish. The default cockpit now needs a fresh
+manual validation pass: does the corrected dashboard make the battlefield feel
+like the anchor while preserving readable Pack Offer, resource, forecast, and
+recap decisions?
 
 Recommended next task:
 
@@ -1424,10 +1425,11 @@ Deferred findings from the same manual pass remain intentionally out of scope:
   Pool/Board/Source Row/Spellrail editing without opening Advanced Debug Panels.
   It now carries short layer/resource education, a desktop dashboard layout with
   Loadout Tray / Battlefield / Current Decision as the main first-fold panels,
-  wide-screen battlefield inspector rails, and a consolidated first-fold
-  `Place on Board` manual placement action. It is still not a cold-start demo
-  because those controls are compact, capped, button-driven affordances rather
-  than drag/drop or board-native zone editing.
+  a full-width center Pixi battlefield, wider Ally / Enemy inspector cards below
+  the board, and a consolidated first-fold `Place on Board` manual placement
+  action. It is still not a cold-start demo because those controls are compact,
+  capped, button-driven affordances rather than drag/drop or board-native zone
+  editing.
 - The React/CSS Hex Arena remains available as a collapsed debug fallback on `/`
   and `?scenario=renderer-lab`.
 - The default route now hides/collapses most developer bloat and supports

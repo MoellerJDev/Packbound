@@ -83,18 +83,23 @@ export const DefaultPlaytestRoute = ({ view, controller }: DefaultPlaytestRouteP
           ) : null}
         </div>
       </div>
-      <details
-        className="panel advanced-panel default-playtest-debug"
-        data-testid="advanced-debug-panels"
-      >
-        <summary className="advanced-summary" data-testid="advanced-debug-panels-summary">
-          <h2>Advanced Debug Panels</h2>
-          <span>Loadout lists, opponent details, traits, Command Zone audit</span>
-        </summary>
-        <div className="advanced-panel-body debug-grid default-playtest-debug-grid">
-          <DefaultRouteDebugPanels view={view} controller={controller} />
-        </div>
-      </details>
+      {view.showDeveloperDetails ? (
+        <details
+          className="panel advanced-panel default-playtest-debug"
+          data-testid="advanced-debug-panels"
+        >
+          <summary
+            className="advanced-summary"
+            data-testid="advanced-debug-panels-summary"
+          >
+            <h2>Advanced Debug Panels</h2>
+            <span>Loadout lists, opponent details, traits, Command Zone audit</span>
+          </summary>
+          <div className="advanced-panel-body debug-grid default-playtest-debug-grid">
+            <DefaultRouteDebugPanels view={view} controller={controller} />
+          </div>
+        </details>
+      ) : null}
     </section>
   );
 };

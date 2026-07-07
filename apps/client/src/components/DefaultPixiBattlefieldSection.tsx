@@ -45,6 +45,7 @@ export type DefaultPixiBattlefieldView = {
   readonly selectedAllyInspection: CardInspection | undefined;
   readonly selectedEnemyInspection: CardInspection | undefined;
   readonly replayTokenInspectionNotice?: string;
+  readonly showDebugPanels: boolean;
 };
 
 export type DefaultPixiBattlefieldController = {
@@ -429,12 +430,14 @@ export const DefaultPixiBattlefieldSection = ({
                 ? { onBlockedCellSelect: controller.onBlockedCellSelect }
                 : {})}
             />
-            <details className="renderer-debug-board default-pixi-debug-board">
-              <summary>React/CSS Debug Board</summary>
-              <div className="renderer-debug-board-inner">
-                {controller.renderDebugBoard()}
-              </div>
-            </details>
+            {view.showDebugPanels ? (
+              <details className="renderer-debug-board default-pixi-debug-board">
+                <summary>React/CSS Debug Board</summary>
+                <div className="renderer-debug-board-inner">
+                  {controller.renderDebugBoard()}
+                </div>
+              </details>
+            ) : null}
           </div>
 
           <div className="default-pixi-sidecar" data-testid="default-pixi-sidecar">
@@ -490,9 +493,11 @@ export const DefaultPixiBattlefieldSection = ({
       </div>
     </div>
 
-    <details className="combat-model-details">
-      <summary>Combat Model Notes</summary>
-      <CombatModelFactsView />
-    </details>
+    {view.showDebugPanels ? (
+      <details className="combat-model-details">
+        <summary>Combat Model Notes</summary>
+        <CombatModelFactsView />
+      </details>
+    ) : null}
   </section>
 );

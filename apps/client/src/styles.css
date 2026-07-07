@@ -70,6 +70,7 @@ button:disabled {
 }
 
 .app-shell:has(.default-playtest-route) {
+  min-height: 100dvh;
   width: calc(100vw - 24px);
 }
 
@@ -321,9 +322,9 @@ h4 {
   aspect-ratio: 700 / 650;
   height: auto;
   justify-self: center;
-  max-width: 760px;
+  max-width: none;
   min-height: 0;
-  width: 100%;
+  width: min(100%, calc((100dvh - 170px) * 700 / 650));
 }
 
 .default-pixi-action-area {
@@ -943,8 +944,8 @@ h4 {
   display: grid;
   gap: 12px;
   grid-template-columns:
-    clamp(260px, 20vw, 330px) minmax(0, 1fr)
-    clamp(260px, 20vw, 330px);
+    clamp(300px, 22vw, 390px) minmax(0, 1fr)
+    clamp(300px, 22vw, 390px);
 }
 
 .default-playtest-dashboard-left,
@@ -1008,20 +1009,22 @@ h4 {
 
   .default-playtest-dashboard {
     align-items: stretch;
-    height: clamp(580px, calc(100vh - 110px), 920px);
-    overflow: hidden;
+    min-height: calc(100dvh - 112px);
   }
 
   .default-playtest-dashboard-left {
-    align-content: stretch;
-    max-height: 100%;
+    align-content: start;
+    max-height: calc(100dvh - 112px);
     min-height: 0;
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
   }
 
   .default-playtest-dashboard-right {
     align-content: start;
-    max-height: 100%;
+    max-height: calc(100dvh - 112px);
     min-height: 0;
     overflow-y: auto;
     overscroll-behavior: contain;
@@ -1031,22 +1034,15 @@ h4 {
 
   .default-playtest-dashboard-center {
     align-content: start;
-    max-height: 100%;
     min-height: 0;
-    overflow: hidden;
+    overflow: visible;
   }
 
   .default-playtest-dashboard-center .battlefield-section {
     display: grid;
     gap: 12px;
-    grid-template-rows: auto minmax(0, 1fr);
-    max-height: 100%;
     min-height: 0;
-    overflow: hidden;
-  }
-
-  .default-playtest-dashboard-center .combat-model-details {
-    display: none;
+    overflow: visible;
   }
 
   .default-playtest-dashboard-center .battlefield-layout,
@@ -1059,7 +1055,7 @@ h4 {
 
   .default-playtest-dashboard-center .default-pixi-cockpit {
     align-items: stretch;
-    grid-template-columns: minmax(390px, 1fr) minmax(250px, 300px);
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 340px);
   }
 
   .default-playtest-dashboard-center .default-pixi-board-area {
@@ -1068,7 +1064,7 @@ h4 {
 
   .default-playtest-dashboard-center .default-pixi-sidecar {
     align-content: start;
-    max-height: 100%;
+    max-height: calc(100dvh - 180px);
     overflow-y: auto;
     overscroll-behavior: contain;
     padding-right: 4px;
@@ -1076,10 +1072,12 @@ h4 {
   }
 
   .default-playtest-dashboard-left .default-loadout-tray {
-    grid-template-rows: auto minmax(0, 1fr);
-    height: 100%;
+    max-height: calc(100dvh - 112px);
     min-height: 0;
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
   }
 
   .default-playtest-dashboard-left .default-loadout-tray-header {
@@ -1116,15 +1114,15 @@ h4 {
   }
 
   .default-playtest-dashboard-left .default-loadout-tray-zones {
-    align-items: stretch;
-    grid-template-rows: minmax(132px, 1.45fr) repeat(3, minmax(58px, 1fr));
+    align-items: start;
+    grid-template-rows: none;
     min-height: 0;
   }
 
   .default-playtest-dashboard-left .default-loadout-tray-zone {
-    grid-template-rows: auto auto minmax(0, 1fr) auto;
+    grid-template-rows: auto auto minmax(0, auto) auto;
     min-height: 0;
-    overflow: hidden;
+    overflow: visible;
   }
 
   .default-playtest-dashboard-left .default-loadout-tray-helper {
@@ -1132,6 +1130,7 @@ h4 {
   }
 
   .default-playtest-dashboard-left .default-loadout-tray-list {
+    max-height: clamp(60px, 10dvh, 112px);
     min-height: 0;
     overflow-x: hidden;
     overflow-y: auto;
@@ -2878,8 +2877,8 @@ pre {
 @media (min-width: 1760px) {
   .default-playtest-dashboard-center .default-pixi-cockpit {
     align-items: start;
-    grid-template-columns: minmax(660px, 760px) minmax(320px, 420px);
-    justify-content: center;
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
+    justify-content: stretch;
   }
 
   .default-playtest-dashboard-center .default-pixi-sidecar .default-pixi-action-grid {

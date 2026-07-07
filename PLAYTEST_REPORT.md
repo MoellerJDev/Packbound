@@ -10,8 +10,8 @@ and click-to-place stress testing.
 The default route keeps starter selection, dual inspectors, readying combat,
 combat recording, reward pack purchase, run advancement, engagement preview
 overlays, priority lab, and duplicate upgrade lab intact. The React/CSS Hex
-Arena remains available as a collapsed debug fallback rather than the primary
-default battlefield.
+Arena remains available behind `?debug=1` rather than participating in the
+normal default battlefield.
 
 The old stale issues are no longer the right top blockers:
 
@@ -57,10 +57,10 @@ Reset -> Play` and checks the text state plus single-canvas safety.
 
 Implementation update after this task: the default route now mounts the Pixi
 battlefield as the primary `Battlefield` view. It keeps Ally Inspector, Enemy
-Inspector, Engagement Preview, compact run stats, and Combat Model Notes, but
+Inspector, Engagement Preview, and compact run stats in the normal surface, but
 does not render Renderer Lab's replay buttons, Renderer Feed, Combat Feed
-Sample, or click-to-place lab panels. The old React/CSS Hex Arena is still
-available inside a collapsed `React/CSS Debug Board` fallback on `/`.
+Sample, click-to-place lab panels, Combat Model Notes, or the React/CSS debug
+board unless `?debug=1` is enabled.
 
 Implementation update after this task: the default Pixi battlefield now has a
 minimal board-placement affordance. A legal board-placeable Pool card can be
@@ -434,16 +434,18 @@ dashboard now has a desktop viewport-height cockpit budget. The Loadout Tray and
 Current Decision/reward rails scroll internally, the Battlefield remains the
 center anchor, and narrow screens still fall back to normal stacked page flow.
 
-Manual adaptive-cockpit follow-up after that pass: the fixed-height cockpit
-still felt like panels squeezed into a viewport. The left rail could hide
-Sources/Spellrail behind one long scroll, the center Battlefield had awkward
-internal scrolling/clipping, and the Pixi host kept dead space instead of
-adapting cleanly to the center column. Implementation update after this task:
-the default desktop dashboard now uses adaptive rail widths, a compact
-Battlefield header, a responsive 700:650 Pixi host, a non-scrolling center
-stage, sidecar-local scrolling for secondary Battlefield controls, and a
-Loadout Tray whose zone headings stay visible while card lists scroll inside
-their sections.
+Manual adaptive-cockpit follow-up after that pass: the first adaptive cockpit
+still hid content because the desktop dashboard used a viewport-derived hard
+height, `overflow: hidden` on the dashboard/left/center/battlefield chain, and
+short fixed tray row tracks. The Pixi host also kept a hard `760px` max width,
+which left dead horizontal space on wide screens while the center stage still
+felt vertically squeezed. Implementation update after this task: the normal
+default route no longer renders Advanced Debug Panels, the React/CSS Debug
+Board, or Combat Model Notes unless `?debug=1` is present. The desktop dashboard
+now uses wider adaptive rails, visible center overflow, side-rail and sidecar
+scrolling only for lower-priority content, a 700:650 Pixi host sized by its
+container/viewport instead of a small fixed cap, and Loadout Tray section
+headings that remain visible while each card list scrolls locally.
 
 Implementation update after this task: post-pack suggestions now group duplicate
 latest-pack copies that have the same useful recommendation. The displayed row
@@ -1472,20 +1474,18 @@ Deferred findings from the same manual pass remain intentionally out of scope:
   narration, and the first-fold `Loadout Tray` now exposes ordinary
   Pool/Board/Source Row/Spellrail editing without opening Advanced Debug Panels.
   It now carries short layer/resource education, a route-specific wider desktop
-  shell, adaptive 260-330px Loadout Tray and Current Decision rails, a tightened
-  Battlefield cockpit with the fixed-size Pixi board capped as the visual
-  anchor, a desktop sidecar for Engagement Preview, compact Ally / Enemy
-  selected-card cards, Commander controls, existing edit controls/context, and a
-  consolidated first-fold `Place on Board` manual placement action. The desktop
-  dashboard now uses adaptive side-rail widths, a non-scrolling center
-  Battlefield stage, a compact Battlefield status header, a responsive 700:650
-  Pixi host, sidecar-local scrolling for secondary Battlefield controls, and
-  Loadout Tray zone headings that stay visible while card lists scroll inside
-  their sections. It is still not a cold-start demo because those controls are
-  compact, capped, button-driven affordances rather than drag/drop or
-  board-native zone editing.
-- The React/CSS Hex Arena remains available as a collapsed debug fallback on `/`
-  and `?scenario=renderer-lab`.
+  shell, adaptive Loadout Tray and Current Decision rails, a tightened
+  Battlefield cockpit with a responsive 700:650 Pixi host, a desktop sidecar for
+  Engagement Preview, compact Ally / Enemy selected-card cards, Commander
+  controls, existing edit controls/context, and a consolidated first-fold
+  `Place on Board` manual placement action. The corrected desktop dashboard no
+  longer relies on a fixed-height hidden-overflow center stage; instead the
+  center reflows, the Loadout Tray and sidecar scroll deliberately as secondary
+  content, and card-list headings stay visible while individual lists scroll. It
+  is still not a cold-start demo because those controls are compact, capped,
+  button-driven affordances rather than drag/drop or board-native zone editing.
+- The React/CSS Hex Arena remains available behind `?debug=1` on `/` and as a
+  collapsed debug fallback on `?scenario=renderer-lab`.
 - The default route now hides/collapses most developer bloat and supports
   minimal Pool-to-board Pixi placement with Inspect/Place mode controls, cancel,
   blocked-cell copy, selected Pool-card Source Row / Spellrail moves,
@@ -1589,13 +1589,14 @@ Deferred findings from the same manual pass remain intentionally out of scope:
 
 Do next:
 
-`test(playtest): manually validate adaptive default cockpit`
+`test(playtest): manually validate corrected default cockpit`
 
-Why: the default route now has an adaptive cockpit contract instead of fixed
-panels squeezed into a viewport. It needs a fresh 1440 x 900, 1280 x 720, and
-wide-desktop cold-read pass at 100% zoom through fresh planning, combat ready,
-recorded combat, reward/Pack Offer, and round 2 planning to confirm that the
-anchored Battlefield, internally scrolling secondary content, Loadout Tray zone
+Why: the default route now has a corrected cockpit contract instead of a fixed
+height plus hidden-overflow chain, and debug-only surfaces are behind
+`?debug=1`. It needs a fresh 1440 x 900, 1280 x 720, and wide-desktop cold-read
+pass at 100% zoom through fresh planning, combat ready, recorded combat,
+reward/Pack Offer, and round 2 planning to confirm that the anchored
+Battlefield, intentionally scrolling secondary content, Loadout Tray zone
 access, Pack Offer rows, compact resource definitions, soft combat forecast, and
 recorded-combat recap make the full reward/advance loop readable before adding
 bench limits, sell/recycle, finite shared-pool scarcity, or board repositioning.

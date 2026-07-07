@@ -75,10 +75,17 @@ export const expectNoBrowserErrors = (
   expect(errors.consoleErrors).toEqual([]);
 };
 
-export const gotoDefaultPlaytestRoute = async (page: Page) => {
+export const gotoDefaultPlaytestRoute = async (
+  page: Page,
+  {
+    debug = false
+  }: {
+    readonly debug?: boolean;
+  } = {}
+) => {
   const errors = captureBrowserErrors(page);
 
-  await page.goto("/");
+  await page.goto(debug ? "/?debug=1" : "/");
 
   await expect(page.getByRole("heading", { name: "Packbound" })).toBeVisible();
   const playtestRoute = page.getByTestId("default-playtest-route");

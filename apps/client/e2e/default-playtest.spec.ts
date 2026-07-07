@@ -294,7 +294,6 @@ test("default playtest route starts with concise Pixi play surface", async ({ pa
 
     return {
       centerOverflowY: getComputedStyle(centerRail).overflowY,
-      centerScrollDelta: centerRail.scrollHeight - centerRail.clientHeight,
       dashboardHeight: Math.round(element.getBoundingClientRect().height),
       dashboardOverflowY: getComputedStyle(element).overflowY,
       loadoutHeadingsInsideTray: headingBoxes.every(
@@ -310,12 +309,13 @@ test("default playtest route starts with concise Pixi play surface", async ({ pa
       viewportHeight: window.innerHeight
     };
   });
-  expect(cockpitLayout.dashboardOverflowY).toBe("hidden");
-  expect(cockpitLayout.leftOverflowY).toBe("hidden");
-  expect(cockpitLayout.centerOverflowY).toBe("hidden");
+  expect(cockpitLayout.dashboardOverflowY).toBe("visible");
+  expect(cockpitLayout.leftOverflowY).toBe("auto");
+  expect(cockpitLayout.centerOverflowY).toBe("visible");
   expect(cockpitLayout.rightOverflowY).toBe("auto");
-  expect(cockpitLayout.dashboardHeight).toBeLessThanOrEqual(cockpitLayout.viewportHeight);
-  expect(cockpitLayout.centerScrollDelta).toBeLessThanOrEqual(4);
+  expect(cockpitLayout.dashboardHeight).toBeGreaterThanOrEqual(
+    Math.min(560, cockpitLayout.viewportHeight - 160)
+  );
   expect(cockpitLayout.loadoutHeadingsInsideTray).toBe(true);
   expect(cockpitLayout.rendererInsideCenter).toBe(true);
   expect(cockpitLayout.rendererShapeRatio).toBeGreaterThan(1.05);
@@ -359,12 +359,7 @@ test("default playtest route starts with concise Pixi play surface", async ({ pa
     "Select, place, and move the cards that shape your next fight."
   );
   await expect(loadoutTray.getByText(/Advanced Debug/)).toHaveCount(0);
-  const advancedDebug = page.getByTestId("advanced-debug-panels");
-  await expect(advancedDebug).toBeVisible();
-  expect(await advancedDebug.evaluate((node) => (node as HTMLDetailsElement).open)).toBe(
-    false
-  );
-  await expect(advancedDebug.getByText("Advanced Debug Panels")).toBeVisible();
+  await expect(page.getByTestId("advanced-debug-panels")).toHaveCount(0);
   await expect(
     page.getByRole("heading", { name: "What now?", exact: true })
   ).toBeHidden();
@@ -390,13 +385,10 @@ test("default playtest route starts with concise Pixi play surface", async ({ pa
   await expect(page.getByRole("button", { name: "Play Replay" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Step Replay" })).toHaveCount(0);
   await expect(page.getByText("Renderer Feed")).toHaveCount(0);
-  const debugFallback = battlefield.locator("details.renderer-debug-board");
-  await expect(debugFallback).toBeVisible();
-  await expect(debugFallback.getByText("React/CSS Debug Board")).toBeVisible();
-  expect(await debugFallback.evaluate((node) => (node as HTMLDetailsElement).open)).toBe(
-    false
-  );
-  await expect(page.getByTestId("hex-arena")).toBeHidden();
+  await expect(battlefield.locator("details.renderer-debug-board")).toHaveCount(0);
+  await expect(page.getByText("React/CSS Debug Board")).toHaveCount(0);
+  await expect(page.getByText("Combat Model Notes")).toHaveCount(0);
+  await expect(page.getByTestId("hex-arena")).toHaveCount(0);
   await expect(
     allyInspector.getByRole("heading", { name: "Ember Scraprunner" })
   ).toBeVisible();
@@ -428,6 +420,39 @@ test("default playtest route starts with concise Pixi play surface", async ({ pa
     engagementPreview.getByText("Out of range", { exact: true })
   ).toBeVisible();
   await expectNoHorizontalScroll(rendererHost);
+
+  expectNoBrowserErrors(errors);
+});
+
+test("default debug query exposes diagnostic panels without replacing Pixi", async ({
+  page
+}) => {
+  const { battlefield, errors, rendererHost } = await gotoDefaultPlaytestRoute(page, {
+    debug: true
+  });
+
+  const advancedDebug = page.getByTestId("advanced-debug-panels");
+  await expect(advancedDebug).toBeVisible();
+  expect(await advancedDebug.evaluate((node) => (node as HTMLDetailsElement).open)).toBe(
+    false
+  );
+  await expect(advancedDebug.getByText("Advanced Debug Panels")).toBeVisible();
+
+  const debugFallback = battlefield.locator("details.renderer-debug-board");
+  await expect(debugFallback).toBeVisible();
+  await expect(debugFallback.getByText("React/CSS Debug Board")).toBeVisible();
+  expect(await debugFallback.evaluate((node) => (node as HTMLDetailsElement).open)).toBe(
+    false
+  );
+  await expect(battlefield.getByText("Combat Model Notes")).toBeVisible();
+  await expect(rendererHost).toBeVisible();
+  await expect(rendererHost.locator("canvas")).toHaveCount(1);
+
+  await openAdvancedDebugPanels(page);
+  await expect(panel(page, "What now?")).toBeVisible();
+  await expect(panel(page, "Pool Cards")).toBeVisible();
+  await expect(panel(page, "Source Row")).toBeVisible();
+  await expect(panel(page, "Spellrail")).toBeVisible();
 
   expectNoBrowserErrors(errors);
 });
@@ -474,11 +499,7 @@ test("default compact inspector can reveal full card details", async ({ page }) 
 test("default loadout tray exposes first-fold loadout edits", async ({ page }) => {
   const { battlefield, errors, rendererHost } = await gotoDefaultPlaytestRoute(page);
 
-  const advancedDebug = page.getByTestId("advanced-debug-panels");
-  await expect(advancedDebug).toBeVisible();
-  expect(await advancedDebug.evaluate((node) => (node as HTMLDetailsElement).open)).toBe(
-    false
-  );
+  await expect(page.getByTestId("advanced-debug-panels")).toHaveCount(0);
 
   const loadoutTray = page.getByTestId("default-loadout-tray");
   const poolTray = loadoutTray.getByTestId("default-loadout-tray-pool");
@@ -546,10 +567,6 @@ test("default loadout tray exposes first-fold loadout edits", async ({ page }) =
   await emberSourceTrayRow.getByRole("button", { name: "Return to Pool" }).click();
   await expect(sourcesTray.getByText("No Source Row cards.")).toBeVisible();
 
-  await openAdvancedDebugPanels(page);
-  await expect(panel(page, "Pool Cards")).toBeVisible();
-  await expect(panel(page, "Source Row")).toBeVisible();
-  await expect(panel(page, "Spellrail")).toBeVisible();
   await expect(rendererHost.locator("canvas")).toHaveCount(1);
 
   expectNoBrowserErrors(errors);
@@ -558,7 +575,9 @@ test("default loadout tray exposes first-fold loadout edits", async ({ page }) =
 test("default Pixi zone controls support Source and Spellrail round trips", async ({
   page
 }) => {
-  const { battlefield, errors, rendererHost } = await gotoDefaultPlaytestRoute(page);
+  const { battlefield, errors, rendererHost } = await gotoDefaultPlaytestRoute(page, {
+    debug: true
+  });
   await openAdvancedDebugPanels(page);
 
   const sourceRowPanel = panel(page, "Source Row");
@@ -647,7 +666,9 @@ test("default Pixi zone controls support Source and Spellrail round trips", asyn
 test("default Pixi board placement supports cancel blocked and legal cells", async ({
   page
 }) => {
-  const { battlefield, errors, rendererHost } = await gotoDefaultPlaytestRoute(page);
+  const { battlefield, errors, rendererHost } = await gotoDefaultPlaytestRoute(page, {
+    debug: true
+  });
   await openAdvancedDebugPanels(page);
 
   const boardPanel = panel(page, "Board");
@@ -660,10 +681,11 @@ test("default Pixi board placement supports cancel blocked and legal cells", asy
 
   const sparkcatchPoolRow = poolPanel
     .getByRole("listitem")
-    .filter({ hasText: "Sparkcatch Apprentice" });
+    .filter({ hasText: "Sparkcatch Apprentice" })
+    .first();
   await expect(rendererHost).toBeVisible();
   await expect(rendererHost.locator("canvas")).toHaveCount(1);
-  await sparkcatchPoolRow.getByRole("button", { name: "Select Board Cell" }).click();
+  await sparkcatchPoolRow.getByRole("button", { name: "Place on Board" }).click();
   await expect(
     defaultZoneEditControls.getByTestId("default-pixi-zone-edit-selected")
   ).toHaveText("Sparkcatch Apprentice");
@@ -693,7 +715,7 @@ test("default Pixi board placement supports cancel blocked and legal cells", asy
   await expect(
     boardPanel.getByRole("listitem").filter({ hasText: "Sparkcatch Apprentice" })
   ).toHaveCount(0);
-  await sparkcatchPoolRow.getByRole("button", { name: "Select Board Cell" }).click();
+  await sparkcatchPoolRow.getByRole("button", { name: "Place on Board" }).click();
   await clickPixiCell(page, rendererHost, 4, 2, { x: 0, y: -47 });
   await expect(defaultPlacementHint).toContainText(
     "Cannot place Sparkcatch Apprentice at r0 c2 ground:"
@@ -706,7 +728,7 @@ test("default Pixi board placement supports cancel blocked and legal cells", asy
   await expect(
     defaultEditControls.getByTestId("default-pixi-board-edit-mode")
   ).toHaveText("Inspect");
-  await sparkcatchPoolRow.getByRole("button", { name: "Select Board Cell" }).click();
+  await sparkcatchPoolRow.getByRole("button", { name: "Place on Board" }).click();
   await clickPixiCell(page, rendererHost, 4, 0);
   await expect(defaultPlacementHint).toHaveText(
     "Select a board-placeable Pool card below, then click a highlighted Pixi cell."
@@ -723,7 +745,9 @@ test("default Pixi board placement supports cancel blocked and legal cells", asy
 });
 
 test("default Pixi board return-to-pool works after placement", async ({ page }) => {
-  const { battlefield, errors, rendererHost } = await gotoDefaultPlaytestRoute(page);
+  const { battlefield, errors, rendererHost } = await gotoDefaultPlaytestRoute(page, {
+    debug: true
+  });
   await openAdvancedDebugPanels(page);
 
   const boardPanel = panel(page, "Board");
@@ -734,10 +758,11 @@ test("default Pixi board return-to-pool works after placement", async ({ page })
 
   const sparkcatchPoolRow = poolPanel
     .getByRole("listitem")
-    .filter({ hasText: "Sparkcatch Apprentice" });
+    .filter({ hasText: "Sparkcatch Apprentice" })
+    .first();
   await expect(rendererHost).toBeVisible();
   await expect(rendererHost.locator("canvas")).toHaveCount(1);
-  await sparkcatchPoolRow.getByRole("button", { name: "Select Board Cell" }).click();
+  await sparkcatchPoolRow.getByRole("button", { name: "Place on Board" }).click();
   await clickPixiCell(page, rendererHost, 4, 0);
   await expect(
     boardPanel.getByRole("listitem").filter({ hasText: "Sparkcatch Apprentice" }).first()
@@ -769,7 +794,7 @@ test("default Pixi board return-to-pool works after placement", async ({ page })
 
 test("default Commander controls support inspect deploy and return", async ({ page }) => {
   const { allyInspector, battlefield, errors, rendererHost } =
-    await gotoDefaultPlaytestRoute(page);
+    await gotoDefaultPlaytestRoute(page, { debug: true });
   await openAdvancedDebugPanels(page);
 
   const commandZonePanel = panel(page, "Command Zone");
@@ -883,7 +908,7 @@ test("default rewards gate Pack Offers before advance", async ({ page }) => {
 });
 
 test("default post-pack suggestions apply after reward advance", async ({ page }) => {
-  const { errors } = await gotoDefaultPlaytestRoute(page);
+  const { errors } = await gotoDefaultPlaytestRoute(page, { debug: true });
 
   await recordDefaultCombat(page);
   await claimCombatTrainingUpgrade(page);

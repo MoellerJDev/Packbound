@@ -136,7 +136,9 @@ import { sameBoardPosition } from "./viewModels/defaultPixiPlacementView";
 
 const playerId = asPlayerId("debug-player");
 const runSeed = "client-debug-run";
+const searchParams = new URLSearchParams(window.location.search);
 const activeDebugScenarioId = debugScenarioFromSearch(window.location.search);
+const defaultDebugMode = searchParams.get("debug") === "1";
 
 const cardName = (defId: CardDefId): string =>
   sampleCatalog.cardsById.get(defId)?.name ?? defId;
@@ -247,7 +249,8 @@ const previewSideForRef = (
 export function App() {
   const isDefaultRoute = activeDebugScenarioId === undefined;
   const isRendererLab = activeDebugScenarioId === DEBUG_RENDERER_SCENARIO_ID;
-  const showDeveloperDetails = activeDebugScenarioId !== undefined;
+  const showDeveloperDetails =
+    activeDebugScenarioId !== undefined || (isDefaultRoute && defaultDebugMode);
   const [selectedStarterKitId, setSelectedStarterKitId] = useState(firstStarterKitId);
   const [run, setRun] = useState(() => createDebugRun(firstStarterKitId));
   const [priorityMatch, setPriorityMatch] = useState(() =>
@@ -997,6 +1000,10 @@ export function App() {
   const renderLoadoutActions = (cardInstanceId: CardInstanceId) => {
     const actions = getLegalLoadoutActions(run, sampleCatalog, cardInstanceId);
     const placeAction = actions.find((action) => action.type === "placeOnBoard");
+    const visibleActions =
+      isDefaultRoute && placeAction
+        ? actions.filter((action) => action.type !== "placeOnBoard")
+        : actions;
     const selectRunCard = () => {
       pixiPlacement.controller.clearPlacement();
       setSelectedAllyCardRef({ type: "run", cardInstanceId });
@@ -1027,10 +1034,10 @@ export function App() {
         {inspectButton}
         {isDefaultRoute && placeAction ? (
           <button type="button" onClick={() => selectPixiPlacementCard(cardInstanceId)}>
-            Select Board Cell
+            Place on Board
           </button>
         ) : null}
-        {actions.map((action) => (
+        {visibleActions.map((action) => (
           <button
             key={`${cardInstanceId}:${action.type}`}
             type="button"
@@ -1564,7 +1571,8 @@ export function App() {
     placementHint: pixiPlacement.view.placementHint,
     ...(replayTokenInspectionNotice ? { replayTokenInspectionNotice } : {}),
     selectedAllyInspection,
-    selectedEnemyInspection
+    selectedEnemyInspection,
+    showDebugPanels: showDeveloperDetails
   } satisfies DefaultPixiBattlefieldView;
   const renderDebugBoard = () => (
     <HexArenaView controller={hexArenaController} view={hexArenaView} />

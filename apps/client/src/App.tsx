@@ -131,6 +131,7 @@ import {
   type DefaultPixiZoneEditAction
 } from "./viewModels/defaultPixiLoadoutEditView";
 import { buildDefaultPixiCommanderEditView } from "./viewModels/defaultPixiCommanderEditView";
+import { buildPackOfferCardViews } from "./viewModels/packOfferCardView";
 import { sameBoardPosition } from "./viewModels/defaultPixiPlacementView";
 
 const playerId = asPlayerId("debug-player");
@@ -703,6 +704,17 @@ export function App() {
     (entry) => entry.type === "pack" && entry.round === run.currentRound
   );
   const pendingPackOffer = run.pendingPackOffer;
+  const pendingPackOfferCardViews = useMemo(
+    () =>
+      pendingPackOffer
+        ? buildPackOfferCardViews({
+            catalog: sampleCatalog,
+            offer: pendingPackOffer,
+            run
+          })
+        : [],
+    [pendingPackOffer, run]
+  );
   const commanderUpgradeClaimedThisRound =
     !run.commander ||
     run.commander.upgradeHistory.some((entry) => entry.round === run.currentRound);
@@ -1554,6 +1566,7 @@ export function App() {
       description: rewardChoicesDescription,
       explanationsByChoiceId: rewardOfferExplanationByChoiceId,
       pendingPackOffer,
+      pendingPackOfferCardViews,
       playerGold: run.playerGold,
       rewardChoices
     },

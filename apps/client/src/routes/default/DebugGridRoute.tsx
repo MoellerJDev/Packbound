@@ -27,7 +27,7 @@ export const DebugGridRoute = ({ view, controller }: DebugGridRouteProps) => (
     />
     {view.rewards.pendingPackOffer ? (
       <PackOfferPanel
-        cardName={controller.cardName}
+        cardViews={view.rewards.pendingPackOfferCardViews}
         offer={view.rewards.pendingPackOffer}
         onCommit={controller.onCommitPackOfferPicks}
       />

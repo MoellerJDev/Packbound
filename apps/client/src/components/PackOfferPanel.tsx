@@ -1,19 +1,28 @@
 import { useEffect, useMemo, useState } from "react";
 
 import type { PendingPackOffer } from "@packbound/rules";
-import type { CardDefId, CardInstanceId } from "@packbound/shared";
+import type { CardInstanceId } from "@packbound/shared";
+
+import {
+  emptyPackOfferCardView,
+  type PackOfferCardView
+} from "../viewModels/packOfferCardView";
 
 export const PackOfferPanel = ({
-  cardName,
+  cardViews,
   offer,
   onCommit
 }: {
-  readonly cardName: (defId: CardDefId) => string;
+  readonly cardViews: readonly PackOfferCardView[];
   readonly offer: PendingPackOffer;
   readonly onCommit: (cardInstanceIds: readonly CardInstanceId[]) => void;
 }) => {
   const [selectedCardIds, setSelectedCardIds] = useState<readonly CardInstanceId[]>([]);
   const selectedIdSet = useMemo(() => new Set(selectedCardIds), [selectedCardIds]);
+  const cardViewsById = useMemo(
+    () => new Map(cardViews.map((cardView) => [cardView.cardInstanceId, cardView])),
+    [cardViews]
+  );
   const selectedCount = selectedCardIds.length;
 
   useEffect(() => {
@@ -41,25 +50,58 @@ export const PackOfferPanel = ({
       </p>
       <ol className="card-list pack-offer-card-list">
         {offer.cards.map((card, index) => {
-          const name = cardName(card.defId);
+          const cardView =
+            cardViewsById.get(card.instanceId) ?? emptyPackOfferCardView(card.instanceId);
+          const name = cardView.name;
           const checked = selectedIdSet.has(card.instanceId);
           const disabled = !checked && selectedCount >= offer.pickLimit;
 
           return (
-            <li key={card.instanceId} data-testid="pack-offer-card">
-              <label className="pack-offer-card-choice">
-                <input
-                  type="checkbox"
-                  checked={checked}
-                  disabled={disabled}
-                  onChange={() => toggleCard(card.instanceId)}
-                  aria-label={`Pick ${name}`}
-                />
-                <span>{name}</span>
-              </label>
-              <small>
-                Offer card {index + 1} | {card.zone}
-              </small>
+            <li
+              key={card.instanceId}
+              className="pack-offer-card"
+              data-testid="pack-offer-card"
+            >
+              <div className="pack-offer-card-copy">
+                <label className="pack-offer-card-choice">
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    disabled={disabled}
+                    onChange={() => toggleCard(card.instanceId)}
+                    aria-label={`Pick ${name}`}
+                  />
+                  <span data-testid="pack-offer-card-name">{name}</span>
+                </label>
+                <small>
+                  Offer card {index + 1} | {card.zone}
+                </small>
+                <div
+                  className="pack-offer-card-facts"
+                  data-testid="pack-offer-card-facts"
+                >
+                  <small>{cardView.metaText}</small>
+                  <small>Cost: {cardView.costText}</small>
+                  {cardView.statsText ? <small>Stats: {cardView.statsText}</small> : null}
+                  {cardView.effectText ? (
+                    <small>Effect: {cardView.effectText}</small>
+                  ) : null}
+                </div>
+                <p
+                  className={`pack-offer-fit ${cardView.fitTone}`}
+                  data-testid="pack-offer-fit"
+                >
+                  {cardView.fitText}
+                </p>
+                <details className="compact-details pack-offer-details">
+                  <summary>Full card details</summary>
+                  <ul className="message-list compact">
+                    {cardView.detailLines.map((line) => (
+                      <li key={line}>{line}</li>
+                    ))}
+                  </ul>
+                </details>
+              </div>
             </li>
           );
         })}

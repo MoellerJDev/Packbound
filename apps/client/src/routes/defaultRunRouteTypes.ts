@@ -25,6 +25,7 @@ import type {
 } from "../components/DefaultPixiBattlefieldSection";
 import type { LoadoutZonesPanelView } from "../components/LoadoutZonesPanel";
 import type { RunGuideStat, RunGuideStep } from "../components/RunGuidePanel";
+import type { PackOfferCardView } from "../viewModels/packOfferCardView";
 
 export type DefaultRunRouteView = {
   readonly battlefield: DefaultPixiBattlefieldView;
@@ -50,6 +51,7 @@ export type DefaultRunRouteView = {
     readonly description: string;
     readonly explanationsByChoiceId: ReadonlyMap<string, RewardOfferExplanation>;
     readonly pendingPackOffer: PendingPackOffer | undefined;
+    readonly pendingPackOfferCardViews: readonly PackOfferCardView[];
     readonly playerGold: number;
     readonly rewardChoices: readonly RewardChoice[];
   };

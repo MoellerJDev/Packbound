@@ -156,6 +156,15 @@ const openAndCommitFirstPackOffer = async (page: Page) => {
   await expect(packOffer.getByRole("heading", { name: "Pack Offer" })).toBeVisible();
   await expect(packOffer).toContainText(/pick 2 of 5/i);
   await expect(packOffer.getByTestId("pack-offer-card")).toHaveCount(5);
+  await expect(packOffer.getByTestId("pack-offer-card-facts")).toHaveCount(5);
+  await expect(packOffer.getByTestId("pack-offer-fit")).toHaveCount(5);
+  await expect(packOffer.getByTestId("pack-offer-card-facts").first()).toContainText(
+    /Unit|Echo|Source|Technique|Relic|Field/
+  );
+  await expect(packOffer.getByText(/Cost:|Stats:|Effect:/).first()).toBeVisible();
+  await expect(packOffer.getByTestId("pack-offer-fit").first()).toContainText(
+    /Board Charge|Source|Spellrail|If picked|Likely blocked/
+  );
   await expect(packOffer.getByTestId("pack-offer-pick-count")).toHaveText(
     "Selected 0 / 2"
   );

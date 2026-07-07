@@ -1313,6 +1313,69 @@ h4 {
   padding: 6px 0;
 }
 
+.pack-offer-card-list {
+  display: grid;
+  gap: 10px;
+}
+
+.card-list .pack-offer-card {
+  align-items: stretch;
+  border: 1px solid #dce5e0;
+  border-radius: 8px;
+  display: block;
+  min-height: 0;
+  padding: 10px;
+}
+
+.pack-offer-card-copy {
+  display: grid;
+  gap: 6px;
+}
+
+.pack-offer-card-choice {
+  align-items: center;
+  color: #1f2b32;
+  display: flex;
+  gap: 8px;
+  font-weight: 900;
+}
+
+.pack-offer-card-choice span {
+  min-width: 0;
+}
+
+.pack-offer-card-facts {
+  display: grid;
+  gap: 3px;
+}
+
+.pack-offer-fit {
+  border-radius: 8px;
+  font-size: 0.86rem;
+  font-weight: 800;
+  margin: 0;
+  padding: 6px 8px;
+}
+
+.pack-offer-fit.positive {
+  background: #e6f4e8;
+  color: #1f5d30;
+}
+
+.pack-offer-fit.warning {
+  background: #f9ece8;
+  color: #88342f;
+}
+
+.pack-offer-fit.neutral {
+  background: #edf3f4;
+  color: #3f6974;
+}
+
+.pack-offer-details {
+  margin-top: 2px;
+}
+
 .mini-actions {
   align-items: center;
   display: flex;

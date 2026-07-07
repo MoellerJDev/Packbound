@@ -458,21 +458,51 @@ Committing picks adds only those chosen cards to Pool, records the released
 offer cards in reward history, clears the pending offer, and unlocks post-pack
 suggested edits only after the commit step.
 
+Manual Pack Market playtest update after this task: the reveal 5 / pick 2
+direction felt mechanically promising, and the Pack Market purchase framing was
+fairly clear, but picking from names alone was not strategic enough. One
+Cloudspire Pack pass offered five cards; picking Mistwing Scout and Vanishing
+Warden produced post-pack suggestions that were both Board Charge blocked. That
+block may be acceptable mechanically, but the offer needs to warn about current
+loadout fit before the player commits picks.
+
+Additional manual findings from the same pass: at 100% zoom the default route
+still feels too vertical and information-heavy; the starting Cinder Scout
+duplicate upgrade is useful but not obviously the first required action; the
+player expected to deploy more resources/cards before combat and manually
+deployed Sparkcatch Apprentice; selected board cells can create overlapping
+glowing hex animation; Combat Preview exposes too much deterministic outcome
+certainty and may eventually want less "you will win" language or controlled
+variance; combat playback is much more understandable; future movement may
+animate more fluidly while keeping cell-based rules; a compact post-combat
+summary screen/panel would help later; Commander upgrades still feel bland and
+may need build-defining perk-tree-like choices; Board Charge, Sources, and
+Combat Charge/sec still need stronger teaching; and one later fight ended in a
+draw often enough that draw frequency should be reviewed later.
+
+Implementation update after this task: Pack Offer cards now show compact
+decision-relevant facts before commit: card type, aspects plus major
+traits/tags, board Charge cost, Unit/Echo combat stats, one short
+rules/effect/source/technique summary, and a current-fit line. Sources explain
+Board Charge, Aspect access, Combat Charge/sec, and Source slots. Techniques
+explain Spellrail slots. Board permanents surface likely immediate placement or
+likely Board Charge / Aspect / cell blockers using existing rules helpers.
+
 The biggest remaining Pixi/default-route findings are no longer the absence of
 replay controls, tiny first-pass labels, unvalidated readability, default-route
 confidence, basic default-route edit affordances, an ungrouped default combat
 feed, a debug-grid first screen, or always-expanded inspector detail. Now that
 `/` opens on a tighter Pixi-focused playtest surface with an immediate build
 decision, a first-fold Loadout Tray, grouped duplicate post-pack suggestions,
-stabilized default combat playback, and pick-limited Pack Offers, the next
-highest-value gap is no longer board manipulation polish. The acquisition model
-now needs manual pacing validation: are reveal 5 / pick 2 offers readable,
-strategic, and strict enough before bench limits, sell/recycle, or finite shared
-pool scarcity arrive?
+stabilized default combat playback, pick-limited Pack Offers, and more readable
+Pack Offer card rows, the next highest-value gap is no longer board manipulation
+polish. The acquisition model now needs a fresh manual validation pass: do the
+new offer facts make reveal 5 / pick 2 strategic enough before bench limits,
+sell/recycle, or finite shared-pool scarcity arrive?
 
 Recommended next task:
 
-`test(playtest): manually validate pick-limited Pack Market flow`
+`test(playtest): manually validate improved Pack Offer readability`
 
 ## 2. Environment And Commands
 
@@ -1362,6 +1392,11 @@ Deferred findings from the same manual pass remain intentionally out of scope:
   release unchosen offer cards in reward history. This is still a solo/local
   prototype: no finite shared-pool availability, reservation ids, rerolls,
   bench capacity, selling, faction pressure, or server authority exists yet.
+- Pack Offer rows now expose compact card facts and current-fit hints before
+  commit, but the hints are still conservative display guidance. Offer cards are
+  not owned until picked, so board/source/spellrail fit copy uses existing
+  loadout helpers against the current run state rather than simulating future
+  source swaps, bench decisions, or long-term build value.
 - Post-pack suggestions are deterministic and use existing legal actions only.
   They look only at the latest opened pack, group duplicate same-action copies
   for display, explain common immediate blockers, suggest at most a few forward
@@ -1447,15 +1482,15 @@ Deferred findings from the same manual pass remain intentionally out of scope:
 
 Do next:
 
-`test(playtest): manually validate pick-limited Pack Market flow`
+`test(playtest): manually validate improved Pack Offer readability`
 
 Why: the default route is now coherent enough that the main blocker is no
 longer first-fold layout, Pixi manipulation, or the old take-everything reward
-flow. The new Pack Market flow should be manually tested through at least one
-full reward/advance loop to verify reveal 5 / pick 2 feels readable,
-restrictive enough, and compatible with Commander upgrades plus post-pack
-suggestions before adding bench limits, sell/recycle, finite shared-pool
-scarcity, or board repositioning.
+flow. The new Pack Offer rows should be manually tested through at least one
+full reward/advance loop to verify type, stats, effect, and fit/warning copy
+make reveal 5 / pick 2 feel readable, strategic, and compatible with Commander
+upgrades plus post-pack suggestions before adding bench limits, sell/recycle,
+finite shared-pool scarcity, or board repositioning.
 
 Do soon:
 
@@ -1465,7 +1500,6 @@ orientation`
 - `feat(content): tune starter and encounter placements for 8-row combat pacing`
 - `test(playtest): manually validate grouped combat key moments across starters`
 - `feat(client): strengthen Board Charge and Source teaching`
-- `feat(client): polish Pack Offer card readability`
 - `design(rules): evaluate pack-to-loadout pacing limits`
 - `design(rules): deepen Commander upgrade choices`
 - `feat(client): tune Pixi combat effect timing after manual readability pass`

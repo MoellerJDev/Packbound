@@ -55,7 +55,7 @@ export const DefaultPlaytestRoute = ({ view, controller }: DefaultPlaytestRouteP
             />
             {view.rewards.pendingPackOffer ? (
               <PackOfferPanel
-                cardName={controller.cardName}
+                cardViews={view.rewards.pendingPackOfferCardViews}
                 offer={view.rewards.pendingPackOffer}
                 onCommit={controller.onCommitPackOfferPicks}
               />

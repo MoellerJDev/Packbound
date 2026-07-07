@@ -322,6 +322,33 @@ const selectionContextText = ({
   return `Selected ally: ${allyName}. Selected enemy: ${enemyName}.`;
 };
 
+const DefaultPixiSelectedCard = ({
+  contextLabel,
+  emptyText,
+  inspection,
+  testId,
+  title,
+  tone
+}: {
+  readonly contextLabel: string;
+  readonly emptyText: string;
+  readonly inspection: CardInspection | undefined;
+  readonly testId: string;
+  readonly title: string;
+  readonly tone: "ally" | "enemy";
+}) => (
+  <section className={`default-pixi-selected-card ${tone}`} data-testid={testId}>
+    <h3>{title}</h3>
+    <CardInspectorView
+      contextLabel={contextLabel}
+      inspection={inspection}
+      emptyText={emptyText}
+      showLegalActions={tone === "ally"}
+      variant="mini"
+    />
+  </section>
+);
+
 export const DefaultPixiBattlefieldSection = ({
   controller,
   view
@@ -362,17 +389,6 @@ export const DefaultPixiBattlefieldSection = ({
     </div>
 
     <div className="battlefield-layout">
-      <aside className="battlefield-inspector ally">
-        <h3>Ally Inspector</h3>
-        <p className="inspector-context-note">Your side selection</p>
-        <CardInspectorView
-          contextLabel="Your side"
-          inspection={view.selectedAllyInspection}
-          emptyText="Select an ally token, pool, Source Row, or Spellrail card."
-          variant="compact"
-        />
-      </aside>
-
       <div className="default-pixi-stage">
         <div className="default-pixi-cockpit" data-testid="default-pixi-cockpit">
           <div className="default-pixi-board-area" data-testid="default-pixi-board-area">
@@ -422,6 +438,34 @@ export const DefaultPixiBattlefieldSection = ({
           </div>
 
           <div className="default-pixi-sidecar" data-testid="default-pixi-sidecar">
+            <EngagementPreviewPanel preview={view.engagementPreview} playerFacingLabels />
+            <div
+              className="default-pixi-selection-cards"
+              data-testid="default-pixi-selection-cards"
+            >
+              <DefaultPixiSelectedCard
+                contextLabel="Your side"
+                emptyText="Select an ally token, pool, Source Row, or Spellrail card."
+                inspection={view.selectedAllyInspection}
+                testId="default-pixi-ally-card"
+                title="Ally Selected"
+                tone="ally"
+              />
+              <DefaultPixiSelectedCard
+                contextLabel="Enemy side"
+                emptyText="Select an enemy token, Source Row, or Spellrail card."
+                inspection={view.selectedEnemyInspection}
+                testId="default-pixi-enemy-card"
+                title="Enemy Selected"
+                tone="enemy"
+              />
+            </div>
+            <DefaultPixiCommanderEditControls
+              view={view.commanderEditControls}
+              onDeployCommander={controller.onDeployCommander}
+              onInspectCommander={controller.onInspectCommander}
+              onReturnCommander={controller.onReturnCommander}
+            />
             <div className="default-pixi-action-area" aria-label="Battlefield actions">
               <div className="default-pixi-action-grid">
                 <DefaultPixiBoardEditControls
@@ -432,12 +476,6 @@ export const DefaultPixiBattlefieldSection = ({
                   view={view.loadoutEditControls}
                   onApplyZoneEditAction={controller.onApplyZoneEditAction}
                 />
-                <DefaultPixiCommanderEditControls
-                  view={view.commanderEditControls}
-                  onDeployCommander={controller.onDeployCommander}
-                  onInspectCommander={controller.onInspectCommander}
-                  onReturnCommander={controller.onReturnCommander}
-                />
               </div>
               <DefaultPixiPlacementHint hint={view.placementHint} />
             </div>
@@ -447,22 +485,9 @@ export const DefaultPixiBattlefieldSection = ({
                 playback={view.combatPlayback}
               />
             ) : null}
-            <EngagementPreviewPanel preview={view.engagementPreview} playerFacingLabels />
           </div>
         </div>
       </div>
-
-      <aside className="battlefield-inspector enemy">
-        <h3>Enemy Inspector</h3>
-        <p className="inspector-context-note">Enemy side selection</p>
-        <CardInspectorView
-          contextLabel="Enemy side"
-          inspection={view.selectedEnemyInspection}
-          emptyText="Select an enemy token, Source Row, or Spellrail card."
-          showLegalActions={false}
-          variant="compact"
-        />
-      </aside>
     </div>
 
     <details className="combat-model-details">

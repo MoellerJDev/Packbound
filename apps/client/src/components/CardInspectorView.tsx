@@ -211,10 +211,47 @@ export const CardInspectorView = ({
   readonly inspection: CardInspection | undefined;
   readonly emptyText: string;
   readonly showLegalActions?: boolean;
-  readonly variant?: "compact" | "full";
+  readonly variant?: "compact" | "full" | "mini";
 }) => {
   if (!inspection) {
     return <p className="muted">{emptyText}</p>;
+  }
+
+  if (variant === "mini") {
+    return (
+      <div className="card-inspector mini-card-inspector">
+        <div>
+          {contextLabel ? (
+            <span className="compact-inspector-context">{contextLabel}</span>
+          ) : null}
+          <h3>{inspection.name}</h3>
+          <p className="muted">
+            {inspection.cardType} | {inspection.zone ?? "definition"} |{" "}
+            {inspection.aspectText}
+          </p>
+        </div>
+        {inspection.combatStats ? (
+          <div
+            className="stat-chip-row compact-inspector-chips"
+            aria-label={`${inspection.name} combat stat chips`}
+          >
+            {inspection.combatStats.chips.map((chip) => (
+              <span key={chip} className="stat-chip">
+                {chip}
+              </span>
+            ))}
+          </div>
+        ) : null}
+        <CompactInspectorRuleSummary inspection={inspection} />
+        <details className="compact-details card-inspector-details-toggle">
+          <summary>Full card details</summary>
+          <CardInspectorDetails
+            inspection={inspection}
+            showLegalActions={showLegalActions}
+          />
+        </details>
+      </div>
+    );
   }
 
   if (variant === "compact") {

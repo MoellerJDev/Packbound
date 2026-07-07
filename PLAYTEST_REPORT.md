@@ -414,6 +414,18 @@ with a capped board area and a desktop sidecar for existing board/loadout/
 Commander controls, placement hints, combat playback, and Engagement Preview.
 Ally and Enemy inspectors remain wider cards below the cockpit.
 
+Manual layout follow-up after this pass: the route still read too much like a
+centered document, with unused white space at wide desktop sizes, and the
+below-board inspector cards still added vertical weight. Implementation update
+after this task: `/` now uses a viewport-wide default shell with 300-360px
+Loadout Tray and Current Decision rails, while the Battlefield workbench remains
+the flexible center. On wide desktop, the Battlefield cockpit places the capped
+Pixi board beside a 320-420px sidecar containing Engagement Preview, compact
+Ally and Enemy selected-card cards, Commander controls, placement hints,
+board/loadout edit controls, and combat playback when present. The mini selected
+cards keep full details accessible but no longer repeat stat chips plus a second
+visible Stats line.
+
 Implementation update after this task: post-pack suggestions now group duplicate
 latest-pack copies that have the same useful recommendation. The displayed row
 shows copy count, such as `Cracked Prism x2`, and applies one representative
@@ -1441,13 +1453,13 @@ Deferred findings from the same manual pass remain intentionally out of scope:
   narration, and the first-fold `Loadout Tray` now exposes ordinary
   Pool/Board/Source Row/Spellrail editing without opening Advanced Debug Panels.
   It now carries short layer/resource education, a route-specific wider desktop
-  shell, center-weighted Loadout Tray / Battlefield / Current Decision columns,
-  a tightened Battlefield cockpit with the fixed-size Pixi board capped as the
-  visual anchor, a desktop sidecar for existing controls/context, wider Ally /
-  Enemy inspector cards below the cockpit, and a consolidated first-fold
-  `Place on Board` manual placement action. It is still not a cold-start demo
-  because those controls are compact, capped, button-driven affordances rather
-  than drag/drop or board-native zone editing.
+  shell, 300-360px Loadout Tray and Current Decision rails, a tightened
+  Battlefield cockpit with the fixed-size Pixi board capped as the visual
+  anchor, a desktop sidecar for Engagement Preview, compact Ally / Enemy
+  selected-card cards, Commander controls, existing edit controls/context, and a
+  consolidated first-fold `Place on Board` manual placement action. It is still
+  not a cold-start demo because those controls are compact, capped,
+  button-driven affordances rather than drag/drop or board-native zone editing.
 - The React/CSS Hex Arena remains available as a collapsed debug fallback on `/`
   and `?scenario=renderer-lab`.
 - The default route now hides/collapses most developer bloat and supports
@@ -1553,15 +1565,16 @@ Deferred findings from the same manual pass remain intentionally out of scope:
 
 Do next:
 
-`test(playtest): manually validate tightened default battlefield cockpit`
+`test(playtest): manually validate expanded default cockpit workspace`
 
-Why: the default route now gives the Pixi board more useful desktop space
-without wasting the widened center as empty host gutters, but it still needs a
-fresh manual 1440 x 900 and 1280 x 720 cold-read pass. Validate whether Loadout
-Tray, Battlefield, and Current Decision now read as one cockpit, and whether Pack
-Offer rows, compact resource definitions, soft combat forecast, and
-recorded-combat recap make the full reward/advance loop readable before adding
-bench limits, sell/recycle, finite shared-pool scarcity, or board repositioning.
+Why: the default route now uses the wide viewport more like a game cockpit and
+puts compact inspection/context beside the Pixi board, but it still needs a
+fresh manual 1440 x 900 and wide-desktop cold-read pass. Validate whether the
+Loadout Tray, expanded Battlefield workbench, sidecar cards, and Current
+Decision rail now read as one cockpit, and whether Pack Offer rows, compact
+resource definitions, soft combat forecast, and recorded-combat recap make the
+full reward/advance loop readable before adding bench limits, sell/recycle,
+finite shared-pool scarcity, or board repositioning.
 
 Do soon:
 

@@ -70,7 +70,7 @@ button:disabled {
 }
 
 .app-shell:has(.default-playtest-route) {
-  width: min(1760px, calc(100% - 24px));
+  width: calc(100vw - 24px);
 }
 
 .topbar {
@@ -201,9 +201,7 @@ h4 {
 }
 
 .default-pixi-battlefield-section .battlefield-layout {
-  grid-template-columns:
-    minmax(168px, 0.48fr) minmax(0, 2.7fr)
-    minmax(168px, 0.48fr);
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .battlefield-inspector,
@@ -320,10 +318,10 @@ h4 {
 }
 
 .default-pixi-board-area .pixi-renderer-host {
-  height: clamp(540px, 64vh, 650px);
+  height: clamp(560px, 68vh, 700px);
   justify-self: center;
-  max-width: 700px;
-  min-height: 520px;
+  max-width: 760px;
+  min-height: 540px;
   width: 100%;
 }
 
@@ -339,7 +337,37 @@ h4 {
 .default-pixi-action-grid {
   display: grid;
   gap: 8px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.default-pixi-selection-cards {
+  display: grid;
+  gap: 8px;
+}
+
+.default-pixi-selected-card {
+  background: #f6fbf8;
+  border: 1px solid #cfded7;
+  border-left: 4px solid #5d7b86;
+  border-radius: 8px;
+  display: grid;
+  gap: 7px;
+  padding: 9px 10px;
+}
+
+.default-pixi-selected-card.ally {
+  border-left-color: #2c8aae;
+}
+
+.default-pixi-selected-card.enemy {
+  border-left-color: #b65343;
+}
+
+.default-pixi-selected-card > h3 {
+  color: #1d3841;
+  font-size: 0.72rem;
+  margin: 0;
+  text-transform: uppercase;
 }
 
 .default-pixi-debug-board {
@@ -417,6 +445,30 @@ h4 {
 }
 
 .default-pixi-action-area .button-row.compact button {
+  min-height: 30px;
+  padding: 0 9px;
+}
+
+.default-pixi-sidecar > .default-pixi-commander-edit-controls {
+  align-content: start;
+  align-items: start;
+  background: #16262d;
+  border-color: #30474f;
+  gap: 7px;
+  grid-template-columns: 1fr;
+  padding: 9px 10px;
+}
+
+.default-pixi-sidecar > .default-pixi-commander-edit-controls p {
+  font-size: 0.8rem;
+}
+
+.default-pixi-sidecar > .default-pixi-commander-edit-controls .button-row {
+  gap: 6px;
+  justify-content: flex-start;
+}
+
+.default-pixi-sidecar > .default-pixi-commander-edit-controls button {
   min-height: 30px;
   padding: 0 9px;
 }
@@ -869,10 +921,10 @@ h4 {
 .default-playtest-dashboard {
   align-items: start;
   display: grid;
-  gap: 10px;
+  gap: 12px;
   grid-template-columns:
-    minmax(240px, 0.58fr) minmax(0, 2.85fr)
-    minmax(240px, 0.58fr);
+    minmax(300px, 360px) minmax(0, 1fr)
+    minmax(300px, 360px);
 }
 
 .default-playtest-dashboard-left,
@@ -909,16 +961,6 @@ h4 {
 .default-playtest-dashboard-center .default-pixi-stage {
   grid-column: 1 / -1;
   order: -1;
-}
-
-.default-playtest-dashboard-center .default-pixi-stage .pixi-renderer-host {
-  height: clamp(500px, 57vh, 620px);
-  min-height: 500px;
-}
-
-.default-playtest-dashboard-center .battlefield-inspector {
-  max-height: 340px;
-  min-height: 0;
 }
 
 .default-playtest-dashboard-left .default-loadout-tray-header,
@@ -1756,6 +1798,39 @@ h4 {
 
 .compact-card-inspector h3 {
   font-size: 1rem;
+}
+
+.mini-card-inspector {
+  display: grid;
+  gap: 7px;
+}
+
+.mini-card-inspector h3 {
+  font-size: 0.96rem;
+  line-height: 1.1;
+}
+
+.mini-card-inspector .compact-inspector-context {
+  margin-bottom: 4px;
+}
+
+.mini-card-inspector .compact-inspector-rules {
+  border-left-width: 3px;
+  gap: 3px;
+  padding: 7px 8px;
+}
+
+.mini-card-inspector .compact-inspector-rules h4 {
+  font-size: 0.62rem;
+}
+
+.mini-card-inspector .compact-inspector-rules p {
+  font-size: 0.76rem;
+  line-height: 1.18;
+}
+
+.mini-card-inspector .compact-details {
+  margin-top: 0;
 }
 
 .compact-inspector-context {
@@ -2623,9 +2698,11 @@ pre {
   white-space: pre-wrap;
 }
 
-@media (min-width: 1400px) {
+@media (min-width: 1760px) {
   .default-playtest-dashboard-center .default-pixi-cockpit {
-    grid-template-columns: minmax(620px, 0.8fr) minmax(230px, 1fr);
+    align-items: start;
+    grid-template-columns: minmax(660px, 760px) minmax(320px, 420px);
+    justify-content: center;
   }
 
   .default-playtest-dashboard-center .default-pixi-sidecar .default-pixi-action-grid {

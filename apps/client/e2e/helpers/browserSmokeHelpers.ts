@@ -85,10 +85,10 @@ export const gotoDefaultPlaytestRoute = async (page: Page) => {
   const battlefield = playtestRoute.locator(".battlefield-section");
 
   return {
-    allyInspector: battlefield.locator(".battlefield-inspector.ally"),
+    allyInspector: battlefield.getByTestId("default-pixi-ally-card"),
     battlefield,
     decisionPanel: page.getByTestId("default-playtest-decision-panel"),
-    enemyInspector: battlefield.locator(".battlefield-inspector.enemy"),
+    enemyInspector: battlefield.getByTestId("default-pixi-enemy-card"),
     errors,
     playtestRoute,
     rendererHost: page.getByTestId("pixi-renderer-host")

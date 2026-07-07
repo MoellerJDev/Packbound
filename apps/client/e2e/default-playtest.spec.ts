@@ -312,10 +312,10 @@ test("default playtest route starts with concise Pixi play surface", async ({ pa
     page.getByRole("heading", { name: "Battlefield", exact: true })
   ).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Ally Inspector", exact: true })
+    allyInspector.getByRole("heading", { name: "Ally Selected" })
   ).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Enemy Inspector", exact: true })
+    enemyInspector.getByRole("heading", { name: "Enemy Selected" })
   ).toBeVisible();
   const sideLegend = page.getByTestId("default-pixi-side-legend");
   await expect(sideLegend.getByText("Your side", { exact: true })).toBeVisible();

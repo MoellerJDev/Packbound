@@ -434,6 +434,17 @@ dashboard now has a desktop viewport-height cockpit budget. The Loadout Tray and
 Current Decision/reward rails scroll internally, the Battlefield remains the
 center anchor, and narrow screens still fall back to normal stacked page flow.
 
+Manual adaptive-cockpit follow-up after that pass: the fixed-height cockpit
+still felt like panels squeezed into a viewport. The left rail could hide
+Sources/Spellrail behind one long scroll, the center Battlefield had awkward
+internal scrolling/clipping, and the Pixi host kept dead space instead of
+adapting cleanly to the center column. Implementation update after this task:
+the default desktop dashboard now uses adaptive rail widths, a compact
+Battlefield header, a responsive 700:650 Pixi host, a non-scrolling center
+stage, sidecar-local scrolling for secondary Battlefield controls, and a
+Loadout Tray whose zone headings stay visible while card lists scroll inside
+their sections.
+
 Implementation update after this task: post-pack suggestions now group duplicate
 latest-pack copies that have the same useful recommendation. The displayed row
 shows copy count, such as `Cracked Prism x2`, and applies one representative
@@ -1461,14 +1472,16 @@ Deferred findings from the same manual pass remain intentionally out of scope:
   narration, and the first-fold `Loadout Tray` now exposes ordinary
   Pool/Board/Source Row/Spellrail editing without opening Advanced Debug Panels.
   It now carries short layer/resource education, a route-specific wider desktop
-  shell, 300-360px Loadout Tray and Current Decision rails, a tightened
+  shell, adaptive 260-330px Loadout Tray and Current Decision rails, a tightened
   Battlefield cockpit with the fixed-size Pixi board capped as the visual
   anchor, a desktop sidecar for Engagement Preview, compact Ally / Enemy
   selected-card cards, Commander controls, existing edit controls/context, and a
   consolidated first-fold `Place on Board` manual placement action. The desktop
-  dashboard now uses a viewport-height cockpit budget, with the Loadout Tray and
-  Current Decision/reward rail scrolling internally instead of forcing the whole
-  page to grow. It is still not a cold-start demo because those controls are
+  dashboard now uses adaptive side-rail widths, a non-scrolling center
+  Battlefield stage, a compact Battlefield status header, a responsive 700:650
+  Pixi host, sidecar-local scrolling for secondary Battlefield controls, and
+  Loadout Tray zone headings that stay visible while card lists scroll inside
+  their sections. It is still not a cold-start demo because those controls are
   compact, capped, button-driven affordances rather than drag/drop or
   board-native zone editing.
 - The React/CSS Hex Arena remains available as a collapsed debug fallback on `/`
@@ -1576,13 +1589,14 @@ Deferred findings from the same manual pass remain intentionally out of scope:
 
 Do next:
 
-`test(playtest): manually validate viewport cockpit scrolling`
+`test(playtest): manually validate adaptive default cockpit`
 
-Why: the default route now uses the wide viewport like a fixed game cockpit,
-with the Loadout Tray and Current Decision/reward rail scrolling internally
-instead of growing the page. It still needs a fresh 1440 x 900, 1280 x 720, and
-wide-desktop cold-read pass to confirm that the anchored Battlefield, scrollable
-rails, Pack Offer rows, compact resource definitions, soft combat forecast, and
+Why: the default route now has an adaptive cockpit contract instead of fixed
+panels squeezed into a viewport. It needs a fresh 1440 x 900, 1280 x 720, and
+wide-desktop cold-read pass at 100% zoom through fresh planning, combat ready,
+recorded combat, reward/Pack Offer, and round 2 planning to confirm that the
+anchored Battlefield, internally scrolling secondary content, Loadout Tray zone
+access, Pack Offer rows, compact resource definitions, soft combat forecast, and
 recorded-combat recap make the full reward/advance loop readable before adding
 bench limits, sell/recycle, finite shared-pool scarcity, or board repositioning.
 

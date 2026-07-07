@@ -439,6 +439,12 @@ export const DefaultPixiBattlefieldSection = ({
 
           <div className="default-pixi-sidecar" data-testid="default-pixi-sidecar">
             <EngagementPreviewPanel preview={view.engagementPreview} playerFacingLabels />
+            {view.combatPlayback ? (
+              <DefaultCombatPlaybackPanel
+                controller={controller}
+                playback={view.combatPlayback}
+              />
+            ) : null}
             <div
               className="default-pixi-selection-cards"
               data-testid="default-pixi-selection-cards"
@@ -479,12 +485,6 @@ export const DefaultPixiBattlefieldSection = ({
               </div>
               <DefaultPixiPlacementHint hint={view.placementHint} />
             </div>
-            {view.combatPlayback ? (
-              <DefaultCombatPlaybackPanel
-                controller={controller}
-                playback={view.combatPlayback}
-              />
-            ) : null}
           </div>
         </div>
       </div>

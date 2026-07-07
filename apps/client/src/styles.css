@@ -318,10 +318,11 @@ h4 {
 }
 
 .default-pixi-board-area .pixi-renderer-host {
-  height: clamp(560px, 68vh, 700px);
+  aspect-ratio: 700 / 650;
+  height: auto;
   justify-self: center;
   max-width: 760px;
-  min-height: 540px;
+  min-height: 0;
   width: 100%;
 }
 
@@ -471,6 +472,25 @@ h4 {
 .default-pixi-sidecar > .default-pixi-commander-edit-controls button {
   min-height: 30px;
   padding: 0 9px;
+}
+
+.default-pixi-sidecar .default-combat-playback {
+  grid-template-columns: 1fr;
+}
+
+.default-pixi-sidecar .default-combat-playback dl {
+  justify-content: flex-start;
+}
+
+.default-pixi-sidecar .default-combat-playback .button-row {
+  display: grid;
+  gap: 6px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.default-pixi-sidecar .default-combat-playback button {
+  min-height: 30px;
+  padding: 0 8px;
 }
 
 .default-pixi-loadout-edit-controls .button-row,
@@ -923,8 +943,8 @@ h4 {
   display: grid;
   gap: 12px;
   grid-template-columns:
-    minmax(300px, 360px) minmax(0, 1fr)
-    minmax(300px, 360px);
+    clamp(260px, 20vw, 330px) minmax(0, 1fr)
+    clamp(260px, 20vw, 330px);
 }
 
 .default-playtest-dashboard-left,
@@ -945,13 +965,27 @@ h4 {
 }
 
 .default-playtest-dashboard-center .battlefield-header {
-  align-items: start;
+  align-items: center;
   gap: 10px;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(270px, 0.8fr);
+}
+
+.default-playtest-dashboard-center .battlefield-header h2 {
+  margin-bottom: 0;
+}
+
+.default-playtest-dashboard-center .battlefield-header .muted {
+  display: none;
 }
 
 .default-playtest-dashboard-center .battlefield-run-strip {
   grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.default-playtest-dashboard-center .battlefield-run-strip dd {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .default-playtest-dashboard-center .battlefield-layout {
@@ -974,11 +1008,17 @@ h4 {
 
   .default-playtest-dashboard {
     align-items: stretch;
-    height: clamp(560px, calc(100vh - 132px), 900px);
+    height: clamp(580px, calc(100vh - 110px), 920px);
     overflow: hidden;
   }
 
-  .default-playtest-dashboard-left,
+  .default-playtest-dashboard-left {
+    align-content: stretch;
+    max-height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+
   .default-playtest-dashboard-right {
     align-content: start;
     max-height: 100%;
@@ -993,16 +1033,20 @@ h4 {
     align-content: start;
     max-height: 100%;
     min-height: 0;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    scrollbar-width: thin;
+    overflow: hidden;
   }
 
   .default-playtest-dashboard-center .battlefield-section {
     display: grid;
     gap: 12px;
-    grid-template-rows: auto minmax(0, 1fr) auto;
-    min-height: 100%;
+    grid-template-rows: auto minmax(0, 1fr);
+    max-height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .default-playtest-dashboard-center .combat-model-details {
+    display: none;
   }
 
   .default-playtest-dashboard-center .battlefield-layout,
@@ -1011,6 +1055,88 @@ h4 {
   .default-playtest-dashboard-center .default-pixi-board-area,
   .default-playtest-dashboard-center .default-pixi-sidecar {
     min-height: 0;
+  }
+
+  .default-playtest-dashboard-center .default-pixi-cockpit {
+    align-items: stretch;
+    grid-template-columns: minmax(390px, 1fr) minmax(250px, 300px);
+  }
+
+  .default-playtest-dashboard-center .default-pixi-board-area {
+    align-content: start;
+  }
+
+  .default-playtest-dashboard-center .default-pixi-sidecar {
+    align-content: start;
+    max-height: 100%;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-right: 4px;
+    scrollbar-width: thin;
+  }
+
+  .default-playtest-dashboard-left .default-loadout-tray {
+    grid-template-rows: auto minmax(0, 1fr);
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .default-playtest-dashboard-left .default-loadout-tray-header {
+    gap: 8px;
+  }
+
+  .default-playtest-dashboard-left .default-loadout-tray-header > div:first-child {
+    display: grid;
+    gap: 4px;
+  }
+
+  .default-playtest-dashboard-left .default-loadout-tray-header .muted {
+    display: none;
+  }
+
+  .default-playtest-dashboard-left .default-loadout-tray-rule-note {
+    font-size: 0.76rem;
+    line-height: 1.25;
+    margin-top: 0;
+  }
+
+  .default-playtest-dashboard-left .default-loadout-tray-resources {
+    gap: 6px;
+  }
+
+  .default-playtest-dashboard-left .default-loadout-resource-basics {
+    padding: 6px 8px;
+  }
+
+  .default-playtest-dashboard-left .default-loadout-resource-basics[open] {
+    max-height: 112px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+
+  .default-playtest-dashboard-left .default-loadout-tray-zones {
+    align-items: stretch;
+    grid-template-rows: minmax(132px, 1.45fr) repeat(3, minmax(58px, 1fr));
+    min-height: 0;
+  }
+
+  .default-playtest-dashboard-left .default-loadout-tray-zone {
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .default-playtest-dashboard-left .default-loadout-tray-helper {
+    display: none;
+  }
+
+  .default-playtest-dashboard-left .default-loadout-tray-list {
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
   }
 }
 

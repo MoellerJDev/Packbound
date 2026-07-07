@@ -264,6 +264,11 @@ test("default playtest route starts with concise Pixi play surface", async ({ pa
     const leftRail = element.querySelector(".default-playtest-dashboard-left");
     const centerRail = element.querySelector(".default-playtest-dashboard-center");
     const rightRail = element.querySelector(".default-playtest-dashboard-right");
+    const rendererHost = element.querySelector('[data-testid="pixi-renderer-host"]');
+    const loadoutTray = element.querySelector('[data-testid="default-loadout-tray"]');
+    const loadoutZoneHeadings = [
+      ...element.querySelectorAll(".default-loadout-tray-zone h3")
+    ];
     if (!(leftRail instanceof HTMLElement)) {
       throw new Error("Missing default left rail.");
     }
@@ -273,21 +278,48 @@ test("default playtest route starts with concise Pixi play surface", async ({ pa
     if (!(rightRail instanceof HTMLElement)) {
       throw new Error("Missing default right rail.");
     }
+    if (!(rendererHost instanceof HTMLElement)) {
+      throw new Error("Missing Pixi renderer host.");
+    }
+    if (!(loadoutTray instanceof HTMLElement)) {
+      throw new Error("Missing default loadout tray.");
+    }
+
+    const centerBox = centerRail.getBoundingClientRect();
+    const rendererBox = rendererHost.getBoundingClientRect();
+    const loadoutTrayBox = loadoutTray.getBoundingClientRect();
+    const headingBoxes = loadoutZoneHeadings.map((heading) =>
+      heading.getBoundingClientRect()
+    );
 
     return {
       centerOverflowY: getComputedStyle(centerRail).overflowY,
+      centerScrollDelta: centerRail.scrollHeight - centerRail.clientHeight,
       dashboardHeight: Math.round(element.getBoundingClientRect().height),
       dashboardOverflowY: getComputedStyle(element).overflowY,
+      loadoutHeadingsInsideTray: headingBoxes.every(
+        (box) =>
+          box.top >= loadoutTrayBox.top - 1 && box.bottom <= loadoutTrayBox.bottom + 1
+      ),
       leftOverflowY: getComputedStyle(leftRail).overflowY,
+      rendererInsideCenter:
+        rendererBox.top >= centerBox.top - 1 &&
+        rendererBox.bottom <= centerBox.bottom + 1,
+      rendererShapeRatio: Number((rendererBox.width / rendererBox.height).toFixed(2)),
       rightOverflowY: getComputedStyle(rightRail).overflowY,
       viewportHeight: window.innerHeight
     };
   });
   expect(cockpitLayout.dashboardOverflowY).toBe("hidden");
-  expect(cockpitLayout.leftOverflowY).toBe("auto");
-  expect(cockpitLayout.centerOverflowY).toBe("auto");
+  expect(cockpitLayout.leftOverflowY).toBe("hidden");
+  expect(cockpitLayout.centerOverflowY).toBe("hidden");
   expect(cockpitLayout.rightOverflowY).toBe("auto");
   expect(cockpitLayout.dashboardHeight).toBeLessThanOrEqual(cockpitLayout.viewportHeight);
+  expect(cockpitLayout.centerScrollDelta).toBeLessThanOrEqual(4);
+  expect(cockpitLayout.loadoutHeadingsInsideTray).toBe(true);
+  expect(cockpitLayout.rendererInsideCenter).toBe(true);
+  expect(cockpitLayout.rendererShapeRatio).toBeGreaterThan(1.05);
+  expect(cockpitLayout.rendererShapeRatio).toBeLessThan(1.09);
   await expect(page.locator(".app-shell").filter({ has: playtestRoute })).toBeVisible();
   await expect(battlefield).toHaveClass(/default-pixi-battlefield-section/);
   await expect(battlefield.getByTestId("default-pixi-cockpit")).toBeVisible();
@@ -477,6 +509,7 @@ test("default loadout tray exposes first-fold loadout edits", async ({ page }) =
   );
   await expect(resourceBasics).toContainText("Combat Charge/sec is combat energy");
   await expect(resourceBasics).toContainText("Spellrail holds active Techniques");
+  await resourceBasics.locator("summary").click();
   await expect(poolTray).toContainText("Cards waiting to be assigned");
   await expect(boardTray.getByText("Ember Scraprunner")).toBeVisible();
   await expect(boardTray).toContainText("Units/Echoes use ground");
@@ -491,6 +524,7 @@ test("default loadout tray exposes first-fold loadout edits", async ({ page }) =
   const sparkcatchPoolRow = poolTray
     .getByRole("listitem")
     .filter({ hasText: "Sparkcatch Apprentice" });
+  await sparkcatchPoolRow.scrollIntoViewIfNeeded();
   await expect(
     sparkcatchPoolRow.getByRole("button", { name: "Place on Board" })
   ).toBeVisible();

@@ -1,10 +1,15 @@
 import type { CSSProperties, ReactNode } from "react";
 
-import type { CardInspection, EngagementPreview } from "@packbound/rules";
+import type {
+  BattlefieldLayersView,
+  CardInspection,
+  EngagementPreview
+} from "@packbound/rules";
 import type { BoardPosition } from "@packbound/shared";
 
 import { CardInspectorView } from "./CardInspectorView";
 import { CombatModelFactsView } from "./CombatModelFactsView";
+import { BattlefieldLayersPanel } from "./BattlefieldLayersPanel";
 import { EngagementPreviewPanel } from "./EngagementPreviewPanel";
 import { PixiBattlefieldRenderer } from "./pixi/PixiBattlefieldRenderer";
 import { PIXI_BATTLEFIELD_LAYOUT } from "./pixi/pixiBattlefieldLayout";
@@ -39,6 +44,7 @@ export type DefaultPixiBattlefieldView = {
   readonly currentRound: number;
   readonly encounterName: string;
   readonly engagementPreview: EngagementPreview;
+  readonly battlefieldLayers: BattlefieldLayersView;
   readonly phase: string;
   readonly boardEditControls: DefaultPixiBoardEditControlsView;
   readonly commanderEditControls: DefaultPixiCommanderEditView;
@@ -55,6 +61,7 @@ export type DefaultPixiBattlefieldView = {
 
 export type DefaultPixiBattlefieldController = {
   readonly onCancelPlacement: () => void;
+  readonly onCancelCommanderPlacement: () => void;
   readonly onCellSelect: (position: BoardPosition) => void;
   readonly onBlockedCellSelect?: (position: BoardPosition) => void;
   readonly onApplyZoneEditAction: (action: DefaultPixiZoneEditAction) => void;
@@ -187,12 +194,14 @@ const DefaultPixiLoadoutEditControls = ({
 );
 
 const DefaultPixiCommanderEditControls = ({
+  onCancelCommanderPlacement,
   onDeployCommander,
   onInspectCommander,
   onReturnCommander,
   view
 }: {
   readonly onDeployCommander: () => void;
+  readonly onCancelCommanderPlacement: () => void;
   readonly onInspectCommander: () => void;
   readonly onReturnCommander: () => void;
   readonly view: DefaultPixiCommanderEditView;
@@ -227,6 +236,11 @@ const DefaultPixiCommanderEditControls = ({
       <button type="button" disabled={!view.canDeploy} onClick={onDeployCommander}>
         Deploy Commander
       </button>
+      {view.canCancelPlacement ? (
+        <button type="button" className="secondary" onClick={onCancelCommanderPlacement}>
+          Cancel Commander Placement
+        </button>
+      ) : null}
       <button type="button" disabled={!view.canReturn} onClick={onReturnCommander}>
         Return to Command
       </button>
@@ -481,6 +495,7 @@ export const DefaultPixiBattlefieldSection = ({
                 preview={view.engagementPreview}
                 playerFacingLabels
               />
+              <BattlefieldLayersPanel view={view.battlefieldLayers} />
               {view.combatPlayback ? (
                 <DefaultCombatPlaybackPanel
                   controller={controller}
@@ -510,6 +525,7 @@ export const DefaultPixiBattlefieldSection = ({
               </div>
               <DefaultPixiCommanderEditControls
                 view={view.commanderEditControls}
+                onCancelCommanderPlacement={controller.onCancelCommanderPlacement}
                 onDeployCommander={controller.onDeployCommander}
                 onInspectCommander={controller.onInspectCommander}
                 onReturnCommander={controller.onReturnCommander}

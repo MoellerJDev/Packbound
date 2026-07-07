@@ -169,6 +169,23 @@ Browser smoke exercises Source Row return, Spellrail return, Board return after
 Pixi placement, Commander inspect/deploy/return, and verifies Renderer Lab replay
 controls remain absent on `/`.
 
+Implementation update after this task: Commander progression now has a
+rules-owned Doctrine foundation. Combat rewards award a doctrine point, the
+reward phase exposes Ashbound, Field Architect, and Spellrail Conductor doctrine
+nodes, and unlocking one available node records serializable doctrine history
+while keeping the pack reward bucket separate. Current doctrine nodes are honest
+foundation/display unlocks; they do not yet change combat, pack odds, walls,
+Ashes, or Spellrail triggers.
+
+Implementation update after this task: default-route `Deploy Commander` now
+enters manual Commander placement mode instead of auto-picking a default hex.
+Legal Commander deployment hexes come from `packages/rules`, Pixi highlights
+those cells, and clicking a highlighted cell deploys through the existing
+`deployCommander` run action. The battlefield sidecar also now shows a compact
+`Battlefield Layers` panel for Ashes and Walls / Edges; Ashes use persistent run
+Ashes when available, otherwise a conservative last-combat destroyed-unit
+summary, and walls/edges remain display scaffolding only.
+
 Implementation update after this task: `/` is now the Pixi-focused 10-minute
 playtest route rather than the old debug-grid landing surface. The default run
 uses a shared default-playtest setup extracted from the upgrade-lab duplicate
@@ -1577,14 +1594,18 @@ Deferred findings from the same manual pass remain intentionally out of scope:
 - The Command Zone Commander prototype exists in `RunState`, but it reuses
   existing starter Unit/Echo definitions and has no authored Commander content.
 - Rebind Tax is enforced as generic Board Charge while the Commander is deployed
-  or being deployed, and Rebind Calibration can discount effective tax. There
-  are still no alternate costs or encounter-phase Commander deploy/return
-  actions.
+  or being deployed. The preserved legacy Rebind Calibration action can still
+  discount effective tax for diagnostics, but player-facing Commander reward
+  progression is now Doctrine. There are still no alternate costs or
+  encounter-phase Commander deploy/return actions.
 - Commander lifecycle history is visible in the debug Command Zone panel, but it
   is still a compact audit trail with no filtering, export, or event grouping.
-- Commander upgrades are implemented only as two mechanical prototype choices.
-  Signature Relics, enemy Commanders, authored Commander cards, and authored
-  Commander effects are not implemented.
+- Commander Doctrine is implemented only as foundation/display unlocks. The old
+  generic Commander upgrade action path remains available for compatibility, but
+  the player-facing reward surface is now doctrine. Signature Relics, enemy
+  Commanders, authored Commander cards, authored Commander effects, real pack
+  odds changes, wall mechanics, Ashes recall/payoff mechanics, and Spellrail
+  trigger programming are not implemented.
 - Normal non-Commander unit death cleanup into Ashes is not implemented in
   run-progression state by this Commander-specific replacement.
 - Priority Lab has two real prototype actions with source context:
@@ -1607,32 +1628,31 @@ Deferred findings from the same manual pass remain intentionally out of scope:
   not had a broad manual pass across many longer future fights.
 - Deferred design concerns from the latest manual playtest remain: the new Pack
   Market flow needs manual pacing validation, future bench/sell/shared-pool
-  pressure may be needed once pick-limited rewards settle, Commander upgrades
-  need more build-defining depth, and the new Board Charge / Sources / Combat
-  Charge teaching plus softer combat forecast, combat recap, and desktop
+  pressure may be needed once pick-limited rewards settle, Commander Doctrine
+  needs a first real mechanical effect, and the new Board Charge / Sources /
+  Combat Charge teaching plus softer combat forecast, combat recap, and desktop
   dashboard layout need a manual cold-read pass.
 
 ## 14. Recommended Next Tasks
 
 Do next:
 
-`test(playtest): manually validate corrected default cockpit`
+`test(playtest): manually validate doctrine and manual Commander placement`
 
-Why: the default route now has a corrected cockpit contract instead of a fixed
-height plus hidden-overflow chain or width-only Pixi host, and debug-only
-surfaces are behind `?debug=1`. It needs a fresh 1440 x 900, 1280 x 720, and
-wide-desktop cold-read pass at 100%, 130%, zoom-back-to-100%, and 50% zoom
-through fresh planning, combat ready, recorded combat, reward/Pack Offer, and
-round 2 planning to confirm that the anchored Battlefield, intentionally
-scrolling secondary content, Loadout Tray zone access, Pack Offer rows, compact
-resource definitions, soft combat forecast, and recorded-combat recap make the
-full reward/advance loop readable before adding bench limits, sell/recycle,
-finite shared-pool scarcity, or board repositioning.
+Why: the default route now has a corrected cockpit plus three new player-facing
+identity surfaces: manual Commander hex deployment, Commander Doctrine reward
+unlocking, and Battlefield Layers for Ashes and Walls / Edges. It needs a fresh
+1440 x 900, 1280 x 720, and wide-desktop cold-read pass at 100%, 130%,
+zoom-back-to-100%, and 50% zoom through planning, manual Commander placement,
+combat recording, Pack Offer, doctrine unlock, and round 2 planning before
+adding real doctrine effects, bench limits, sell/recycle, finite shared-pool
+scarcity, or board repositioning.
 
 Do soon:
 
 - `test(playtest): manually validate corrected default combat playback and row
 orientation`
+- `feat(rules): add first mechanical Commander Doctrine effect`
 - `feat(client): clarify reward pack-to-pool card identity`
 - `feat(content): tune starter and encounter placements for 8-row combat pacing`
 - `test(playtest): manually validate grouped combat key moments across starters`

@@ -42,6 +42,25 @@ describe("default Pixi commander edit view", () => {
     });
   });
 
+  it("shows Commander placement guidance while deployment mode is active", () => {
+    const view = buildDefaultPixiCommanderEditView({
+      commanderName: "Sparkcatch Apprentice",
+      deployBlockedReason: undefined,
+      hasCommander: true,
+      legalDeployCount: 4,
+      placementActive: true,
+      returnBlockedReason: "Commander is not deployed.",
+      zone: "command"
+    });
+
+    expect(view).toMatchObject({
+      statusText: "Placing Sparkcatch Apprentice. Click a highlighted Pixi hex.",
+      canDeploy: false,
+      canCancelPlacement: true,
+      legalDeployCount: 4
+    });
+  });
+
   it("shows the blocked deploy reason in Command Zone", () => {
     const view = buildDefaultPixiCommanderEditView({
       commanderName: "Sparkcatch Apprentice",

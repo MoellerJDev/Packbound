@@ -1,5 +1,5 @@
 import { CombatResultPanel } from "../../components/CombatResultPanel";
-import { CommanderUpgradePanel } from "../../components/CommanderUpgradePanel";
+import { CommanderDoctrinePanel } from "../../components/CommanderDoctrinePanel";
 import { PackOfferPanel } from "../../components/PackOfferPanel";
 import { RewardChoicesPanel } from "../../components/RewardChoicesPanel";
 import type {
@@ -32,10 +32,10 @@ export const DebugGridRoute = ({ view, controller }: DebugGridRouteProps) => (
         onCommit={controller.onCommitPackOfferPicks}
       />
     ) : null}
-    <CommanderUpgradePanel
+    <CommanderDoctrinePanel
       variant="panel"
-      view={view.commanderUpgradePanelView}
-      onApplyUpgrade={controller.onApplyCommanderUpgrade}
+      view={view.commanderDoctrinePanelView}
+      onUnlockDoctrine={controller.onUnlockCommanderDoctrine}
     />
     <CombatResultPanel
       isDefaultRoute={view.isDefaultRoute}

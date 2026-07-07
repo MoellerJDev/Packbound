@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 import type { EncounterDefinition } from "@packbound/content";
 import type {
-  CommanderUpgradeId,
+  CommanderDoctrineNodeId,
   LoadoutAction,
   PendingPackOffer,
   PostPackLoadoutSuggestionSummary,
@@ -18,7 +18,7 @@ import type {
   UpcomingCombatPanelView
 } from "../components/CombatResultPanel";
 import type { CommandZonePanelView } from "../components/CommandZonePanel";
-import type { CommanderUpgradePanelView } from "../components/CommanderUpgradePanel";
+import type { CommanderDoctrinePanelView } from "../components/CommanderDoctrinePanel";
 import type {
   DefaultPixiBattlefieldController,
   DefaultPixiBattlefieldView
@@ -38,7 +38,7 @@ export type DefaultRunRouteView = {
     readonly returnDisabled: boolean;
     readonly view: CommandZonePanelView;
   };
-  readonly commanderUpgradePanelView: CommanderUpgradePanelView;
+  readonly commanderDoctrinePanelView: CommanderDoctrinePanelView;
   readonly currentEncounter: EncounterDefinition | undefined;
   readonly isDefaultRoute: boolean;
   readonly loadoutZonesView: LoadoutZonesPanelView;
@@ -68,7 +68,7 @@ export type DefaultRunRouteView = {
 export type DefaultRunRouteController = {
   readonly battlefield: DefaultPixiBattlefieldController;
   readonly cardName: (defId: CardDefId) => string;
-  readonly onApplyCommanderUpgrade: (choiceId: CommanderUpgradeId) => void;
+  readonly onUnlockCommanderDoctrine: (nodeId: CommanderDoctrineNodeId) => void;
   readonly onApplyPostPackSuggestion: (
     cardInstanceId: CardInstanceId,
     action: LoadoutAction

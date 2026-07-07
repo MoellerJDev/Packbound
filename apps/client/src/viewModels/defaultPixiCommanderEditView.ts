@@ -7,9 +7,11 @@ export type DefaultPixiCommanderEditView = {
   readonly statusText: string;
   readonly canInspect: boolean;
   readonly canDeploy: boolean;
+  readonly canCancelPlacement: boolean;
   readonly canReturn: boolean;
   readonly deployBlockedReason: string | undefined;
   readonly returnBlockedReason: string | undefined;
+  readonly legalDeployCount: number;
 };
 
 export type BuildDefaultPixiCommanderEditViewInput = {
@@ -17,6 +19,8 @@ export type BuildDefaultPixiCommanderEditViewInput = {
   readonly commanderName: string;
   readonly zone: string;
   readonly deployBlockedReason: string | undefined;
+  readonly placementActive?: boolean;
+  readonly legalDeployCount?: number;
   readonly returnBlockedReason: string | undefined;
 };
 
@@ -60,16 +64,31 @@ const commanderStatusText = ({
 
 export const buildDefaultPixiCommanderEditView = (
   input: BuildDefaultPixiCommanderEditViewInput
-): DefaultPixiCommanderEditView => ({
-  modeLabel: "Commander",
-  hasCommander: input.hasCommander,
-  commanderName: input.commanderName,
-  zone: input.zone,
-  zoneLabel: zoneLabel(input.zone),
-  statusText: commanderStatusText(input),
-  canInspect: input.hasCommander,
-  canDeploy: input.hasCommander && input.zone === "command" && !input.deployBlockedReason,
-  canReturn: input.hasCommander && input.zone === "board" && !input.returnBlockedReason,
-  deployBlockedReason: input.deployBlockedReason,
-  returnBlockedReason: input.returnBlockedReason
-});
+): DefaultPixiCommanderEditView => {
+  const placementActive = input.placementActive ?? false;
+  const legalDeployCount = input.legalDeployCount ?? 0;
+
+  return {
+    modeLabel: "Commander",
+    hasCommander: input.hasCommander,
+    commanderName: input.commanderName,
+    zone: input.zone,
+    zoneLabel: zoneLabel(input.zone),
+    statusText: placementActive
+      ? legalDeployCount > 0
+        ? `Placing ${input.commanderName}. Click a highlighted Pixi hex.`
+        : `Deploy blocked: ${input.deployBlockedReason ?? "No legal Commander deployment hex is available."}`
+      : commanderStatusText(input),
+    canInspect: input.hasCommander,
+    canDeploy:
+      input.hasCommander &&
+      input.zone === "command" &&
+      !input.deployBlockedReason &&
+      !placementActive,
+    canCancelPlacement: placementActive,
+    canReturn: input.hasCommander && input.zone === "board" && !input.returnBlockedReason,
+    deployBlockedReason: input.deployBlockedReason,
+    returnBlockedReason: input.returnBlockedReason,
+    legalDeployCount
+  };
+};

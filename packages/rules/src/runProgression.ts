@@ -9,7 +9,8 @@ import {
 
 import {
   applyCommanderCombatLifecycle,
-  getCurrentCommanderUpgradeChoices
+  awardCommanderDoctrinePoint,
+  getCurrentCommanderDoctrineChoices
 } from "./commander";
 import { calculateCombatGoldReward } from "./economy";
 import { prepareEncounterForRound } from "./encounters";
@@ -286,7 +287,7 @@ export const commitPackOfferPicks = (
   return {
     ...nextRun,
     phase:
-      getCurrentCommanderUpgradeChoices(nextRun).length > 0 ? "reward" : "combatResolved"
+      getCurrentCommanderDoctrineChoices(nextRun).length > 0 ? "reward" : "combatResolved"
   };
 };
 
@@ -333,15 +334,17 @@ export const recordCombatResult = (
     combatSummaryIndex
   };
   const lifecycleRun = applyCommanderCombatLifecycle(run, combatResult.events);
+  const rewardLifecycleRun =
+    nextHealth <= 0 ? lifecycleRun : awardCommanderDoctrinePoint(lifecycleRun);
 
   return {
-    ...lifecycleRun,
+    ...rewardLifecycleRun,
     status: nextHealth <= 0 ? "lost" : run.status,
     phase: nextHealth <= 0 ? "complete" : "reward",
     playerHealth: nextHealth,
-    playerGold: lifecycleRun.playerGold + goldEarned,
-    combatHistory: [...lifecycleRun.combatHistory, summary],
-    encounterHistory: [...lifecycleRun.encounterHistory, encounterHistoryEntry]
+    playerGold: rewardLifecycleRun.playerGold + goldEarned,
+    combatHistory: [...rewardLifecycleRun.combatHistory, summary],
+    encounterHistory: [...rewardLifecycleRun.encounterHistory, encounterHistoryEntry]
   };
 };
 

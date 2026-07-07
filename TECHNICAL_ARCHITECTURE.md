@@ -1194,15 +1194,19 @@ complete AI drafters.
 
 - The current prototype stores one Commander in serializable `RunState` with a
   normal `CardInstance`, `deployCount`, raw `rebindTax`,
-  `rebindTaxDiscount`, upgrade history, and structured lifecycle history.
+  `rebindTaxDiscount`, doctrine state, legacy upgrade history, and structured
+  lifecycle history.
 - Command Zone is a real shared zone value. Starter-created runs currently
   derive a prototype Commander from existing Unit/Echo starter context rather
   than authored Commander content.
 - Commander deployment and return are replayable run actions owned by
-  `packages/rules`. Rebind Tax is enforced as a generic Board Charge surcharge
-  through planning validation while the Commander is deployed or being deployed.
-  Effective tax uses raw tax minus discount and never creates Aspect
-  requirements. Future actions should cover any Signature Relic lifecycle.
+  `packages/rules`. Default-route Commander deployment uses
+  `getLegalCommanderDeployPositions` to highlight legal hexes before dispatching
+  `deployCommander`; Pixi and React do not decide Commander placement legality.
+  Rebind Tax is enforced as a generic Board Charge surcharge through planning
+  validation while the Commander is deployed or being deployed. Effective tax
+  uses raw tax minus discount and never creates Aspect requirements. Future
+  actions should cover any Signature Relic lifecycle.
 - Commander deployment should validate through the same loadout, Board Charge,
   Source Row, and future encounter main-phase action boundaries as other card
   actions.
@@ -1210,10 +1214,18 @@ complete AI drafters.
   in run progression by reading `UnitDestroyed` event metadata. The simulator
   still emits normal combat events; the run reducer removes the Commander from
   board/active cards, returns it to Command Zone, and increments Rebind Tax once.
-- Commander upgrade choices are deterministic rules/reward-state data, not
+- Commander Doctrine choices are deterministic rules/reward-state data, not
   client-only UI. The current reward phase can keep pack rewards and Commander
-  upgrades as separate one-per-round buckets, and `applyCommanderUpgradeChoice`
-  records history on `CommanderState`.
+  doctrine unlocks as separate one-per-round buckets. Combat recording awards a
+  doctrine point, `applyCommanderDoctrineUnlock` spends one point on an
+  available rules-defined node, and the node unlock history stays on
+  `CommanderState`. The old `applyCommanderUpgradeChoice` path remains as
+  compatibility/diagnostic history but is no longer the player-facing reward
+  surface.
+- Battlefield Layers display data is pure rules-layer clarity data. It can read
+  persistent `RunState.ashes` or optional last-combat `UnitDestroyed` events to
+  build an Ashes summary, and currently exposes Walls / Edges as empty
+  scaffolding without changing combat, pathing, or board legality.
 - The current encounter action bridge validates deployed Commander context for
   `Commander Rally` and then queues a match-local action. This is deliberately
   separate from Commander lifecycle run actions; resolving Rally does not mutate
@@ -1221,8 +1233,8 @@ complete AI drafters.
   contract registry used by the Spellrail prototype action.
 - Commander lifecycle logging is structured run/progression metadata, not
   renderer behavior. Entries capture creation, deploy, voluntary return,
-  destruction replacement, upgrade application, and their key before/after tax,
-  deploy, zone, and upgrade values.
+  destruction replacement, doctrine unlocks, legacy upgrade application, and
+  their key before/after tax, deploy, zone, and progression values.
 - Signature Relics should be modeled as explicit card instances or linked
   persistent objects with clear ownership, zone, and lifecycle. They should not
   bypass normal Relic, Source, and board validation rules unless a focused rules

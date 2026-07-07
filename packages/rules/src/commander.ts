@@ -14,6 +14,9 @@ import { cardInZone, copyCard, copyPlacement } from "./runCards";
 import type {
   CommanderLifecycleEntryType,
   CommanderLifecycleSource,
+  CommanderDoctrineNodeId,
+  CommanderDoctrinePathId,
+  CommanderDoctrineState,
   CommanderState,
   CommanderUpgradeId,
   RunState
@@ -28,6 +31,31 @@ export type CommanderUpgradeChoice = {
   readonly effectText: string;
 };
 
+export type CommanderDoctrineNodeStatus = "unlocked" | "available" | "locked";
+
+export type CommanderDoctrineNodeDefinition = {
+  readonly id: CommanderDoctrineNodeId;
+  readonly path: CommanderDoctrinePathId;
+  readonly pathLabel: string;
+  readonly displayName: string;
+  readonly description: string;
+  readonly prerequisiteIds: readonly CommanderDoctrineNodeId[];
+  readonly futureEffectLabel: string;
+  readonly futureEffectText: string;
+};
+
+export type CommanderDoctrineNodeView = CommanderDoctrineNodeDefinition & {
+  readonly status: CommanderDoctrineNodeStatus;
+  readonly lockedReason?: string;
+};
+
+export type CommanderDoctrineUnlockCheck =
+  | { readonly ok: true; readonly node: CommanderDoctrineNodeView }
+  | {
+      readonly ok: false;
+      readonly reason: string;
+    };
+
 const COMMANDER_UPGRADE_CHOICES: readonly CommanderUpgradeChoice[] = [
   {
     id: "combat_training",
@@ -38,6 +66,81 @@ const COMMANDER_UPGRADE_CHOICES: readonly CommanderUpgradeChoice[] = [
     id: "rebind_calibration",
     label: "Rebind Calibration",
     effectText: "Add 1 Rebind Tax discount for future Commander deployments."
+  }
+];
+
+const COMMANDER_DOCTRINE_NODES: readonly CommanderDoctrineNodeDefinition[] = [
+  {
+    id: "ash_ledger",
+    path: "ashbound",
+    pathLabel: "Ashbound",
+    displayName: "Ash Ledger",
+    description:
+      "Track fallen units as Ashes after combat. Future Ashbound nodes can recall or consume them.",
+    prerequisiteIds: [],
+    futureEffectLabel: "Doctrine unlocked; Ashes payoff coming soon.",
+    futureEffectText:
+      "This node is a foundation marker today. It makes the Ashes layer visible without changing combat."
+  },
+  {
+    id: "memory_vault",
+    path: "ashbound",
+    pathLabel: "Ashbound",
+    displayName: "Memory Vault",
+    description:
+      "Prepare a future death-memory reward line that can care about what fell earlier in the run.",
+    prerequisiteIds: ["ash_ledger"],
+    futureEffectLabel: "Preview doctrine; memory mechanics coming soon.",
+    futureEffectText:
+      "Future versions can convert Ashes history into recall or sacrifice payoffs."
+  },
+  {
+    id: "edge_mason",
+    path: "field_architect",
+    pathLabel: "Field Architect",
+    displayName: "Edge Mason",
+    description:
+      "Unlocks the Wall/Edge layer display and prepares future wall placement rewards.",
+    prerequisiteIds: [],
+    futureEffectLabel: "Doctrine unlocked; wall mechanics coming soon.",
+    futureEffectText:
+      "This node exposes the terrain layer scaffold without blocking movement or line of sight yet."
+  },
+  {
+    id: "wall_pattern",
+    path: "field_architect",
+    pathLabel: "Field Architect",
+    displayName: "Wall Pattern",
+    description:
+      "Sketch future formation rewards that can care about edges, walls, and board geometry.",
+    prerequisiteIds: ["edge_mason"],
+    futureEffectLabel: "Preview doctrine; terrain rewards coming soon.",
+    futureEffectText:
+      "Future versions can add placement rewards for walls or edge terrain without changing this node data."
+  },
+  {
+    id: "queued_trigger",
+    path: "spellrail_conductor",
+    pathLabel: "Spellrail Conductor",
+    displayName: "Queued Trigger",
+    description:
+      "Marks Spellrail as a future triggered-script system rather than passive spell slots.",
+    prerequisiteIds: [],
+    futureEffectLabel: "Doctrine unlocked; Technique triggers coming soon.",
+    futureEffectText:
+      "This node is display-only today. It points Spellrail toward triggered scripts later."
+  },
+  {
+    id: "hidden_rail",
+    path: "spellrail_conductor",
+    pathLabel: "Spellrail Conductor",
+    displayName: "Hidden Rail",
+    description:
+      "Prepare future delayed Technique scripts that can wait for a clear combat condition.",
+    prerequisiteIds: ["queued_trigger"],
+    futureEffectLabel: "Preview doctrine; hidden scripts coming soon.",
+    futureEffectText:
+      "Future versions can use this path for delayed Technique programming without adding traps today."
   }
 ];
 
@@ -93,6 +196,8 @@ type CommanderLifecycleDetails = {
   readonly combatEventIndex?: number;
   readonly upgradeId?: CommanderUpgradeId;
   readonly upgradeLabel?: string;
+  readonly doctrineNodeId?: CommanderDoctrineNodeId;
+  readonly doctrineNodeLabel?: string;
 };
 
 const withCommanderLifecycleEntry = (
@@ -132,7 +237,9 @@ const withCommanderLifecycleEntry = (
         }
       : {}),
     ...(details.upgradeId ? { upgradeId: details.upgradeId } : {}),
-    ...(details.upgradeLabel ? { upgradeLabel: details.upgradeLabel } : {})
+    ...(details.upgradeLabel ? { upgradeLabel: details.upgradeLabel } : {}),
+    ...(details.doctrineNodeId ? { doctrineNodeId: details.doctrineNodeId } : {}),
+    ...(details.doctrineNodeLabel ? { doctrineNodeLabel: details.doctrineNodeLabel } : {})
   };
 
   return {
@@ -144,8 +251,29 @@ const withCommanderLifecycleEntry = (
 const hasCommanderUpgradeForRound = (run: RunState, round = run.currentRound): boolean =>
   run.commander?.upgradeHistory.some((entry) => entry.round === round) ?? false;
 
+export const hasCommanderDoctrineUnlockForRound = (
+  run: RunState,
+  round = run.currentRound
+): boolean =>
+  run.commander?.doctrine.unlockHistory.some((entry) => entry.round === round) ?? false;
+
+export const hasCommanderRewardForRound = (
+  run: RunState,
+  round = run.currentRound
+): boolean =>
+  !run.commander ||
+  hasCommanderDoctrineUnlockForRound(run, round) ||
+  hasCommanderUpgradeForRound(run, round);
+
 const hasPackRewardForRound = (run: RunState, round = run.currentRound): boolean =>
   run.rewardHistory.some((entry) => entry.type === "pack" && entry.round === round);
+
+const doctrineForCommander = (commander: CommanderState): CommanderDoctrineState =>
+  commander.doctrine ?? {
+    points: 0,
+    unlockedNodeIds: [],
+    unlockHistory: []
+  };
 
 const nextRunWithCommanderDeployed = (
   run: RunState,
@@ -238,8 +366,7 @@ export const getDefaultCommanderPosition = (
   run: RunState,
   catalog: ContentCatalog
 ): BoardPosition | undefined => {
-  const positions = getCommanderDeploymentCandidatePositions(run, catalog);
-  return positions.find((position) => canDeployCommander(run, catalog, position).ok);
+  return getLegalCommanderDeployPositions(run, catalog)[0];
 };
 
 export const getCommanderDeploymentCandidatePosition = (
@@ -279,6 +406,14 @@ const getCommanderDeploymentCandidatePositions = (
   return positions;
 };
 
+export const getLegalCommanderDeployPositions = (
+  run: RunState,
+  catalog: ContentCatalog
+): readonly BoardPosition[] =>
+  getCommanderDeploymentCandidatePositions(run, catalog).filter(
+    (position) => canDeployCommander(run, catalog, position).ok
+  );
+
 export const deployCommander = (
   run: RunState,
   catalog: ContentCatalog,
@@ -301,6 +436,202 @@ export const getCurrentCommanderUpgradeChoices = (
   }
 
   return COMMANDER_UPGRADE_CHOICES.map((choice) => ({ ...choice }));
+};
+
+export const getCommanderDoctrineDefinitions =
+  (): readonly CommanderDoctrineNodeDefinition[] =>
+    COMMANDER_DOCTRINE_NODES.map((node) => ({
+      ...node,
+      prerequisiteIds: [...node.prerequisiteIds]
+    }));
+
+export const getCommanderDoctrineNodes = (
+  run: RunState
+): readonly CommanderDoctrineNodeView[] => {
+  const commander = run.commander;
+  if (!commander) {
+    return [];
+  }
+
+  const doctrine = doctrineForCommander(commander);
+  const unlockedIds = new Set(doctrine.unlockedNodeIds);
+
+  return COMMANDER_DOCTRINE_NODES.map((node) => {
+    if (unlockedIds.has(node.id)) {
+      return {
+        ...node,
+        prerequisiteIds: [...node.prerequisiteIds],
+        status: "unlocked" as const
+      };
+    }
+
+    const missingPrerequisites = node.prerequisiteIds.filter(
+      (prerequisiteId) => !unlockedIds.has(prerequisiteId)
+    );
+    if (missingPrerequisites.length > 0) {
+      return {
+        ...node,
+        prerequisiteIds: [...node.prerequisiteIds],
+        status: "locked" as const,
+        lockedReason: `Requires ${missingPrerequisites
+          .map((prerequisiteId) => {
+            const prerequisite = COMMANDER_DOCTRINE_NODES.find(
+              (candidate) => candidate.id === prerequisiteId
+            );
+            return prerequisite?.displayName ?? prerequisiteId;
+          })
+          .join(", ")}.`
+      };
+    }
+
+    return {
+      ...node,
+      prerequisiteIds: [...node.prerequisiteIds],
+      status: "available" as const
+    };
+  });
+};
+
+export const getCurrentCommanderDoctrineChoices = (
+  run: RunState
+): readonly CommanderDoctrineNodeView[] => {
+  if (
+    run.status !== "active" ||
+    run.phase !== "reward" ||
+    !run.commander ||
+    doctrineForCommander(run.commander).points <= 0 ||
+    hasCommanderRewardForRound(run)
+  ) {
+    return [];
+  }
+
+  return getCommanderDoctrineNodes(run).filter((node) => node.status === "available");
+};
+
+export const canUnlockCommanderDoctrineNode = (
+  run: RunState,
+  nodeId: CommanderDoctrineNodeId
+): CommanderDoctrineUnlockCheck => {
+  if (run.status !== "active") {
+    return { ok: false, reason: "Run is not active." };
+  }
+  if (run.phase !== "reward") {
+    return {
+      ok: false,
+      reason: `Cannot unlock Commander doctrine while run phase is ${run.phase}.`
+    };
+  }
+
+  const commander = run.commander;
+  if (!commander) {
+    return { ok: false, reason: "Run has no Commander doctrine to unlock." };
+  }
+  const doctrine = doctrineForCommander(commander);
+  if (hasCommanderRewardForRound(run)) {
+    return {
+      ok: false,
+      reason: `Commander doctrine reward already claimed for round ${run.currentRound}.`
+    };
+  }
+  if (doctrine.points <= 0) {
+    return { ok: false, reason: "No Commander doctrine points are available." };
+  }
+
+  const node = getCommanderDoctrineNodes(run).find(
+    (candidate) => candidate.id === nodeId
+  );
+  if (!node) {
+    return { ok: false, reason: `Unknown Commander doctrine node id: ${nodeId}.` };
+  }
+  if (node.status === "unlocked") {
+    return { ok: false, reason: `${node.displayName} is already unlocked.` };
+  }
+  if (node.status === "locked") {
+    return {
+      ok: false,
+      reason: node.lockedReason ?? `${node.displayName} is locked.`
+    };
+  }
+
+  return { ok: true, node };
+};
+
+export const awardCommanderDoctrinePoint = (run: RunState): RunState => {
+  const commander = run.commander;
+  if (!commander) {
+    return run;
+  }
+
+  const doctrine = doctrineForCommander(commander);
+  return {
+    ...run,
+    commander: {
+      ...commander,
+      doctrine: {
+        ...doctrine,
+        points: doctrine.points + 1,
+        unlockedNodeIds: [...doctrine.unlockedNodeIds],
+        unlockHistory: [...doctrine.unlockHistory]
+      }
+    }
+  };
+};
+
+export const applyCommanderDoctrineUnlock = (
+  run: RunState,
+  nodeId: CommanderDoctrineNodeId
+): RunState => {
+  const check = canUnlockCommanderDoctrineNode(run, nodeId);
+  if (!check.ok) {
+    throw new Error(check.reason);
+  }
+
+  const commander = run.commander!;
+  const doctrine = doctrineForCommander(commander);
+  const node = check.node;
+  const pointsAfter = doctrine.points - 1;
+  const nextDoctrine: CommanderDoctrineState = {
+    points: pointsAfter,
+    unlockedNodeIds: [...doctrine.unlockedNodeIds, node.id],
+    unlockHistory: [
+      ...doctrine.unlockHistory,
+      {
+        id: `commander-doctrine:${run.currentRound}:${doctrine.unlockHistory.length}:${node.id}`,
+        round: run.currentRound,
+        nodeId: node.id,
+        path: node.path,
+        label: node.displayName,
+        cardInstanceId: commander.card.instanceId,
+        cardDefId: commander.card.defId,
+        pointsBefore: doctrine.points,
+        pointsAfter
+      }
+    ]
+  };
+  const nextCommander = withCommanderLifecycleEntry(
+    run,
+    commander,
+    {
+      ...commander,
+      doctrine: nextDoctrine
+    },
+    {
+      type: "doctrine_unlocked",
+      source: "reward",
+      label: `Commander doctrine unlocked: ${node.displayName}.`,
+      fromZone: commander.card.zone,
+      toZone: commander.card.zone,
+      doctrineNodeId: node.id,
+      doctrineNodeLabel: node.displayName
+    }
+  );
+
+  return {
+    ...run,
+    phase:
+      hasPackRewardForRound(run) && !run.pendingPackOffer ? "combatResolved" : run.phase,
+    commander: nextCommander
+  };
 };
 
 export const applyCommanderUpgradeChoice = (

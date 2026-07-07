@@ -490,6 +490,48 @@ h4 {
   padding: 0 9px;
 }
 
+.battlefield-layers-panel {
+  background: #f5faf7;
+  border: 1px solid #cadbd5;
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  padding: 9px 10px;
+}
+
+.battlefield-layers-panel h3,
+.battlefield-layer-section h4 {
+  color: #1d3841;
+  font-size: 0.72rem;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.battlefield-layer-section {
+  display: grid;
+  gap: 4px;
+}
+
+.battlefield-layer-section p {
+  font-size: 0.8rem;
+  margin: 0;
+}
+
+.battlefield-layer-list li {
+  display: grid;
+  gap: 2px;
+}
+
+.battlefield-layer-list span {
+  color: #1d3841;
+  font-weight: 800;
+}
+
+.battlefield-layer-list small {
+  color: #64717a;
+  font-weight: 700;
+}
+
 .default-pixi-sidecar .default-combat-playback {
   grid-template-columns: 1fr;
 }
@@ -1930,6 +1972,40 @@ h4 {
 
 .compact-command-zone .run-stats {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.commander-doctrine-paths {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.commander-doctrine-path {
+  border-top: 1px solid #dce5e0;
+  padding-top: 8px;
+}
+
+.commander-doctrine-path h4 {
+  color: #40515b;
+  font-size: 0.78rem;
+  margin: 0 0 6px;
+  text-transform: uppercase;
+}
+
+.commander-doctrine-node {
+  align-items: start;
+  display: grid;
+  gap: 8px;
+}
+
+.commander-doctrine-node.unlocked {
+  background: #edf7ec;
+  border-radius: 8px;
+  padding-inline: 8px;
+}
+
+.commander-doctrine-node.locked {
+  opacity: 0.72;
 }
 
 .action-log-list {

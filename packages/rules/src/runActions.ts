@@ -2,6 +2,7 @@ import type { ContentCatalog } from "@packbound/content";
 import type { BoardPosition, CardDefId, CardInstanceId } from "@packbound/shared";
 
 import {
+  applyCommanderDoctrineUnlock,
   applyCommanderUpgradeChoice,
   deployCommander,
   returnCommanderToCommand
@@ -23,7 +24,7 @@ import {
   recordCombatResult,
   type CombatResultLike
 } from "./runProgression";
-import type { CommanderUpgradeId, RunState } from "./runState";
+import type { CommanderDoctrineNodeId, CommanderUpgradeId, RunState } from "./runState";
 import { upgradeCardGroup } from "./upgrades";
 
 export type RunAction =
@@ -54,6 +55,10 @@ export type RunAction =
   | {
       readonly type: "applyCommanderUpgradeChoice";
       readonly choiceId: CommanderUpgradeId;
+    }
+  | {
+      readonly type: "unlockCommanderDoctrineNode";
+      readonly nodeId: CommanderDoctrineNodeId;
     }
   | { readonly type: "markCombatReady" }
   | {
@@ -102,6 +107,8 @@ export const applyRunAction = (
       return upgradeCardGroup(run, catalog, action.defId, action.upgradeLevel);
     case "applyCommanderUpgradeChoice":
       return applyCommanderUpgradeChoice(run, action.choiceId);
+    case "unlockCommanderDoctrineNode":
+      return applyCommanderDoctrineUnlock(run, action.nodeId);
     case "markCombatReady":
       return markCombatReady(run, catalog);
     case "recordCombatResult":

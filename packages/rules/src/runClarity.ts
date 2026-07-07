@@ -3,9 +3,11 @@ import {
   ASPECTS,
   chargeCostTotal,
   type Aspect,
+  type CombatEvent,
   type ValidationResult
 } from "@packbound/shared";
 
+import { hasCommanderRewardForRound } from "./commander";
 import { getRunPhase, type RunState } from "./runState";
 
 export {
@@ -31,6 +33,29 @@ export type LoadoutResourceSummary = {
   readonly sourceSlotsText: string;
 };
 
+export type BattlefieldLayerEntry = {
+  readonly id: string;
+  readonly label: string;
+  readonly detail: string;
+};
+
+export type BattlefieldLayerSectionView = {
+  readonly title: string;
+  readonly statusText: string;
+  readonly entries: readonly BattlefieldLayerEntry[];
+};
+
+export type BattlefieldLayersView = {
+  readonly ashes: BattlefieldLayerSectionView;
+  readonly wallsAndEdges: BattlefieldLayerSectionView;
+};
+
+export type BuildBattlefieldLayersViewInput = {
+  readonly run: RunState;
+  readonly catalog: ContentCatalog;
+  readonly lastCombatEvents?: readonly CombatEvent[];
+};
+
 const emptyAspectAccess = (): Record<Aspect, number> => ({
   Ember: 0,
   Shade: 0,
@@ -50,6 +75,54 @@ const formatAspectAccess = (access: Readonly<Record<Aspect, number>>): string =>
 
 const commanderEffectiveRebindTax = (run: RunState): number =>
   Math.max(0, (run.commander?.rebindTax ?? 0) - (run.commander?.rebindTaxDiscount ?? 0));
+
+const combatSideLabel = (
+  event: Extract<CombatEvent, { readonly type: "UnitDestroyed" }>
+) => (event.side === "playerA" ? "Your side" : "Enemy side");
+
+export const buildBattlefieldLayersView = ({
+  catalog,
+  lastCombatEvents = [],
+  run
+}: BuildBattlefieldLayersViewInput): BattlefieldLayersView => {
+  const persistentAshEntries = run.ashes.map((card, index) => ({
+    id: `persistent-ashes:${card.instanceId}:${index}`,
+    label: catalog.cardsById.get(card.defId)?.name ?? card.defId,
+    detail: "Persistent Ashes"
+  }));
+  const destroyedEvents = lastCombatEvents.filter(
+    (event): event is Extract<CombatEvent, { readonly type: "UnitDestroyed" }> =>
+      event.type === "UnitDestroyed"
+  );
+  const lastCombatAshEntries =
+    persistentAshEntries.length > 0
+      ? []
+      : destroyedEvents.map((event, index) => ({
+          id: `last-combat-ashes:${event.cardInstanceId}:${index}`,
+          label: catalog.cardsById.get(event.defId)?.name ?? event.defId,
+          detail: `Last combat Ashes: ${combatSideLabel(event)}`
+        }));
+  const ashEntries =
+    persistentAshEntries.length > 0 ? persistentAshEntries : lastCombatAshEntries;
+
+  return {
+    ashes: {
+      title: "Ashes",
+      statusText:
+        persistentAshEntries.length > 0
+          ? "Persistent Ashes tracked by the run."
+          : lastCombatAshEntries.length > 0
+            ? "Last combat Ashes from destroyed units."
+            : "No Ashes yet.",
+      entries: ashEntries
+    },
+    wallsAndEdges: {
+      title: "Walls / Edges",
+      statusText: "No walls or edge terrain yet.",
+      entries: []
+    }
+  };
+};
 
 export const buildLoadoutResourceSummary = (
   run: RunState,
@@ -125,18 +198,16 @@ export const getRunNextActionMessage = (
       const packRewardClaimed = run.rewardHistory.some(
         (entry) => entry.type === "pack" && entry.round === run.currentRound
       );
-      const commanderUpgradeClaimed =
-        !run.commander ||
-        run.commander.upgradeHistory.some((entry) => entry.round === run.currentRound);
+      const commanderRewardClaimed = hasCommanderRewardForRound(run);
 
-      if (!packRewardClaimed && !commanderUpgradeClaimed) {
-        return "Next: claim both rewards: open one pack and choose one Commander upgrade.";
+      if (!packRewardClaimed && !commanderRewardClaimed) {
+        return "Next: claim both rewards: open one pack and unlock one Commander doctrine.";
       }
       if (!packRewardClaimed) {
         return "Next: open one reward pack.";
       }
-      if (!commanderUpgradeClaimed) {
-        return "Next: choose one Commander upgrade.";
+      if (!commanderRewardClaimed) {
+        return "Next: unlock one Commander doctrine.";
       }
       return "Next: reward choices are complete.";
     }

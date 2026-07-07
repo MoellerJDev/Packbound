@@ -8,6 +8,7 @@ import {
   buildLoadoutResourceSummary,
   buildPostPackLoadoutSuggestions,
   buildRewardOfferExplanations,
+  buildBattlefieldLayersView,
   buildRunTraitSummary,
   buildCombatantSetupForEncounter,
   buildCombatantSetupForRun,
@@ -23,12 +24,15 @@ import {
   passEncounterPriority,
   getCommanderDeploymentCandidatePosition,
   getCommanderEffectiveRebindTax,
+  getCommanderDoctrineNodes,
   getDefaultCommanderPosition,
+  getCurrentCommanderDoctrineChoices,
   getCurrentEncounter,
-  getCurrentCommanderUpgradeChoices,
+  getLegalCommanderDeployPositions,
   getCurrentRewardChoices,
   getLatestOpenedPackCardInstanceIds,
   getLegalLoadoutActions,
+  hasCommanderRewardForRound,
   getUpgradeProgressGroups,
   getRunPhase,
   getRunNextActionMessage,
@@ -40,7 +44,7 @@ import {
   submitTargetProbeActionFromEncounterBoard,
   validateRunLoadout,
   type CombatResultLike,
-  type CommanderUpgradeId,
+  type CommanderDoctrineNodeId,
   type EngagementPreviewSide,
   type EncounterCombatChargeProfile,
   type EncounterMatchState,
@@ -78,7 +82,7 @@ import type {
   UpcomingCombatPanelView
 } from "./components/CombatResultPanel";
 import type { CommandZonePanelView } from "./components/CommandZonePanel";
-import type { CommanderUpgradePanelView } from "./components/CommanderUpgradePanel";
+import type { CommanderDoctrinePanelView } from "./components/CommanderDoctrinePanel";
 import {
   HexArenaView,
   type HexArenaController,
@@ -132,7 +136,11 @@ import {
 } from "./viewModels/defaultPixiLoadoutEditView";
 import { buildDefaultPixiCommanderEditView } from "./viewModels/defaultPixiCommanderEditView";
 import { buildPackOfferCardViews } from "./viewModels/packOfferCardView";
-import { sameBoardPosition } from "./viewModels/defaultPixiPlacementView";
+import {
+  sameBoardPosition,
+  type DefaultPixiBoardEditControlsView,
+  type DefaultPixiPlacementHintView
+} from "./viewModels/defaultPixiPlacementView";
 
 const playerId = asPlayerId("debug-player");
 const runSeed = "client-debug-run";
@@ -272,14 +280,17 @@ export function App() {
     createPixiReplayControlsState
   );
   const [rendererReplay, setRendererReplay] = useState(createPixiReplayControlsState);
+  const [defaultCommanderPlacementActive, setDefaultCommanderPlacementActive] =
+    useState(false);
   const [selectedTargetProbeCardInstanceId, setSelectedTargetProbeCardInstanceId] =
     useState<CardInstanceId | undefined>();
   const phase = getRunPhase(run);
   const rewardChoices = useMemo(() => getCurrentRewardChoices(run, sampleCatalog), [run]);
-  const commanderUpgradeChoices = useMemo(
-    () => getCurrentCommanderUpgradeChoices(run),
+  const commanderDoctrineChoices = useMemo(
+    () => getCurrentCommanderDoctrineChoices(run),
     [run]
   );
+  const commanderDoctrineNodes = useMemo(() => getCommanderDoctrineNodes(run), [run]);
   const rewardOfferExplanations = useMemo(
     () => buildRewardOfferExplanations(run, sampleCatalog),
     [run]
@@ -356,6 +367,10 @@ export function App() {
     () => getDefaultCommanderPosition(run, sampleCatalog),
     [run]
   );
+  const commanderLegalDeployPositions = useMemo(
+    () => getLegalCommanderDeployPositions(run, sampleCatalog),
+    [run]
+  );
   const commanderDefinition = run.commander
     ? sampleCatalog.cardsById.get(run.commander.card.defId)
     : undefined;
@@ -376,7 +391,10 @@ export function App() {
     if (run.commander.card.zone !== "command") {
       return { ok: false as const, reason: "Commander is already deployed." };
     }
-    if (!commanderDefaultPosition && commanderCandidatePosition) {
+    if (commanderLegalDeployPositions.length > 0) {
+      return { ok: true as const };
+    }
+    if (commanderCandidatePosition) {
       return canDeployCommander(run, sampleCatalog, commanderCandidatePosition);
     }
     if (!commanderDefaultPosition) {
@@ -386,7 +404,12 @@ export function App() {
       };
     }
     return canDeployCommander(run, sampleCatalog, commanderDefaultPosition);
-  }, [commanderCandidatePosition, commanderDefaultPosition, run]);
+  }, [
+    commanderCandidatePosition,
+    commanderDefaultPosition,
+    commanderLegalDeployPositions,
+    run
+  ]);
   const commanderReturnCheck = useMemo(() => canReturnCommanderToCommand(run), [run]);
 
   const combat = useMemo(() => {
@@ -572,6 +595,18 @@ export function App() {
   });
   const pixiPlacementCard = pixiPlacement.view.selectedPlacementCard;
   const pixiPlaceablePositions = pixiPlacement.view.placeablePositions;
+  const defaultPixiPlaceablePositions = useMemo(
+    () =>
+      isDefaultRoute && defaultCommanderPlacementActive
+        ? commanderLegalDeployPositions
+        : pixiPlaceablePositions,
+    [
+      commanderLegalDeployPositions,
+      defaultCommanderPlacementActive,
+      isDefaultRoute,
+      pixiPlaceablePositions
+    ]
+  );
   const selectedCardIdForPixiZoneEdit =
     selectedAllyCardRef?.type === "run" ? selectedAllyCardRef.cardInstanceId : undefined;
   const pixiLoadoutEditView = useMemo(
@@ -590,7 +625,7 @@ export function App() {
         ...(encounterBoardGrid ? { enemyBoard: encounterBoardGrid } : {}),
         engagementPreview,
         ...(isDefaultRoute || isRendererLab
-          ? { placeablePositions: pixiPlaceablePositions }
+          ? { placeablePositions: defaultPixiPlaceablePositions }
           : {})
       }),
     [
@@ -599,7 +634,7 @@ export function App() {
       isDefaultRoute,
       isRendererLab,
       playerBoardGrid,
-      pixiPlaceablePositions
+      defaultPixiPlaceablePositions
     ]
   );
   const rendererReplayCardNameByInstanceId = useMemo(() => {
@@ -718,12 +753,10 @@ export function App() {
         : [],
     [pendingPackOffer, run]
   );
-  const commanderUpgradeClaimedThisRound =
-    !run.commander ||
-    run.commander.upgradeHistory.some((entry) => entry.round === run.currentRound);
+  const commanderRewardClaimedThisRound = hasCommanderRewardForRound(run);
   const runGuideSteps = useMemo<readonly RunGuideStep[]>(() => {
     const rewardBucketsDone =
-      packRewardClaimedThisRound && commanderUpgradeClaimedThisRound;
+      packRewardClaimedThisRound && commanderRewardClaimedThisRound;
     return [
       {
         label: "Prepare your loadout",
@@ -779,7 +812,7 @@ export function App() {
               ? `Pick ${pendingPackOffer.pickLimit} cards from the pending Pack Offer.`
               : rewardBucketsDone
                 ? "Pack and Commander rewards are claimed."
-                : "Open one pack and choose one Commander upgrade."
+                : "Open one pack and unlock one Commander doctrine."
             : "Rewards unlock after combat.",
         state:
           phase === "reward"
@@ -803,7 +836,7 @@ export function App() {
       }
     ];
   }, [
-    commanderUpgradeClaimedThisRound,
+    commanderRewardClaimedThisRound,
     latestCombatSummary,
     packRewardClaimedThisRound,
     pendingPackOffer,
@@ -847,20 +880,65 @@ export function App() {
       ? undefined
       : commanderDeployCheck.reason,
     hasCommander: commandZoneView.hasCommander,
+    legalDeployCount: commanderLegalDeployPositions.length,
+    placementActive: defaultCommanderPlacementActive,
     returnBlockedReason: commanderReturnCheck.ok
       ? undefined
       : commanderReturnCheck.reason,
     zone: commandZoneView.zone
   });
-  const commanderUpgradePanelView = {
-    choices: commanderUpgradeChoices,
-    currentLevel: run.commander?.card.upgradeLevel ?? 0,
-    effectiveRebindTax: commanderEffectiveRebindTax,
-    history: run.commander?.upgradeHistory ?? [],
+  const commanderDoctrinePanelView = {
+    claimedThisRound: commanderRewardClaimedThisRound,
+    choices: commanderDoctrineChoices,
+    history: run.commander?.doctrine.unlockHistory ?? [],
+    legacyUpgradeHistoryCount: run.commander?.upgradeHistory.length ?? 0,
+    nodes: commanderDoctrineNodes,
     phase,
-    rawRebindTax: commanderRawRebindTax,
-    rebindTaxDiscount: commanderRebindTaxDiscount
-  } satisfies CommanderUpgradePanelView;
+    points: run.commander?.doctrine.points ?? 0
+  } satisfies CommanderDoctrinePanelView;
+  const commanderPlacementBlockedReason = commanderDeployCheck.ok
+    ? "No legal Commander deployment hex is available."
+    : commanderDeployCheck.reason;
+  const commanderPlacementHint: DefaultPixiPlacementHintView =
+    commanderLegalDeployPositions.length > 0
+      ? {
+          mode: "ready",
+          cardName: commandZoneView.commanderName,
+          text: `Placing ${commandZoneView.commanderName}. Click a highlighted Pixi hex.`
+        }
+      : {
+          mode: "blocked",
+          cardName: commandZoneView.commanderName,
+          reason: commanderPlacementBlockedReason,
+          text: `Cannot deploy ${commandZoneView.commanderName}: ${commanderPlacementBlockedReason}`
+        };
+  const commanderBoardEditControls = {
+    mode: "place",
+    modeLabel: "Place",
+    selectedCardName: commandZoneView.commanderName,
+    statusText:
+      commanderLegalDeployPositions.length > 0
+        ? "Click a highlighted Pixi hex to deploy your Commander."
+        : "Commander has no legal deployment hex.",
+    canCancelPlacement: true
+  } satisfies DefaultPixiBoardEditControlsView;
+  const defaultPixiPlacementHint = defaultCommanderPlacementActive
+    ? commanderPlacementHint
+    : pixiPlacement.view.placementHint;
+  const defaultPixiBoardEditControls = defaultCommanderPlacementActive
+    ? commanderBoardEditControls
+    : pixiPlacement.view.boardEditControls;
+  const battlefieldLayers = useMemo(
+    () =>
+      buildBattlefieldLayersView({
+        catalog: sampleCatalog,
+        run,
+        ...(lastRecordedCombat
+          ? { lastCombatEvents: lastRecordedCombat.result.events }
+          : {})
+      }),
+    [lastRecordedCombat, run]
+  );
   const loadoutZonesView = {
     activeCards: run.activeCards,
     boardPlacements: run.board.placements,
@@ -885,9 +963,9 @@ export function App() {
       ? `Pack paid. Pick ${pendingPackOffer.pickLimit} cards from the Pack Offer to add to Pool.`
       : rewardChoices.length > 0
         ? "Choose one pack offer. You will pick the cards that enter Pool."
-        : commanderUpgradeClaimedThisRound
+        : commanderRewardClaimedThisRound
           ? "Pack reward claimed. Advance when ready."
-          : "Pack reward claimed. Choose a Commander upgrade to finish rewards."
+          : "Pack reward claimed. Unlock a Commander doctrine to finish rewards."
     : "Rewards appear after combat is recorded.";
   const runGuideStats = [
     {
@@ -919,8 +997,8 @@ export function App() {
           phase === "reward"
             ? pendingPackOffer
               ? "Choose cards from the Pack Offer before advancing."
-              : "Claim one pack and one Commander upgrade before advancing."
-            : packRewardClaimedThisRound && commanderUpgradeClaimedThisRound
+              : "Claim one pack and one Commander doctrine before advancing."
+            : packRewardClaimedThisRound && commanderRewardClaimedThisRound
               ? "Rewards are complete; Advance starts the next planning round."
               : "Finish any remaining reward before advancing."
         }`
@@ -954,6 +1032,7 @@ export function App() {
     setSelectedAllyCardRef(undefined);
     setSelectedEnemyCardRef(undefined);
     setSelectedEngagementRef(undefined);
+    setDefaultCommanderPlacementActive(false);
     pixiPlacement.controller.clearPlacement();
     setSelectedTargetProbeCardInstanceId(undefined);
     setDefaultCombatReplay((current) => resetPixiReplay(current));
@@ -989,6 +1068,7 @@ export function App() {
           });
       }
     });
+    setDefaultCommanderPlacementActive(false);
     pixiPlacement.controller.clearPlacement();
     setSelectedAllyCardRef({ type: "run", cardInstanceId });
     if (action.type === "placeOnBoard") {
@@ -1005,6 +1085,7 @@ export function App() {
         ? actions.filter((action) => action.type !== "placeOnBoard")
         : actions;
     const selectRunCard = () => {
+      setDefaultCommanderPlacementActive(false);
       pixiPlacement.controller.clearPlacement();
       setSelectedAllyCardRef({ type: "run", cardInstanceId });
       if (
@@ -1055,6 +1136,7 @@ export function App() {
     const placeAction = actions.find((action) => action.type === "placeOnBoard");
     const directActions = actions.filter((action) => action.type !== "placeOnBoard");
     const selectRunCard = () => {
+      setDefaultCommanderPlacementActive(false);
       pixiPlacement.controller.clearPlacement();
       setSelectedAllyCardRef({ type: "run", cardInstanceId });
       if (
@@ -1101,6 +1183,7 @@ export function App() {
     }
 
     const cardInstanceId = run.commander.card.instanceId;
+    setDefaultCommanderPlacementActive(false);
     pixiPlacement.controller.clearPlacement();
     setSelectedAllyCardRef({ type: "run", cardInstanceId });
     if (run.commander.card.zone === "board") {
@@ -1114,6 +1197,16 @@ export function App() {
       return;
     }
 
+    if (isDefaultRoute) {
+      if (commanderDeployCheck.ok && commanderLegalDeployPositions.length > 0) {
+        pixiPlacement.controller.clearPlacement();
+        setDefaultCommanderPlacementActive(true);
+        setSelectedAllyCardRef({ type: "run", cardInstanceId });
+        setSelectedEngagementRef(undefined);
+      }
+      return;
+    }
+
     setRun((currentRun) => {
       const position = getDefaultCommanderPosition(currentRun, sampleCatalog);
       if (!position || !canDeployCommander(currentRun, sampleCatalog, position).ok) {
@@ -1124,10 +1217,15 @@ export function App() {
         position
       });
     });
+    setDefaultCommanderPlacementActive(false);
     pixiPlacement.controller.clearPlacement();
     setSelectedAllyCardRef({ type: "run", cardInstanceId });
     setSelectedEngagementRef({ type: "run", cardInstanceId });
     setRendererReplay((current) => resetPixiReplay(current));
+  };
+
+  const cancelCommanderPlacement = () => {
+    setDefaultCommanderPlacementActive(false);
   };
 
   const returnCommanderFromBoard = () => {
@@ -1143,6 +1241,7 @@ export function App() {
           })
         : currentRun
     );
+    setDefaultCommanderPlacementActive(false);
     pixiPlacement.controller.clearPlacement();
     setSelectedAllyCardRef({ type: "run", cardInstanceId });
     setSelectedEngagementRef(undefined);
@@ -1160,28 +1259,33 @@ export function App() {
   };
 
   const inspectEncounterBoard = (cardInstanceId: CardInstanceId) => {
+    setDefaultCommanderPlacementActive(false);
     pixiPlacement.controller.clearPlacement();
     setSelectedEnemyCardRef({ type: "encounterBoard", cardInstanceId });
     setSelectedEngagementRef({ type: "encounterBoard", cardInstanceId });
   };
 
   const inspectAllyBoardCard = (cardInstanceId: CardInstanceId) => {
+    setDefaultCommanderPlacementActive(false);
     pixiPlacement.controller.clearPlacement();
     setSelectedAllyCardRef({ type: "run", cardInstanceId });
     setSelectedEngagementRef({ type: "run", cardInstanceId });
   };
 
   const inspectEncounterSource = (cardInstanceId: CardInstanceId) => {
+    setDefaultCommanderPlacementActive(false);
     pixiPlacement.controller.clearPlacement();
     setSelectedEnemyCardRef({ type: "encounterSource", cardInstanceId });
   };
 
   const inspectEncounterSpellrail = (cardInstanceId: CardInstanceId) => {
+    setDefaultCommanderPlacementActive(false);
     pixiPlacement.controller.clearPlacement();
     setSelectedEnemyCardRef({ type: "encounterSpellrail", cardInstanceId });
   };
 
   const markReady = () => {
+    setDefaultCommanderPlacementActive(false);
     setRun((currentRun) =>
       applyRunAction(currentRun, sampleCatalog, { type: "markCombatReady" })
     );
@@ -1232,11 +1336,11 @@ export function App() {
     );
   };
 
-  const applyCommanderUpgrade = (choiceId: CommanderUpgradeId) => {
+  const unlockCommanderDoctrine = (nodeId: CommanderDoctrineNodeId) => {
     setRun((currentRun) =>
       applyRunAction(currentRun, sampleCatalog, {
-        type: "applyCommanderUpgradeChoice",
-        choiceId
+        type: "unlockCommanderDoctrineNode",
+        nodeId
       })
     );
   };
@@ -1245,6 +1349,7 @@ export function App() {
     setSelectedAllyCardRef(undefined);
     setSelectedEnemyCardRef(undefined);
     setSelectedEngagementRef(undefined);
+    setDefaultCommanderPlacementActive(false);
     pixiPlacement.controller.clearPlacement();
     setSelectedTargetProbeCardInstanceId(undefined);
     setDefaultCombatReplay((current) => resetPixiReplay(current));
@@ -1411,6 +1516,7 @@ export function App() {
   };
 
   const selectPixiToken = (card: PixiBattlefieldCard) => {
+    setDefaultCommanderPlacementActive(false);
     pixiPlacement.controller.clearPlacement();
     if (card.side === "playerA") {
       setSelectedAllyCardRef({ type: "run", cardInstanceId: card.cardInstanceId });
@@ -1433,6 +1539,36 @@ export function App() {
   };
 
   const placePixiSelectedCardOnCell = (position: BoardPosition) => {
+    if (defaultCommanderPlacementActive) {
+      const cardInstanceId = run.commander?.card.instanceId;
+      if (
+        !cardInstanceId ||
+        !commanderLegalDeployPositions.some((candidate) =>
+          sameBoardPosition(candidate, position)
+        )
+      ) {
+        return;
+      }
+
+      setRun((currentRun) => {
+        const check = canDeployCommander(currentRun, sampleCatalog, position);
+        if (!check.ok) {
+          return currentRun;
+        }
+
+        return applyRunAction(currentRun, sampleCatalog, {
+          type: "deployCommander",
+          position
+        });
+      });
+      setDefaultCommanderPlacementActive(false);
+      pixiPlacement.controller.clearPlacement();
+      setSelectedAllyCardRef({ type: "run", cardInstanceId });
+      setSelectedEngagementRef({ type: "run", cardInstanceId });
+      setRendererReplay((current) => resetPixiReplay(current));
+      return;
+    }
+
     if (
       !pixiPlacement.selectedPlacementCardId ||
       !pixiPlaceablePositions.some((candidate) => sameBoardPosition(candidate, position))
@@ -1465,6 +1601,7 @@ export function App() {
   };
 
   const selectPixiPlacementCard = (cardInstanceId: CardInstanceId) => {
+    setDefaultCommanderPlacementActive(false);
     pixiPlacement.controller.selectPlacementCard(cardInstanceId);
     setSelectedAllyCardRef({ type: "run", cardInstanceId });
   };
@@ -1488,6 +1625,7 @@ export function App() {
           type="button"
           className="secondary"
           onClick={() => {
+            setDefaultCommanderPlacementActive(false);
             pixiPlacement.controller.clearPlacement();
             setSelectedAllyCardRef({ type: "run", cardInstanceId: card.instanceId });
           }}
@@ -1561,14 +1699,15 @@ export function App() {
     currentRound: run.currentRound,
     encounterName: currentEncounter?.name ?? "None",
     engagementPreview,
+    battlefieldLayers,
     phase,
-    boardEditControls: pixiPlacement.view.boardEditControls,
+    boardEditControls: defaultPixiBoardEditControls,
     commanderEditControls: pixiCommanderEditView,
     loadoutEditControls: pixiLoadoutEditView,
     pixiBattlefieldModel,
     playerGold: run.playerGold,
     playerHealth: run.playerHealth,
-    placementHint: pixiPlacement.view.placementHint,
+    placementHint: defaultPixiPlacementHint,
     ...(replayTokenInspectionNotice ? { replayTokenInspectionNotice } : {}),
     selectedAllyInspection,
     selectedEnemyInspection,
@@ -1579,7 +1718,10 @@ export function App() {
   );
   const defaultPixiBattlefieldController = {
     onApplyZoneEditAction: applyPixiZoneEditAction,
-    onCancelPlacement: pixiPlacement.controller.clearPlacement,
+    onCancelCommanderPlacement: cancelCommanderPlacement,
+    onCancelPlacement: defaultCommanderPlacementActive
+      ? cancelCommanderPlacement
+      : pixiPlacement.controller.clearPlacement,
     onCellSelect: placePixiSelectedCardOnCell,
     onDeployCommander: deployCommanderFromCommand,
     ...(pixiPlacementCard && isDefaultRoute
@@ -1606,7 +1748,7 @@ export function App() {
       returnDisabled: !commanderReturnCheck.ok,
       view: commandZoneView
     },
-    commanderUpgradePanelView,
+    commanderDoctrinePanelView,
     currentEncounter,
     isDefaultRoute,
     loadoutZonesView,
@@ -1635,7 +1777,7 @@ export function App() {
   const defaultRunRouteController = {
     battlefield: defaultPixiBattlefieldController,
     cardName,
-    onApplyCommanderUpgrade: applyCommanderUpgrade,
+    onUnlockCommanderDoctrine: unlockCommanderDoctrine,
     onApplyPostPackSuggestion: performLoadoutAction,
     onDeployCommander: deployCommanderFromCommand,
     onInspectCommander: inspectCommander,
@@ -1655,7 +1797,7 @@ export function App() {
     commandZoneView,
     commanderDeployDisabled: !commanderDeployCheck.ok,
     commanderReturnDisabled: !commanderReturnCheck.ok,
-    commanderUpgradePanelView,
+    commanderDoctrinePanelView,
     engagementPreview,
     pixiBattlefieldModel,
     poolCards: run.pool,
@@ -1680,7 +1822,7 @@ export function App() {
   } satisfies RendererLabRouteView;
   const rendererLabRouteController = {
     cardName,
-    onApplyCommanderUpgrade: applyCommanderUpgrade,
+    onUnlockCommanderDoctrine: unlockCommanderDoctrine,
     onCellSelect: placePixiSelectedCardOnCell,
     onDeployCommander: deployCommanderFromCommand,
     onInspectCommander: inspectCommander,

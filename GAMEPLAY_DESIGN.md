@@ -409,11 +409,13 @@ it does not need networking or simultaneous resolution.
 
 ## Commander And Technique Construction Direction
 
-The current Commander upgrades, `Combat Training` and `Rebind Calibration`, are
-prototype placeholders. Future Commander upgrades should be build-defining
-augments, not ordinary shared-pool card copies.
+The current Commander Doctrine foundation replaces the old player-facing
+`Combat Training` / `Rebind Calibration` placeholder reward with path unlocks:
+Ashbound, Field Architect, and Spellrail Conductor. The first nodes are still
+foundation/display unlocks. Future doctrine and Commander upgrades should be
+build-defining augments, not ordinary shared-pool card copies.
 
-Good Commander upgrades can:
+Good Commander doctrine or upgrade choices can:
 
 - bias Pack Market odds toward a risky archetype;
 - discount, tax, or reshape Source/Spellrail economics;
@@ -478,20 +480,22 @@ Packbound should explore a persistent Commander-like starter layer as a future
 run identity system. This section describes the north star. The current
 prototype has only a minimal rules-first slice: starter-created runs carry one
 prototype Commander card in Command Zone, can deploy it to the board during
-planning, can return it to Command during planning, and track visible deploy
-count plus Rebind Tax. Rebind Tax is now enforced as generic Board Charge while
-the Commander is deployed or being deployed. Recording combat now returns a
-destroyed deployed player Commander to Command Zone and increases Rebind Tax.
-The reward phase now has a minimal Commander upgrade choice prototype with
-`Combat Training` and `Rebind Calibration`. It still does not have authored
-Commander content or Signature Relics. The encounter shell now has one
-match-local main-phase Commander action skeleton, `Commander Rally`, but not an
-authored Commander ability system. Encounter actions now sit behind a minimal
+planning by choosing a legal hex, can return it to Command during planning, and
+track visible deploy count plus Rebind Tax. Rebind Tax is now enforced as
+generic Board Charge while the Commander is deployed or being deployed.
+Recording combat now returns a destroyed deployed player Commander to Command
+Zone and increases Rebind Tax. The reward phase now has a Commander Doctrine
+foundation with doctrine points, Ashbound / Field Architect / Spellrail
+Conductor path nodes, prerequisites, unlock history, and display-only
+future-effect copy. It still does not have authored Commander content,
+Signature Relics, or mechanical Doctrine effects. The encounter shell now has
+one match-local main-phase Commander action skeleton, `Commander Rally`, but not
+an authored Commander ability system. Encounter actions now sit behind a minimal
 static contract for timing, labels, source lifecycle, Stability and board-card
 target requirements, match-local Stability effects, and explicit no-effect
 target probes. The prototype also records a
 structured lifecycle history for creation, deployment, return, destruction
-replacement, tax changes, and upgrade application.
+replacement, tax changes, doctrine unlocks, and legacy upgrade application.
 
 ### Why Add A Commander Layer?
 
@@ -588,20 +592,25 @@ Preferred safe windows:
 Voluntary return should usually carry a cost, timing restriction, or Rebind Tax
 increase. It should be a meaningful reset decision, not an always-correct dodge.
 
-### Commander Upgrades
+### Commander Doctrine And Upgrades
 
-Commander upgrades should be discrete run choices, not only duplicate combines.
-They can appear as milestone rewards, boss rewards, pack-adjacent choices,
-archetype achievements, or future encounter rewards.
+Commander progression should be discrete run choices, not only duplicate
+combines. The current direction is **Commander Doctrine**: path-based unlocks
+that let the Commander point the run toward Ashes, walls/terrain, Spellrail
+scripts, faction identity, and future pack-market pressure without solving the
+run by itself.
 
-Current prototype status: after combat rewards, the run can offer one separate
-Commander upgrade bucket alongside the pack reward bucket. `Combat Training`
-raises only the current Commander's upgrade level by 1. `Rebind Calibration`
-adds a Rebind Tax discount that reduces effective generic Board Charge tax for
-future deployments. These are placeholder effects to prove deterministic reward
-choice state, history, replay, and UI, not final authored Commander designs.
+Current prototype status: after combat rewards, the run awards a doctrine point
+and offers one separate Commander Doctrine bucket alongside the pack reward
+bucket. The first foundation paths are Ashbound, Field Architect, and Spellrail
+Conductor. Their current nodes are display/foundation unlocks with serializable
+state, prerequisite status, history, replay, and UI. They do not yet change
+combat, pack odds, Ashes, walls, terrain, or Spellrail triggers. The older
+`Combat Training` and `Rebind Calibration` prototype action path remains
+preserved as compatibility history, but it is no longer the player-facing
+progression direction.
 
-Good upgrade choices:
+Good doctrine or upgrade choices:
 
 - Choose whether the Commander becomes cheaper to Rebind or stronger when
   deployed.
@@ -610,7 +619,7 @@ Good upgrade choices:
 - Unlock a new safe-window action without adding broad instant-speed play.
 - Choose between stabilizing the next fight or scaling toward the final fight.
 
-Bad upgrade choices:
+Bad doctrine or upgrade choices:
 
 - Pure numbers that always dominate other picks.
 - A self-contained engine that makes future packs irrelevant.
@@ -691,18 +700,21 @@ second-main decisions that enter the same priority/stack model as other
 encounter actions.
 
 Do not add a full hand/deck/mill system just to support Commanders. The first
-Commander prototype now proves zone lifecycle, planning deployment, planning
-return, generic Board Charge Rebind Tax enforcement, post-combat destruction
-return, reward-phase upgrade choices, lifecycle history, reducer replay, and one
-match-local Commander encounter action with a Source Row-derived paid Combat
-Charge setup. The encounter shell now also proves one serialized enemy
-board-card target snapshot through `Target Probe`, a debug UI selector for valid
-enemy board-card targets, and a match-local `probed` board-card effect event.
-That gives future authored targeted Techniques, Commander actions, and Signature
-Relics a small serializable target-effect lane before damage, statuses, or
-RunState mutation exist. Next Commander or encounter work should add richer
-effect contracts, fuller encounter resource lifecycle rules, board-cell or Pixi
-click targeting, or authored ability hooks in focused slices.
+Commander prototype now proves zone lifecycle, manual planning deployment to a
+chosen legal hex, planning return, generic Board Charge Rebind Tax enforcement,
+post-combat destruction return, reward-phase doctrine points/unlocks, lifecycle
+history, reducer replay, and one match-local Commander encounter action with a
+Source Row-derived paid Combat Charge setup. The default battlefield now also
+has a compact Battlefield Layers panel for Ashes and Wall/Edge scaffolding,
+while the encounter shell proves one serialized enemy board-card target snapshot
+through `Target Probe`, a debug UI selector for valid enemy board-card targets,
+and a match-local `probed` board-card effect event. That gives future authored
+targeted Techniques, Commander actions, Doctrine effects, and Signature Relics a
+small serializable target-effect lane before damage, statuses, or RunState
+mutation exist. Next Commander or encounter work should add one real mechanical
+Doctrine effect, richer effect contracts, fuller encounter resource lifecycle
+rules, board-cell or Pixi click targeting, or authored ability hooks in focused
+slices.
 
 ### Commander Non-Goals For Now
 

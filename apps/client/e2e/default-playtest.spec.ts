@@ -123,34 +123,35 @@ const expectLastRecordedCombatSummary = async (page: Page) => {
   await expect(combatFeed.getByText("Warnings", { exact: true })).toBeVisible();
 };
 
-const claimCombatTrainingUpgrade = async (page: Page) => {
-  const commanderUpgradePanel = panel(page, "Commander Upgrades");
+const unlockFirstCommanderDoctrine = async (page: Page) => {
+  const commanderDoctrinePanel = panel(page, "Commander Doctrine");
   await expect(
-    commanderUpgradePanel.getByText(
-      "Choose one Commander upgrade for this reward. It applies only to the Commander."
+    commanderDoctrinePanel.getByText(
+      "Spend one doctrine point to unlock a Commander doctrine for this reward."
     )
   ).toBeVisible();
   await expect(
-    commanderUpgradePanel.getByText("Combat Training", { exact: true })
+    commanderDoctrinePanel.getByText("Ash Ledger", { exact: true })
   ).toBeVisible();
   await expect(
-    commanderUpgradePanel.getByText("Rebind Calibration", { exact: true })
+    commanderDoctrinePanel.getByText("Edge Mason", { exact: true })
   ).toBeVisible();
   await expect(
-    commanderUpgradePanel.getByTestId("commander-upgrade-panel-level")
-  ).toHaveText("Lv 0");
-  await commanderUpgradePanel
-    .getByRole("button", { name: "Apply Combat Training" })
-    .click();
-  await expect(
-    commanderUpgradePanel.getByTestId("commander-upgrade-panel-level")
-  ).toHaveText("Lv 1");
-  await expect(
-    commanderUpgradePanel.getByText("Commander upgrade claimed for this reward.")
+    commanderDoctrinePanel.getByText("Queued Trigger", { exact: true })
   ).toBeVisible();
   await expect(
-    commanderUpgradePanel.getByTestId("commander-latest-upgrade")
-  ).toContainText("Combat Training");
+    commanderDoctrinePanel.getByTestId("commander-doctrine-points")
+  ).toHaveText("1");
+  await commanderDoctrinePanel.getByRole("button", { name: "Unlock Ash Ledger" }).click();
+  await expect(
+    commanderDoctrinePanel.getByTestId("commander-doctrine-points")
+  ).toHaveText("0");
+  await expect(
+    commanderDoctrinePanel.getByText("Commander doctrine reward claimed for this reward.")
+  ).toBeVisible();
+  await expect(
+    commanderDoctrinePanel.getByTestId("commander-latest-doctrine")
+  ).toContainText("Ash Ledger");
 };
 
 const openAndCommitFirstPackOffer = async (page: Page) => {
@@ -432,6 +433,15 @@ test("default playtest route starts with concise Pixi play surface", async ({ pa
   await expect(
     page.getByRole("heading", { name: "Battlefield", exact: true })
   ).toBeVisible();
+  const layersPanel = battlefield.getByTestId("battlefield-layers-panel");
+  await expect(layersPanel).toBeVisible();
+  await expect(
+    layersPanel.getByRole("heading", { name: "Battlefield Layers" })
+  ).toBeVisible();
+  await expect(layersPanel).toContainText("Ashes");
+  await expect(layersPanel).toContainText("No Ashes yet.");
+  await expect(layersPanel).toContainText("Walls / Edges");
+  await expect(layersPanel).toContainText("No walls or edge terrain yet.");
   await expect(
     allyInspector.getByRole("heading", { name: "Ally Selected" })
   ).toBeVisible();
@@ -970,6 +980,21 @@ test("default Commander controls support inspect deploy and return", async ({ pa
   await defaultCommanderControls
     .getByRole("button", { name: "Deploy Commander" })
     .click();
+  await expect(commandZonePanel.getByTestId("command-zone-location")).toHaveText(
+    "command"
+  );
+  await expect(
+    defaultCommanderControls.getByTestId("default-pixi-commander-edit-status")
+  ).toHaveText("Placing Sparkcatch Apprentice. Click a highlighted Pixi hex.");
+  await expect(
+    defaultCommanderControls.getByRole("button", {
+      name: "Cancel Commander Placement"
+    })
+  ).toBeVisible();
+  await expect(battlefield.getByTestId("default-pixi-placement-hint")).toHaveText(
+    "Placing Sparkcatch Apprentice. Click a highlighted Pixi hex."
+  );
+  await clickPixiCell(page, rendererHost, 4, 0);
   await expect(commandZonePanel.getByTestId("command-zone-location")).toHaveText("board");
   await expect(
     defaultCommanderControls.getByTestId("default-pixi-commander-edit-zone")
@@ -1012,7 +1037,7 @@ test("default rewards gate Pack Offers before advance", async ({ page }) => {
   const { errors } = await gotoDefaultPlaytestRoute(page);
 
   await recordDefaultCombat(page);
-  await claimCombatTrainingUpgrade(page);
+  await unlockFirstCommanderDoctrine(page);
   await openAndCommitFirstPackOffer(page);
   await expect(page.getByRole("button", { name: "Advance" })).toBeEnabled();
 
@@ -1023,7 +1048,7 @@ test("default post-pack suggestions apply after reward advance", async ({ page }
   const { errors } = await gotoDefaultPlaytestRoute(page, { debug: true });
 
   await recordDefaultCombat(page);
-  await claimCombatTrainingUpgrade(page);
+  await unlockFirstCommanderDoctrine(page);
   const postPackSuggestions = await openAndCommitFirstPackOffer(page);
   await advanceToNextPlanningAfterRewards(page);
   await expect(

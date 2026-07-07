@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 import type {
   CardInspection,
-  CommanderUpgradeId,
+  CommanderDoctrineNodeId,
   EngagementPreview,
   LoadoutResourceSummary,
   RunState
@@ -17,9 +17,9 @@ import {
   type CommandZonePanelView
 } from "../components/CommandZonePanel";
 import {
-  CommanderUpgradePanel,
-  type CommanderUpgradePanelView
-} from "../components/CommanderUpgradePanel";
+  CommanderDoctrinePanel,
+  type CommanderDoctrinePanelView
+} from "../components/CommanderDoctrinePanel";
 import { EngagementPreviewPanel } from "../components/EngagementPreviewPanel";
 import { PixiBattlefieldRenderer } from "../components/pixi/PixiBattlefieldRenderer";
 import type {
@@ -34,7 +34,7 @@ export type RendererLabRouteView = {
   readonly commandZoneView: CommandZonePanelView;
   readonly commanderDeployDisabled: boolean;
   readonly commanderReturnDisabled: boolean;
-  readonly commanderUpgradePanelView: CommanderUpgradePanelView;
+  readonly commanderDoctrinePanelView: CommanderDoctrinePanelView;
   readonly engagementPreview: EngagementPreview;
   readonly pixiBattlefieldModel: PixiBattlefieldModel;
   readonly poolCards: RunState["pool"];
@@ -58,7 +58,7 @@ export type RendererLabRouteView = {
 
 export type RendererLabRouteController = {
   readonly cardName: (defId: CardDefId) => string;
-  readonly onApplyCommanderUpgrade: (choiceId: CommanderUpgradeId) => void;
+  readonly onUnlockCommanderDoctrine: (nodeId: CommanderDoctrineNodeId) => void;
   readonly onCellSelect: (position: BoardPosition) => void;
   readonly onDeployCommander: () => void;
   readonly onInspectCommander: () => void;
@@ -223,10 +223,10 @@ export const RendererLabRoute = ({
         onDeploy={controller.onDeployCommander}
         onReturn={controller.onReturnCommander}
       />
-      <CommanderUpgradePanel
+      <CommanderDoctrinePanel
         variant="renderer-lab-panel"
-        view={view.commanderUpgradePanelView}
-        onApplyUpgrade={controller.onApplyCommanderUpgrade}
+        view={view.commanderDoctrinePanelView}
+        onUnlockDoctrine={controller.onUnlockCommanderDoctrine}
       />
 
       <div className="renderer-lab-panel">

@@ -18,13 +18,18 @@ import {
   applyPackReward,
   commitPackOfferPicks,
   canDeployCommander,
+  canUnlockCommanderDoctrineNode,
   canPlaceCardOnBoard,
   canReturnCommanderToCommand,
   createRunFromStarterKit,
   deployCommander,
   getCommanderEffectiveRebindTax,
+  getCommanderDoctrineNodes,
+  getCurrentCommanderDoctrineChoices,
   getCurrentCommanderUpgradeChoices,
   getDefaultCommanderPosition,
+  getLegalCommanderDeployPositions,
+  hasCommanderRewardForRound,
   getCurrentRewardChoices,
   recordCombatResult,
   replayRunActions,
@@ -259,6 +264,24 @@ describe("command zone commander prototype", () => {
       upgradeLevelBefore: 0,
       upgradeLevelAfter: 0
     });
+  });
+
+  it("exposes deterministic legal Commander deployment positions", () => {
+    const run = createCommanderRun("legal-commander-positions-seed");
+    const positions = getLegalCommanderDeployPositions(run, sampleCatalog);
+
+    expect(positions.length).toBeGreaterThan(0);
+    expect(positions[0]).toEqual(requireCommanderPosition(run));
+    expect(positions.every((position) => position.layer === "ground")).toBe(true);
+    expect(positions).toEqual(
+      positions
+        .slice()
+        .sort((left, right) => left.row - right.row || left.col - right.col)
+    );
+    expect(JSON.parse(JSON.stringify(positions))).toEqual(positions);
+
+    const deployed = deployCommander(run, sampleCatalog, positions[0]!);
+    expect(getLegalCommanderDeployPositions(deployed, sampleCatalog)).toEqual([]);
   });
 
   it("guards Commander deployment by phase and zone", () => {
@@ -722,6 +745,177 @@ describe("command zone commander prototype", () => {
       "deployed",
       "destroyed_to_command"
     ]);
+  });
+
+  it("awards a doctrine point and exposes available doctrine choices during reward", () => {
+    const planning = createCommanderRun("commander-doctrine-choice-window-seed");
+    const ready = readyCombatRun(planning);
+    const reward = recordCombatResult(ready, combatResult([]), {
+      encounterId: requireCurrentEncounterId(ready)
+    });
+
+    expect(planning.commander?.doctrine).toMatchObject({
+      points: 0,
+      unlockedNodeIds: [],
+      unlockHistory: []
+    });
+    expect(getCurrentCommanderDoctrineChoices(planning)).toEqual([]);
+    expect(getCurrentCommanderDoctrineChoices(ready)).toEqual([]);
+    expect(reward.commander?.doctrine.points).toBe(1);
+    expect(getCurrentCommanderDoctrineChoices(reward)).toEqual([
+      expect.objectContaining({
+        id: "ash_ledger",
+        path: "ashbound",
+        displayName: "Ash Ledger",
+        status: "available"
+      }),
+      expect.objectContaining({
+        id: "edge_mason",
+        path: "field_architect",
+        displayName: "Edge Mason",
+        status: "available"
+      }),
+      expect.objectContaining({
+        id: "queued_trigger",
+        path: "spellrail_conductor",
+        displayName: "Queued Trigger",
+        status: "available"
+      })
+    ]);
+    expect(getCommanderDoctrineNodes(reward)).toContainEqual(
+      expect.objectContaining({
+        id: "memory_vault",
+        status: "locked",
+        lockedReason: "Requires Ash Ledger."
+      })
+    );
+  });
+
+  it("unlocks one Commander doctrine node per reward round and records history", () => {
+    const reward = rewardCombatRun(createCommanderRun("commander-doctrine-history-seed"));
+
+    const unlocked = applyRunAction(reward, sampleCatalog, {
+      type: "unlockCommanderDoctrineNode",
+      nodeId: "ash_ledger"
+    });
+
+    expect(unlocked.commander?.doctrine).toMatchObject({
+      points: 0,
+      unlockedNodeIds: ["ash_ledger"],
+      unlockHistory: [
+        expect.objectContaining({
+          round: reward.currentRound,
+          nodeId: "ash_ledger",
+          path: "ashbound",
+          label: "Ash Ledger",
+          pointsBefore: 1,
+          pointsAfter: 0
+        })
+      ]
+    });
+    expect(commanderLifecycleTypes(unlocked)).toEqual(["created", "doctrine_unlocked"]);
+    expect(latestCommanderLifecycleEntry(unlocked)).toMatchObject({
+      type: "doctrine_unlocked",
+      source: "reward",
+      label: "Commander doctrine unlocked: Ash Ledger.",
+      doctrineNodeId: "ash_ledger",
+      doctrineNodeLabel: "Ash Ledger",
+      fromZone: "command",
+      toZone: "command"
+    });
+    expect(getCurrentCommanderDoctrineChoices(unlocked)).toEqual([]);
+    expect(hasCommanderRewardForRound(unlocked)).toBe(true);
+    expect(() =>
+      applyRunAction(unlocked, sampleCatalog, {
+        type: "unlockCommanderDoctrineNode",
+        nodeId: "edge_mason"
+      })
+    ).toThrow(/already claimed/);
+    expect(JSON.parse(JSON.stringify(unlocked.commander?.doctrine))).toEqual(
+      unlocked.commander?.doctrine
+    );
+  });
+
+  it("guards locked doctrine prerequisites and makes next-tier nodes available later", () => {
+    const reward = rewardCombatRun(createCommanderRun("commander-doctrine-prereq-seed"));
+
+    expect(canUnlockCommanderDoctrineNode(reward, "memory_vault")).toEqual({
+      ok: false,
+      reason: "Requires Ash Ledger."
+    });
+
+    const firstUnlock = applyRunAction(reward, sampleCatalog, {
+      type: "unlockCommanderDoctrineNode",
+      nodeId: "ash_ledger"
+    });
+    const packed = applyAndCommitPackReward(firstUnlock);
+    const nextPlanning = applyRunAction(packed, sampleCatalog, {
+      type: "advanceRunAfterCombat"
+    });
+    const nextReward = rewardCombatRun(nextPlanning);
+
+    expect(nextReward.commander?.doctrine.points).toBe(1);
+    expect(getCurrentCommanderDoctrineChoices(nextReward)).toContainEqual(
+      expect.objectContaining({
+        id: "memory_vault",
+        status: "available"
+      })
+    );
+  });
+
+  it("keeps pack rewards and Commander doctrine rewards separate in the same round", () => {
+    const reward = rewardCombatRun(createCommanderRun("commander-doctrine-buckets-seed"));
+    const packChoiceId = firstPackRewardChoiceId(reward);
+
+    const packed = applyPackReward(reward, sampleCatalog, packChoiceId);
+
+    expect(packed.phase).toBe("reward");
+    expect(packed.pendingPackOffer).toBeDefined();
+    expect(getCurrentRewardChoices(packed, sampleCatalog)).toEqual([]);
+    expect(getCurrentCommanderDoctrineChoices(packed)).toHaveLength(3);
+    expect(() => applyPackReward(packed, sampleCatalog, packChoiceId)).toThrow(
+      /Cannot open another reward pack while Pack Offer/
+    );
+
+    const committed = commitPendingPackOffer(packed);
+    expect(committed.phase).toBe("reward");
+    const unlocked = applyRunAction(committed, sampleCatalog, {
+      type: "unlockCommanderDoctrineNode",
+      nodeId: "edge_mason"
+    });
+
+    expect(unlocked.phase).toBe("combatResolved");
+    expect(unlocked.openedPacks).toHaveLength(1);
+    expect(unlocked.commander?.doctrine.unlockHistory).toHaveLength(1);
+  });
+
+  it("replays Commander doctrine unlock actions deterministically", () => {
+    const initialRun = createCommanderRun("commander-doctrine-replay-seed");
+    const ready = readyCombatRun(initialRun);
+    const actions: readonly RunAction[] = [
+      {
+        type: "recordCombatResult",
+        encounterId: requireCurrentEncounterId(ready),
+        combatResult: combatResult([])
+      },
+      {
+        type: "unlockCommanderDoctrineNode",
+        nodeId: "queued_trigger"
+      }
+    ];
+
+    const unlocked = applyRunActions(ready, sampleCatalog, actions);
+
+    expect(unlocked.commander?.doctrine).toMatchObject({
+      points: 0,
+      unlockedNodeIds: ["queued_trigger"],
+      unlockHistory: [expect.objectContaining({ nodeId: "queued_trigger" })]
+    });
+    expect(commanderLifecycleTypes(unlocked)).toEqual(["created", "doctrine_unlocked"]);
+    expect(replayRunActions(ready, sampleCatalog, actions)).toEqual(unlocked);
+    expect(JSON.parse(JSON.stringify(toRunActionLog(actions)))).toEqual(
+      toRunActionLog(actions)
+    );
   });
 
   it("exposes Commander upgrade choices only during reward with a Commander", () => {

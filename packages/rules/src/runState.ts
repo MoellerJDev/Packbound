@@ -115,6 +115,35 @@ export type PendingPackOffer = {
 
 export type CommanderUpgradeId = "combat_training" | "rebind_calibration";
 
+export type CommanderDoctrinePathId =
+  "ashbound" | "field_architect" | "spellrail_conductor";
+
+export type CommanderDoctrineNodeId =
+  | "ash_ledger"
+  | "memory_vault"
+  | "edge_mason"
+  | "wall_pattern"
+  | "queued_trigger"
+  | "hidden_rail";
+
+export type CommanderDoctrineUnlockHistoryEntry = {
+  readonly id: string;
+  readonly round: number;
+  readonly nodeId: CommanderDoctrineNodeId;
+  readonly path: CommanderDoctrinePathId;
+  readonly label: string;
+  readonly cardInstanceId: CardInstanceId;
+  readonly cardDefId: CardDefId;
+  readonly pointsBefore: number;
+  readonly pointsAfter: number;
+};
+
+export type CommanderDoctrineState = {
+  readonly points: number;
+  readonly unlockedNodeIds: readonly CommanderDoctrineNodeId[];
+  readonly unlockHistory: readonly CommanderDoctrineUnlockHistoryEntry[];
+};
+
 export type CommanderUpgradeHistoryEntry = {
   readonly id: string;
   readonly round: number;
@@ -129,7 +158,12 @@ export type CommanderUpgradeHistoryEntry = {
 };
 
 export type CommanderLifecycleEntryType =
-  "created" | "deployed" | "returned_to_command" | "destroyed_to_command" | "upgraded";
+  | "created"
+  | "deployed"
+  | "returned_to_command"
+  | "destroyed_to_command"
+  | "upgraded"
+  | "doctrine_unlocked";
 
 export type CommanderLifecycleSource =
   "starter" | "planning" | "combat_result" | "reward";
@@ -161,6 +195,8 @@ export type CommanderLifecycleHistoryEntry = {
   readonly destructionReason?: DestructionReason;
   readonly upgradeId?: CommanderUpgradeId;
   readonly upgradeLabel?: string;
+  readonly doctrineNodeId?: CommanderDoctrineNodeId;
+  readonly doctrineNodeLabel?: string;
 };
 
 export type CombatSummary = {
@@ -186,6 +222,7 @@ export type CommanderState = {
   readonly deployCount: number;
   readonly rebindTax: number;
   readonly rebindTaxDiscount: number;
+  readonly doctrine: CommanderDoctrineState;
   readonly upgradeHistory: readonly CommanderUpgradeHistoryEntry[];
   readonly lifecycleHistory: readonly CommanderLifecycleHistoryEntry[];
 };
@@ -273,6 +310,11 @@ const commanderForStarterKit = (
     deployCount: 0,
     rebindTax: 0,
     rebindTaxDiscount: 0,
+    doctrine: {
+      points: 0,
+      unlockedNodeIds: [],
+      unlockHistory: []
+    },
     upgradeHistory: [],
     lifecycleHistory: [createdCommanderLifecycleEntry(card)]
   };

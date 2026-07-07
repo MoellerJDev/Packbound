@@ -1,5 +1,5 @@
 import { CombatResultPanel } from "../../components/CombatResultPanel";
-import { CommanderUpgradePanel } from "../../components/CommanderUpgradePanel";
+import { CommanderDoctrinePanel } from "../../components/CommanderDoctrinePanel";
 import { DefaultLoadoutTray } from "../../components/DefaultLoadoutTray";
 import { DefaultPixiBattlefieldSection } from "../../components/DefaultPixiBattlefieldSection";
 import { PackOfferPanel } from "../../components/PackOfferPanel";
@@ -22,7 +22,7 @@ export const DefaultPlaytestRoute = ({ view, controller }: DefaultPlaytestRouteP
   const showRewards =
     view.rewards.rewardChoices.length > 0 ||
     view.rewards.pendingPackOffer !== undefined ||
-    view.commanderUpgradePanelView.phase === "reward";
+    view.commanderDoctrinePanelView.phase === "reward";
 
   return (
     <section className="default-playtest-route" data-testid="default-playtest-route">
@@ -68,10 +68,10 @@ export const DefaultPlaytestRoute = ({ view, controller }: DefaultPlaytestRouteP
                   onCommit={controller.onCommitPackOfferPicks}
                 />
               ) : null}
-              <CommanderUpgradePanel
+              <CommanderDoctrinePanel
                 variant="panel"
-                view={view.commanderUpgradePanelView}
-                onApplyUpgrade={controller.onApplyCommanderUpgrade}
+                view={view.commanderDoctrinePanelView}
+                onUnlockDoctrine={controller.onUnlockCommanderDoctrine}
               />
             </>
           ) : null}

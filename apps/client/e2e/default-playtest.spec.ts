@@ -260,6 +260,34 @@ test("default playtest route starts with concise Pixi play surface", async ({ pa
 
   const dashboard = page.getByTestId("default-playtest-dashboard");
   await expect(dashboard).toBeVisible();
+  const cockpitLayout = await dashboard.evaluate((element) => {
+    const leftRail = element.querySelector(".default-playtest-dashboard-left");
+    const centerRail = element.querySelector(".default-playtest-dashboard-center");
+    const rightRail = element.querySelector(".default-playtest-dashboard-right");
+    if (!(leftRail instanceof HTMLElement)) {
+      throw new Error("Missing default left rail.");
+    }
+    if (!(centerRail instanceof HTMLElement)) {
+      throw new Error("Missing default center rail.");
+    }
+    if (!(rightRail instanceof HTMLElement)) {
+      throw new Error("Missing default right rail.");
+    }
+
+    return {
+      centerOverflowY: getComputedStyle(centerRail).overflowY,
+      dashboardHeight: Math.round(element.getBoundingClientRect().height),
+      dashboardOverflowY: getComputedStyle(element).overflowY,
+      leftOverflowY: getComputedStyle(leftRail).overflowY,
+      rightOverflowY: getComputedStyle(rightRail).overflowY,
+      viewportHeight: window.innerHeight
+    };
+  });
+  expect(cockpitLayout.dashboardOverflowY).toBe("hidden");
+  expect(cockpitLayout.leftOverflowY).toBe("auto");
+  expect(cockpitLayout.centerOverflowY).toBe("auto");
+  expect(cockpitLayout.rightOverflowY).toBe("auto");
+  expect(cockpitLayout.dashboardHeight).toBeLessThanOrEqual(cockpitLayout.viewportHeight);
   await expect(page.locator(".app-shell").filter({ has: playtestRoute })).toBeVisible();
   await expect(battlefield).toHaveClass(/default-pixi-battlefield-section/);
   await expect(battlefield.getByTestId("default-pixi-cockpit")).toBeVisible();

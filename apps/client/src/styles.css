@@ -963,6 +963,57 @@ h4 {
   order: -1;
 }
 
+@media (min-width: 1101px) {
+  .app-shell:has(.default-playtest-route) {
+    padding: 16px 0 24px;
+  }
+
+  .app-shell:has(.default-playtest-route) .topbar {
+    margin-bottom: 12px;
+  }
+
+  .default-playtest-dashboard {
+    align-items: stretch;
+    height: clamp(560px, calc(100vh - 132px), 900px);
+    overflow: hidden;
+  }
+
+  .default-playtest-dashboard-left,
+  .default-playtest-dashboard-right {
+    align-content: start;
+    max-height: 100%;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-right: 4px;
+    scrollbar-width: thin;
+  }
+
+  .default-playtest-dashboard-center {
+    align-content: start;
+    max-height: 100%;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+
+  .default-playtest-dashboard-center .battlefield-section {
+    display: grid;
+    gap: 12px;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    min-height: 100%;
+  }
+
+  .default-playtest-dashboard-center .battlefield-layout,
+  .default-playtest-dashboard-center .default-pixi-stage,
+  .default-playtest-dashboard-center .default-pixi-cockpit,
+  .default-playtest-dashboard-center .default-pixi-board-area,
+  .default-playtest-dashboard-center .default-pixi-sidecar {
+    min-height: 0;
+  }
+}
+
 .default-playtest-dashboard-left .default-loadout-tray-header,
 .default-playtest-dashboard-left .default-loadout-tray-zones,
 .default-playtest-dashboard-right .default-playtest-decision-panel {

@@ -426,6 +426,14 @@ board/loadout edit controls, and combat playback when present. The mini selected
 cards keep full details accessible but no longer repeat stat chips plus a second
 visible Stats line.
 
+Manual layout follow-up after this pass: the route used the viewport width, but
+the page still behaved like a tall document because the Loadout Tray,
+Battlefield, Current Decision, Combat Preview, reward panels, and suggestions
+all grew the page together. Implementation update after this task: the default
+dashboard now has a desktop viewport-height cockpit budget. The Loadout Tray and
+Current Decision/reward rails scroll internally, the Battlefield remains the
+center anchor, and narrow screens still fall back to normal stacked page flow.
+
 Implementation update after this task: post-pack suggestions now group duplicate
 latest-pack copies that have the same useful recommendation. The displayed row
 shows copy count, such as `Cracked Prism x2`, and applies one representative
@@ -1457,9 +1465,12 @@ Deferred findings from the same manual pass remain intentionally out of scope:
   Battlefield cockpit with the fixed-size Pixi board capped as the visual
   anchor, a desktop sidecar for Engagement Preview, compact Ally / Enemy
   selected-card cards, Commander controls, existing edit controls/context, and a
-  consolidated first-fold `Place on Board` manual placement action. It is still
-  not a cold-start demo because those controls are compact, capped,
-  button-driven affordances rather than drag/drop or board-native zone editing.
+  consolidated first-fold `Place on Board` manual placement action. The desktop
+  dashboard now uses a viewport-height cockpit budget, with the Loadout Tray and
+  Current Decision/reward rail scrolling internally instead of forcing the whole
+  page to grow. It is still not a cold-start demo because those controls are
+  compact, capped, button-driven affordances rather than drag/drop or
+  board-native zone editing.
 - The React/CSS Hex Arena remains available as a collapsed debug fallback on `/`
   and `?scenario=renderer-lab`.
 - The default route now hides/collapses most developer bloat and supports
@@ -1565,16 +1576,15 @@ Deferred findings from the same manual pass remain intentionally out of scope:
 
 Do next:
 
-`test(playtest): manually validate expanded default cockpit workspace`
+`test(playtest): manually validate viewport cockpit scrolling`
 
-Why: the default route now uses the wide viewport more like a game cockpit and
-puts compact inspection/context beside the Pixi board, but it still needs a
-fresh manual 1440 x 900 and wide-desktop cold-read pass. Validate whether the
-Loadout Tray, expanded Battlefield workbench, sidecar cards, and Current
-Decision rail now read as one cockpit, and whether Pack Offer rows, compact
-resource definitions, soft combat forecast, and recorded-combat recap make the
-full reward/advance loop readable before adding bench limits, sell/recycle,
-finite shared-pool scarcity, or board repositioning.
+Why: the default route now uses the wide viewport like a fixed game cockpit,
+with the Loadout Tray and Current Decision/reward rail scrolling internally
+instead of growing the page. It still needs a fresh 1440 x 900, 1280 x 720, and
+wide-desktop cold-read pass to confirm that the anchored Battlefield, scrollable
+rails, Pack Offer rows, compact resource definitions, soft combat forecast, and
+recorded-combat recap make the full reward/advance loop readable before adding
+bench limits, sell/recycle, finite shared-pool scarcity, or board repositioning.
 
 Do soon:
 

@@ -259,6 +259,15 @@ h4 {
   min-width: 0;
 }
 
+.default-pixi-cockpit,
+.default-pixi-board-area,
+.default-pixi-sidecar {
+  align-content: start;
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
 .default-pixi-side-legend {
   align-items: center;
   display: grid;
@@ -310,9 +319,12 @@ h4 {
   padding: 8px 10px;
 }
 
-.default-pixi-stage .pixi-renderer-host {
-  height: min(58vh, 600px);
-  min-height: 500px;
+.default-pixi-board-area .pixi-renderer-host {
+  height: clamp(540px, 64vh, 650px);
+  justify-self: center;
+  max-width: 700px;
+  min-height: 520px;
+  width: 100%;
 }
 
 .default-pixi-action-area {
@@ -2609,6 +2621,24 @@ pre {
   overflow: auto;
   padding: 14px;
   white-space: pre-wrap;
+}
+
+@media (min-width: 1400px) {
+  .default-playtest-dashboard-center .default-pixi-cockpit {
+    grid-template-columns: minmax(620px, 0.8fr) minmax(230px, 1fr);
+  }
+
+  .default-playtest-dashboard-center .default-pixi-sidecar .default-pixi-action-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .default-playtest-dashboard-center .default-pixi-sidecar .default-combat-playback {
+    grid-template-columns: 1fr;
+  }
+
+  .default-playtest-dashboard-center .default-pixi-sidecar .default-combat-playback dl {
+    justify-content: flex-start;
+  }
 }
 
 @media (max-width: 1100px) {

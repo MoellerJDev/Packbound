@@ -262,6 +262,8 @@ test("default playtest route starts with concise Pixi play surface", async ({ pa
   await expect(dashboard).toBeVisible();
   await expect(page.locator(".app-shell").filter({ has: playtestRoute })).toBeVisible();
   await expect(battlefield).toHaveClass(/default-pixi-battlefield-section/);
+  await expect(battlefield.getByTestId("default-pixi-cockpit")).toBeVisible();
+  await expect(battlefield.getByTestId("default-pixi-sidecar")).toBeVisible();
   await expectNoHorizontalScroll(playtestRoute);
   await expect(
     page.getByRole("heading", { name: "Current Decision", exact: true })
@@ -349,7 +351,7 @@ test("default playtest route starts with concise Pixi play surface", async ({ pa
   );
   await expect(allyInspector.getByText("Full card details")).toBeVisible();
   const engagementPreview = battlefield.locator(
-    ".default-pixi-stage > [data-testid='engagement-preview']"
+    ".default-pixi-sidecar [data-testid='engagement-preview']"
   );
   await expect(
     engagementPreview.getByRole("heading", { name: "Engagement Preview" })

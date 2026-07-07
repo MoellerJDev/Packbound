@@ -374,72 +374,82 @@ export const DefaultPixiBattlefieldSection = ({
       </aside>
 
       <div className="default-pixi-stage">
-        <div className="default-pixi-side-legend" data-testid="default-pixi-side-legend">
-          <span className="ally">Your side</span>
-          <span className="center">Engagement line</span>
-          <span className="enemy">Enemy side</span>
-        </div>
-        <p
-          className="default-pixi-selection-context"
-          data-testid="default-pixi-selection-context"
-        >
-          {selectionContextText(view)}
-        </p>
-        {view.replayTokenInspectionNotice ? (
-          <p
-            className="default-pixi-selection-context warning"
-            data-testid="default-pixi-replay-inspection-note"
-          >
-            {view.replayTokenInspectionNotice}
-          </p>
-        ) : null}
-        <PixiBattlefieldRenderer
-          model={view.pixiBattlefieldModel}
-          presentation="playerFacing"
-          replayCommands={view.combatPlayback?.commands ?? []}
-          replayStatus={view.combatPlayback?.replay.status ?? "idle"}
-          replayCommandIndex={view.combatPlayback?.replay.commandIndex ?? 0}
-          replayResetKey={view.combatPlayback?.replay.resetKey ?? 0}
-          replayStepRequestKey={view.combatPlayback?.replay.stepRequestKey ?? 0}
-          onReplayCommandComplete={controller.onReplayCommandComplete}
-          onTokenSelect={controller.onTokenSelect}
-          onCellSelect={controller.onCellSelect}
-          {...(controller.onBlockedCellSelect
-            ? { onBlockedCellSelect: controller.onBlockedCellSelect }
-            : {})}
-        />
-        <div className="default-pixi-action-area" aria-label="Battlefield actions">
-          <div className="default-pixi-action-grid">
-            <DefaultPixiBoardEditControls
-              view={view.boardEditControls}
-              onCancelPlacement={controller.onCancelPlacement}
+        <div className="default-pixi-cockpit" data-testid="default-pixi-cockpit">
+          <div className="default-pixi-board-area" data-testid="default-pixi-board-area">
+            <div
+              className="default-pixi-side-legend"
+              data-testid="default-pixi-side-legend"
+            >
+              <span className="ally">Your side</span>
+              <span className="center">Engagement line</span>
+              <span className="enemy">Enemy side</span>
+            </div>
+            <p
+              className="default-pixi-selection-context"
+              data-testid="default-pixi-selection-context"
+            >
+              {selectionContextText(view)}
+            </p>
+            {view.replayTokenInspectionNotice ? (
+              <p
+                className="default-pixi-selection-context warning"
+                data-testid="default-pixi-replay-inspection-note"
+              >
+                {view.replayTokenInspectionNotice}
+              </p>
+            ) : null}
+            <PixiBattlefieldRenderer
+              model={view.pixiBattlefieldModel}
+              presentation="playerFacing"
+              replayCommands={view.combatPlayback?.commands ?? []}
+              replayStatus={view.combatPlayback?.replay.status ?? "idle"}
+              replayCommandIndex={view.combatPlayback?.replay.commandIndex ?? 0}
+              replayResetKey={view.combatPlayback?.replay.resetKey ?? 0}
+              replayStepRequestKey={view.combatPlayback?.replay.stepRequestKey ?? 0}
+              onReplayCommandComplete={controller.onReplayCommandComplete}
+              onTokenSelect={controller.onTokenSelect}
+              onCellSelect={controller.onCellSelect}
+              {...(controller.onBlockedCellSelect
+                ? { onBlockedCellSelect: controller.onBlockedCellSelect }
+                : {})}
             />
-            <DefaultPixiLoadoutEditControls
-              view={view.loadoutEditControls}
-              onApplyZoneEditAction={controller.onApplyZoneEditAction}
-            />
-            <DefaultPixiCommanderEditControls
-              view={view.commanderEditControls}
-              onDeployCommander={controller.onDeployCommander}
-              onInspectCommander={controller.onInspectCommander}
-              onReturnCommander={controller.onReturnCommander}
-            />
+            <details className="renderer-debug-board default-pixi-debug-board">
+              <summary>React/CSS Debug Board</summary>
+              <div className="renderer-debug-board-inner">
+                {controller.renderDebugBoard()}
+              </div>
+            </details>
           </div>
-          <DefaultPixiPlacementHint hint={view.placementHint} />
-        </div>
-        {view.combatPlayback ? (
-          <DefaultCombatPlaybackPanel
-            controller={controller}
-            playback={view.combatPlayback}
-          />
-        ) : null}
-        <EngagementPreviewPanel preview={view.engagementPreview} playerFacingLabels />
-        <details className="renderer-debug-board default-pixi-debug-board">
-          <summary>React/CSS Debug Board</summary>
-          <div className="renderer-debug-board-inner">
-            {controller.renderDebugBoard()}
+
+          <div className="default-pixi-sidecar" data-testid="default-pixi-sidecar">
+            <div className="default-pixi-action-area" aria-label="Battlefield actions">
+              <div className="default-pixi-action-grid">
+                <DefaultPixiBoardEditControls
+                  view={view.boardEditControls}
+                  onCancelPlacement={controller.onCancelPlacement}
+                />
+                <DefaultPixiLoadoutEditControls
+                  view={view.loadoutEditControls}
+                  onApplyZoneEditAction={controller.onApplyZoneEditAction}
+                />
+                <DefaultPixiCommanderEditControls
+                  view={view.commanderEditControls}
+                  onDeployCommander={controller.onDeployCommander}
+                  onInspectCommander={controller.onInspectCommander}
+                  onReturnCommander={controller.onReturnCommander}
+                />
+              </div>
+              <DefaultPixiPlacementHint hint={view.placementHint} />
+            </div>
+            {view.combatPlayback ? (
+              <DefaultCombatPlaybackPanel
+                controller={controller}
+                playback={view.combatPlayback}
+              />
+            ) : null}
+            <EngagementPreviewPanel preview={view.engagementPreview} playerFacingLabels />
           </div>
-        </details>
+        </div>
       </div>
 
       <aside className="battlefield-inspector enemy">

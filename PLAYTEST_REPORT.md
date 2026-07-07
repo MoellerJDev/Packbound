@@ -404,6 +404,16 @@ Decision structure, but its desktop columns now weight the center battlefield
 more heavily and use narrower side rails. The Pixi internal 700 x 650 stage,
 coordinate math, rules, combat, content, and non-default routes did not change.
 
+Manual layout follow-up after that pass: the wider center column improved the
+default route, but it also exposed the fixed-size Pixi board. The renderer still
+scales a 700 x 650 root into its host using the smaller width/height ratio, and
+the default host was height-clamped, so the actual board stayed roughly the same
+size while the host grew into empty dark side gutters. Implementation update
+after this task: the Battlefield panel now uses a compact `default-pixi-cockpit`
+with a capped board area and a desktop sidecar for existing board/loadout/
+Commander controls, placement hints, combat playback, and Engagement Preview.
+Ally and Enemy inspectors remain wider cards below the cockpit.
+
 Implementation update after this task: post-pack suggestions now group duplicate
 latest-pack copies that have the same useful recommendation. The displayed row
 shows copy count, such as `Cracked Prism x2`, and applies one representative
@@ -1432,10 +1442,12 @@ Deferred findings from the same manual pass remain intentionally out of scope:
   Pool/Board/Source Row/Spellrail editing without opening Advanced Debug Panels.
   It now carries short layer/resource education, a route-specific wider desktop
   shell, center-weighted Loadout Tray / Battlefield / Current Decision columns,
-  a wider center Pixi battlefield, wider Ally / Enemy inspector cards below the
-  board, and a consolidated first-fold `Place on Board` manual placement action.
-  It is still not a cold-start demo because those controls are compact, capped,
-  button-driven affordances rather than drag/drop or board-native zone editing.
+  a tightened Battlefield cockpit with the fixed-size Pixi board capped as the
+  visual anchor, a desktop sidecar for existing controls/context, wider Ally /
+  Enemy inspector cards below the cockpit, and a consolidated first-fold
+  `Place on Board` manual placement action. It is still not a cold-start demo
+  because those controls are compact, capped, button-driven affordances rather
+  than drag/drop or board-native zone editing.
 - The React/CSS Hex Arena remains available as a collapsed debug fallback on `/`
   and `?scenario=renderer-lab`.
 - The default route now hides/collapses most developer bloat and supports
@@ -1541,15 +1553,15 @@ Deferred findings from the same manual pass remain intentionally out of scope:
 
 Do next:
 
-`test(playtest): manually validate widened default dashboard flow`
+`test(playtest): manually validate tightened default battlefield cockpit`
 
-Why: the default route now gives the Pixi board substantially more desktop
-space, but it still needs a fresh manual 1440 x 900 and 1280 x 720 cold-read
-pass. Validate whether Loadout Tray, Battlefield, and Current Decision now read
-as one cockpit, and whether Pack Offer rows, compact resource definitions, soft
-combat forecast, and recorded-combat recap make the full reward/advance loop
-readable before adding bench limits, sell/recycle, finite shared-pool scarcity,
-or board repositioning.
+Why: the default route now gives the Pixi board more useful desktop space
+without wasting the widened center as empty host gutters, but it still needs a
+fresh manual 1440 x 900 and 1280 x 720 cold-read pass. Validate whether Loadout
+Tray, Battlefield, and Current Decision now read as one cockpit, and whether Pack
+Offer rows, compact resource definitions, soft combat forecast, and
+recorded-combat recap make the full reward/advance loop readable before adding
+bench limits, sell/recycle, finite shared-pool scarcity, or board repositioning.
 
 Do soon:
 

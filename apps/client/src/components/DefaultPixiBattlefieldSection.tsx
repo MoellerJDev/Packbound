@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 import type { CardInspection, EngagementPreview } from "@packbound/rules";
 import type { BoardPosition } from "@packbound/shared";
@@ -7,6 +7,7 @@ import { CardInspectorView } from "./CardInspectorView";
 import { CombatModelFactsView } from "./CombatModelFactsView";
 import { EngagementPreviewPanel } from "./EngagementPreviewPanel";
 import { PixiBattlefieldRenderer } from "./pixi/PixiBattlefieldRenderer";
+import { PIXI_BATTLEFIELD_LAYOUT } from "./pixi/pixiBattlefieldLayout";
 import type {
   PixiBattlefieldCard,
   PixiBattlefieldModel
@@ -22,6 +23,10 @@ import type {
   DefaultPixiZoneEditAction
 } from "../viewModels/defaultPixiLoadoutEditView";
 import type { DefaultPixiCommanderEditView } from "../viewModels/defaultPixiCommanderEditView";
+import { useFitAspectRect } from "../hooks/useFitAspectRect";
+
+const DEFAULT_PIXI_ASPECT_RATIO =
+  PIXI_BATTLEFIELD_LAYOUT.width / PIXI_BATTLEFIELD_LAYOUT.height;
 
 export type DefaultPixiBattlefieldView = {
   readonly combatPlayback?: {
@@ -356,148 +361,196 @@ export const DefaultPixiBattlefieldSection = ({
 }: {
   readonly controller: DefaultPixiBattlefieldController;
   readonly view: DefaultPixiBattlefieldView;
-}) => (
-  <section
-    className="battlefield-section default-pixi-battlefield-section"
-    aria-labelledby="battlefield-heading"
-  >
-    <div className="battlefield-header">
-      <div>
-        <h2 id="battlefield-heading">Battlefield</h2>
-        <p className="muted">
-          Blue tokens are yours, red tokens are enemies. Click either side to inspect what
-          will fight next.
-        </p>
-      </div>
-      <dl className="battlefield-run-strip">
-        <div>
-          <dt>Phase</dt>
-          <dd>{view.phase}</dd>
-        </div>
-        <div>
-          <dt>Health</dt>
-          <dd>{view.playerHealth}</dd>
-        </div>
-        <div>
-          <dt>Gold</dt>
-          <dd>{view.playerGold}</dd>
-        </div>
-        <div>
-          <dt>Encounter</dt>
-          <dd>{view.encounterName}</dd>
-        </div>
-      </dl>
-    </div>
+}) => {
+  const fitStage = useFitAspectRect(DEFAULT_PIXI_ASPECT_RATIO);
+  const boardHostStyle: CSSProperties | undefined =
+    fitStage.rect.width > 0 && fitStage.rect.height > 0
+      ? {
+          height: `${fitStage.rect.height}px`,
+          width: `${fitStage.rect.width}px`
+        }
+      : undefined;
+  const showBoardEditControls =
+    view.showDebugPanels || view.boardEditControls.mode === "place";
+  const showLoadoutEditControls =
+    view.showDebugPanels ||
+    (view.loadoutEditControls.mode === "selected" &&
+      view.loadoutEditControls.actions.length > 0);
+  const showActionArea =
+    showBoardEditControls ||
+    showLoadoutEditControls ||
+    view.placementHint.mode !== "idle";
 
-    <div className="battlefield-layout">
-      <div className="default-pixi-stage">
-        <div className="default-pixi-cockpit" data-testid="default-pixi-cockpit">
-          <div className="default-pixi-board-area" data-testid="default-pixi-board-area">
-            <div
-              className="default-pixi-side-legend"
-              data-testid="default-pixi-side-legend"
-            >
-              <span className="ally">Your side</span>
-              <span className="center">Engagement line</span>
-              <span className="enemy">Enemy side</span>
-            </div>
-            <p
-              className="default-pixi-selection-context"
-              data-testid="default-pixi-selection-context"
-            >
-              {selectionContextText(view)}
-            </p>
-            {view.replayTokenInspectionNotice ? (
-              <p
-                className="default-pixi-selection-context warning"
-                data-testid="default-pixi-replay-inspection-note"
-              >
-                {view.replayTokenInspectionNotice}
-              </p>
-            ) : null}
-            <PixiBattlefieldRenderer
-              model={view.pixiBattlefieldModel}
-              presentation="playerFacing"
-              replayCommands={view.combatPlayback?.commands ?? []}
-              replayStatus={view.combatPlayback?.replay.status ?? "idle"}
-              replayCommandIndex={view.combatPlayback?.replay.commandIndex ?? 0}
-              replayResetKey={view.combatPlayback?.replay.resetKey ?? 0}
-              replayStepRequestKey={view.combatPlayback?.replay.stepRequestKey ?? 0}
-              onReplayCommandComplete={controller.onReplayCommandComplete}
-              onTokenSelect={controller.onTokenSelect}
-              onCellSelect={controller.onCellSelect}
-              {...(controller.onBlockedCellSelect
-                ? { onBlockedCellSelect: controller.onBlockedCellSelect }
-                : {})}
-            />
-            {view.showDebugPanels ? (
-              <details className="renderer-debug-board default-pixi-debug-board">
-                <summary>React/CSS Debug Board</summary>
-                <div className="renderer-debug-board-inner">
-                  {controller.renderDebugBoard()}
-                </div>
-              </details>
-            ) : null}
+  return (
+    <section
+      className="battlefield-section default-pixi-battlefield-section"
+      aria-labelledby="battlefield-heading"
+    >
+      <div className="battlefield-header">
+        <div>
+          <h2 id="battlefield-heading">Battlefield</h2>
+          <p className="muted">
+            Blue tokens are yours, red tokens are enemies. Click either side to inspect
+            what will fight next.
+          </p>
+        </div>
+        <dl className="battlefield-run-strip">
+          <div>
+            <dt>Phase</dt>
+            <dd>{view.phase}</dd>
           </div>
+          <div>
+            <dt>Health</dt>
+            <dd>{view.playerHealth}</dd>
+          </div>
+          <div>
+            <dt>Gold</dt>
+            <dd>{view.playerGold}</dd>
+          </div>
+          <div>
+            <dt>Encounter</dt>
+            <dd>{view.encounterName}</dd>
+          </div>
+        </dl>
+      </div>
 
-          <div className="default-pixi-sidecar" data-testid="default-pixi-sidecar">
-            <EngagementPreviewPanel preview={view.engagementPreview} playerFacingLabels />
-            {view.combatPlayback ? (
-              <DefaultCombatPlaybackPanel
-                controller={controller}
-                playback={view.combatPlayback}
-              />
-            ) : null}
+      <div className="battlefield-layout">
+        <div className="default-pixi-stage">
+          <div className="default-pixi-cockpit" data-testid="default-pixi-cockpit">
             <div
-              className="default-pixi-selection-cards"
-              data-testid="default-pixi-selection-cards"
+              className="default-pixi-board-area"
+              data-testid="default-pixi-board-area"
             >
-              <DefaultPixiSelectedCard
-                contextLabel="Your side"
-                emptyText="Select an ally token, pool, Source Row, or Spellrail card."
-                inspection={view.selectedAllyInspection}
-                testId="default-pixi-ally-card"
-                title="Ally Selected"
-                tone="ally"
-              />
-              <DefaultPixiSelectedCard
-                contextLabel="Enemy side"
-                emptyText="Select an enemy token, Source Row, or Spellrail card."
-                inspection={view.selectedEnemyInspection}
-                testId="default-pixi-enemy-card"
-                title="Enemy Selected"
-                tone="enemy"
-              />
+              <div
+                className="default-pixi-side-legend"
+                data-testid="default-pixi-side-legend"
+              >
+                <span className="ally">Your side</span>
+                <span className="center">Engagement line</span>
+                <span className="enemy">Enemy side</span>
+              </div>
+              <p
+                className="default-pixi-selection-context"
+                data-testid="default-pixi-selection-context"
+              >
+                {selectionContextText(view)}
+              </p>
+              {view.replayTokenInspectionNotice ? (
+                <p
+                  className="default-pixi-selection-context warning"
+                  data-testid="default-pixi-replay-inspection-note"
+                >
+                  {view.replayTokenInspectionNotice}
+                </p>
+              ) : null}
+              <div
+                ref={fitStage.containerRef}
+                className="default-pixi-fit-stage"
+                data-testid="default-pixi-fit-stage"
+              >
+                <div className="default-pixi-fit-board" style={boardHostStyle}>
+                  <PixiBattlefieldRenderer
+                    model={view.pixiBattlefieldModel}
+                    presentation="playerFacing"
+                    replayCommands={view.combatPlayback?.commands ?? []}
+                    replayStatus={view.combatPlayback?.replay.status ?? "idle"}
+                    replayCommandIndex={view.combatPlayback?.replay.commandIndex ?? 0}
+                    replayResetKey={view.combatPlayback?.replay.resetKey ?? 0}
+                    replayStepRequestKey={view.combatPlayback?.replay.stepRequestKey ?? 0}
+                    onReplayCommandComplete={controller.onReplayCommandComplete}
+                    onTokenSelect={controller.onTokenSelect}
+                    onCellSelect={controller.onCellSelect}
+                    {...(controller.onBlockedCellSelect
+                      ? { onBlockedCellSelect: controller.onBlockedCellSelect }
+                      : {})}
+                  />
+                </div>
+              </div>
+              {view.showDebugPanels ? (
+                <details className="renderer-debug-board default-pixi-debug-board">
+                  <summary>React/CSS Debug Board</summary>
+                  <div className="renderer-debug-board-inner">
+                    {controller.renderDebugBoard()}
+                  </div>
+                </details>
+              ) : null}
             </div>
-            <DefaultPixiCommanderEditControls
-              view={view.commanderEditControls}
-              onDeployCommander={controller.onDeployCommander}
-              onInspectCommander={controller.onInspectCommander}
-              onReturnCommander={controller.onReturnCommander}
-            />
-            <div className="default-pixi-action-area" aria-label="Battlefield actions">
-              <div className="default-pixi-action-grid">
-                <DefaultPixiBoardEditControls
-                  view={view.boardEditControls}
-                  onCancelPlacement={controller.onCancelPlacement}
+
+            <div className="default-pixi-sidecar" data-testid="default-pixi-sidecar">
+              <EngagementPreviewPanel
+                preview={view.engagementPreview}
+                playerFacingLabels
+              />
+              {view.combatPlayback ? (
+                <DefaultCombatPlaybackPanel
+                  controller={controller}
+                  playback={view.combatPlayback}
                 />
-                <DefaultPixiLoadoutEditControls
-                  view={view.loadoutEditControls}
-                  onApplyZoneEditAction={controller.onApplyZoneEditAction}
+              ) : null}
+              <div
+                className="default-pixi-selection-cards"
+                data-testid="default-pixi-selection-cards"
+              >
+                <DefaultPixiSelectedCard
+                  contextLabel="Your side"
+                  emptyText="Select an ally token, pool, Source Row, or Spellrail card."
+                  inspection={view.selectedAllyInspection}
+                  testId="default-pixi-ally-card"
+                  title="Ally Selected"
+                  tone="ally"
+                />
+                <DefaultPixiSelectedCard
+                  contextLabel="Enemy side"
+                  emptyText="Select an enemy token, Source Row, or Spellrail card."
+                  inspection={view.selectedEnemyInspection}
+                  testId="default-pixi-enemy-card"
+                  title="Enemy Selected"
+                  tone="enemy"
                 />
               </div>
-              <DefaultPixiPlacementHint hint={view.placementHint} />
+              <DefaultPixiCommanderEditControls
+                view={view.commanderEditControls}
+                onDeployCommander={controller.onDeployCommander}
+                onInspectCommander={controller.onInspectCommander}
+                onReturnCommander={controller.onReturnCommander}
+              />
+              {showActionArea ? (
+                <div
+                  className="default-pixi-action-area"
+                  aria-label="Battlefield actions"
+                >
+                  {showBoardEditControls || showLoadoutEditControls ? (
+                    <div className="default-pixi-action-grid">
+                      {showBoardEditControls ? (
+                        <DefaultPixiBoardEditControls
+                          view={view.boardEditControls}
+                          onCancelPlacement={controller.onCancelPlacement}
+                        />
+                      ) : null}
+                      {showLoadoutEditControls ? (
+                        <DefaultPixiLoadoutEditControls
+                          view={view.loadoutEditControls}
+                          onApplyZoneEditAction={controller.onApplyZoneEditAction}
+                        />
+                      ) : null}
+                    </div>
+                  ) : null}
+                  {view.placementHint.mode !== "idle" || view.showDebugPanels ? (
+                    <DefaultPixiPlacementHint hint={view.placementHint} />
+                  ) : null}
+                </div>
+              ) : null}
             </div>
           </div>
         </div>
       </div>
-    </div>
 
-    {view.showDebugPanels ? (
-      <details className="combat-model-details">
-        <summary>Combat Model Notes</summary>
-        <CombatModelFactsView />
-      </details>
-    ) : null}
-  </section>
-);
+      {view.showDebugPanels ? (
+        <details className="combat-model-details">
+          <summary>Combat Model Notes</summary>
+          <CombatModelFactsView />
+        </details>
+      ) : null}
+    </section>
+  );
+};

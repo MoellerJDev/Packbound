@@ -264,6 +264,8 @@ test("default playtest route starts with concise Pixi play surface", async ({ pa
     const leftRail = element.querySelector(".default-playtest-dashboard-left");
     const centerRail = element.querySelector(".default-playtest-dashboard-center");
     const rightRail = element.querySelector(".default-playtest-dashboard-right");
+    const boardArea = element.querySelector('[data-testid="default-pixi-board-area"]');
+    const fitStage = element.querySelector('[data-testid="default-pixi-fit-stage"]');
     const rendererHost = element.querySelector('[data-testid="pixi-renderer-host"]');
     const loadoutTray = element.querySelector('[data-testid="default-loadout-tray"]');
     const loadoutZoneHeadings = [
@@ -278,6 +280,12 @@ test("default playtest route starts with concise Pixi play surface", async ({ pa
     if (!(rightRail instanceof HTMLElement)) {
       throw new Error("Missing default right rail.");
     }
+    if (!(boardArea instanceof HTMLElement)) {
+      throw new Error("Missing default Pixi board area.");
+    }
+    if (!(fitStage instanceof HTMLElement)) {
+      throw new Error("Missing default Pixi fit stage.");
+    }
     if (!(rendererHost instanceof HTMLElement)) {
       throw new Error("Missing Pixi renderer host.");
     }
@@ -286,6 +294,8 @@ test("default playtest route starts with concise Pixi play surface", async ({ pa
     }
 
     const centerBox = centerRail.getBoundingClientRect();
+    const boardAreaBox = boardArea.getBoundingClientRect();
+    const fitStageBox = fitStage.getBoundingClientRect();
     const rendererBox = rendererHost.getBoundingClientRect();
     const loadoutTrayBox = loadoutTray.getBoundingClientRect();
     const headingBoxes = loadoutZoneHeadings.map((heading) =>
@@ -296,6 +306,12 @@ test("default playtest route starts with concise Pixi play surface", async ({ pa
       centerOverflowY: getComputedStyle(centerRail).overflowY,
       dashboardHeight: Math.round(element.getBoundingClientRect().height),
       dashboardOverflowY: getComputedStyle(element).overflowY,
+      fitStageInsideBoardArea:
+        fitStageBox.top >= boardAreaBox.top - 1 &&
+        fitStageBox.left >= boardAreaBox.left - 1 &&
+        fitStageBox.right <= boardAreaBox.right + 1 &&
+        fitStageBox.bottom <= boardAreaBox.bottom + 1,
+      fitStageNonzero: fitStageBox.width > 0 && fitStageBox.height > 0,
       loadoutHeadingsInsideTray: headingBoxes.every(
         (box) =>
           box.top >= loadoutTrayBox.top - 1 && box.bottom <= loadoutTrayBox.bottom + 1
@@ -304,6 +320,12 @@ test("default playtest route starts with concise Pixi play surface", async ({ pa
       rendererInsideCenter:
         rendererBox.top >= centerBox.top - 1 &&
         rendererBox.bottom <= centerBox.bottom + 1,
+      rendererInsideFitStage:
+        rendererBox.top >= fitStageBox.top - 1 &&
+        rendererBox.left >= fitStageBox.left - 1 &&
+        rendererBox.right <= fitStageBox.right + 1 &&
+        rendererBox.bottom <= fitStageBox.bottom + 1,
+      rendererNonzero: rendererBox.width > 0 && rendererBox.height > 0,
       rendererShapeRatio: Number((rendererBox.width / rendererBox.height).toFixed(2)),
       rightOverflowY: getComputedStyle(rightRail).overflowY,
       viewportHeight: window.innerHeight
@@ -316,8 +338,12 @@ test("default playtest route starts with concise Pixi play surface", async ({ pa
   expect(cockpitLayout.dashboardHeight).toBeGreaterThanOrEqual(
     Math.min(560, cockpitLayout.viewportHeight - 160)
   );
+  expect(cockpitLayout.fitStageInsideBoardArea).toBe(true);
+  expect(cockpitLayout.fitStageNonzero).toBe(true);
   expect(cockpitLayout.loadoutHeadingsInsideTray).toBe(true);
   expect(cockpitLayout.rendererInsideCenter).toBe(true);
+  expect(cockpitLayout.rendererInsideFitStage).toBe(true);
+  expect(cockpitLayout.rendererNonzero).toBe(true);
   expect(cockpitLayout.rendererShapeRatio).toBeGreaterThan(1.05);
   expect(cockpitLayout.rendererShapeRatio).toBeLessThan(1.09);
   await expect(page.locator(".app-shell").filter({ has: playtestRoute })).toBeVisible();
@@ -382,6 +408,10 @@ test("default playtest route starts with concise Pixi play surface", async ({ pa
 
   await expect(rendererHost).toBeVisible();
   await expect(rendererHost.locator("canvas")).toHaveCount(1);
+  await expect(battlefield.getByTestId("default-pixi-board-edit-controls")).toHaveCount(
+    0
+  );
+  await expect(battlefield.getByTestId("default-pixi-zone-edit-controls")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Play Replay" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Step Replay" })).toHaveCount(0);
   await expect(page.getByText("Renderer Feed")).toHaveCount(0);
@@ -447,6 +477,14 @@ test("default debug query exposes diagnostic panels without replacing Pixi", asy
   await expect(battlefield.getByText("Combat Model Notes")).toBeVisible();
   await expect(rendererHost).toBeVisible();
   await expect(rendererHost.locator("canvas")).toHaveCount(1);
+  await expect(battlefield.getByTestId("default-pixi-board-edit-controls")).toBeVisible();
+  await expect(battlefield.getByTestId("default-pixi-zone-edit-controls")).toBeVisible();
+  await expect(battlefield.getByTestId("default-pixi-board-edit-mode")).toHaveText(
+    "Inspect"
+  );
+  await expect(battlefield.getByTestId("default-pixi-zone-edit-mode")).toHaveText(
+    "Loadout"
+  );
 
   await openAdvancedDebugPanels(page);
   await expect(panel(page, "What now?")).toBeVisible();

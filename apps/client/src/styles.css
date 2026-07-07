@@ -267,6 +267,23 @@ h4 {
   min-width: 0;
 }
 
+.default-pixi-fit-stage {
+  align-items: center;
+  display: grid;
+  height: min(70dvh, 650px);
+  justify-items: center;
+  min-height: 0;
+  overflow: visible;
+  width: 100%;
+}
+
+.default-pixi-fit-board {
+  aspect-ratio: 700 / 650;
+  justify-self: center;
+  min-height: 0;
+  width: 100%;
+}
+
 .default-pixi-side-legend {
   align-items: center;
   display: grid;
@@ -320,11 +337,9 @@ h4 {
 
 .default-pixi-board-area .pixi-renderer-host {
   aspect-ratio: 700 / 650;
-  height: auto;
   justify-self: center;
   max-width: none;
   min-height: 0;
-  width: min(100%, calc((100dvh - 170px) * 700 / 650));
 }
 
 .default-pixi-action-area {
@@ -1009,7 +1024,8 @@ h4 {
 
   .default-playtest-dashboard {
     align-items: stretch;
-    min-height: calc(100dvh - 112px);
+    height: calc(100dvh - 112px);
+    min-height: 0;
   }
 
   .default-playtest-dashboard-left {
@@ -1034,6 +1050,7 @@ h4 {
 
   .default-playtest-dashboard-center {
     align-content: start;
+    align-self: stretch;
     min-height: 0;
     overflow: visible;
   }
@@ -1041,6 +1058,8 @@ h4 {
   .default-playtest-dashboard-center .battlefield-section {
     display: grid;
     gap: 12px;
+    grid-template-rows: auto minmax(0, 1fr);
+    height: 100%;
     min-height: 0;
     overflow: visible;
   }
@@ -1050,6 +1069,7 @@ h4 {
   .default-playtest-dashboard-center .default-pixi-cockpit,
   .default-playtest-dashboard-center .default-pixi-board-area,
   .default-playtest-dashboard-center .default-pixi-sidecar {
+    height: 100%;
     min-height: 0;
   }
 
@@ -1060,6 +1080,13 @@ h4 {
 
   .default-playtest-dashboard-center .default-pixi-board-area {
     align-content: start;
+    grid-template-rows: auto auto minmax(0, 1fr);
+  }
+
+  .default-playtest-dashboard-center .default-pixi-fit-stage {
+    align-self: stretch;
+    height: 100%;
+    min-height: 260px;
   }
 
   .default-playtest-dashboard-center .default-pixi-sidecar {
@@ -3051,4 +3078,10 @@ pre {
   .combat-kind {
     display: none;
   }
+}
+
+.default-pixi-fit-board .pixi-renderer-host {
+  height: 100%;
+  min-height: 0;
+  width: 100%;
 }

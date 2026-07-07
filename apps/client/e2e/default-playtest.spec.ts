@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, type Locator, type Page, test } from "@playwright/test";
 
 import {
   clickPixiCell,
@@ -8,6 +8,223 @@ import {
   openAdvancedDebugPanels,
   panel
 } from "./helpers/browserSmokeHelpers";
+
+const recordDefaultCombat = async (
+  page: Page,
+  {
+    verifyPreview = false
+  }: {
+    readonly verifyPreview?: boolean;
+  } = {}
+) => {
+  const decisionPanel = page.getByTestId("default-playtest-decision-panel");
+
+  await expect(decisionPanel.getByTestId("default-playtest-upgrade-copy")).toContainText(
+    "Cinder Scout"
+  );
+  await decisionPanel.getByTestId("default-playtest-upgrade-button").click();
+  await expect(decisionPanel.getByText("No duplicate upgrade is ready.")).toBeVisible();
+
+  await page.getByRole("button", { name: "Ready Combat" }).click();
+
+  const previewPanel = panel(page, "Upcoming Combat Preview");
+  await expect(previewPanel).toBeVisible();
+  await expect(previewPanel.getByText(/Winner:/)).toBeVisible();
+
+  if (verifyPreview) {
+    const previewKeyMoments = previewPanel
+      .locator("details.combat-feed-details")
+      .filter({ hasText: "Preview Key Moments" });
+    await expect(previewKeyMoments.locator("summary")).toHaveText("Preview Key Moments");
+    expect(
+      await previewKeyMoments.evaluate((node) => (node as HTMLDetailsElement).open)
+    ).toBe(false);
+    await expect(previewPanel.getByRole("heading", { name: "Key Moments" })).toBeHidden();
+  }
+
+  await page.getByRole("button", { name: "Record Combat" }).click();
+  await expect(panel(page, "Last Recorded Combat").getByText(/Winner:/)).toBeVisible();
+};
+
+const expectDefaultCombatPlayback = async (page: Page, rendererHost: Locator) => {
+  const playbackPanel = page.getByTestId("default-combat-playback");
+  await expect(
+    playbackPanel.getByRole("heading", { name: "Combat Playback" })
+  ).toBeVisible();
+  const playbackStatus = playbackPanel.getByTestId("default-combat-playback-status");
+  const playbackCommandIndex = playbackPanel.getByTestId(
+    "default-combat-playback-command-index"
+  );
+  const playbackLatest = playbackPanel.getByTestId("default-combat-playback-latest");
+  await expect(playbackStatus).toHaveText(/playing|complete/);
+  await expect(playbackCommandIndex).toHaveText(/\d+ \/ [1-9]\d*/);
+  await playbackPanel.getByRole("button", { name: "Reset Combat Playback" }).click();
+  await expect(playbackStatus).toHaveText("idle");
+  await expect(playbackCommandIndex).toHaveText(/0 \/ [1-9]\d*/);
+  const beforeStep = await playbackCommandIndex.textContent();
+  await playbackPanel.getByRole("button", { name: "Step Combat Playback" }).click();
+  await expect(playbackCommandIndex).not.toHaveText(beforeStep ?? "");
+  await expect(playbackStatus).toHaveText("paused");
+  await expect(playbackLatest).not.toHaveText("No command visualized yet.");
+  const afterStepIndex = await playbackCommandIndex.textContent();
+  const afterStepStatus = await playbackStatus.textContent();
+  await clickPixiCell(page, rendererHost, 4, 2);
+  await expect(playbackCommandIndex).toHaveText(afterStepIndex ?? "");
+  await expect(playbackStatus).toHaveText(afterStepStatus ?? "");
+  await expect(
+    page
+      .locator(
+        '[data-testid="default-pixi-selection-context"], [data-testid="default-pixi-replay-inspection-note"]'
+      )
+      .filter({ hasText: /Selected ally|Selected enemy|Replay token inspection/ })
+      .first()
+  ).toBeVisible();
+  await playbackPanel.getByRole("button", { name: "Reset Combat Playback" }).click();
+  await expect(playbackStatus).toHaveText("idle");
+  await expect(playbackCommandIndex).toHaveText(/0 \/ [1-9]\d*/);
+  await expect(rendererHost.locator("canvas")).toHaveCount(1);
+};
+
+const expectLastRecordedCombatSummary = async (page: Page) => {
+  const recordedPanel = panel(page, "Last Recorded Combat");
+  await expect(recordedPanel.getByText(/Winner:/)).toBeVisible();
+  await expect(recordedPanel.locator("p.muted").first()).toContainText("Damage:");
+  await expect(
+    recordedPanel.getByText("Skirmish damage resets after combat")
+  ).toBeVisible();
+  await expect(recordedPanel.getByText(/Events:/)).toBeVisible();
+  await expect(recordedPanel.getByText(/Gold: \+/)).toBeVisible();
+  await expect(recordedPanel.locator(".combat-result-strip")).toContainText(
+    "No combat return"
+  );
+  await expect(recordedPanel.getByRole("heading", { name: "Key Moments" })).toBeVisible();
+  await expect(recordedPanel.getByText(/Events shown: \d+ of \d+/)).toBeVisible();
+  const combatFeed = recordedPanel.locator("details.combat-feed-details");
+  await expect(combatFeed).toBeVisible();
+  expect(await combatFeed.evaluate((node) => (node as HTMLDetailsElement).open)).toBe(
+    false
+  );
+  await combatFeed.getByText("Combat Event Feed").click();
+  await expect(combatFeed.getByText("Damage to you", { exact: true })).toBeVisible();
+  await expect(combatFeed.getByText("Damage to enemy", { exact: true })).toBeVisible();
+  await expect(combatFeed.getByText("Warnings", { exact: true })).toBeVisible();
+};
+
+const claimCombatTrainingUpgrade = async (page: Page) => {
+  const commanderUpgradePanel = panel(page, "Commander Upgrades");
+  await expect(
+    commanderUpgradePanel.getByText(
+      "Choose one Commander upgrade for this reward. It applies only to the Commander."
+    )
+  ).toBeVisible();
+  await expect(
+    commanderUpgradePanel.getByText("Combat Training", { exact: true })
+  ).toBeVisible();
+  await expect(
+    commanderUpgradePanel.getByText("Rebind Calibration", { exact: true })
+  ).toBeVisible();
+  await expect(
+    commanderUpgradePanel.getByTestId("commander-upgrade-panel-level")
+  ).toHaveText("Lv 0");
+  await commanderUpgradePanel
+    .getByRole("button", { name: "Apply Combat Training" })
+    .click();
+  await expect(
+    commanderUpgradePanel.getByTestId("commander-upgrade-panel-level")
+  ).toHaveText("Lv 1");
+  await expect(
+    commanderUpgradePanel.getByText("Commander upgrade claimed for this reward.")
+  ).toBeVisible();
+  await expect(
+    commanderUpgradePanel.getByTestId("commander-latest-upgrade")
+  ).toContainText("Combat Training");
+};
+
+const openAndCommitFirstPackOffer = async (page: Page) => {
+  const packMarketPanel = panel(page, "Pack Market");
+  await expect(packMarketPanel.getByText(/Cost \d+ gold/).first()).toBeVisible();
+  await expect(
+    packMarketPanel.getByText(/After purchase: \d+ gold/).first()
+  ).toBeVisible();
+  await expect(
+    packMarketPanel.getByRole("button", { name: "Open Pack Offer" }).first()
+  ).toBeVisible();
+  await packMarketPanel.getByRole("button", { name: "Open Pack Offer" }).first().click();
+
+  await expect(page.getByTestId("post-pack-suggestions-panel")).toHaveCount(0);
+  const packOffer = page.getByTestId("pack-offer-panel");
+  await expect(packOffer.getByRole("heading", { name: "Pack Offer" })).toBeVisible();
+  await expect(packOffer).toContainText(/pick 2 of 5/i);
+  await expect(packOffer.getByTestId("pack-offer-card")).toHaveCount(5);
+  await expect(packOffer.getByTestId("pack-offer-pick-count")).toHaveText(
+    "Selected 0 / 2"
+  );
+  await expect(page.getByRole("button", { name: "Advance" })).toBeDisabled();
+  await packOffer.getByTestId("pack-offer-card").nth(0).getByRole("checkbox").check();
+  await packOffer.getByTestId("pack-offer-card").nth(1).getByRole("checkbox").check();
+  await expect(packOffer.getByTestId("pack-offer-pick-count")).toHaveText(
+    "Selected 2 / 2"
+  );
+  await packOffer.getByRole("button", { name: "Commit Pack Picks" }).click();
+
+  const postPackSuggestions = page.getByTestId("post-pack-suggestions-panel");
+  await expect(postPackSuggestions).toBeVisible();
+  await expect(
+    postPackSuggestions.getByRole("heading", { name: "Suggested next edits" })
+  ).toBeVisible();
+  await expect(postPackSuggestions.getByText(/Latest pack:/)).toBeVisible();
+  await expect(
+    postPackSuggestions.getByText(
+      "New cards are in your pool. Advance to the next planning round to edit your loadout."
+    )
+  ).toBeVisible();
+
+  return postPackSuggestions;
+};
+
+const advanceToNextPlanningAfterRewards = async (page: Page) => {
+  await page.getByRole("button", { name: "Advance" }).click();
+  await openAdvancedDebugPanels(page);
+  const runStatePanel = panel(page, "What now?");
+  const poolPanel = panel(page, "Pool Cards");
+  await expect(runStatePanel.getByText("2 / 3")).toBeVisible();
+  await expect(runStatePanel.getByText(/Next:/)).toBeVisible();
+  await expect(poolPanel.getByText(/Latest pack:/)).toBeVisible();
+  await expect(poolPanel.getByText(/Paid \d+ gold/)).toBeVisible();
+  await expect(poolPanel.getByText("new").first()).toBeVisible();
+};
+
+const applyFirstPostPackSuggestion = async (page: Page, postPackSuggestions: Locator) => {
+  const firstSuggestion = postPackSuggestions.getByTestId("post-pack-suggestion").first();
+  await firstSuggestion.scrollIntoViewIfNeeded();
+  await expect(
+    firstSuggestion.getByRole("button", { name: /Apply suggested edit:/ })
+  ).toBeVisible();
+  const suggestedCardName =
+    (await firstSuggestion.getByTestId("post-pack-suggestion-card-name").textContent()) ??
+    "";
+  const suggestedBaseCardName = suggestedCardName.replace(/\sx\d+$/, "").trim();
+  const suggestedAction =
+    (await firstSuggestion.getByTestId("post-pack-suggestion-action").textContent()) ??
+    "";
+  expect(suggestedBaseCardName.length).toBeGreaterThan(0);
+  await expect(firstSuggestion.getByText(/High|Medium|Low/).first()).toBeVisible();
+  await firstSuggestion.getByRole("button", { name: /Apply suggested edit:/ }).click();
+  if (suggestedAction.includes("Source Row")) {
+    await expect(
+      panel(page, "Source Row").getByText(suggestedBaseCardName, { exact: true })
+    ).toBeVisible();
+  } else if (suggestedAction.includes("Spellrail")) {
+    await expect(
+      panel(page, "Spellrail").getByText(suggestedBaseCardName, { exact: true })
+    ).toBeVisible();
+  } else if (suggestedAction.includes("Board")) {
+    await expect(
+      panel(page, "Board").getByText(suggestedBaseCardName, { exact: true })
+    ).toBeVisible();
+  }
+};
+
 test("default playtest route starts with concise Pixi play surface", async ({ page }) => {
   const {
     allyInspector,
@@ -530,215 +747,40 @@ test("default Commander controls support inspect deploy and return", async ({ pa
   expectNoBrowserErrors(errors);
 });
 
-test("default playtest can record combat, claim rewards, and advance", async ({
+test("default combat smoke records combat and exposes playback summary", async ({
   page
 }) => {
-  const { decisionPanel, errors, rendererHost } = await gotoDefaultPlaytestRoute(page);
+  const { errors, rendererHost } = await gotoDefaultPlaytestRoute(page);
 
-  await expect(decisionPanel.getByTestId("default-playtest-upgrade-copy")).toContainText(
-    "Cinder Scout"
-  );
-  await decisionPanel.getByTestId("default-playtest-upgrade-button").click();
-  await expect(decisionPanel.getByText("No duplicate upgrade is ready.")).toBeVisible();
+  await recordDefaultCombat(page, { verifyPreview: true });
+  await expectDefaultCombatPlayback(page, rendererHost);
+  await expectLastRecordedCombatSummary(page);
 
-  await page.getByRole("button", { name: "Ready Combat" }).click();
+  expectNoBrowserErrors(errors);
+});
 
-  const previewPanel = panel(page, "Upcoming Combat Preview");
-  await expect(previewPanel).toBeVisible();
-  await expect(previewPanel.getByText(/Winner:/)).toBeVisible();
-  const previewKeyMoments = previewPanel
-    .locator("details.combat-feed-details")
-    .filter({ hasText: "Preview Key Moments" });
-  await expect(previewKeyMoments.locator("summary")).toHaveText("Preview Key Moments");
-  expect(
-    await previewKeyMoments.evaluate((node) => (node as HTMLDetailsElement).open)
-  ).toBe(false);
-  await expect(previewPanel.getByRole("heading", { name: "Key Moments" })).toBeHidden();
+test("default rewards gate Pack Offers before advance", async ({ page }) => {
+  const { errors } = await gotoDefaultPlaytestRoute(page);
 
-  await page.getByRole("button", { name: "Record Combat" }).click();
+  await recordDefaultCombat(page);
+  await claimCombatTrainingUpgrade(page);
+  await openAndCommitFirstPackOffer(page);
+  await expect(page.getByRole("button", { name: "Advance" })).toBeEnabled();
 
-  const playbackPanel = page.getByTestId("default-combat-playback");
-  await expect(
-    playbackPanel.getByRole("heading", { name: "Combat Playback" })
-  ).toBeVisible();
-  const playbackStatus = playbackPanel.getByTestId("default-combat-playback-status");
-  const playbackCommandIndex = playbackPanel.getByTestId(
-    "default-combat-playback-command-index"
-  );
-  const playbackLatest = playbackPanel.getByTestId("default-combat-playback-latest");
-  await expect(playbackStatus).toHaveText(/playing|complete/);
-  await expect(playbackCommandIndex).toHaveText(/\d+ \/ [1-9]\d*/);
-  await playbackPanel.getByRole("button", { name: "Reset Combat Playback" }).click();
-  await expect(playbackStatus).toHaveText("idle");
-  await expect(playbackCommandIndex).toHaveText(/0 \/ [1-9]\d*/);
-  const beforeStep = await playbackCommandIndex.textContent();
-  await playbackPanel.getByRole("button", { name: "Step Combat Playback" }).click();
-  await expect(playbackCommandIndex).not.toHaveText(beforeStep ?? "");
-  await expect(playbackStatus).toHaveText("paused");
-  await expect(playbackLatest).not.toHaveText("No command visualized yet.");
-  const afterStepIndex = await playbackCommandIndex.textContent();
-  const afterStepStatus = await playbackStatus.textContent();
-  await clickPixiCell(page, rendererHost, 4, 2);
-  await expect(playbackCommandIndex).toHaveText(afterStepIndex ?? "");
-  await expect(playbackStatus).toHaveText(afterStepStatus ?? "");
-  await expect(
-    page
-      .locator(
-        '[data-testid="default-pixi-selection-context"], [data-testid="default-pixi-replay-inspection-note"]'
-      )
-      .filter({ hasText: /Selected ally|Selected enemy|Replay token inspection/ })
-      .first()
-  ).toBeVisible();
-  await playbackPanel.getByRole("button", { name: "Reset Combat Playback" }).click();
-  await expect(playbackStatus).toHaveText("idle");
-  await expect(playbackCommandIndex).toHaveText(/0 \/ [1-9]\d*/);
-  await expect(rendererHost.locator("canvas")).toHaveCount(1);
+  expectNoBrowserErrors(errors);
+});
 
-  const recordedPanel = panel(page, "Last Recorded Combat");
-  await expect(recordedPanel.getByText(/Winner:/)).toBeVisible();
-  await expect(recordedPanel.locator("p.muted").first()).toContainText("Damage:");
-  await expect(
-    recordedPanel.getByText("Skirmish damage resets after combat")
-  ).toBeVisible();
-  await expect(recordedPanel.getByText(/Events:/)).toBeVisible();
-  await expect(recordedPanel.getByText(/Gold: \+/)).toBeVisible();
-  await expect(recordedPanel.locator(".combat-result-strip")).toContainText(
-    "No combat return"
-  );
-  await expect(recordedPanel.getByRole("heading", { name: "Key Moments" })).toBeVisible();
-  await expect(recordedPanel.getByText(/Events shown: \d+ of \d+/)).toBeVisible();
-  const combatFeed = recordedPanel.locator("details.combat-feed-details");
-  await expect(combatFeed).toBeVisible();
-  expect(await combatFeed.evaluate((node) => (node as HTMLDetailsElement).open)).toBe(
-    false
-  );
-  await combatFeed.getByText("Combat Event Feed").click();
-  await expect(combatFeed.getByText("Damage to you", { exact: true })).toBeVisible();
-  await expect(combatFeed.getByText("Damage to enemy", { exact: true })).toBeVisible();
-  await expect(combatFeed.getByText("Warnings", { exact: true })).toBeVisible();
+test("default post-pack suggestions apply after reward advance", async ({ page }) => {
+  const { errors } = await gotoDefaultPlaytestRoute(page);
 
-  const commanderUpgradePanel = panel(page, "Commander Upgrades");
-  await expect(
-    commanderUpgradePanel.getByText(
-      "Choose one Commander upgrade for this reward. It applies only to the Commander."
-    )
-  ).toBeVisible();
-  await expect(
-    commanderUpgradePanel.getByText("Combat Training", { exact: true })
-  ).toBeVisible();
-  await expect(
-    commanderUpgradePanel.getByText("Rebind Calibration", { exact: true })
-  ).toBeVisible();
-  await expect(
-    commanderUpgradePanel.getByTestId("commander-upgrade-panel-level")
-  ).toHaveText("Lv 0");
-  await commanderUpgradePanel
-    .getByRole("button", { name: "Apply Combat Training" })
-    .click();
-  await expect(
-    commanderUpgradePanel.getByTestId("commander-upgrade-panel-level")
-  ).toHaveText("Lv 1");
-  await expect(
-    commanderUpgradePanel.getByText("Commander upgrade claimed for this reward.")
-  ).toBeVisible();
-  await expect(
-    commanderUpgradePanel.getByTestId("commander-latest-upgrade")
-  ).toContainText("Combat Training");
-
-  const packMarketPanel = panel(page, "Pack Market");
-  await expect(packMarketPanel.getByText(/Cost \d+ gold/).first()).toBeVisible();
-  await expect(
-    packMarketPanel.getByText(/After purchase: \d+ gold/).first()
-  ).toBeVisible();
-  const rewardExplanation = packMarketPanel
-    .locator(".reward-explanation-details")
-    .first();
-  await expect(rewardExplanation.locator(".reward-headline")).toBeVisible();
-  expect(
-    await rewardExplanation.evaluate((node) => (node as HTMLDetailsElement).open)
-  ).toBe(false);
-  await rewardExplanation.locator("summary").click();
-  await expect(packMarketPanel.locator(".reward-reasons li").first()).toBeVisible();
-  await expect(
-    packMarketPanel
-      .getByText(/Biased toward|Matches active|Can add Aspect|Can contain/)
-      .first()
-  ).toBeVisible();
-  await expect(
-    packMarketPanel.getByRole("button", { name: "Open Pack Offer" }).first()
-  ).toBeVisible();
-  await packMarketPanel.getByRole("button", { name: "Open Pack Offer" }).first().click();
-
-  await expect(page.getByTestId("post-pack-suggestions-panel")).toHaveCount(0);
-  const packOffer = page.getByTestId("pack-offer-panel");
-  await expect(packOffer.getByRole("heading", { name: "Pack Offer" })).toBeVisible();
-  await expect(packOffer).toContainText(/pick 2 of 5/i);
-  await expect(packOffer.getByTestId("pack-offer-card")).toHaveCount(5);
-  await expect(packOffer.getByTestId("pack-offer-pick-count")).toHaveText(
-    "Selected 0 / 2"
-  );
-  await expect(page.getByRole("button", { name: "Advance" })).toBeDisabled();
-  await packOffer.getByTestId("pack-offer-card").nth(0).getByRole("checkbox").check();
-  await packOffer.getByTestId("pack-offer-card").nth(1).getByRole("checkbox").check();
-  await expect(packOffer.getByTestId("pack-offer-pick-count")).toHaveText(
-    "Selected 2 / 2"
-  );
-  await packOffer.getByRole("button", { name: "Commit Pack Picks" }).click();
-
-  const postPackSuggestions = page.getByTestId("post-pack-suggestions-panel");
-  await expect(postPackSuggestions).toBeVisible();
-  await expect(
-    postPackSuggestions.getByRole("heading", { name: "Suggested next edits" })
-  ).toBeVisible();
-  await expect(postPackSuggestions.getByText(/Latest pack:/)).toBeVisible();
-  await expect(
-    postPackSuggestions.getByText(
-      "New cards are in your pool. Advance to the next planning round to edit your loadout."
-    )
-  ).toBeVisible();
-
-  await page.getByRole("button", { name: "Advance" }).click();
-
+  await recordDefaultCombat(page);
+  await claimCombatTrainingUpgrade(page);
+  const postPackSuggestions = await openAndCommitFirstPackOffer(page);
+  await advanceToNextPlanningAfterRewards(page);
   await expect(
     postPackSuggestions.getByTestId("post-pack-suggestion").first()
   ).toBeVisible();
-  await openAdvancedDebugPanels(page);
-  const runStatePanel = panel(page, "What now?");
-  const poolPanel = panel(page, "Pool Cards");
-  await expect(runStatePanel.getByText("2 / 3")).toBeVisible();
-  await expect(runStatePanel.getByText(/Next:/)).toBeVisible();
-  await expect(poolPanel.getByText(/Latest pack:/)).toBeVisible();
-  await expect(poolPanel.getByText(/Paid \d+ gold/)).toBeVisible();
-  await expect(poolPanel.getByText("new").first()).toBeVisible();
-
-  const firstSuggestion = postPackSuggestions.getByTestId("post-pack-suggestion").first();
-  await firstSuggestion.scrollIntoViewIfNeeded();
-  await expect(
-    firstSuggestion.getByRole("button", { name: /Apply suggested edit:/ })
-  ).toBeVisible();
-  const suggestedCardName =
-    (await firstSuggestion.getByTestId("post-pack-suggestion-card-name").textContent()) ??
-    "";
-  const suggestedBaseCardName = suggestedCardName.replace(/\sx\d+$/, "").trim();
-  const suggestedAction =
-    (await firstSuggestion.getByTestId("post-pack-suggestion-action").textContent()) ??
-    "";
-  expect(suggestedBaseCardName.length).toBeGreaterThan(0);
-  await expect(firstSuggestion.getByText(/High|Medium|Low/).first()).toBeVisible();
-  await firstSuggestion.getByRole("button", { name: /Apply suggested edit:/ }).click();
-  if (suggestedAction.includes("Source Row")) {
-    await expect(
-      panel(page, "Source Row").getByText(suggestedBaseCardName, { exact: true })
-    ).toBeVisible();
-  } else if (suggestedAction.includes("Spellrail")) {
-    await expect(
-      panel(page, "Spellrail").getByText(suggestedBaseCardName, { exact: true })
-    ).toBeVisible();
-  } else if (suggestedAction.includes("Board")) {
-    await expect(
-      panel(page, "Board").getByText(suggestedBaseCardName, { exact: true })
-    ).toBeVisible();
-  }
+  await applyFirstPostPackSuggestion(page, postPackSuggestions);
 
   expectNoBrowserErrors(errors);
 });

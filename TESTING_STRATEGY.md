@@ -187,6 +187,13 @@ loop so each test stays well below the 30-second CI timeout. Rapid Pixi replay
 edge cases and detailed view-model behavior should live in unit tests or focused
 diagnostic-route smoke, not in the default-route playtest loop.
 
+Pack Market, Pack Offer, combat replay, reward, and post-pack suggestion checks
+must stay in focused smoke tests or shared test helpers. Do not append new reward
+or replay assertions to the longest default-route workflow just because it
+already reaches that phase. If a flow needs a real browser interaction, split the
+setup from the specific assertion set; if it is pure state, move it to rules,
+simulator, content, or view-model tests first.
+
 CI runs browser smoke with `pnpm test:browser:ci`, which forces one Playwright
 worker. Local `pnpm test:browser` may still use Playwright's local worker
 default, but CI should keep Pixi/WebGL smoke serial because canvas-heavy route

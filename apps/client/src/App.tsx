@@ -1043,6 +1043,51 @@ export function App() {
     );
   };
 
+  const renderLoadoutTrayActions = (cardInstanceId: CardInstanceId) => {
+    const actions = getLegalLoadoutActions(run, sampleCatalog, cardInstanceId);
+    const placeAction = actions.find((action) => action.type === "placeOnBoard");
+    const directActions = actions.filter((action) => action.type !== "placeOnBoard");
+    const selectRunCard = () => {
+      pixiPlacement.controller.clearPlacement();
+      setSelectedAllyCardRef({ type: "run", cardInstanceId });
+      if (
+        run.board.placements.some(
+          (placement) => placement.cardInstanceId === cardInstanceId
+        )
+      ) {
+        setSelectedEngagementRef({ type: "run", cardInstanceId });
+      }
+    };
+    const inspectButton = (
+      <button type="button" className="secondary" onClick={selectRunCard}>
+        Inspect
+      </button>
+    );
+
+    return (
+      <div className="mini-actions">
+        {inspectButton}
+        {isDefaultRoute && placeAction ? (
+          <button type="button" onClick={() => selectPixiPlacementCard(cardInstanceId)}>
+            Place on Board
+          </button>
+        ) : null}
+        {directActions.map((action) => (
+          <button
+            key={`${cardInstanceId}:${action.type}`}
+            type="button"
+            onClick={() => performLoadoutAction(cardInstanceId, action)}
+          >
+            {action.label}
+          </button>
+        ))}
+        {actions.length === 0 && editable ? (
+          <small>Inspect for blocked reason</small>
+        ) : null}
+      </div>
+    );
+  };
+
   const inspectCommander = () => {
     if (!run.commander) {
       return;
@@ -1593,7 +1638,8 @@ export function App() {
     onCommitPackOfferPicks: commitPackOffer,
     onReturnCommander: returnCommanderFromBoard,
     onUpgradeGroup: upgradeGroup,
-    renderLoadoutActions
+    renderLoadoutActions,
+    renderLoadoutTrayActions
   } satisfies DefaultRunRouteController;
 
   const rendererLabRouteView = {

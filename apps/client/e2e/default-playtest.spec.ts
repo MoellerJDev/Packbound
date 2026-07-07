@@ -459,7 +459,13 @@ test("default loadout tray exposes first-fold loadout edits", async ({ page }) =
   const sparkcatchPoolRow = poolTray
     .getByRole("listitem")
     .filter({ hasText: "Sparkcatch Apprentice" });
-  await sparkcatchPoolRow.getByRole("button", { name: "Select Board Cell" }).click();
+  await expect(
+    sparkcatchPoolRow.getByRole("button", { name: "Place on Board" })
+  ).toBeVisible();
+  await expect(
+    sparkcatchPoolRow.getByRole("button", { name: "Select Board Cell" })
+  ).toHaveCount(0);
+  await sparkcatchPoolRow.getByRole("button", { name: "Place on Board" }).click();
   await expect(defaultPlacementHint).toHaveText(
     "Placing Sparkcatch Apprentice. Click a highlighted Pixi cell."
   );

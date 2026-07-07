@@ -64,10 +64,9 @@ available inside a collapsed `React/CSS Debug Board` fallback on `/`.
 
 Implementation update after this task: the default Pixi battlefield now has a
 minimal board-placement affordance. A legal board-placeable Pool card can be
-selected with `Select Board Cell`, Pixi highlights legal cells using the same
+selected for manual placement, Pixi highlights legal cells using the same
 placeable-position model as Renderer Lab, and clicking a highlighted cell places
-the card through the existing `placeCardOnBoard` reducer path. The original
-list-button `Place on Board` workflow remains available.
+the card through the existing `placeCardOnBoard` reducer path.
 
 Implementation update after this task: the default Pixi placement hint now
 distinguishes idle, ready, selected-card blocked, and blocked-cell states. With
@@ -385,8 +384,8 @@ loop with light narration, but the route is not yet a cold-start demo.
 Implementation update after this task: `/` now has a compact first-fold
 `Loadout Tray` between the Current Decision card and the Pixi battlefield. The
 tray surfaces Pool, Board, Source Row, and Spellrail rows with the same existing
-legal `Inspect`, `Select Board Cell`, `Add to Source Row`, `Add to Spellrail`,
-and `Return to Pool` actions used by the full loadout lists. Full loadout lists
+legal `Inspect`, board placement, `Add to Source Row`, `Add to Spellrail`, and
+`Return to Pool` actions used by the full loadout lists. Full loadout lists
 remain available under `Advanced Debug Panels`, but ordinary editing no longer
 requires opening that panel first.
 
@@ -432,10 +431,10 @@ unless a card effect says otherwise.
 Deferred design notes after this task: Commander upgrades still feel mechanical
 and should become build-defining later; the pack-to-pool loop remains closer to
 a loadout autobattler than a deck/hand/draw deckbuilder; suggested edits and
-`Select Board Cell` still choose default placements rather than player-owned
-repositioning; clicking every available post-pack option can make wins feel too
-automatic; and fences/support-created terrain remains promising but should wait
-until combat readability and pacing are stable.
+manual board placement still choose from legal empty cells rather than offering
+player-owned repositioning; clicking every available post-pack option can make
+wins feel too automatic; and fences/support-created terrain remains promising
+but should wait until combat readability and pacing are stable.
 
 Design decision after this task: Packbound should lean into a pack-opening
 roster/loadout autobattler model, not a traditional Unit draw-deck model. Packs
@@ -517,19 +516,36 @@ forecast/recap, rewards, Pack Offers, Commander upgrade rewards, and
 post-pack suggestions occupy the right rail. Narrow screens still fall back to
 a stacked layout, and Advanced Debug Panels remain collapsed and secondary.
 
+Manual dashboard follow-up after that pass: the dashboard is meaningfully
+better, but the center column was still taller than it needed to be because Ally
+Inspector and Enemy Inspector sat below the Pixi canvas. The next tightening
+should flank the battlefield with those inspectors on comfortable desktop
+widths, give the Loadout Tray slightly more room for readable card rows, and
+make the duplicate `Select Board Cell` / `Place on Board` affordances read as
+one manual board-placement action.
+
+Implementation update after this task: the default dashboard now tightens those
+two cockpit issues. On wide desktop screens, Ally Inspector and Enemy Inspector
+frame the Pixi battlefield as side rails; medium and narrow widths stack the
+same inspector content back under the board. The first-fold Loadout Tray now
+uses a single `Place on Board` button for board-placeable Pool cards; that
+button starts the existing highlighted-cell placement mode rather than
+auto-placing into a default cell. Full debug loadout lists keep the generic
+rules-action buttons for diagnostics.
+
 The biggest remaining Pixi/default-route findings are no longer the absence of
 replay controls, tiny first-pass labels, unvalidated readability, default-route
 confidence, basic default-route edit affordances, an ungrouped default combat
 feed, a debug-grid first screen, always-expanded inspector detail, or
 pre-combat exact winner spoilers. Now that `/` opens on a tighter Pixi-focused
-playtest surface with an immediate build decision, a dashboard-style first
-fold, grouped duplicate post-pack suggestions, stabilized default combat
-playback, pick-limited Pack Offers, more readable Pack Offer card rows, compact
-resource teaching, softer combat forecasting, and a compact recorded-combat
-recap, the next highest-value gap is no longer board manipulation polish. The
-default cockpit now needs a fresh manual validation pass: does the dashboard
-make the battlefield feel like the anchor while preserving readable Pack Offer,
-resource, forecast, and recap decisions?
+playtest surface with an immediate build decision, side-rail battlefield
+inspectors on wide desktop, grouped duplicate post-pack suggestions, stabilized
+default combat playback, pick-limited Pack Offers, more readable Pack Offer card
+rows, compact resource teaching, softer combat forecasting, and a compact
+recorded-combat recap, the next highest-value gap is no longer board
+manipulation polish. The default cockpit now needs a fresh manual validation
+pass: does the tightened dashboard make the battlefield feel like the anchor
+while preserving readable Pack Offer, resource, forecast, and recap decisions?
 
 Recommended next task:
 
@@ -941,12 +957,12 @@ Ember Scraprunner preview showed:
 - `Likely target: nearest valid enemy.`
 
 Default Pixi placement now has a small direct-manipulation path. Selecting a
-legal Pool card with `Select Board Cell` shows highlighted Pixi cells, names the
-card in the battlefield hint, and clicking a highlighted cell places the card
-through the existing loadout reducer. Clicking a non-highlighted board cell while
-placing shows the selected card name, target coordinate/layer, and existing
-placement validation reason. The list button `Place on Board` path still works
-and remains visible.
+legal Pool card with `Place on Board` from the first-fold Loadout Tray shows
+highlighted Pixi cells, names the card in the battlefield hint, and clicking a
+highlighted cell places the card through the existing loadout reducer. Clicking
+a non-highlighted board cell while placing shows the selected card name, target
+coordinate/layer, and existing placement validation reason. The full debug
+loadout lists still expose the lower-level placement actions for diagnostics.
 
 The normal debug loop worked end to end. I readied combat, recorded the round 1
 draw, reached reward phase, opened a reward pack, saw a new pool card marker and
@@ -1406,11 +1422,12 @@ Deferred findings from the same manual pass remain intentionally out of scope:
   1440 x 900 plus a 1280 x 720 sanity pass. It is close to showable with light
   narration, and the first-fold `Loadout Tray` now exposes ordinary
   Pool/Board/Source Row/Spellrail editing without opening Advanced Debug Panels.
-  It now carries short layer/resource education and a first desktop dashboard
-  layout with Loadout Tray / Battlefield / Current Decision as the main
-  first-fold panels, but it is still not a cold-start demo because those
-  controls are compact, capped, button-driven affordances rather than
-  board-native manipulation.
+  It now carries short layer/resource education, a desktop dashboard layout with
+  Loadout Tray / Battlefield / Current Decision as the main first-fold panels,
+  wide-screen battlefield inspector rails, and a consolidated first-fold
+  `Place on Board` manual placement action. It is still not a cold-start demo
+  because those controls are compact, capped, button-driven affordances rather
+  than drag/drop or board-native zone editing.
 - The React/CSS Hex Arena remains available as a collapsed debug fallback on `/`
   and `?scenario=renderer-lab`.
 - The default route now hides/collapses most developer bloat and supports

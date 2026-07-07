@@ -33,7 +33,7 @@ export const DefaultPlaytestRoute = ({ view, controller }: DefaultPlaytestRouteP
         <div className="default-playtest-dashboard-left">
           <DefaultLoadoutTray
             cardName={controller.cardName}
-            renderLoadoutActions={controller.renderLoadoutActions}
+            renderLoadoutActions={controller.renderLoadoutTrayActions}
             view={view.loadoutZonesView}
           />
         </div>

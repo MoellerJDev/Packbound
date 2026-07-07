@@ -83,4 +83,5 @@ export type DefaultRunRouteController = {
   readonly onReturnCommander: () => void;
   readonly onUpgradeGroup: (group: UpgradeProgressGroup) => void;
   readonly renderLoadoutActions: (cardInstanceId: CardInstanceId) => ReactNode;
+  readonly renderLoadoutTrayActions: (cardInstanceId: CardInstanceId) => ReactNode;
 };

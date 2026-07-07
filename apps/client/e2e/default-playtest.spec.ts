@@ -93,6 +93,15 @@ const expectLastRecordedCombatSummary = async (page: Page) => {
   const recordedPanel = panel(page, "Last Recorded Combat");
   await expect(recordedPanel.getByText(/Winner:/)).toBeVisible();
   await expect(recordedPanel.locator("p.muted").first()).toContainText("Damage:");
+  const combatRecap = recordedPanel.getByTestId("default-combat-recap");
+  await expect(combatRecap).toBeVisible();
+  await expect(combatRecap.getByRole("heading", { name: "Combat recap" })).toBeVisible();
+  await expect(combatRecap).toContainText(/Result/);
+  await expect(combatRecap).toContainText(/Victory|Draw|Defeat/);
+  await expect(combatRecap).toContainText("Damage");
+  await expect(combatRecap).toContainText("Gold gained");
+  await expect(combatRecap).toContainText("Key moments");
+  await expect(combatRecap).toContainText("Commander");
   await expect(
     recordedPanel.getByText("Skirmish damage resets after combat")
   ).toBeVisible();

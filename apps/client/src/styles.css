@@ -2313,6 +2313,61 @@ h4 {
   overflow-wrap: anywhere;
 }
 
+.combat-recap {
+  background: #f4f8f5;
+  border: 1px solid #d9e4df;
+  border-radius: 8px;
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 10px 12px;
+}
+
+.combat-recap-header {
+  display: grid;
+  gap: 3px;
+}
+
+.combat-recap h3,
+.combat-recap p,
+.combat-recap dl {
+  margin: 0;
+}
+
+.combat-recap h3 {
+  color: #244532;
+  font-size: 1rem;
+}
+
+.combat-recap p {
+  color: #587071;
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.combat-recap dl {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.combat-recap div {
+  min-width: 0;
+}
+
+.combat-recap dt {
+  color: #5d6870;
+  font-size: 0.7rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.combat-recap dd {
+  font-weight: 900;
+  margin: 2px 0 0;
+  overflow-wrap: anywhere;
+}
+
 .combat-forecast-strip div {
   border-left: 3px solid #9dc2ad;
 }
@@ -2593,6 +2648,10 @@ pre {
   }
 
   .combat-result-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .combat-recap dl {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 

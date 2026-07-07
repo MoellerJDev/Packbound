@@ -21,6 +21,18 @@ export type UpcomingCombatPanelView = {
   readonly phase: string;
 };
 
+const recordedResultLabel = (winner: CombatSummary["winner"]): string => {
+  if (winner === "playerA") {
+    return "Victory";
+  }
+
+  if (winner === "playerB") {
+    return "Defeat";
+  }
+
+  return "Draw";
+};
+
 export const CombatResultPanel = ({
   isDefaultRoute,
   lastRecorded,
@@ -43,6 +55,43 @@ export const CombatResultPanel = ({
             {lastRecorded.summary.damageToOpponent} | Events:{" "}
             {lastRecorded.summary.eventCount} | Gold: +{lastRecorded.summary.goldEarned}
           </p>
+          {isDefaultRoute ? (
+            <section className="combat-recap" data-testid="default-combat-recap">
+              <div className="combat-recap-header">
+                <h3>Combat recap</h3>
+                <p>A quick read before the detailed key moments and event feed below.</p>
+              </div>
+              <dl>
+                <div>
+                  <dt>Result</dt>
+                  <dd>{recordedResultLabel(lastRecorded.summary.winner)}</dd>
+                </div>
+                <div>
+                  <dt>Damage</dt>
+                  <dd>
+                    Dealt {lastRecorded.summary.damageToOpponent} / Took{" "}
+                    {lastRecorded.summary.damageToPlayer}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Gold gained</dt>
+                  <dd>+{lastRecorded.summary.goldEarned}</dd>
+                </div>
+                <div>
+                  <dt>Key moments</dt>
+                  <dd>{lastRecorded.summary.eventCount} events available below</dd>
+                </div>
+                <div>
+                  <dt>Commander</dt>
+                  <dd>
+                    {lastRecorded.commanderReturnedToCommand
+                      ? "Returned to Command"
+                      : "No combat return"}
+                  </dd>
+                </div>
+              </dl>
+            </section>
+          ) : null}
           <dl className="combat-result-strip">
             <div>
               <dt>Winner</dt>

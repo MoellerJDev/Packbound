@@ -850,6 +850,89 @@ h4 {
   gap: 16px;
 }
 
+.default-playtest-dashboard {
+  align-items: start;
+  display: grid;
+  gap: 12px;
+  grid-template-columns:
+    minmax(260px, 0.78fr) minmax(560px, 1.86fr)
+    minmax(280px, 0.92fr);
+}
+
+.default-playtest-dashboard-left,
+.default-playtest-dashboard-center,
+.default-playtest-dashboard-right {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.default-playtest-dashboard-center {
+  align-self: start;
+}
+
+.default-playtest-dashboard-center .battlefield-section {
+  margin-bottom: 0;
+  padding: 12px;
+}
+
+.default-playtest-dashboard-center .battlefield-header {
+  align-items: start;
+  gap: 10px;
+  grid-template-columns: 1fr;
+}
+
+.default-playtest-dashboard-center .battlefield-run-strip {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.default-playtest-dashboard-center .battlefield-layout {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.default-playtest-dashboard-center .default-pixi-stage {
+  grid-column: 1 / -1;
+  order: -1;
+}
+
+.default-playtest-dashboard-center .default-pixi-stage .pixi-renderer-host {
+  height: clamp(500px, 57vh, 620px);
+}
+
+.default-playtest-dashboard-center .battlefield-inspector {
+  max-height: 340px;
+  min-height: 0;
+}
+
+.default-playtest-dashboard-left .default-loadout-tray-header,
+.default-playtest-dashboard-left .default-loadout-tray-zones,
+.default-playtest-dashboard-right .default-playtest-decision-panel {
+  grid-template-columns: 1fr;
+}
+
+.default-playtest-dashboard-left .default-loadout-tray-resources,
+.default-playtest-dashboard-right .default-playtest-status-grid,
+.default-playtest-dashboard-right .combat-result-strip,
+.default-playtest-dashboard-right .combat-recap dl {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.default-playtest-dashboard-right .panel.wide {
+  grid-column: auto;
+}
+
+.default-playtest-dashboard-right .combat-result-strip {
+  gap: 7px;
+}
+
+.default-playtest-dashboard-right .combat-recap dl {
+  gap: 7px;
+}
+
+.default-playtest-dashboard-right .button-row {
+  justify-content: flex-start;
+}
+
 .default-playtest-decision-panel {
   align-items: start;
   display: grid;
@@ -2524,8 +2607,17 @@ pre {
 }
 
 @media (max-width: 1100px) {
+  .default-playtest-dashboard {
+    grid-template-columns: 1fr;
+  }
+
   .default-playtest-decision-panel {
     grid-template-columns: 1fr;
+  }
+
+  .default-playtest-dashboard-left .default-loadout-tray-header,
+  .default-playtest-dashboard-left .default-loadout-tray-zones {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .default-loadout-tray-header,
@@ -2549,6 +2641,11 @@ pre {
 
   .default-pixi-action-grid {
     grid-template-columns: 1fr;
+  }
+
+  .default-playtest-dashboard-center .battlefield-inspector {
+    max-height: none;
+    min-height: 360px;
   }
 
   .battlefield-inspector {
@@ -2598,6 +2695,9 @@ pre {
   }
 
   .default-playtest-decision-panel,
+  .default-playtest-dashboard-left .default-loadout-tray-header,
+  .default-playtest-dashboard-left .default-loadout-tray-zones,
+  .default-playtest-dashboard-center .battlefield-layout,
   .default-loadout-tray-header,
   .default-loadout-tray-zones,
   .default-playtest-loop-grid {
@@ -2608,6 +2708,7 @@ pre {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .default-playtest-dashboard-left .default-loadout-tray-resources,
   .default-loadout-tray-resources {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }

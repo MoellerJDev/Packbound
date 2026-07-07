@@ -467,7 +467,11 @@ block may be acceptable mechanically, but the offer needs to warn about current
 loadout fit before the player commits picks.
 
 Additional manual findings from the same pass: at 100% zoom the default route
-still feels too vertical and information-heavy; the starting Cinder Scout
+still felt too vertical and information-heavy. The player repeatedly had to
+scroll between Current Decision, Loadout Tray, Battlefield, preview/recap,
+rewards, suggestions, and Advance controls. Battlefield should be the screen
+anchor, with Loadout Tray supporting it from one side and Current Decision /
+status / rewards supporting it from the other. The starting Cinder Scout
 duplicate upgrade is useful but not obviously the first required action; the
 player expected to deploy more resources/cards before combat and manually
 deployed Sparkcatch Apprentice; selected board cells can create overlapping
@@ -506,24 +510,30 @@ player-facing result (`Victory`, `Draw`, or `Defeat`), damage dealt/taken, gold
 gained, event count available below, and Commander return state before the
 existing exact winner strip, Key Moments, and collapsed event feed.
 
+Implementation update after this task: `/` now has a desktop-first dashboard
+layout. At desktop widths, `Loadout Tray` sits in the left rail, the Pixi
+`Battlefield` is the center anchor, and `Current Decision`, combat
+forecast/recap, rewards, Pack Offers, Commander upgrade rewards, and
+post-pack suggestions occupy the right rail. Narrow screens still fall back to
+a stacked layout, and Advanced Debug Panels remain collapsed and secondary.
+
 The biggest remaining Pixi/default-route findings are no longer the absence of
 replay controls, tiny first-pass labels, unvalidated readability, default-route
 confidence, basic default-route edit affordances, an ungrouped default combat
 feed, a debug-grid first screen, always-expanded inspector detail, or
 pre-combat exact winner spoilers. Now that `/` opens on a tighter Pixi-focused
-playtest surface with an immediate build decision, a first-fold Loadout Tray,
-grouped duplicate post-pack suggestions, stabilized default combat playback,
-pick-limited Pack Offers, more readable Pack Offer card rows, compact resource
-teaching, softer combat forecasting, and a compact recorded-combat recap, the
-next highest-value gap is no longer board manipulation polish. The acquisition
-model now needs a fresh manual validation pass: do the new offer facts,
-resource definitions, forecast language, and post-combat recap make reveal 5 /
-pick 2 strategic enough before bench limits, sell/recycle, or finite
-shared-pool scarcity arrive?
+playtest surface with an immediate build decision, a dashboard-style first
+fold, grouped duplicate post-pack suggestions, stabilized default combat
+playback, pick-limited Pack Offers, more readable Pack Offer card rows, compact
+resource teaching, softer combat forecasting, and a compact recorded-combat
+recap, the next highest-value gap is no longer board manipulation polish. The
+default cockpit now needs a fresh manual validation pass: does the dashboard
+make the battlefield feel like the anchor while preserving readable Pack Offer,
+resource, forecast, and recap decisions?
 
 Recommended next task:
 
-`test(playtest): manually validate improved Pack Offer readability, resource teaching, combat forecast, and recap`
+`test(playtest): manually validate default dashboard flow`
 
 ## 2. Environment And Commands
 
@@ -1396,9 +1406,11 @@ Deferred findings from the same manual pass remain intentionally out of scope:
   1440 x 900 plus a 1280 x 720 sanity pass. It is close to showable with light
   narration, and the first-fold `Loadout Tray` now exposes ordinary
   Pool/Board/Source Row/Spellrail editing without opening Advanced Debug Panels.
-  It now carries short layer/resource education, but it is still not a
-  cold-start demo because those controls are compact, capped, button-driven
-  affordances rather than board-native manipulation.
+  It now carries short layer/resource education and a first desktop dashboard
+  layout with Loadout Tray / Battlefield / Current Decision as the main
+  first-fold panels, but it is still not a cold-start demo because those
+  controls are compact, capped, button-driven affordances rather than
+  board-native manipulation.
 - The React/CSS Hex Arena remains available as a collapsed debug fallback on `/`
   and `?scenario=renderer-lab`.
 - The default route now hides/collapses most developer bloat and supports
@@ -1497,24 +1509,22 @@ Deferred findings from the same manual pass remain intentionally out of scope:
   Market flow needs manual pacing validation, future bench/sell/shared-pool
   pressure may be needed once pick-limited rewards settle, Commander upgrades
   need more build-defining depth, and the new Board Charge / Sources / Combat
-  Charge teaching plus softer combat forecast and combat recap need a manual
-  cold-read pass.
+  Charge teaching plus softer combat forecast, combat recap, and desktop
+  dashboard layout need a manual cold-read pass.
 
 ## 14. Recommended Next Tasks
 
 Do next:
 
-`test(playtest): manually validate improved Pack Offer readability, resource teaching, combat forecast, and recap`
+`test(playtest): manually validate default dashboard flow`
 
-Why: the default route is now coherent enough that the main blocker is no
-longer first-fold layout, Pixi manipulation, or the old take-everything reward
-flow. The new Pack Offer rows, compact resource definitions, soft combat
-forecast, and recorded-combat recap should be manually tested through at least
-one full reward/advance loop to verify type, stats, effect, fit/warning copy,
-Board Charge, Sources, Combat Charge/sec, forecast language, and post-combat
-summary make reveal 5 / pick 2 feel readable, strategic, and compatible with
-Commander upgrades plus post-pack suggestions before adding bench limits,
-sell/recycle, finite shared-pool scarcity, or board repositioning.
+Why: the default route has a first desktop dashboard pass, but it still needs a
+fresh manual 1440 x 900 and 1280 x 720 cold-read pass. Validate whether
+Loadout Tray, Battlefield, and Current Decision now read as one cockpit, and
+whether Pack Offer rows, compact resource definitions, soft combat forecast,
+and recorded-combat recap make the full reward/advance loop readable before
+adding bench limits, sell/recycle, finite shared-pool scarcity, or board
+repositioning.
 
 Do soon:
 

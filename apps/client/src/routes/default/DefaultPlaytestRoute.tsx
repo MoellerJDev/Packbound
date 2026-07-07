@@ -26,53 +26,62 @@ export const DefaultPlaytestRoute = ({ view, controller }: DefaultPlaytestRouteP
 
   return (
     <section className="default-playtest-route" data-testid="default-playtest-route">
-      <DefaultPlaytestDecisionPanel view={view} controller={controller} />
-      <DefaultLoadoutTray
-        cardName={controller.cardName}
-        renderLoadoutActions={controller.renderLoadoutActions}
-        view={view.loadoutZonesView}
-      />
-      <DefaultPixiBattlefieldSection
-        controller={controller.battlefield}
-        view={view.battlefield}
-      />
-      <div className="default-playtest-loop-grid">
-        <CombatResultPanel
-          isDefaultRoute
-          lastRecorded={view.combat.lastRecorded}
-          showDeveloperDetails={view.showDeveloperDetails}
-          upcoming={view.combat.upcoming}
-        />
-        {showRewards ? (
-          <>
-            <RewardChoicesPanel
-              collapseExplanations
-              description={view.rewards.description}
-              explanationsByChoiceId={view.rewards.explanationsByChoiceId}
-              onOpenReward={controller.onOpenReward}
-              playerGold={view.rewards.playerGold}
-              rewardChoices={view.rewards.rewardChoices}
-            />
-            {view.rewards.pendingPackOffer ? (
-              <PackOfferPanel
-                cardViews={view.rewards.pendingPackOfferCardViews}
-                offer={view.rewards.pendingPackOffer}
-                onCommit={controller.onCommitPackOfferPicks}
-              />
-            ) : null}
-            <CommanderUpgradePanel
-              variant="panel"
-              view={view.commanderUpgradePanelView}
-              onApplyUpgrade={controller.onApplyCommanderUpgrade}
-            />
-          </>
-        ) : null}
-        {view.postPackSuggestions.latestOpenedCardCount > 0 ? (
-          <PostPackSuggestionsPanel
-            summary={view.postPackSuggestions}
-            onApplySuggestion={controller.onApplyPostPackSuggestion}
+      <div
+        className="default-playtest-dashboard"
+        data-testid="default-playtest-dashboard"
+      >
+        <div className="default-playtest-dashboard-left">
+          <DefaultLoadoutTray
+            cardName={controller.cardName}
+            renderLoadoutActions={controller.renderLoadoutActions}
+            view={view.loadoutZonesView}
           />
-        ) : null}
+        </div>
+        <div className="default-playtest-dashboard-center">
+          <DefaultPixiBattlefieldSection
+            controller={controller.battlefield}
+            view={view.battlefield}
+          />
+        </div>
+        <div className="default-playtest-dashboard-right">
+          <DefaultPlaytestDecisionPanel view={view} controller={controller} />
+          <CombatResultPanel
+            isDefaultRoute
+            lastRecorded={view.combat.lastRecorded}
+            showDeveloperDetails={view.showDeveloperDetails}
+            upcoming={view.combat.upcoming}
+          />
+          {showRewards ? (
+            <>
+              <RewardChoicesPanel
+                collapseExplanations
+                description={view.rewards.description}
+                explanationsByChoiceId={view.rewards.explanationsByChoiceId}
+                onOpenReward={controller.onOpenReward}
+                playerGold={view.rewards.playerGold}
+                rewardChoices={view.rewards.rewardChoices}
+              />
+              {view.rewards.pendingPackOffer ? (
+                <PackOfferPanel
+                  cardViews={view.rewards.pendingPackOfferCardViews}
+                  offer={view.rewards.pendingPackOffer}
+                  onCommit={controller.onCommitPackOfferPicks}
+                />
+              ) : null}
+              <CommanderUpgradePanel
+                variant="panel"
+                view={view.commanderUpgradePanelView}
+                onApplyUpgrade={controller.onApplyCommanderUpgrade}
+              />
+            </>
+          ) : null}
+          {view.postPackSuggestions.latestOpenedCardCount > 0 ? (
+            <PostPackSuggestionsPanel
+              summary={view.postPackSuggestions}
+              onApplySuggestion={controller.onApplyPostPackSuggestion}
+            />
+          ) : null}
+        </div>
       </div>
       <details
         className="panel advanced-panel default-playtest-debug"

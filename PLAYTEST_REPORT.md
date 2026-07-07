@@ -332,6 +332,16 @@ Pixi host has nonzero dimensions, stays inside the measured board stage, keeps
 debug panels hidden on `/`, and still exposes the verbose diagnostics on
 `/?debug=1`.
 
+Implementation update after this task: manual zoom validation found that the
+fit-to-stage host could resize correctly while the Pixi stage root kept the
+scale/position from initialization, leaving the board cropped, offset, or
+improperly scaled after zooming in and back out. The Pixi renderer now keeps a
+root container ref and re-runs the existing `fitRoot` transform after initial
+draw, host `ResizeObserver` events, and `window.resize`, preserving the 700:650
+logical battlefield and all coordinate/math truth. Browser smoke now resizes the
+default route viewport and proves canvas bounds plus Pixi click placement still
+work after the host changes size.
+
 Test architecture update after this task: Vitest coverage now runs from the
 root with V8 coverage, conservative global thresholds, and a CI coverage step
 between unit tests and build. Browser smoke is split into default-route workflow
@@ -1498,8 +1508,9 @@ Deferred findings from the same manual pass remain intentionally out of scope:
   secondary content, and card-list headings stay visible while individual lists
   scroll. It is still not a cold-start demo because those controls are compact,
   capped, button-driven affordances rather than drag/drop or board-native zone
-  editing, and the new sizing path still needs manual 100%, 130%, and 50% zoom
-  validation across 1440 x 900, 1280 x 720, and wide desktop.
+  editing. The follow-up Pixi resize fix now re-fits the stage root when the
+  host changes size, but it still needs manual 100%, 130%, zoom-back-to-100%,
+  and 50% validation across 1440 x 900, 1280 x 720, and wide desktop.
 - The React/CSS Hex Arena remains available behind `?debug=1` on `/` and as a
   collapsed debug fallback on `?scenario=renderer-lab`.
 - The default route now hides/collapses most developer bloat and supports
@@ -1610,13 +1621,13 @@ Do next:
 Why: the default route now has a corrected cockpit contract instead of a fixed
 height plus hidden-overflow chain or width-only Pixi host, and debug-only
 surfaces are behind `?debug=1`. It needs a fresh 1440 x 900, 1280 x 720, and
-wide-desktop cold-read pass at 100%, 130%, and 50% zoom through fresh planning,
-combat ready, recorded combat, reward/Pack Offer, and round 2 planning to
-confirm that the anchored Battlefield, intentionally scrolling secondary
-content, Loadout Tray zone access, Pack Offer rows, compact resource
-definitions, soft combat forecast, and recorded-combat recap make the full
-reward/advance loop readable before adding bench limits, sell/recycle, finite
-shared-pool scarcity, or board repositioning.
+wide-desktop cold-read pass at 100%, 130%, zoom-back-to-100%, and 50% zoom
+through fresh planning, combat ready, recorded combat, reward/Pack Offer, and
+round 2 planning to confirm that the anchored Battlefield, intentionally
+scrolling secondary content, Loadout Tray zone access, Pack Offer rows, compact
+resource definitions, soft combat forecast, and recorded-combat recap make the
+full reward/advance loop readable before adding bench limits, sell/recycle,
+finite shared-pool scarcity, or board repositioning.
 
 Do soon:
 

@@ -247,6 +247,46 @@ const applyFirstPostPackSuggestion = async (page: Page, postPackSuggestions: Loc
   }
 };
 
+const waitForAnimationFrames = async (page: Page, frameCount = 2) => {
+  for (let index = 0; index < frameCount; index += 1) {
+    await page.evaluate(
+      () => new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()))
+    );
+  }
+};
+
+const expectPixiCanvasWithinHost = async (rendererHost: Locator) => {
+  await expect(rendererHost).toBeVisible();
+  await expect(rendererHost.locator("canvas")).toHaveCount(1);
+  const bounds = await rendererHost.evaluate((host) => {
+    const canvas = host.querySelector("canvas");
+    if (!(canvas instanceof HTMLCanvasElement)) {
+      throw new Error("Missing Pixi canvas.");
+    }
+
+    const hostBox = host.getBoundingClientRect();
+    const canvasBox = canvas.getBoundingClientRect();
+    return {
+      canvasHeight: canvasBox.height,
+      canvasInsideHost:
+        canvasBox.top >= hostBox.top - 1 &&
+        canvasBox.left >= hostBox.left - 1 &&
+        canvasBox.right <= hostBox.right + 1 &&
+        canvasBox.bottom <= hostBox.bottom + 1,
+      canvasWidth: canvasBox.width,
+      hostHeight: hostBox.height,
+      hostWidth: hostBox.width
+    };
+  });
+
+  expect(bounds.hostWidth).toBeGreaterThan(0);
+  expect(bounds.hostHeight).toBeGreaterThan(0);
+  expect(bounds.canvasWidth).toBeGreaterThan(0);
+  expect(bounds.canvasHeight).toBeGreaterThan(0);
+  expect(bounds.canvasInsideHost).toBe(true);
+  return bounds;
+};
+
 test("default playtest route starts with concise Pixi play surface", async ({ page }) => {
   const {
     allyInspector,
@@ -450,6 +490,40 @@ test("default playtest route starts with concise Pixi play surface", async ({ pa
     engagementPreview.getByText("Out of range", { exact: true })
   ).toBeVisible();
   await expectNoHorizontalScroll(rendererHost);
+
+  expectNoBrowserErrors(errors);
+});
+
+test("default Pixi board refits after viewport resize", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const { battlefield, errors, rendererHost } = await gotoDefaultPlaytestRoute(page);
+
+  const initialBounds = await expectPixiCanvasWithinHost(rendererHost);
+  expect(initialBounds.hostWidth + initialBounds.hostHeight).toBeGreaterThan(0);
+
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await waitForAnimationFrames(page, 3);
+  const resizedBounds = await expectPixiCanvasWithinHost(rendererHost);
+  expect(resizedBounds.hostWidth + resizedBounds.hostHeight).toBeGreaterThan(0);
+
+  const loadoutTray = page.getByTestId("default-loadout-tray");
+  const poolTray = loadoutTray.getByTestId("default-loadout-tray-pool");
+  const boardTray = loadoutTray.getByTestId("default-loadout-tray-board");
+  const defaultPlacementHint = battlefield.getByTestId("default-pixi-placement-hint");
+  const sparkcatchPoolRow = poolTray
+    .getByRole("listitem")
+    .filter({ hasText: "Sparkcatch Apprentice" });
+
+  await sparkcatchPoolRow.scrollIntoViewIfNeeded();
+  await sparkcatchPoolRow.getByRole("button", { name: "Place on Board" }).click();
+  await expect(defaultPlacementHint).toHaveText(
+    "Placing Sparkcatch Apprentice. Click a highlighted Pixi cell."
+  );
+  await clickPixiCell(page, rendererHost, 4, 0);
+  await expect(
+    boardTray.getByRole("listitem").filter({ hasText: "Sparkcatch Apprentice" }).first()
+  ).toBeVisible();
+  await expect(rendererHost.locator("canvas")).toHaveCount(1);
 
   expectNoBrowserErrors(errors);
 });

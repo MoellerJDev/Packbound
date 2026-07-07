@@ -847,6 +847,7 @@ export const PixiBattlefieldRenderer = ({
 }: PixiBattlefieldRendererProps) => {
   const hostRef = useRef<HTMLDivElement>(null);
   const appRef = useRef<Application | undefined>(undefined);
+  const rootRef = useRef<Container | undefined>(undefined);
   const tokenLayerRef = useRef<Container | undefined>(undefined);
   const effectLayerRef = useRef<Container | undefined>(undefined);
   const tokensByCardIdRef = useRef<Map<string, TokenView>>(new Map());
@@ -861,6 +862,7 @@ export const PixiBattlefieldRenderer = ({
   const onCellSelectRef = useRef(onCellSelect);
   const onBlockedCellSelectRef = useRef(onBlockedCellSelect);
   const onReplayCommandCompleteRef = useRef(onReplayCommandComplete);
+  const rootRefitFrameRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
     replayCommandsRef.current = replayCommands;
@@ -893,6 +895,35 @@ export const PixiBattlefieldRenderer = ({
   useEffect(() => {
     onReplayCommandCompleteRef.current = onReplayCommandComplete;
   }, [onReplayCommandComplete]);
+
+  const refitRoot = useCallback(() => {
+    const app = appRef.current;
+    const root = rootRef.current;
+    if (!app || !root) {
+      return;
+    }
+
+    fitRoot(app, root);
+  }, []);
+
+  const cancelScheduledRootRefit = useCallback(() => {
+    if (rootRefitFrameRef.current === undefined) {
+      return;
+    }
+
+    window.cancelAnimationFrame(rootRefitFrameRef.current);
+    rootRefitFrameRef.current = undefined;
+  }, []);
+
+  const scheduleRootRefit = useCallback(() => {
+    cancelScheduledRootRefit();
+    rootRefitFrameRef.current = window.requestAnimationFrame(() => {
+      rootRefitFrameRef.current = window.requestAnimationFrame(() => {
+        rootRefitFrameRef.current = undefined;
+        refitRoot();
+      });
+    });
+  }, [cancelScheduledRootRefit, refitRoot]);
 
   const executeCurrentCommand = useCallback(async (): Promise<boolean> => {
     const session = replaySessionRef.current;
@@ -1007,6 +1038,7 @@ export const PixiBattlefieldRenderer = ({
       root.sortableChildren = true;
       tokenLayer.sortableChildren = true;
       appRef.current = app;
+      rootRef.current = root;
       tokenLayerRef.current = tokenLayer;
       effectLayerRef.current = effectLayer;
       tokensByCardIdRef.current = tokensByCardId;
@@ -1048,6 +1080,7 @@ export const PixiBattlefieldRenderer = ({
       root.addChild(cellLayer, tokenLayer, effectLayer);
       app.stage.addChild(root);
       fitRoot(app, root);
+      scheduleRootRefit();
 
       let elapsed = 0;
       const pulse = (ticker: { readonly deltaMS: number }) => {
@@ -1071,6 +1104,7 @@ export const PixiBattlefieldRenderer = ({
       replaySessionRef.current += 1;
       replayBusySessionRef.current = undefined;
       appRef.current = undefined;
+      rootRef.current = undefined;
       tokenLayerRef.current = undefined;
       effectLayerRef.current = undefined;
       tokensByCardIdRef.current = new Map();
@@ -1078,7 +1112,31 @@ export const PixiBattlefieldRenderer = ({
         app?.destroy(true, { children: true });
       }
     };
-  }, [model, presentation, replayResetKey, runAutomaticPlayback]);
+  }, [model, presentation, replayResetKey, runAutomaticPlayback, scheduleRootRefit]);
+
+  useEffect(() => {
+    const host = hostRef.current;
+    if (!host) {
+      return undefined;
+    }
+
+    scheduleRootRefit();
+    window.addEventListener("resize", scheduleRootRefit);
+
+    const observer =
+      typeof ResizeObserver === "undefined"
+        ? undefined
+        : new ResizeObserver(() => {
+            scheduleRootRefit();
+          });
+    observer?.observe(host);
+
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("resize", scheduleRootRefit);
+      cancelScheduledRootRefit();
+    };
+  }, [cancelScheduledRootRefit, scheduleRootRefit]);
 
   useEffect(() => {
     if (replayStatus === "playing") {

@@ -2313,6 +2313,22 @@ h4 {
   overflow-wrap: anywhere;
 }
 
+.combat-forecast-strip div {
+  border-left: 3px solid #9dc2ad;
+}
+
+.combat-forecast-strip.favored div:first-child {
+  border-left-color: #4f9f66;
+}
+
+.combat-forecast-strip.close div:first-child {
+  border-left-color: #c9a227;
+}
+
+.combat-forecast-strip.danger div:first-child {
+  border-left-color: #c46651;
+}
+
 .combat-summary-title {
   font-size: 1.1rem;
   font-weight: 800;

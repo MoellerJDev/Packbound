@@ -29,7 +29,11 @@ const recordDefaultCombat = async (
 
   const previewPanel = panel(page, "Upcoming Combat Preview");
   await expect(previewPanel).toBeVisible();
-  await expect(previewPanel.getByText(/Winner:/)).toBeVisible();
+  await expect(previewPanel).toContainText("Forecast:");
+  await expect(previewPanel.getByTestId("default-combat-forecast")).toContainText(
+    /Favored|Close fight|Danger/
+  );
+  await expect(previewPanel.getByText(/Winner:/)).toHaveCount(0);
 
   if (verifyPreview) {
     const previewKeyMoments = previewPanel

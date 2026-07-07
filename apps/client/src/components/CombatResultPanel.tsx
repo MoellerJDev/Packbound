@@ -1,6 +1,7 @@
 import type { CombatSummary } from "@packbound/rules";
 import type { CombatDisplaySummary, CombatResult } from "@packbound/sim";
 
+import { buildCombatForecastView } from "../viewModels/combatForecastView";
 import { CombatSummaryView } from "./CombatSummaryView";
 import { RawDebugDetails } from "./RawDebugDetails";
 
@@ -114,36 +115,40 @@ export const CombatResultPanel = ({
     </div>
   );
 
+  const upcomingForecast =
+    isDefaultRoute && upcoming ? buildCombatForecastView(upcoming.combat) : undefined;
+
   const upcomingPanel = upcoming ? (
     <div className="panel wide">
       <h2>Upcoming Combat Preview</h2>
-      <p className="muted">
-        Preview only, not yet recorded. Winner: {upcoming.combat.winner} | Events:{" "}
-        {upcoming.combat.events.length}
-      </p>
-      <dl className="combat-result-strip">
-        <div>
-          <dt>Winner</dt>
-          <dd>{upcoming.combat.winner}</dd>
-        </div>
-        <div>
-          <dt>Damage</dt>
-          <dd>
-            You {upcoming.combat.damageToPlayerA} / Enemy{" "}
-            {upcoming.combat.damageToPlayerB}
-          </dd>
-        </div>
-        <div>
-          <dt>Events</dt>
-          <dd>{upcoming.combat.events.length}</dd>
-        </div>
-        <div>
-          <dt>Warnings</dt>
-          <dd>{upcoming.combat.warnings.length}</dd>
-        </div>
-      </dl>
-      {isDefaultRoute ? (
+      {isDefaultRoute && upcomingForecast ? (
         <>
+          <p className="muted">
+            Preview only, not yet recorded. Forecast: {upcomingForecast.label}. Exact
+            combat is revealed after Record Combat.
+          </p>
+          <dl
+            className={`combat-result-strip combat-forecast-strip ${upcomingForecast.tone}`}
+            data-testid="default-combat-forecast"
+          >
+            <div>
+              <dt>Forecast</dt>
+              <dd>{upcomingForecast.label}</dd>
+            </div>
+            <div>
+              <dt>Pressure</dt>
+              <dd>{upcomingForecast.pressureText}</dd>
+            </div>
+            <div>
+              <dt>Battle Shape</dt>
+              <dd>{upcomingForecast.shapeText}</dd>
+            </div>
+            <div>
+              <dt>Warnings</dt>
+              <dd>{upcomingForecast.warningsText}</dd>
+            </div>
+          </dl>
+          <p className="flow-note">{upcomingForecast.summaryText}</p>
           <details className="combat-feed-details">
             <summary>Preview Key Moments</summary>
             <CombatSummaryView mode="keyMoments" summary={upcoming.displaySummary} />
@@ -154,7 +159,34 @@ export const CombatResultPanel = ({
           </details>
         </>
       ) : (
-        <CombatSummaryView summary={upcoming.displaySummary} />
+        <>
+          <p className="muted">
+            Preview only, not yet recorded. Winner: {upcoming.combat.winner} | Events:{" "}
+            {upcoming.combat.events.length}
+          </p>
+          <dl className="combat-result-strip">
+            <div>
+              <dt>Winner</dt>
+              <dd>{upcoming.combat.winner}</dd>
+            </div>
+            <div>
+              <dt>Damage</dt>
+              <dd>
+                You {upcoming.combat.damageToPlayerA} / Enemy{" "}
+                {upcoming.combat.damageToPlayerB}
+              </dd>
+            </div>
+            <div>
+              <dt>Events</dt>
+              <dd>{upcoming.combat.events.length}</dd>
+            </div>
+            <div>
+              <dt>Warnings</dt>
+              <dd>{upcoming.combat.warnings.length}</dd>
+            </div>
+          </dl>
+          <CombatSummaryView summary={upcoming.displaySummary} />
+        </>
       )}
       {showDeveloperDetails ? (
         <RawDebugDetails

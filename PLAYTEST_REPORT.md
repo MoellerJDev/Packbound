@@ -471,14 +471,13 @@ still feels too vertical and information-heavy; the starting Cinder Scout
 duplicate upgrade is useful but not obviously the first required action; the
 player expected to deploy more resources/cards before combat and manually
 deployed Sparkcatch Apprentice; selected board cells can create overlapping
-glowing hex animation; Combat Preview exposes too much deterministic outcome
-certainty and may eventually want less "you will win" language or controlled
-variance; combat playback is much more understandable; future movement may
+glowing hex animation; Combat Preview exposed too much deterministic outcome
+certainty; combat playback is much more understandable; future movement may
 animate more fluidly while keeping cell-based rules; a compact post-combat
 summary screen/panel would help later; Commander upgrades still feel bland and
 may need build-defining perk-tree-like choices; Board Charge, Sources, and
-Combat Charge/sec needed stronger teaching; and one later fight ended in a
-draw often enough that draw frequency should be reviewed later.
+Combat Charge/sec needed stronger teaching; and one later fight ended in a draw
+often enough that draw frequency should be reviewed later.
 
 Implementation update after this task: Pack Offer cards now show compact
 decision-relevant facts before commit: card type, aspects plus major
@@ -495,22 +494,30 @@ Spellrail in short player-facing sentences without changing any rules or
 layout flow. Pack Offer Board Charge warnings also now point at the existing
 fix: add or swap Sources, or return a board card before using the pick.
 
+Implementation update after this task: the default route's `Upcoming Combat
+Preview` now presents the deterministic simulation as a soft forecast instead
+of an exact solved result. Before recording combat it shows broad labels like
+`Favored`, `Close fight`, or `Danger`, plus coarse pressure and battle-shape
+copy. Exact winner, damage, and event details remain available after
+`Record Combat`, and non-default/debug preview behavior remains exact.
+
 The biggest remaining Pixi/default-route findings are no longer the absence of
 replay controls, tiny first-pass labels, unvalidated readability, default-route
 confidence, basic default-route edit affordances, an ungrouped default combat
-feed, a debug-grid first screen, or always-expanded inspector detail. Now that
-`/` opens on a tighter Pixi-focused playtest surface with an immediate build
-decision, a first-fold Loadout Tray, grouped duplicate post-pack suggestions,
-stabilized default combat playback, pick-limited Pack Offers, and more readable
-Pack Offer card rows plus compact resource teaching, the next highest-value gap
-is no longer board manipulation polish. The acquisition model now needs a fresh
-manual validation pass: do the new offer facts and resource definitions make
-reveal 5 / pick 2 strategic enough before bench limits, sell/recycle, or finite
-shared-pool scarcity arrive?
+feed, a debug-grid first screen, always-expanded inspector detail, or
+pre-combat exact winner spoilers. Now that `/` opens on a tighter Pixi-focused
+playtest surface with an immediate build decision, a first-fold Loadout Tray,
+grouped duplicate post-pack suggestions, stabilized default combat playback,
+pick-limited Pack Offers, more readable Pack Offer card rows, compact resource
+teaching, and softer combat forecasting, the next highest-value gap is no
+longer board manipulation polish. The acquisition model now needs a fresh
+manual validation pass: do the new offer facts, resource definitions, and
+forecast language make reveal 5 / pick 2 strategic enough before bench limits,
+sell/recycle, or finite shared-pool scarcity arrive?
 
 Recommended next task:
 
-`test(playtest): manually validate improved Pack Offer readability and resource teaching`
+`test(playtest): manually validate improved Pack Offer readability, resource teaching, and combat forecast`
 
 ## 2. Environment And Commands
 
@@ -1484,17 +1491,17 @@ Deferred findings from the same manual pass remain intentionally out of scope:
   Market flow needs manual pacing validation, future bench/sell/shared-pool
   pressure may be needed once pick-limited rewards settle, Commander upgrades
   need more build-defining depth, and the new Board Charge / Sources / Combat
-  Charge teaching needs a manual cold-read pass.
+  Charge teaching plus softer combat forecast need a manual cold-read pass.
 
 ## 14. Recommended Next Tasks
 
 Do next:
 
-`test(playtest): manually validate improved Pack Offer readability and resource teaching`
+`test(playtest): manually validate improved Pack Offer readability, resource teaching, and combat forecast`
 
 Why: the default route is now coherent enough that the main blocker is no
 longer first-fold layout, Pixi manipulation, or the old take-everything reward
-flow. The new Pack Offer rows and compact resource definitions should be
+flow. The new Pack Offer rows, compact resource definitions, and soft combat forecast should be
 manually tested through at least one full reward/advance loop to verify type,
 stats, effect, fit/warning copy, Board Charge, Sources, and Combat Charge/sec
 make reveal 5 / pick 2 feel readable, strategic, and compatible with Commander

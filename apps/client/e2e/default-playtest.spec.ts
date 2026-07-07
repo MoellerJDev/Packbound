@@ -260,6 +260,8 @@ test("default playtest route starts with concise Pixi play surface", async ({ pa
 
   const dashboard = page.getByTestId("default-playtest-dashboard");
   await expect(dashboard).toBeVisible();
+  await expect(page.locator(".app-shell").filter({ has: playtestRoute })).toBeVisible();
+  await expect(battlefield).toHaveClass(/default-pixi-battlefield-section/);
   await expectNoHorizontalScroll(playtestRoute);
   await expect(
     page.getByRole("heading", { name: "Current Decision", exact: true })

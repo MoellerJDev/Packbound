@@ -397,6 +397,13 @@ Charge/sec, and Techniques live in Spellrail slots. This is a UI clarity pass
 only; rules, validation, loadout actions, Pixi placement, combat, content, and
 rewards did not change.
 
+Implementation update after this task: the default Pixi battlefield layout now
+gets route-specific desktop room instead of inheriting the generic 1440px app
+shell. The `/` dashboard keeps the Loadout Tray / Battlefield / Current
+Decision structure, but its desktop columns now weight the center battlefield
+more heavily and use narrower side rails. The Pixi internal 700 x 650 stage,
+coordinate math, rules, combat, content, and non-default routes did not change.
+
 Implementation update after this task: post-pack suggestions now group duplicate
 latest-pack copies that have the same useful recommendation. The displayed row
 shows copy count, such as `Cracked Prism x2`, and applies one representative
@@ -1423,13 +1430,12 @@ Deferred findings from the same manual pass remain intentionally out of scope:
   1440 x 900 plus a 1280 x 720 sanity pass. It is close to showable with light
   narration, and the first-fold `Loadout Tray` now exposes ordinary
   Pool/Board/Source Row/Spellrail editing without opening Advanced Debug Panels.
-  It now carries short layer/resource education, a desktop dashboard layout with
-  Loadout Tray / Battlefield / Current Decision as the main first-fold panels,
-  a full-width center Pixi battlefield, wider Ally / Enemy inspector cards below
-  the board, and a consolidated first-fold `Place on Board` manual placement
-  action. It is still not a cold-start demo because those controls are compact,
-  capped, button-driven affordances rather than drag/drop or board-native zone
-  editing.
+  It now carries short layer/resource education, a route-specific wider desktop
+  shell, center-weighted Loadout Tray / Battlefield / Current Decision columns,
+  a wider center Pixi battlefield, wider Ally / Enemy inspector cards below the
+  board, and a consolidated first-fold `Place on Board` manual placement action.
+  It is still not a cold-start demo because those controls are compact, capped,
+  button-driven affordances rather than drag/drop or board-native zone editing.
 - The React/CSS Hex Arena remains available as a collapsed debug fallback on `/`
   and `?scenario=renderer-lab`.
 - The default route now hides/collapses most developer bloat and supports
@@ -1535,15 +1541,15 @@ Deferred findings from the same manual pass remain intentionally out of scope:
 
 Do next:
 
-`test(playtest): manually validate default dashboard flow`
+`test(playtest): manually validate widened default dashboard flow`
 
-Why: the default route has a first desktop dashboard pass, but it still needs a
-fresh manual 1440 x 900 and 1280 x 720 cold-read pass. Validate whether
-Loadout Tray, Battlefield, and Current Decision now read as one cockpit, and
-whether Pack Offer rows, compact resource definitions, soft combat forecast,
-and recorded-combat recap make the full reward/advance loop readable before
-adding bench limits, sell/recycle, finite shared-pool scarcity, or board
-repositioning.
+Why: the default route now gives the Pixi board substantially more desktop
+space, but it still needs a fresh manual 1440 x 900 and 1280 x 720 cold-read
+pass. Validate whether Loadout Tray, Battlefield, and Current Decision now read
+as one cockpit, and whether Pack Offer rows, compact resource definitions, soft
+combat forecast, and recorded-combat recap make the full reward/advance loop
+readable before adding bench limits, sell/recycle, finite shared-pool scarcity,
+or board repositioning.
 
 Do soon:
 

@@ -1112,23 +1112,24 @@ Expand them only through focused rules/content tasks with tests.
 
 ### Pack Market, Roster, Bench, And Shared Pool
 
-The current prototype reward flow buys a pack and adds every opened card to
-`RunState.pool`. That remains implemented behavior today, but the long-term
-construction model should move toward pick-limited Pack Offers and, later,
-finite shared-pool availability.
+The current prototype reward flow buys a pack into a pending pick-limited Pack
+Offer instead of adding every opened card to `RunState.pool`. Committed picks
+enter the run pool; unpicked offer cards are recorded as released metadata and
+do not become owned. Later work can layer finite shared-pool availability on top
+of the same ownership boundary.
 
 Future ownership boundaries:
 
 - `packages/content` owns declarative pack definitions, pack-family costs,
   future reveal/pick counts, and optional solo faction pressure metadata on
   encounters, routes, bosses, or reward profiles.
-- `packages/shared` should own serializable shared-pool and offer data types
-  once they exist: pool copy ledgers, pack offer ids, reserved copy records,
-  picked/released offer entries, bench capacity summaries, and sell/recycle
-  result metadata.
-- `packages/rules` owns deterministic Pack Market generation, offer
-  reservation/release in solo runs, pick validation, roster/bench capacity,
-  duplicate-copy accounting, sell/recycle rules, and replayable run actions.
+- `packages/rules` currently owns serializable pending Pack Offer state on
+  `RunState`, deterministic offer generation from pack opening, pick validation,
+  picked/released offer history, and replayable run actions. Future genuinely
+  cross-package shared-pool data can move to `packages/shared` when needed.
+- `packages/rules` also owns future offer reservation/release in solo runs,
+  roster/bench capacity, duplicate-copy accounting, sell/recycle rules, and
+  replayable run actions.
 - `apps/client` presents the Pack Market, offer picks, roster/bench capacity,
   and suggested loadout edits. It must not decide card availability,
   reservation, pick legality, or shared-pool copy accounting.
@@ -1136,16 +1137,14 @@ Future ownership boundaries:
   including simultaneous reservation, commit, release, expiry, reconnect, and
   retry semantics.
 
-Recommended first implementation slice:
+Implemented first slice:
 
-- Add pick-limited pack offers before implementing bench limits or shared-pool
-  scarcity.
-- Keep pack generation deterministic, reveal a small offer, require a fixed
-  number of picks, and add only chosen cards to the current run pool/roster.
-- Record chosen and unchosen cards in run history so future shared-pool and
-  analytics work can reason about released or consumed copies.
-- Keep post-pack suggestions advisory and run them only after picks are
-  committed.
+- Pick-limited Pack Offers landed before bench limits or shared-pool scarcity.
+- Pack generation remains deterministic, normal offers reveal up to 5 cards and
+  require up to 2 picks, and only chosen cards enter the current run pool/roster.
+- Chosen and unchosen cards are recorded in run history so future shared-pool
+  and analytics work can reason about released or consumed copies.
+- Post-pack suggestions remain advisory and run only after picks are committed.
 
 Future shared-pool shape:
 
@@ -1288,9 +1287,8 @@ complete AI drafters.
 - Pack purchases are replayable RunActions through `applyPackReward`; successful
   purchases spend gold and record cost, gold before, and gold after in reward
   history.
-- Future Pack Market work should split purchase from ownership: buying or
-  choosing a pack can create a pick-limited offer, and only committed picks
-  should enter the run roster.
+- Pack Market purchase is split from ownership: buying a pack creates a
+  pick-limited pending offer, and only committed picks enter the run roster.
 - Future discounts and rerolls should remain generated from seeded run state.
 - Balance reports should include broad economy signals such as gold earned,
   pack affordability, pick pressure, released cards, discount frequency, and

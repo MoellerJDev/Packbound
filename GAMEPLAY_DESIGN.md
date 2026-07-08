@@ -215,14 +215,15 @@ run-owned pool, and committed to an active fight setup.
   ordinary shared-pool economy unless a focused design explicitly says
   otherwise.
 
-### Future Pack Flow
+### Pack Offer Flow
 
-The current prototype opens a purchased reward pack and puts every card into
-the run pool. That was useful for engine validation, but it makes the reward
-loop too permissive: the player can take everything, apply every suggested edit,
-and win without enough commitment.
+The current prototype now treats purchased reward packs as pick-limited Pack
+Offers. The older engine-validation flow, where a purchased pack put every card
+into the run pool, is intentionally retired because it made the reward loop too
+permissive: the player could take everything, apply every suggested edit, and
+win without enough commitment.
 
-Future Pack Market direction:
+Current Pack Market direction:
 
 1. A Pack Offer reveals a small set of cards from a pack family.
 2. The player picks a limited number.
@@ -231,11 +232,11 @@ Future Pack Market direction:
 5. Suggested edits remain advisory after acquisition; they are not the
    acquisition mechanic.
 
-First target for early packs: reveal 5 cards and pick 2. This is small enough
-to read, large enough to feel like a pack, and immediately stops the
-"take-everything" reward problem. Later pack definitions can tune reveal count,
-pick count, cost, rarity guarantees, and whether a special pack burns or locks
-unchosen cards.
+Current early packs reveal up to 5 cards and pick up to 2, reduced gracefully for
+smaller offers. This is small enough to read, large enough to feel like a pack,
+and immediately stops the "take-everything" reward problem. Later pack
+definitions can tune reveal count, pick count, cost, rarity guarantees, and
+whether a special pack burns or locks unchosen cards.
 
 Default unchosen behavior should be "released," not destroyed. In future
 multiplayer, unpicked reserved copies return to the shared pool. In solo,

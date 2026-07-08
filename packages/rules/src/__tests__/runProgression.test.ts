@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { sampleCatalog } from "@packbound/content";
+import { sampleCatalog, type ContentCatalog } from "@packbound/content";
 import {
   asCardInstanceId,
   asPackId,
+  type PackDefinition,
   type CardInstanceId,
   type CombatEvent
 } from "@packbound/shared";
@@ -51,6 +52,39 @@ const applyFirstReward = (run: RunState): RunState =>
 
 const applyFirstPackReward = (run: RunState): RunState =>
   applyPackReward(run, sampleCatalog, firstRewardChoiceId(run));
+
+const tinyPackId = asPackId("tiny_pack");
+
+const tinyPack: PackDefinition = {
+  id: tinyPackId,
+  name: "Tiny Pack",
+  cost: 1,
+  setWeights: { ember_foundry: 1 },
+  slots: [{ rarity: "common", count: 1 }],
+  tagBias: {}
+};
+
+const tinyPackCatalog: ContentCatalog = {
+  ...sampleCatalog,
+  packs: [tinyPack],
+  packsById: new Map([[tinyPackId, tinyPack]])
+};
+
+const withTinyPackRewardChoice = (run: RunState): RunState => ({
+  ...run,
+  currentRewardChoices: [
+    {
+      id: "reward:tiny-pack",
+      type: "pack",
+      round: run.currentRound,
+      packId: tinyPackId,
+      label: tinyPack.name,
+      cost: tinyPack.cost,
+      affordable: run.playerGold >= tinyPack.cost,
+      goldAfterPurchase: run.playerGold - tinyPack.cost
+    }
+  ]
+});
 
 const firstPendingOfferPickIds = (run: RunState): readonly CardInstanceId[] => {
   const pendingOffer = run.pendingPackOffer;
@@ -192,6 +226,32 @@ describe("run progression skeleton", () => {
       cost: choice.cost,
       goldBefore: rewarded.playerGold,
       goldAfter: rewarded.playerGold - choice.cost
+    });
+  });
+
+  it("handles smaller Pack Offers by reducing the pick limit to the revealed count", () => {
+    const rewarded = withTinyPackRewardChoice(
+      rewardRun(createRun({ seed: "tiny-pack-seed" }))
+    );
+    const pending = applyPackReward(rewarded, tinyPackCatalog, "reward:tiny-pack");
+
+    expect(pending.pendingPackOffer).toMatchObject({
+      packId: tinyPackId,
+      revealCount: 1,
+      pickLimit: 1
+    });
+    expect(pending.pendingPackOffer?.cards).toHaveLength(1);
+    expect(pending.pool).toEqual(rewarded.pool);
+
+    const pickId = pending.pendingPackOffer!.cards[0]!.instanceId;
+    const committed = commitPackOfferPicks(pending, [pickId]);
+
+    expect(committed.pool.map((card) => card.instanceId)).toEqual([pickId]);
+    expect(committed.rewardHistory[0]).toMatchObject({
+      offeredCardInstanceIds: [pickId],
+      chosenCardInstanceIds: [pickId],
+      releasedCardInstanceIds: [],
+      pickLimit: 1
     });
   });
 

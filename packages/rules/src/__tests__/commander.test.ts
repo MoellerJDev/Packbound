@@ -16,6 +16,7 @@ import {
   applyRunAction,
   applyRunActions,
   applyPackReward,
+  recordAshesFromCombatResult,
   commitPackOfferPicks,
   canDeployCommander,
   canUnlockCommanderDoctrineNode,
@@ -123,6 +124,15 @@ const applyAndCommitPackReward = (run: RunState): RunState =>
     applyPackReward(run, sampleCatalog, firstPackRewardChoiceId(run))
   );
 
+const unlockAshLedgerAndAdvance = (rewardRun: RunState): RunState => {
+  const unlocked = applyRunAction(rewardRun, sampleCatalog, {
+    type: "unlockCommanderDoctrineNode",
+    nodeId: "ash_ledger"
+  });
+  const packed = applyAndCommitPackReward(unlocked);
+  return applyRunAction(packed, sampleCatalog, { type: "advanceRunAfterCombat" });
+};
+
 const commanderLifecycleTypes = (run: RunState): readonly string[] =>
   run.commander?.lifecycleHistory.map((entry) => entry.type) ?? [];
 
@@ -165,6 +175,32 @@ const unitDestroyedEvent = (
   ownerId: run.playerId,
   isEcho: false,
   reason: "combatDamage",
+  ...overrides
+});
+
+const unitMovedEvent = (
+  run: RunState,
+  card: {
+    readonly instanceId: CardInstance["instanceId"];
+    readonly defId: CardInstance["defId"];
+  },
+  from: BoardPosition,
+  to: BoardPosition,
+  overrides: Partial<Extract<CombatEvent, { readonly type: "UnitMoved" }>> = {}
+): Extract<CombatEvent, { readonly type: "UnitMoved" }> => ({
+  type: "UnitMoved",
+  timeMs: 100,
+  unitId: asUnitInstanceId(`playerA:${card.instanceId}`),
+  cardInstanceId: card.instanceId,
+  defId: card.defId,
+  side: "playerA",
+  ownerId: run.playerId,
+  from,
+  to,
+  targetId: asUnitInstanceId("playerB:test-target"),
+  targetCardInstanceId: asCardInstanceId("enemy-target-card"),
+  targetDefId: asCardDefId("ember_scraprunner"),
+  targetSide: "playerB",
   ...overrides
 });
 
@@ -916,6 +952,151 @@ describe("command zone commander prototype", () => {
     expect(JSON.parse(JSON.stringify(toRunActionLog(actions)))).toEqual(
       toRunActionLog(actions)
     );
+  });
+
+  it("does not persist combat Ashes before Ash Ledger is unlocked", () => {
+    const ready = readyCombatRun(createCommanderRun("ash-ledger-locked-seed"));
+    const placement = ready.board.placements[0];
+    if (!placement) {
+      throw new Error("Expected a starter board placement");
+    }
+
+    const recorded = recordCombatResult(
+      ready,
+      combatResult([
+        unitDestroyedEvent(ready, {
+          instanceId: placement.cardInstanceId,
+          defId: placement.defId
+        })
+      ]),
+      {
+        catalog: sampleCatalog,
+        encounterId: requireCurrentEncounterId(ready)
+      }
+    );
+
+    expect(recorded.ashRecords).toEqual([]);
+  });
+
+  it("persists destroyed units as Ash Ledger records with display metadata", () => {
+    const reward = rewardCombatRun(createCommanderRun("ash-ledger-persistence-seed"));
+    const planning = unlockAshLedgerAndAdvance(reward);
+    const ready = readyCombatRun(planning);
+    const placement = ready.board.placements[0];
+    if (!placement) {
+      throw new Error("Expected a starter board placement");
+    }
+
+    const movedTo: BoardPosition = {
+      ...placement.position,
+      col: placement.position.col + 1
+    };
+    const moved = unitMovedEvent(
+      ready,
+      { instanceId: placement.cardInstanceId, defId: placement.defId },
+      placement.position,
+      movedTo
+    );
+    const destroyed = unitDestroyedEvent(ready, {
+      instanceId: placement.cardInstanceId,
+      defId: placement.defId
+    });
+    const enemyDestroyed = unitDestroyedEvent(
+      ready,
+      {
+        instanceId: asCardInstanceId("enemy-destroyed-card"),
+        defId: asCardDefId("ember_scraprunner")
+      },
+      {
+        timeMs: 300,
+        side: "playerB",
+        ownerId: asPlayerId("enemy-player"),
+        unitId: asUnitInstanceId("playerB:enemy-destroyed-card")
+      }
+    );
+
+    const recorded = recordCombatResult(
+      ready,
+      combatResult([moved, destroyed, destroyed, enemyDestroyed]),
+      {
+        catalog: sampleCatalog,
+        encounterId: requireCurrentEncounterId(ready)
+      }
+    );
+
+    expect(recorded.ashRecords).toHaveLength(2);
+    expect(recorded.ashRecords?.[0]).toMatchObject({
+      sourceCardName: "Ember Scraprunner",
+      cardDefId: placement.defId,
+      cardInstanceId: placement.cardInstanceId,
+      cardType: "Unit",
+      side: "player",
+      combatSide: "playerA",
+      ownerId: ready.playerId,
+      roundCreated: 2,
+      origin: "destroyed in combat",
+      combatEventIndex: 1,
+      combatEventTimeMs: 200,
+      destructionReason: "combatDamage",
+      isEcho: false,
+      position: movedTo
+    });
+    expect(recorded.ashRecords?.[1]).toMatchObject({
+      sourceCardName: "Ember Scraprunner",
+      side: "enemy",
+      combatSide: "playerB",
+      roundCreated: 2,
+      origin: "destroyed in combat"
+    });
+    expect(
+      recordAshesFromCombatResult(recorded, [moved, destroyed], {
+        catalog: sampleCatalog
+      }).ashRecords
+    ).toEqual(recorded.ashRecords);
+    expect(JSON.parse(JSON.stringify(recorded.ashRecords))).toEqual(recorded.ashRecords);
+
+    const packed = applyAndCommitPackReward(recorded);
+    const doctrineClaimed = applyRunAction(packed, sampleCatalog, {
+      type: "unlockCommanderDoctrineNode",
+      nodeId: "memory_vault"
+    });
+    const nextPlanning = applyRunAction(doctrineClaimed, sampleCatalog, {
+      type: "advanceRunAfterCombat"
+    });
+
+    expect(nextPlanning.phase).toBe("planning");
+    expect(nextPlanning.ashRecords).toEqual(recorded.ashRecords);
+  });
+
+  it("replays Ash Ledger persistence deterministically through run actions", () => {
+    const reward = rewardCombatRun(createCommanderRun("ash-ledger-replay-seed"));
+    const planning = unlockAshLedgerAndAdvance(reward);
+    const ready = readyCombatRun(planning);
+    const placement = ready.board.placements[0];
+    if (!placement) {
+      throw new Error("Expected a starter board placement");
+    }
+    const recordAction: RunAction = {
+      type: "recordCombatResult",
+      encounterId: requireCurrentEncounterId(ready),
+      combatResult: combatResult([
+        unitDestroyedEvent(ready, {
+          instanceId: placement.cardInstanceId,
+          defId: placement.defId
+        })
+      ])
+    };
+
+    const recorded = applyRunAction(ready, sampleCatalog, recordAction);
+
+    expect(recorded.ashRecords).toEqual([
+      expect.objectContaining({
+        sourceCardName: "Ember Scraprunner",
+        origin: "destroyed in combat",
+        roundCreated: 2
+      })
+    ]);
+    expect(replayRunActions(ready, sampleCatalog, [recordAction])).toEqual(recorded);
   });
 
   it("exposes Commander upgrade choices only during reward with a Commander", () => {

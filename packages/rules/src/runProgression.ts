@@ -7,6 +7,7 @@ import {
   type SimulationWarning
 } from "@packbound/shared";
 
+import { recordAshesFromCombatResult } from "./ashes";
 import {
   applyCommanderCombatLifecycle,
   awardCommanderDoctrinePoint,
@@ -41,6 +42,7 @@ export type CombatResultLike = {
 
 export type RecordCombatOptions = {
   readonly encounterId?: string;
+  readonly catalog?: ContentCatalog;
 };
 
 export const canApplyReward = (run: RunState): boolean =>
@@ -334,8 +336,13 @@ export const recordCombatResult = (
     combatSummaryIndex
   };
   const lifecycleRun = applyCommanderCombatLifecycle(run, combatResult.events);
+  const ashLifecycleRun = recordAshesFromCombatResult(
+    lifecycleRun,
+    combatResult.events,
+    options.catalog ? { catalog: options.catalog } : {}
+  );
   const rewardLifecycleRun =
-    nextHealth <= 0 ? lifecycleRun : awardCommanderDoctrinePoint(lifecycleRun);
+    nextHealth <= 0 ? ashLifecycleRun : awardCommanderDoctrinePoint(ashLifecycleRun);
 
   return {
     ...rewardLifecycleRun,

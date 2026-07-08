@@ -50,6 +50,15 @@ const recordDefaultCombat = async (
   await expect(actionRail.getByTestId("default-action-recap")).toContainText(/Winner:/);
 };
 
+const readyAndRecordCombat = async (page: Page) => {
+  const actionRail = page.getByTestId("default-action-rail");
+
+  await page.getByRole("button", { name: "Ready Combat" }).click();
+  await expect(page.getByTestId("default-action-combat-preview")).toBeVisible();
+  await page.getByRole("button", { name: "Record Combat" }).click();
+  await expect(actionRail.getByTestId("default-action-recap")).toContainText(/Winner:/);
+};
+
 const expectDefaultCombatPlayback = async (page: Page, rendererHost: Locator) => {
   const playbackPanel = page.getByTestId("default-combat-playback");
   await expect(
@@ -210,6 +219,12 @@ const advanceToNextPlanningAfterRewards = async (page: Page) => {
   await expect(poolPanel.getByText(/Latest pack:/)).toBeVisible();
   await expect(poolPanel.getByText(/Paid \d+ gold/)).toBeVisible();
   await expect(poolPanel.getByText("new").first()).toBeVisible();
+};
+
+const advanceToNextPlanningSurface = async (page: Page) => {
+  await page.getByRole("button", { name: "Advance" }).click();
+  await expect(page.getByRole("button", { name: "Ready Combat" })).toBeVisible();
+  await expect(page.getByTestId("post-pack-suggestions-panel")).toBeVisible();
 };
 
 const applyFirstPostPackSuggestion = async (page: Page, postPackSuggestions: Locator) => {
@@ -1117,6 +1132,25 @@ test("default rewards gate Pack Offers before advance", async ({ page }) => {
   await openAndCommitFirstPackOffer(page);
   await unlockFirstCommanderDoctrine(page);
   await expect(page.getByRole("button", { name: "Advance" })).toBeEnabled();
+
+  expectNoBrowserErrors(errors);
+});
+
+test("default Ash Ledger persists combat Ashes in Battlefield Layers", async ({
+  page
+}) => {
+  const { errors } = await gotoDefaultPlaytestRoute(page);
+
+  await recordDefaultCombat(page);
+  await openAndCommitFirstPackOffer(page);
+  await unlockFirstCommanderDoctrine(page);
+  await advanceToNextPlanningSurface(page);
+  await readyAndRecordCombat(page);
+
+  const layersPanel = page.getByTestId("battlefield-layers-panel");
+  await expect(layersPanel).toContainText("Persistent Ash from Ash Ledger");
+  await expect(layersPanel).toContainText("destroyed in combat");
+  await expect(page.getByTestId("default-action-pack-market")).toBeVisible();
 
   expectNoBrowserErrors(errors);
 });

@@ -113,7 +113,8 @@ export const applyRunAction = (
       return markCombatReady(run, catalog);
     case "recordCombatResult":
       return recordCombatResult(run, action.combatResult, {
-        encounterId: action.encounterId
+        encounterId: action.encounterId,
+        catalog
       });
     case "applyPackReward":
       return applyPackReward(run, catalog, action.choiceId);

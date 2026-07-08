@@ -1222,10 +1222,19 @@ complete AI drafters.
   `CommanderState`. The old `applyCommanderUpgradeChoice` path remains as
   compatibility/diagnostic history but is no longer the player-facing reward
   surface.
+- Ash Ledger persistence is a run-progression effect, not simulator behavior.
+  `recordCombatResult` applies a rules helper after Commander combat lifecycle
+  replacement; when Ash Ledger is unlocked, that helper turns `UnitDestroyed`
+  events into deterministic `RunState.ashRecords` display/progression metadata
+  and deduplicates by destroyed-event identity. It does not mutate combat
+  events, `RunState.ashes`, or combat setup.
 - Battlefield Layers display data is pure rules-layer clarity data. It can read
-  persistent `RunState.ashes` or optional last-combat `UnitDestroyed` events to
-  build an Ashes summary, and currently exposes Walls / Edges as empty
-  scaffolding without changing combat, pathing, or board legality.
+  persistent `RunState.ashRecords`, existing `RunState.ashes`, or optional
+  last-combat `UnitDestroyed` events to build an Ashes summary. Ash Ledger
+  records are labeled as doctrine-tracked state; existing Ash-zone cards remain
+  persistent run state; last-combat destroyed events are labeled as temporary
+  context. The same view currently exposes Walls / Edges as empty scaffolding
+  without changing combat, pathing, or board legality.
 - The current encounter action bridge validates deployed Commander context for
   `Commander Rally` and then queues a match-local action. This is deliberately
   separate from Commander lifecycle run actions; resolving Rally does not mutate

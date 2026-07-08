@@ -174,17 +174,28 @@ rules-owned Doctrine foundation. Combat rewards award a doctrine point, the
 reward phase exposes Ashbound, Field Architect, and Spellrail Conductor doctrine
 nodes, and unlocking one available node records serializable doctrine history
 while keeping the pack reward bucket separate. Current doctrine nodes are honest
-foundation/display unlocks; they do not yet change combat, pack odds, walls,
-Ashes, or Spellrail triggers.
+foundation/display unlocks except Ash Ledger; they do not yet change combat,
+pack odds, walls, Recall, Memory Vault, or Spellrail triggers.
+
+Implementation update after this task: Ash Ledger is now the first mechanical
+Commander Doctrine node. When unlocked, recording combat persists destroyed-unit
+events into deterministic run Ash records with card name, definition/instance
+ids, side, round, origin, card type when known, Echo flag, destruction reason,
+event timing, and last known combat position when an event exposed one.
+Battlefield Layers now prefers those Ash Ledger records and labels last-combat
+destroyed units as temporary context when no persistent records exist. The
+simulator and combat setup were not changed, and the records do not yet feed
+Recall, Memory Vault, or other Ashbound payoffs.
 
 Implementation update after this task: default-route `Deploy Commander` now
 enters manual Commander placement mode instead of auto-picking a default hex.
 Legal Commander deployment hexes come from `packages/rules`, Pixi highlights
 those cells, and clicking a highlighted cell deploys through the existing
 `deployCommander` run action. The battlefield sidecar also now shows a compact
-`Battlefield Layers` panel for Ashes and Walls / Edges; Ashes use persistent run
-Ashes when available, otherwise a conservative last-combat destroyed-unit
-summary, and walls/edges remain display scaffolding only.
+`Battlefield Layers` panel for Ashes and Walls / Edges; Ashes prefer persistent
+Ash Ledger records, can still show existing run Ash-zone cards, otherwise use a
+conservative last-combat destroyed-unit summary, and walls/edges remain display
+scaffolding only.
 
 Implementation update after this task: the default route's former Current
 Decision/right-rail pile is now a sequential `Action Rail`. Reward flow is
@@ -1632,14 +1643,17 @@ Deferred findings from the same manual pass remain intentionally out of scope:
   encounter-phase Commander deploy/return actions.
 - Commander lifecycle history is visible in the debug Command Zone panel, but it
   is still a compact audit trail with no filtering, export, or event grouping.
-- Commander Doctrine is implemented only as foundation/display unlocks. The old
-  generic Commander upgrade action path remains available for compatibility, but
-  the player-facing reward surface is now doctrine. Signature Relics, enemy
-  Commanders, authored Commander cards, authored Commander effects, real pack
-  odds changes, wall mechanics, Ashes recall/payoff mechanics, and Spellrail
-  trigger programming are not implemented.
-- Normal non-Commander unit death cleanup into Ashes is not implemented in
-  run-progression state by this Commander-specific replacement.
+- Commander Doctrine has one mechanical Ashbound node: Ash Ledger persists
+  destroyed-unit metadata as run Ash records after combat. Memory Vault, Field
+  Architect, Spellrail Conductor, and deeper nodes remain foundation/display
+  unlocks. The old generic Commander upgrade action path remains available for
+  compatibility, but the player-facing reward surface is now doctrine. Signature
+  Relics, enemy Commanders, authored Commander cards, authored Commander
+  effects, real pack odds changes, wall mechanics, Ashes recall/payoff
+  mechanics, and Spellrail trigger programming are not implemented.
+- Normal non-Commander unit death cleanup into `RunState.ashes` is not
+  implemented; Ash Ledger records are persistent metadata for Battlefield Layers
+  and future doctrine work, not combat setup Ashes.
 - Priority Lab has two real prototype actions with source context:
   `Prototype Pressure Technique` from Sparkfall and `Commander Rally` from a
   deployed Commander. It also has `Target Probe`, a no-source prototype that
@@ -1669,20 +1683,20 @@ Deferred findings from the same manual pass remain intentionally out of scope:
 
 Do next:
 
-`test(playtest): manually validate no-scroll default action rail`
+`test(playtest): manually validate Ash Ledger default-route pacing`
 
-Why: the default route now has a no-scroll 1280 x 720 Action Rail pass covering
-planning, combat recording, Pack Market, Pack Offer, Commander Doctrine,
-reward-complete, and post-pack planning states. It needs a fresh 1440 x 900,
-1280 x 720, and wide-desktop cold-read pass at 100%, 130%,
-zoom-back-to-100%, and 50% zoom before adding real doctrine effects, bench
-limits, sell/recycle, finite shared-pool scarcity, or board repositioning.
+Why: Ash Ledger is now the first mechanical doctrine payoff, so the default
+route needs a quick cold-read pass that unlocks Ash Ledger, records the next
+fight, and checks whether persistent Ashes in Battlefield Layers make the
+Ashbound path feel legible without implying Recall or Memory Vault mechanics.
+This can be combined with the pending 1440 x 900, 1280 x 720, wide-desktop,
+100%, 130%, zoom-back-to-100%, and 50% no-scroll validation.
 
 Do soon:
 
 - `test(playtest): manually validate corrected default combat playback and row
 orientation`
-- `feat(rules): add first mechanical Commander Doctrine effect`
+- `feat(rules): add Memory Vault Ash record payoff prototype`
 - `feat(client): clarify reward pack-to-pool card identity`
 - `feat(content): tune starter and encounter placements for 8-row combat pacing`
 - `test(playtest): manually validate grouped combat key moments across starters`

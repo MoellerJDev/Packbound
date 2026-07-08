@@ -2,14 +2,17 @@ import {
   asPlayerId,
   asRunId,
   type BoardState,
+  type BoardPosition,
   type CardDefId,
   type CardInstance,
   type CardInstanceId,
+  type CardType,
   type CombatWinner,
   type DestructionReason,
   type PackId,
   type PackOpenResult,
   type PlayerId,
+  type PlayerSide,
   type RunId,
   type SourceRowState,
   type SpellrailState,
@@ -217,6 +220,27 @@ export type EncounterHistoryEntry = {
   readonly combatSummaryIndex: number;
 };
 
+export type RunAshOrigin = "destroyed in combat";
+export type RunAshSide = "player" | "enemy";
+
+export type RunAshRecord = {
+  readonly id: string;
+  readonly sourceCardName: string;
+  readonly cardDefId: CardDefId;
+  readonly cardInstanceId?: CardInstanceId;
+  readonly cardType?: CardType;
+  readonly side: RunAshSide;
+  readonly combatSide: PlayerSide;
+  readonly ownerId: PlayerId;
+  readonly roundCreated: number;
+  readonly origin: RunAshOrigin;
+  readonly combatEventIndex: number;
+  readonly combatEventTimeMs: number;
+  readonly destructionReason?: DestructionReason;
+  readonly isEcho: boolean;
+  readonly position?: BoardPosition;
+};
+
 export type CommanderState = {
   readonly card: CardInstance;
   readonly deployCount: number;
@@ -247,6 +271,7 @@ export type RunState = {
   readonly sourceRow: SourceRowState;
   readonly spellrail: SpellrailState;
   readonly ashes: readonly CardInstance[];
+  readonly ashRecords?: readonly RunAshRecord[];
   readonly void: readonly CardInstance[];
   readonly currentRewardChoices: readonly RewardChoice[];
   readonly pendingPackOffer?: PendingPackOffer;
@@ -366,6 +391,7 @@ export const createRun = (config: RunConfig): RunState => {
       ? copySpellrail(starterKit.spellrail)
       : emptySpellrail(),
     ashes: (starterKit?.ashes ?? []).map(copyCard),
+    ashRecords: [],
     void: (starterKit?.void ?? []).map(copyCard),
     currentRewardChoices: [],
     rewardHistory: [],

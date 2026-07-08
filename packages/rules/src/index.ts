@@ -1,4 +1,5 @@
 export * from "./cardInspection";
+export * from "./ashes";
 export * from "./boardGrid";
 export * from "./commander";
 export * from "./combatStats";

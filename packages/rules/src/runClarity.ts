@@ -80,16 +80,34 @@ const combatSideLabel = (
   event: Extract<CombatEvent, { readonly type: "UnitDestroyed" }>
 ) => (event.side === "playerA" ? "Your side" : "Enemy side");
 
+const formatAshRecordDetail = (
+  record: NonNullable<RunState["ashRecords"]>[number]
+): string => {
+  const sideText = record.side === "player" ? "Your side" : "Enemy side";
+  const typeText = record.cardType ? `${record.cardType}; ` : "";
+  const positionText = record.position
+    ? `; last seen r${record.position.row} c${record.position.col} ${record.position.layer}`
+    : "";
+
+  return `Persistent Ash from Ash Ledger: ${sideText}; ${typeText}round ${record.roundCreated}; ${record.origin}${positionText}`;
+};
+
 export const buildBattlefieldLayersView = ({
   catalog,
   lastCombatEvents = [],
   run
 }: BuildBattlefieldLayersViewInput): BattlefieldLayersView => {
-  const persistentAshEntries = run.ashes.map((card, index) => ({
-    id: `persistent-ashes:${card.instanceId}:${index}`,
-    label: catalog.cardsById.get(card.defId)?.name ?? card.defId,
-    detail: "Persistent Ashes"
+  const ashLedgerEntries = (run.ashRecords ?? []).map((record) => ({
+    id: `persistent-ashes:${record.id}`,
+    label: record.sourceCardName,
+    detail: formatAshRecordDetail(record)
   }));
+  const runAshEntries = run.ashes.map((card, index) => ({
+    id: `persistent-run-ashes:${card.instanceId}:${index}`,
+    label: catalog.cardsById.get(card.defId)?.name ?? card.defId,
+    detail: "Persistent Ashes in run state"
+  }));
+  const persistentAshEntries = [...ashLedgerEntries, ...runAshEntries];
   const destroyedEvents = lastCombatEvents.filter(
     (event): event is Extract<CombatEvent, { readonly type: "UnitDestroyed" }> =>
       event.type === "UnitDestroyed"
@@ -98,9 +116,9 @@ export const buildBattlefieldLayersView = ({
     persistentAshEntries.length > 0
       ? []
       : destroyedEvents.map((event, index) => ({
-          id: `last-combat-ashes:${event.cardInstanceId}:${index}`,
+          id: `last-combat-destroyed:${event.cardInstanceId}:${index}`,
           label: catalog.cardsById.get(event.defId)?.name ?? event.defId,
-          detail: `Last combat Ashes: ${combatSideLabel(event)}`
+          detail: `Last combat destroyed: ${combatSideLabel(event)}`
         }));
   const ashEntries =
     persistentAshEntries.length > 0 ? persistentAshEntries : lastCombatAshEntries;
@@ -109,11 +127,13 @@ export const buildBattlefieldLayersView = ({
     ashes: {
       title: "Ashes",
       statusText:
-        persistentAshEntries.length > 0
-          ? "Persistent Ashes tracked by the run."
-          : lastCombatAshEntries.length > 0
-            ? "Last combat Ashes from destroyed units."
-            : "No Ashes yet.",
+        ashLedgerEntries.length > 0
+          ? "Persistent Ashes tracked by Ash Ledger."
+          : runAshEntries.length > 0
+            ? "Persistent Ashes in run state."
+            : lastCombatAshEntries.length > 0
+              ? "Last combat destroyed units (not persistent Ashes)."
+              : "No Ashes yet.",
       entries: ashEntries
     },
     wallsAndEdges: {

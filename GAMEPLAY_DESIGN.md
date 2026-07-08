@@ -411,9 +411,11 @@ it does not need networking or simultaneous resolution.
 
 The current Commander Doctrine foundation replaces the old player-facing
 `Combat Training` / `Rebind Calibration` placeholder reward with path unlocks:
-Ashbound, Field Architect, and Spellrail Conductor. The first nodes are still
-foundation/display unlocks. Future doctrine and Commander upgrades should be
-build-defining augments, not ordinary shared-pool card copies.
+Ashbound, Field Architect, and Spellrail Conductor. Ash Ledger is now the first
+small mechanical Ashbound node: after combat is recorded, destroyed units become
+persistent run Ash records for the Battlefield Layers view. The other current
+nodes remain foundation/display unlocks. Future doctrine and Commander upgrades
+should be build-defining augments, not ordinary shared-pool card copies.
 
 Good Commander doctrine or upgrade choices can:
 
@@ -703,16 +705,17 @@ Do not add a full hand/deck/mill system just to support Commanders. The first
 Commander prototype now proves zone lifecycle, manual planning deployment to a
 chosen legal hex, planning return, generic Board Charge Rebind Tax enforcement,
 post-combat destruction return, reward-phase doctrine points/unlocks, lifecycle
-history, reducer replay, and one match-local Commander encounter action with a
-Source Row-derived paid Combat Charge setup. The default battlefield now also
-has a compact Battlefield Layers panel for Ashes and Wall/Edge scaffolding,
-while the encounter shell proves one serialized enemy board-card target snapshot
-through `Target Probe`, a debug UI selector for valid enemy board-card targets,
-and a match-local `probed` board-card effect event. That gives future authored
-targeted Techniques, Commander actions, Doctrine effects, and Signature Relics a
-small serializable target-effect lane before damage, statuses, or RunState
-mutation exist. Next Commander or encounter work should add one real mechanical
-Doctrine effect, richer effect contracts, fuller encounter resource lifecycle
+history, reducer replay, persistent Ash Ledger records after combat, and one
+match-local Commander encounter action with a Source Row-derived paid Combat
+Charge setup. The default battlefield now also has a compact Battlefield Layers
+panel for persistent Ashes and Wall/Edge scaffolding, while the encounter shell
+proves one serialized enemy board-card target snapshot through `Target Probe`, a
+debug UI selector for valid enemy board-card targets, and a match-local `probed`
+board-card effect event. That gives future authored targeted Techniques,
+Commander actions, deeper Doctrine effects, and Signature Relics a small
+serializable target-effect lane before damage, statuses, or broader RunState
+mutation exist. Next Commander or encounter work should add Memory Vault or
+Recall semantics, richer effect contracts, fuller encounter resource lifecycle
 rules, board-cell or Pixi click targeting, or authored ability hooks in focused
 slices.
 

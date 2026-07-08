@@ -76,11 +76,11 @@ const COMMANDER_DOCTRINE_NODES: readonly CommanderDoctrineNodeDefinition[] = [
     pathLabel: "Ashbound",
     displayName: "Ash Ledger",
     description:
-      "Track fallen units as Ashes after combat. Future Ashbound nodes can recall or consume them.",
+      "Track fallen units as persistent Ashes after combat. Future Ashbound nodes can recall or consume them.",
     prerequisiteIds: [],
-    futureEffectLabel: "Doctrine unlocked; Ashes payoff coming soon.",
+    futureEffectLabel: "Mechanical effect active: persistent Ashes.",
     futureEffectText:
-      "This node is a foundation marker today. It makes the Ashes layer visible without changing combat."
+      "Destroyed units are recorded as run Ashes after combat. Future nodes can recall or consume them."
   },
   {
     id: "memory_vault",

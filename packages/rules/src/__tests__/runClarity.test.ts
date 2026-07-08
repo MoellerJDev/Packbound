@@ -61,18 +61,73 @@ it("summarizes player-facing battlefield layers without inventing mechanics", ()
     ]
   });
 
-  expect(layers.ashes.statusText).toBe("Last combat Ashes from destroyed units.");
+  expect(layers.ashes.statusText).toBe(
+    "Last combat destroyed units (not persistent Ashes)."
+  );
   expect(layers.ashes.entries).toEqual([
     {
-      id: "last-combat-ashes:test-destroyed-card:0",
+      id: "last-combat-destroyed:test-destroyed-card:0",
       label: "Ember Scraprunner",
-      detail: "Last combat Ashes: Your side"
+      detail: "Last combat destroyed: Your side"
     }
   ]);
   expect(JSON.parse(JSON.stringify(layers))).toEqual(layers);
 });
 
 describe("run clarity helpers", () => {
+  it("prefers persistent Ash Ledger records over last-combat destroyed context", () => {
+    const run: RunState = {
+      ...createStarterRun(),
+      ashRecords: [
+        {
+          id: "ash:test-run:2:test-destroyed-card:playerA:test-destroyed:200:combatDamage",
+          sourceCardName: "Ember Scraprunner",
+          cardDefId: asCardDefId("ember_scraprunner"),
+          cardInstanceId: asCardInstanceId("test-destroyed-card"),
+          cardType: "Unit",
+          side: "player",
+          combatSide: "playerA",
+          ownerId: asPlayerId("clarity:ash-ledger"),
+          roundCreated: 2,
+          origin: "destroyed in combat",
+          combatEventIndex: 1,
+          combatEventTimeMs: 200,
+          destructionReason: "combatDamage",
+          isEcho: false,
+          position: { row: 4, col: 1, layer: "ground" }
+        }
+      ]
+    };
+
+    const layers = buildBattlefieldLayersView({
+      run,
+      catalog: sampleCatalog,
+      lastCombatEvents: [
+        {
+          type: "UnitDestroyed",
+          timeMs: 300,
+          unitId: asUnitInstanceId("playerB:temporary-destroyed"),
+          cardInstanceId: asCardInstanceId("temporary-destroyed-card"),
+          defId: asCardDefId("ash_debt_runner"),
+          side: "playerB",
+          ownerId: asPlayerId("enemy-player"),
+          isEcho: false,
+          reason: "combatDamage"
+        }
+      ]
+    });
+
+    expect(layers.ashes.statusText).toBe("Persistent Ashes tracked by Ash Ledger.");
+    expect(layers.ashes.entries).toEqual([
+      {
+        id: "persistent-ashes:ash:test-run:2:test-destroyed-card:playerA:test-destroyed:200:combatDamage",
+        label: "Ember Scraprunner",
+        detail:
+          "Persistent Ash from Ash Ledger: Your side; Unit; round 2; destroyed in combat; last seen r4 c1 ground"
+      }
+    ]);
+  });
+
   it("summarizes Source Row resources deterministically", () => {
     const run = createStarterRun("rotbloom_recall");
     const summary = buildLoadoutResourceSummary(run, sampleCatalog);

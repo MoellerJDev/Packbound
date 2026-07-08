@@ -38,6 +38,14 @@ The rules package now has a minimal, rules-first Commander lifecycle prototype.
   upgrade application. Each entry records round, phase, source, zone movement,
   deploy count, raw/effective Rebind Tax, discount, upgrade level deltas, and
   relevant destruction event metadata when present.
+- `Ash Ledger` is the first mechanical Commander Doctrine node. When unlocked,
+  recording combat copies each `UnitDestroyed` event into persistent
+  `RunState.ashRecords` metadata with source card name, card definition and
+  instance ids, card type when known, player/enemy side, round, origin,
+  destruction reason, event index/time, Echo flag, and last known combat
+  position when a movement/summon/recall/phase-in event exposed one. These
+  records are deterministic, JSON-serializable, and deduplicated by destroyed
+  event identity. They do not feed combat setup or change simulator Ashes.
 - The encounter shell can validate and queue one deployed-Commander action,
   `commander_rally` / `Commander Rally`, during first main or second main when
   the player has priority. This action is sourced from the deployed Commander
@@ -67,6 +75,10 @@ Current Commander prototype limitations:
 - Combat simulation remains unchanged. Commander destruction-to-Command is a
   run-progression replacement applied while recording combat results, not a
   simulator behavior change.
+- Ash Ledger persistence is display/progression metadata only. There is no
+  Memory Vault effect, Recall from these run Ash records, Ash consumption,
+  authored Ashbound payoff, or normal non-Commander unit death cleanup in run
+  state yet.
 - Commander lifecycle history is an audit trail only. It does not yet drive
   quests, achievements, encounter actions, analytics export, or richer log
   filtering.

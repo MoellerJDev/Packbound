@@ -210,6 +210,12 @@ per-zone `Show +N more cards` / `Show less` affordance. Expanding a zone reveals
 the hidden cards in place with their existing Inspect, Place on Board, Return to
 Pool, Source Row, or Spellrail actions; card ownership, zones, and legality are
 unchanged.
+Manual validation follow-up after this task: expanded Loadout Tray zones used a
+small internal scrollbar too early, even when the left rail had enough room for
+a modest list such as the five-card Pool. Implementation update after this
+task: expanded tray lists now grow into available viewport space before using
+internal scrolling, and the default Cinder Scout duplicate combine still updates
+the expanded/collapsed Pool count cleanly.
 
 Implementation update after this task: `/` is now the Pixi-focused 10-minute
 playtest route rather than the old debug-grid landing surface. The default run

@@ -683,9 +683,43 @@ test("default loadout tray exposes first-fold loadout edits", async ({ page }) =
   await expect(cinderScoutPoolRows.getByRole("button", { name: "Inspect" })).toHaveCount(
     3
   );
+  const expandedPoolMetrics = await poolTray.evaluate((zone) => {
+    const list = zone.querySelector(".default-loadout-tray-list");
+    const tray = zone.closest('[data-testid="default-loadout-tray"]');
+    if (!(list instanceof HTMLElement) || !(tray instanceof HTMLElement)) {
+      throw new Error("Missing expanded Pool list or Loadout Tray.");
+    }
+
+    return {
+      listClientHeight: list.clientHeight,
+      listOverflowY: getComputedStyle(list).overflowY,
+      listScrollHeight: list.scrollHeight,
+      trayClientHeight: tray.clientHeight,
+      trayScrollHeight: tray.scrollHeight
+    };
+  });
+  expect(expandedPoolMetrics.listOverflowY).toBe("auto");
+  expect(expandedPoolMetrics.listScrollHeight).toBeLessThanOrEqual(
+    expandedPoolMetrics.listClientHeight + 1
+  );
+  expect(expandedPoolMetrics.trayScrollHeight).toBeLessThanOrEqual(
+    expandedPoolMetrics.trayClientHeight + 1
+  );
   await poolToggle.click();
   await expect(poolToggle).toHaveText(/Show \+\d+ more cards?/);
   await expect(poolTray.getByText("Cinder Scout", { exact: true })).toHaveCount(0);
+
+  const actionRail = page.getByTestId("default-action-rail");
+  await actionRail.getByTestId("default-playtest-upgrade-button").click();
+  await expect(actionRail.getByText("No duplicate upgrade is ready.")).toBeVisible();
+  await expect(poolToggle).toHaveText("Show +1 more card");
+  await poolToggle.click();
+  await expect(
+    poolTray.getByRole("listitem").filter({ hasText: "Cinder Scout" })
+  ).toHaveCount(1);
+  await poolToggle.click();
+  await expect(poolToggle).toHaveText("Show +1 more card");
+
   await expect(boardTray.getByText("Ember Scraprunner")).toBeVisible();
   await expect(boardTray).toContainText("Units/Echoes use ground");
   await expect(boardTray).toContainText("Relics/Fields use support");

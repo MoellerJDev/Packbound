@@ -1703,6 +1703,8 @@ h4 {
   display: grid;
   gap: 4px;
   min-width: 0;
+  padding-bottom: 2px;
+  position: relative;
 }
 
 .default-loadout-tray-zone h3 {
@@ -1759,6 +1761,35 @@ h4 {
   color: #587071;
   font-size: 0.7rem;
   font-weight: 800;
+}
+
+.default-loadout-tray-more {
+  align-items: center;
+  background: #eef6f0;
+  border: 1px solid #c8dbd1;
+  border-radius: 999px;
+  color: #244532;
+  cursor: pointer;
+  display: inline-flex;
+  justify-content: center;
+  justify-self: start;
+  margin-top: 1px;
+  min-height: 22px;
+  padding: 0 8px;
+  position: relative;
+  width: auto;
+  z-index: 1;
+}
+
+.default-loadout-tray-more:hover {
+  background: #e0efe5;
+}
+
+.default-loadout-tray-zone-expanded .default-loadout-tray-list {
+  max-height: 180px;
+  overflow-y: auto;
+  padding-right: 2px;
+  scrollbar-width: thin;
 }
 
 .default-loadout-tray .mini-actions {

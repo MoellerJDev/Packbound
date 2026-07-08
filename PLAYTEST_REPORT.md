@@ -202,6 +202,15 @@ Battlefield Layers, compact ally/enemy inspectors, and the Commander identity
 now sit in the Battlefield sidecar to the right of the Pixi board, while the
 Loadout Tray and Action Rail stay first-fold surfaces.
 
+Manual validation follow-up after this task: the compact Loadout Tray could
+show player-facing counts such as `+1 more card`, but those counts were inert,
+which made hidden Pool/Board cards inaccessible from the normal `/` cockpit.
+Implementation update after this task: each capped Loadout Tray zone now has a
+per-zone `Show +N more cards` / `Show less` affordance. Expanding a zone reveals
+the hidden cards in place with their existing Inspect, Place on Board, Return to
+Pool, Source Row, or Spellrail actions; card ownership, zones, and legality are
+unchanged.
+
 Implementation update after this task: `/` is now the Pixi-focused 10-minute
 playtest route rather than the old debug-grid landing surface. The default run
 uses a shared default-playtest setup extracted from the upgrade-lab duplicate

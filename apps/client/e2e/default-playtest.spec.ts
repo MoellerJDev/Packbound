@@ -669,6 +669,23 @@ test("default loadout tray exposes first-fold loadout edits", async ({ page }) =
   await expect(resourceBasics).toContainText("Spellrail holds active Techniques");
   await resourceBasics.locator("summary").click();
   await expect(poolTray).toContainText("Cards waiting to be assigned");
+  const poolToggle = poolTray.getByTestId("default-loadout-tray-pool-toggle");
+  await expect(poolToggle).toHaveText(/Show \+\d+ more cards?/);
+  await expect(poolToggle).toHaveAttribute("aria-expanded", "false");
+  await expect(poolTray.getByText("Cinder Scout", { exact: true })).toHaveCount(0);
+  await poolToggle.click();
+  await expect(poolToggle).toHaveText("Show less");
+  await expect(poolToggle).toHaveAttribute("aria-expanded", "true");
+  const cinderScoutPoolRows = poolTray
+    .getByRole("listitem")
+    .filter({ hasText: "Cinder Scout" });
+  await expect(cinderScoutPoolRows).toHaveCount(3);
+  await expect(cinderScoutPoolRows.getByRole("button", { name: "Inspect" })).toHaveCount(
+    3
+  );
+  await poolToggle.click();
+  await expect(poolToggle).toHaveText(/Show \+\d+ more cards?/);
+  await expect(poolTray.getByText("Cinder Scout", { exact: true })).toHaveCount(0);
   await expect(boardTray.getByText("Ember Scraprunner")).toBeVisible();
   await expect(boardTray).toContainText("Units/Echoes use ground");
   await expect(boardTray).toContainText("Relics/Fields use support");
@@ -695,6 +712,19 @@ test("default loadout tray exposes first-fold loadout edits", async ({ page }) =
   );
   await clickPixiCell(page, rendererHost, 4, 0);
   await expect(boardTray).toContainText("+1 more card");
+  const boardToggle = boardTray.getByTestId("default-loadout-tray-board-toggle");
+  await expect(boardToggle).toHaveText("Show +1 more card");
+  await boardToggle.click();
+  await expect(boardToggle).toHaveText("Show less");
+  const sparkcatchBoardRow = boardTray
+    .getByRole("listitem")
+    .filter({ hasText: "Sparkcatch Apprentice" });
+  await expect(sparkcatchBoardRow).toBeVisible();
+  await expect(
+    sparkcatchBoardRow.getByRole("button", { name: "Return to Pool" })
+  ).toBeVisible();
+  await boardToggle.click();
+  await expect(boardToggle).toHaveText("Show +1 more card");
 
   const emberSourceTrayRow = sourcesTray
     .getByRole("listitem")

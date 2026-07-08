@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 
 import type { CardDefId, CardInstance, CardInstanceId } from "@packbound/shared";
 
@@ -7,6 +7,8 @@ import { UpgradeBadge } from "./upgradeBadges";
 
 const POOL_CARD_LIMIT = 2;
 const ACTIVE_ZONE_CARD_LIMIT = 1;
+
+type LoadoutTrayZoneId = "pool" | "board" | "sources" | "spellrail";
 
 const activeCardUpgradeLevel = (
   activeCards: LoadoutZonesPanelView["activeCards"],
@@ -49,23 +51,34 @@ const DefaultLoadoutTrayZone = ({
   children,
   emptyText,
   helperText,
+  isExpanded,
   itemCount,
   moreCount,
+  onToggleExpanded,
   title,
+  zoneId,
   testId
 }: {
   readonly children: ReactNode;
   readonly emptyText: string;
   readonly helperText: string;
+  readonly isExpanded: boolean;
   readonly itemCount: number;
   readonly moreCount: number;
+  readonly onToggleExpanded: () => void;
   readonly title: string;
+  readonly zoneId: LoadoutTrayZoneId;
   readonly testId: string;
 }) => (
-  <section className="default-loadout-tray-zone" data-testid={testId}>
+  <section
+    className={`default-loadout-tray-zone${
+      isExpanded ? " default-loadout-tray-zone-expanded" : ""
+    }`}
+    data-testid={testId}
+  >
     <h3>{title}</h3>
     <p className="default-loadout-tray-helper">{helperText}</p>
-    <ol className="default-loadout-tray-list">
+    <ol className="default-loadout-tray-list" id={`default-loadout-tray-${zoneId}-list`}>
       {itemCount > 0 ? (
         children
       ) : (
@@ -75,7 +88,16 @@ const DefaultLoadoutTrayZone = ({
       )}
     </ol>
     {moreCount > 0 ? (
-      <p className="default-loadout-tray-more">{moreCardsText(moreCount)}</p>
+      <button
+        type="button"
+        className="default-loadout-tray-more"
+        data-testid={`default-loadout-tray-${zoneId}-toggle`}
+        aria-controls={`default-loadout-tray-${zoneId}-list`}
+        aria-expanded={isExpanded}
+        onClick={onToggleExpanded}
+      >
+        {isExpanded ? "Show less" : `Show ${moreCardsText(moreCount)}`}
+      </button>
     ) : null}
   </section>
 );
@@ -89,10 +111,33 @@ export const DefaultLoadoutTray = ({
   readonly renderLoadoutActions: (cardInstanceId: CardInstanceId) => ReactNode;
   readonly view: LoadoutZonesPanelView;
 }) => {
-  const boardCards = view.boardPlacements.slice(0, ACTIVE_ZONE_CARD_LIMIT);
-  const sourceCards = view.sourceCards.slice(0, ACTIVE_ZONE_CARD_LIMIT);
-  const spellrailCards = view.spellrailCards.slice(0, ACTIVE_ZONE_CARD_LIMIT);
-  const poolCards = view.poolCards.slice(0, POOL_CARD_LIMIT);
+  const [expandedZones, setExpandedZones] = useState<
+    Partial<Record<LoadoutTrayZoneId, boolean>>
+  >({});
+  const toggleZoneExpanded = (zoneId: LoadoutTrayZoneId) => {
+    setExpandedZones((current) => ({
+      ...current,
+      [zoneId]: !current[zoneId]
+    }));
+  };
+
+  const poolIsExpanded = expandedZones.pool === true;
+  const boardIsExpanded = expandedZones.board === true;
+  const sourcesAreExpanded = expandedZones.sources === true;
+  const spellrailIsExpanded = expandedZones.spellrail === true;
+
+  const boardCards = boardIsExpanded
+    ? view.boardPlacements
+    : view.boardPlacements.slice(0, ACTIVE_ZONE_CARD_LIMIT);
+  const sourceCards = sourcesAreExpanded
+    ? view.sourceCards
+    : view.sourceCards.slice(0, ACTIVE_ZONE_CARD_LIMIT);
+  const spellrailCards = spellrailIsExpanded
+    ? view.spellrailCards
+    : view.spellrailCards.slice(0, ACTIVE_ZONE_CARD_LIMIT);
+  const poolCards = poolIsExpanded
+    ? view.poolCards
+    : view.poolCards.slice(0, POOL_CARD_LIMIT);
 
   const renderCard = (card: CardInstance, meta: string) => (
     <DefaultLoadoutTrayCard
@@ -161,22 +206,28 @@ export const DefaultLoadoutTray = ({
       <div className="default-loadout-tray-zones">
         <DefaultLoadoutTrayZone
           title="Pool"
+          zoneId="pool"
           testId="default-loadout-tray-pool"
           emptyText="No Pool cards are currently available."
           helperText="Cards waiting to be assigned; use the shown action to place or slot them."
+          isExpanded={poolIsExpanded}
           itemCount={poolCards.length}
-          moreCount={Math.max(0, view.poolCards.length - poolCards.length)}
+          moreCount={Math.max(0, view.poolCards.length - POOL_CARD_LIMIT)}
+          onToggleExpanded={() => toggleZoneExpanded("pool")}
         >
           {poolCards.map((card) => renderCard(card, "Pool"))}
         </DefaultLoadoutTrayZone>
 
         <DefaultLoadoutTrayZone
           title="Board"
+          zoneId="board"
           testId="default-loadout-tray-board"
           emptyText="No board cards are deployed."
           helperText="Units/Echoes use ground. Relics/Fields use support and still spend Board Charge."
+          isExpanded={boardIsExpanded}
           itemCount={boardCards.length}
-          moreCount={Math.max(0, view.boardPlacements.length - boardCards.length)}
+          moreCount={Math.max(0, view.boardPlacements.length - ACTIVE_ZONE_CARD_LIMIT)}
+          onToggleExpanded={() => toggleZoneExpanded("board")}
         >
           {boardCards.map((placement) => (
             <DefaultLoadoutTrayCard
@@ -194,22 +245,28 @@ export const DefaultLoadoutTray = ({
 
         <DefaultLoadoutTrayZone
           title="Sources"
+          zoneId="sources"
           testId="default-loadout-tray-sources"
           emptyText="No Source Row cards."
           helperText="Sources fill Source slots, raise Board Charge capacity, and add Combat Charge/sec."
+          isExpanded={sourcesAreExpanded}
           itemCount={sourceCards.length}
-          moreCount={Math.max(0, view.sourceCards.length - sourceCards.length)}
+          moreCount={Math.max(0, view.sourceCards.length - ACTIVE_ZONE_CARD_LIMIT)}
+          onToggleExpanded={() => toggleZoneExpanded("sources")}
         >
           {sourceCards.map((card) => renderCard(card, "Source Row"))}
         </DefaultLoadoutTrayZone>
 
         <DefaultLoadoutTrayZone
           title="Spellrail"
+          zoneId="spellrail"
           testId="default-loadout-tray-spellrail"
           emptyText="No Spellrail cards."
           helperText="Techniques use Spellrail slots and wait here for combat triggers."
+          isExpanded={spellrailIsExpanded}
           itemCount={spellrailCards.length}
-          moreCount={Math.max(0, view.spellrailCards.length - spellrailCards.length)}
+          moreCount={Math.max(0, view.spellrailCards.length - ACTIVE_ZONE_CARD_LIMIT)}
+          onToggleExpanded={() => toggleZoneExpanded("spellrail")}
         >
           {spellrailCards.map((card) => renderCard(card, "Spellrail"))}
         </DefaultLoadoutTrayZone>

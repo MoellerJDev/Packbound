@@ -186,6 +186,22 @@ those cells, and clicking a highlighted cell deploys through the existing
 Ashes when available, otherwise a conservative last-combat destroyed-unit
 summary, and walls/edges remain display scaffolding only.
 
+Implementation update after this task: the default route's former Current
+Decision/right-rail pile is now a sequential `Action Rail`. Reward flow is
+shown as Pack Market, Pack Offer, Commander Doctrine, then ready-to-advance
+states. The compact rail keeps Pack Market choice rows, Pack Offer picks,
+Doctrine path unlocks, and combat recap from competing for vertical space at
+1280 x 720. Post-pack loadout suggestions now appear after advancing back to
+planning, where the suggested loadout edits are actually legal.
+
+Manual screenshot/readability update after this task: live 1280 x 720 browser
+checks criticized and reworked the default route until page scroll and visible
+internal scrollbars were gone in the tested planning, Pack Market, Pack Offer,
+Doctrine, rewards-complete, and post-pack planning states. Engagement Preview,
+Battlefield Layers, compact ally/enemy inspectors, and the Commander identity
+now sit in the Battlefield sidecar to the right of the Pixi board, while the
+Loadout Tray and Action Rail stay first-fold surfaces.
+
 Implementation update after this task: `/` is now the Pixi-focused 10-minute
 playtest route rather than the old debug-grid landing surface. The default run
 uses a shared default-playtest setup extracted from the upgrade-lab duplicate
@@ -1521,11 +1537,12 @@ Deferred findings from the same manual pass remain intentionally out of scope:
   `Place on Board` manual placement action. The corrected desktop dashboard no
   longer relies on a fixed-height hidden-overflow center stage or a width-only
   Pixi host; instead the board host measures the available stage and fits both
-  width and height, the Loadout Tray and sidecar scroll deliberately as
-  secondary content, and card-list headings stay visible while individual lists
-  scroll. It is still not a cold-start demo because those controls are compact,
-  capped, button-driven affordances rather than drag/drop or board-native zone
-  editing. The follow-up Pixi resize fix now re-fits the stage root when the
+  width and height. The latest Action Rail pass removes the remaining tested
+  1280 x 720 page/internal scrolling by compacting Loadout Tray rows,
+  Battlefield sidecar summaries, Pack Market rows, Pack Offer checklist rows,
+  and Doctrine path rows. It is still not a cold-start demo because those
+  controls are compact, capped, button-driven affordances rather than drag/drop
+  or board-native zone editing. The follow-up Pixi resize fix now re-fits the stage root when the
   host changes size, but it still needs manual 100%, 130%, zoom-back-to-100%,
   and 50% validation across 1440 x 900, 1280 x 720, and wide desktop.
 - The React/CSS Hex Arena remains available behind `?debug=1` on `/` and as a
@@ -1637,16 +1654,14 @@ Deferred findings from the same manual pass remain intentionally out of scope:
 
 Do next:
 
-`test(playtest): manually validate doctrine and manual Commander placement`
+`test(playtest): manually validate no-scroll default action rail`
 
-Why: the default route now has a corrected cockpit plus three new player-facing
-identity surfaces: manual Commander hex deployment, Commander Doctrine reward
-unlocking, and Battlefield Layers for Ashes and Walls / Edges. It needs a fresh
-1440 x 900, 1280 x 720, and wide-desktop cold-read pass at 100%, 130%,
-zoom-back-to-100%, and 50% zoom through planning, manual Commander placement,
-combat recording, Pack Offer, doctrine unlock, and round 2 planning before
-adding real doctrine effects, bench limits, sell/recycle, finite shared-pool
-scarcity, or board repositioning.
+Why: the default route now has a no-scroll 1280 x 720 Action Rail pass covering
+planning, combat recording, Pack Market, Pack Offer, Commander Doctrine,
+reward-complete, and post-pack planning states. It needs a fresh 1440 x 900,
+1280 x 720, and wide-desktop cold-read pass at 100%, 130%,
+zoom-back-to-100%, and 50% zoom before adding real doctrine effects, bench
+limits, sell/recycle, finite shared-pool scarcity, or board repositioning.
 
 Do soon:
 

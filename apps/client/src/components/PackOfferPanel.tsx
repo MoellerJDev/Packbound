@@ -10,12 +10,16 @@ import {
 
 export const PackOfferPanel = ({
   cardViews,
+  density = "full",
   offer,
-  onCommit
+  onCommit,
+  variant = "panel"
 }: {
   readonly cardViews: readonly PackOfferCardView[];
+  readonly density?: "compact" | "full";
   readonly offer: PendingPackOffer;
   readonly onCommit: (cardInstanceIds: readonly CardInstanceId[]) => void;
+  readonly variant?: "embedded" | "panel";
 }) => {
   const [selectedCardIds, setSelectedCardIds] = useState<readonly CardInstanceId[]>([]);
   const selectedIdSet = useMemo(() => new Set(selectedCardIds), [selectedCardIds]);
@@ -42,7 +46,12 @@ export const PackOfferPanel = ({
   };
 
   return (
-    <div className="panel pack-offer-panel" data-testid="pack-offer-panel">
+    <div
+      className={`${variant === "panel" ? "panel " : ""}pack-offer-panel ${
+        density === "compact" ? "compact-pack-offer-panel" : ""
+      }`}
+      data-testid="pack-offer-panel"
+    >
       <h2>Pack Offer</h2>
       <p className="muted">
         {offer.packName}: pick {offer.pickLimit} of {offer.cards.length}. Paid{" "}
@@ -55,6 +64,8 @@ export const PackOfferPanel = ({
           const name = cardView.name;
           const checked = selectedIdSet.has(card.instanceId);
           const disabled = !checked && selectedCount >= offer.pickLimit;
+          const fitText =
+            density === "compact" ? cardView.fitText.split(".")[0] : cardView.fitText;
 
           return (
             <li
@@ -73,34 +84,46 @@ export const PackOfferPanel = ({
                   />
                   <span data-testid="pack-offer-card-name">{name}</span>
                 </label>
-                <small>
-                  Offer card {index + 1} | {card.zone}
-                </small>
-                <div
-                  className="pack-offer-card-facts"
-                  data-testid="pack-offer-card-facts"
-                >
-                  <small>{cardView.metaText}</small>
-                  <small>Cost: {cardView.costText}</small>
-                  {cardView.statsText ? <small>Stats: {cardView.statsText}</small> : null}
-                  {cardView.effectText ? (
-                    <small>Effect: {cardView.effectText}</small>
-                  ) : null}
-                </div>
+                {density === "full" ? (
+                  <small>
+                    Offer card {index + 1} | {card.zone}
+                  </small>
+                ) : null}
+                {density === "full" ? (
+                  <div
+                    className="pack-offer-card-facts"
+                    data-testid="pack-offer-card-facts"
+                  >
+                    <small>{cardView.metaText}</small>
+                    <small>Cost: {cardView.costText}</small>
+                    {cardView.statsText ? (
+                      <small>Stats: {cardView.statsText}</small>
+                    ) : null}
+                    {cardView.effectText ? (
+                      <small>Effect: {cardView.effectText}</small>
+                    ) : null}
+                  </div>
+                ) : (
+                  <small className="pack-offer-card-compact-meta">
+                    Cost: {cardView.costText}
+                  </small>
+                )}
                 <p
                   className={`pack-offer-fit ${cardView.fitTone}`}
                   data-testid="pack-offer-fit"
                 >
-                  {cardView.fitText}
+                  {fitText}
                 </p>
-                <details className="compact-details pack-offer-details">
-                  <summary>Full card details</summary>
-                  <ul className="message-list compact">
-                    {cardView.detailLines.map((line) => (
-                      <li key={line}>{line}</li>
-                    ))}
-                  </ul>
-                </details>
+                {density === "full" ? (
+                  <details className="compact-details pack-offer-details">
+                    <summary>Full card details</summary>
+                    <ul className="message-list compact">
+                      {cardView.detailLines.map((line) => (
+                        <li key={line}>{line}</li>
+                      ))}
+                    </ul>
+                  </details>
+                ) : null}
               </div>
             </li>
           );
@@ -119,8 +142,9 @@ export const PackOfferPanel = ({
         </small>
       </div>
       <p className="muted">
-        Chosen cards enter Pool. Unchosen offer cards are released and do not join this
-        run.
+        {density === "compact"
+          ? "Chosen cards enter Pool."
+          : "Chosen cards enter Pool. Unchosen offer cards are released and do not join this run."}
       </p>
     </div>
   );

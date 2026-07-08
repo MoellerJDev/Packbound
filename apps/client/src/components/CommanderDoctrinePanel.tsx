@@ -5,7 +5,8 @@ import type {
   RunPhase
 } from "@packbound/rules";
 
-export type CommanderDoctrinePanelVariant = "panel" | "renderer-lab-panel";
+export type CommanderDoctrinePanelDensity = "compact" | "full";
+export type CommanderDoctrinePanelVariant = "embedded" | "panel" | "renderer-lab-panel";
 
 export type CommanderDoctrinePanelView = {
   readonly claimedThisRound: boolean;
@@ -47,10 +48,12 @@ const panelCopy = (view: CommanderDoctrinePanelView): string => {
 };
 
 export const CommanderDoctrinePanel = ({
+  density = "full",
   onUnlockDoctrine,
   variant,
   view
 }: {
+  readonly density?: CommanderDoctrinePanelDensity;
   readonly onUnlockDoctrine: (nodeId: CommanderDoctrineNodeId) => void;
   readonly variant: CommanderDoctrinePanelVariant;
   readonly view: CommanderDoctrinePanelView;
@@ -62,7 +65,12 @@ export const CommanderDoctrinePanel = ({
   }
 
   return (
-    <div className={variant} data-testid="commander-doctrine-panel">
+    <div
+      className={`${variant === "panel" || variant === "renderer-lab-panel" ? variant : ""} commander-doctrine-panel ${
+        density === "compact" ? "compact-commander-doctrine-panel" : ""
+      }`}
+      data-testid="commander-doctrine-panel"
+    >
       <Heading>Commander Doctrine</Heading>
       <dl className="run-stats">
         <div>
@@ -85,12 +93,17 @@ export const CommanderDoctrinePanel = ({
       <div className="commander-doctrine-paths">
         {pathOrder.map((path) => {
           const nodes = view.nodes.filter((node) => node.path === path);
+          const lockedNodeCount = nodes.filter((node) => node.status === "locked").length;
+          const visibleNodes =
+            density === "compact"
+              ? nodes.filter((node) => node.status !== "locked")
+              : nodes;
           const pathLabel = nodes[0]?.pathLabel ?? path;
           return (
             <section key={path} className="commander-doctrine-path">
               <h4>{pathLabel}</h4>
               <ol className="card-list compact">
-                {nodes.map((node) => (
+                {visibleNodes.map((node) => (
                   <li
                     key={node.id}
                     className={`commander-doctrine-node ${node.status}`}
@@ -100,8 +113,10 @@ export const CommanderDoctrinePanel = ({
                       <span data-testid="commander-doctrine-node-name">
                         {node.displayName}
                       </span>
-                      <small>{node.description}</small>
-                      <small>{node.futureEffectLabel}</small>
+                      {density === "full" ? <small>{node.description}</small> : null}
+                      {density === "full" ? (
+                        <small>{node.futureEffectLabel}</small>
+                      ) : null}
                       <small data-testid="commander-doctrine-node-status">
                         {statusText(node)}
                       </small>
@@ -114,6 +129,12 @@ export const CommanderDoctrinePanel = ({
                   </li>
                 ))}
               </ol>
+              {density === "compact" && lockedNodeCount > 0 ? (
+                <p className="muted compact-doctrine-locked-summary">
+                  +{lockedNodeCount} locked descendant
+                  {lockedNodeCount === 1 ? "" : "s"}
+                </p>
+              ) : null}
             </section>
           );
         })}

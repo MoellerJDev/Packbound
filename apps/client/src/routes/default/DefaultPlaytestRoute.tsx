@@ -1,16 +1,12 @@
-import { CombatResultPanel } from "../../components/CombatResultPanel";
-import { CommanderDoctrinePanel } from "../../components/CommanderDoctrinePanel";
 import { DefaultLoadoutTray } from "../../components/DefaultLoadoutTray";
 import { DefaultPixiBattlefieldSection } from "../../components/DefaultPixiBattlefieldSection";
-import { PackOfferPanel } from "../../components/PackOfferPanel";
 import { PostPackSuggestionsPanel } from "../../components/PostPackSuggestionsPanel";
-import { RewardChoicesPanel } from "../../components/RewardChoicesPanel";
 import type {
   DefaultRunRouteController,
   DefaultRunRouteView
 } from "../defaultRunRouteTypes";
 
-import { DefaultPlaytestDecisionPanel } from "./DefaultPlaytestDecisionPanel";
+import { DefaultActionRail } from "./DefaultActionRail";
 import { DefaultRouteDebugPanels } from "./DefaultRouteDebugPanels";
 
 type DefaultPlaytestRouteProps = {
@@ -19,11 +15,6 @@ type DefaultPlaytestRouteProps = {
 };
 
 export const DefaultPlaytestRoute = ({ view, controller }: DefaultPlaytestRouteProps) => {
-  const showRewards =
-    view.rewards.rewardChoices.length > 0 ||
-    view.rewards.pendingPackOffer !== undefined ||
-    view.commanderDoctrinePanelView.phase === "reward";
-
   return (
     <section className="default-playtest-route" data-testid="default-playtest-route">
       <div
@@ -44,38 +35,9 @@ export const DefaultPlaytestRoute = ({ view, controller }: DefaultPlaytestRouteP
           />
         </div>
         <div className="default-playtest-dashboard-right">
-          <DefaultPlaytestDecisionPanel view={view} controller={controller} />
-          <CombatResultPanel
-            isDefaultRoute
-            lastRecorded={view.combat.lastRecorded}
-            showDeveloperDetails={view.showDeveloperDetails}
-            upcoming={view.combat.upcoming}
-          />
-          {showRewards ? (
-            <>
-              <RewardChoicesPanel
-                collapseExplanations
-                description={view.rewards.description}
-                explanationsByChoiceId={view.rewards.explanationsByChoiceId}
-                onOpenReward={controller.onOpenReward}
-                playerGold={view.rewards.playerGold}
-                rewardChoices={view.rewards.rewardChoices}
-              />
-              {view.rewards.pendingPackOffer ? (
-                <PackOfferPanel
-                  cardViews={view.rewards.pendingPackOfferCardViews}
-                  offer={view.rewards.pendingPackOffer}
-                  onCommit={controller.onCommitPackOfferPicks}
-                />
-              ) : null}
-              <CommanderDoctrinePanel
-                variant="panel"
-                view={view.commanderDoctrinePanelView}
-                onUnlockDoctrine={controller.onUnlockCommanderDoctrine}
-              />
-            </>
-          ) : null}
-          {view.postPackSuggestions.latestOpenedCardCount > 0 ? (
+          <DefaultActionRail view={view} controller={controller} />
+          {view.loadoutZonesView.phase === "planning" &&
+          view.postPackSuggestions.latestOpenedCardCount > 0 ? (
             <PostPackSuggestionsPanel
               summary={view.postPackSuggestions}
               onApplySuggestion={controller.onApplyPostPackSuggestion}

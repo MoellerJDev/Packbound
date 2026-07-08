@@ -94,7 +94,7 @@ export const gotoDefaultPlaytestRoute = async (
   return {
     allyInspector: battlefield.getByTestId("default-pixi-ally-card"),
     battlefield,
-    decisionPanel: page.getByTestId("default-playtest-decision-panel"),
+    decisionPanel: page.getByTestId("default-action-rail"),
     enemyInspector: battlefield.getByTestId("default-pixi-enemy-card"),
     errors,
     playtestRoute,

@@ -50,6 +50,7 @@ export type DefaultRunRouteView = {
   readonly rewards: {
     readonly description: string;
     readonly explanationsByChoiceId: ReadonlyMap<string, RewardOfferExplanation>;
+    readonly packClaimedThisRound: boolean;
     readonly pendingPackOffer: PendingPackOffer | undefined;
     readonly pendingPackOfferCardViews: readonly PackOfferCardView[];
     readonly playerGold: number;

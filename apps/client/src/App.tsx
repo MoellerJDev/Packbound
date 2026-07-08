@@ -1760,6 +1760,7 @@ export function App() {
     rewards: {
       description: rewardChoicesDescription,
       explanationsByChoiceId: rewardOfferExplanationByChoiceId,
+      packClaimedThisRound: packRewardClaimedThisRound,
       pendingPackOffer,
       pendingPackOfferCardViews,
       playerGold: run.playerGold,

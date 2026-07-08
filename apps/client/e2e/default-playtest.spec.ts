@@ -17,17 +17,17 @@ const recordDefaultCombat = async (
     readonly verifyPreview?: boolean;
   } = {}
 ) => {
-  const decisionPanel = page.getByTestId("default-playtest-decision-panel");
+  const actionRail = page.getByTestId("default-action-rail");
 
-  await expect(decisionPanel.getByTestId("default-playtest-upgrade-copy")).toContainText(
+  await expect(actionRail.getByTestId("default-playtest-upgrade-copy")).toContainText(
     "Cinder Scout"
   );
-  await decisionPanel.getByTestId("default-playtest-upgrade-button").click();
-  await expect(decisionPanel.getByText("No duplicate upgrade is ready.")).toBeVisible();
+  await actionRail.getByTestId("default-playtest-upgrade-button").click();
+  await expect(actionRail.getByText("No duplicate upgrade is ready.")).toBeVisible();
 
   await page.getByRole("button", { name: "Ready Combat" }).click();
 
-  const previewPanel = panel(page, "Upcoming Combat Preview");
+  const previewPanel = page.getByTestId("default-action-combat-preview");
   await expect(previewPanel).toBeVisible();
   await expect(previewPanel).toContainText("Forecast:");
   await expect(previewPanel.getByTestId("default-combat-forecast")).toContainText(
@@ -47,7 +47,7 @@ const recordDefaultCombat = async (
   }
 
   await page.getByRole("button", { name: "Record Combat" }).click();
-  await expect(panel(page, "Last Recorded Combat").getByText(/Winner:/)).toBeVisible();
+  await expect(actionRail.getByTestId("default-action-recap")).toContainText(/Winner:/);
 };
 
 const expectDefaultCombatPlayback = async (page: Page, rendererHost: Locator) => {
@@ -90,41 +90,34 @@ const expectDefaultCombatPlayback = async (page: Page, rendererHost: Locator) =>
 };
 
 const expectLastRecordedCombatSummary = async (page: Page) => {
-  const recordedPanel = panel(page, "Last Recorded Combat");
-  await expect(recordedPanel.getByText(/Winner:/)).toBeVisible();
-  await expect(recordedPanel.locator("p.muted").first()).toContainText("Damage:");
-  const combatRecap = recordedPanel.getByTestId("default-combat-recap");
-  await expect(combatRecap).toBeVisible();
-  await expect(combatRecap.getByRole("heading", { name: "Combat recap" })).toBeVisible();
-  await expect(combatRecap).toContainText(/Result/);
-  await expect(combatRecap).toContainText(/Victory|Draw|Defeat/);
-  await expect(combatRecap).toContainText("Damage");
-  await expect(combatRecap).toContainText("Gold gained");
-  await expect(combatRecap).toContainText("Key moments");
-  await expect(combatRecap).toContainText("Commander");
+  const recordedPanel = page.getByTestId("default-action-recap");
   await expect(
-    recordedPanel.getByText("Skirmish damage resets after combat")
+    recordedPanel.getByRole("heading", { name: "Last Recorded Combat" })
   ).toBeVisible();
+  await expect(recordedPanel.getByText(/Winner:/)).toBeVisible();
+  await expect(recordedPanel.locator("p.muted")).toContainText("Damage:");
+  await expect(recordedPanel.locator("details.combat-feed-details summary")).toHaveText(
+    "Key Moments"
+  );
   await expect(recordedPanel.getByText(/Events:/)).toBeVisible();
   await expect(recordedPanel.getByText(/Gold: \+/)).toBeVisible();
-  await expect(recordedPanel.locator(".combat-result-strip")).toContainText(
-    "No combat return"
-  );
-  await expect(recordedPanel.getByRole("heading", { name: "Key Moments" })).toBeVisible();
-  await expect(recordedPanel.getByText(/Events shown: \d+ of \d+/)).toBeVisible();
   const combatFeed = recordedPanel.locator("details.combat-feed-details");
   await expect(combatFeed).toBeVisible();
   expect(await combatFeed.evaluate((node) => (node as HTMLDetailsElement).open)).toBe(
     false
   );
-  await combatFeed.getByText("Combat Event Feed").click();
+  await combatFeed.locator("summary").click();
   await expect(combatFeed.getByText("Damage to you", { exact: true })).toBeVisible();
   await expect(combatFeed.getByText("Damage to enemy", { exact: true })).toBeVisible();
   await expect(combatFeed.getByText("Warnings", { exact: true })).toBeVisible();
 };
 
 const unlockFirstCommanderDoctrine = async (page: Page) => {
-  const commanderDoctrinePanel = panel(page, "Commander Doctrine");
+  const actionRail = page.getByTestId("default-action-rail");
+  await expect(actionRail.getByTestId("default-action-rail-progress")).toHaveText(
+    "Step 3 of 3"
+  );
+  const commanderDoctrinePanel = actionRail.getByTestId("commander-doctrine-panel");
   await expect(
     commanderDoctrinePanel.getByText(
       "Spend one doctrine point to unlock a Commander doctrine for this reward."
@@ -143,19 +136,18 @@ const unlockFirstCommanderDoctrine = async (page: Page) => {
     commanderDoctrinePanel.getByTestId("commander-doctrine-points")
   ).toHaveText("1");
   await commanderDoctrinePanel.getByRole("button", { name: "Unlock Ash Ledger" }).click();
-  await expect(
-    commanderDoctrinePanel.getByTestId("commander-doctrine-points")
-  ).toHaveText("0");
-  await expect(
-    commanderDoctrinePanel.getByText("Commander doctrine reward claimed for this reward.")
-  ).toBeVisible();
-  await expect(
-    commanderDoctrinePanel.getByTestId("commander-latest-doctrine")
-  ).toContainText("Ash Ledger");
+  await expect(actionRail.getByTestId("default-action-rail-progress")).toHaveText(
+    "Ready"
+  );
+  await expect(actionRail.getByRole("heading", { name: "Advance" })).toBeVisible();
 };
 
 const openAndCommitFirstPackOffer = async (page: Page) => {
-  const packMarketPanel = panel(page, "Pack Market");
+  const actionRail = page.getByTestId("default-action-rail");
+  const packMarketPanel = actionRail.getByTestId("default-action-pack-market");
+  await expect(actionRail.getByTestId("default-action-rail-progress")).toHaveText(
+    "Step 1 of 3"
+  );
   await expect(packMarketPanel.getByText(/Cost \d+ gold/).first()).toBeVisible();
   await expect(
     packMarketPanel.getByText(/After purchase: \d+ gold/).first()
@@ -164,18 +156,17 @@ const openAndCommitFirstPackOffer = async (page: Page) => {
     packMarketPanel.getByRole("button", { name: "Open Pack Offer" }).first()
   ).toBeVisible();
   await packMarketPanel.getByRole("button", { name: "Open Pack Offer" }).first().click();
+  await expect(actionRail.getByTestId("default-action-rail-progress")).toHaveText(
+    "Step 2 of 3"
+  );
 
   await expect(page.getByTestId("post-pack-suggestions-panel")).toHaveCount(0);
-  const packOffer = page.getByTestId("pack-offer-panel");
+  const packOffer = actionRail.getByTestId("pack-offer-panel");
   await expect(packOffer.getByRole("heading", { name: "Pack Offer" })).toBeVisible();
   await expect(packOffer).toContainText(/pick 2 of 5/i);
   await expect(packOffer.getByTestId("pack-offer-card")).toHaveCount(5);
-  await expect(packOffer.getByTestId("pack-offer-card-facts")).toHaveCount(5);
+  await expect(packOffer.getByText(/Cost:/).first()).toBeVisible();
   await expect(packOffer.getByTestId("pack-offer-fit")).toHaveCount(5);
-  await expect(packOffer.getByTestId("pack-offer-card-facts").first()).toContainText(
-    /Unit|Echo|Source|Technique|Relic|Field/
-  );
-  await expect(packOffer.getByText(/Cost:|Stats:|Effect:/).first()).toBeVisible();
   await expect(packOffer.getByTestId("pack-offer-fit").first()).toContainText(
     /Board Charge|Source|Spellrail|If picked|Likely blocked/
   );
@@ -189,7 +180,13 @@ const openAndCommitFirstPackOffer = async (page: Page) => {
     "Selected 2 / 2"
   );
   await packOffer.getByRole("button", { name: "Commit Pack Picks" }).click();
+  await expect(actionRail.getByTestId("default-action-rail-progress")).toHaveText(
+    "Step 3 of 3"
+  );
+  await expect(page.getByTestId("post-pack-suggestions-panel")).toHaveCount(0);
+};
 
+const expectPostPackSuggestions = async (page: Page): Promise<Locator> => {
   const postPackSuggestions = page.getByTestId("post-pack-suggestions-panel");
   await expect(postPackSuggestions).toBeVisible();
   await expect(
@@ -197,9 +194,7 @@ const openAndCommitFirstPackOffer = async (page: Page) => {
   ).toBeVisible();
   await expect(postPackSuggestions.getByText(/Latest pack:/)).toBeVisible();
   await expect(
-    postPackSuggestions.getByText(
-      "New cards are in your pool. Advance to the next planning round to edit your loadout."
-    )
+    postPackSuggestions.getByTestId("post-pack-suggestion").first()
   ).toBeVisible();
 
   return postPackSuggestions;
@@ -357,6 +352,7 @@ test("default playtest route starts with concise Pixi play surface", async ({ pa
         (box) =>
           box.top >= loadoutTrayBox.top - 1 && box.bottom <= loadoutTrayBox.bottom + 1
       ),
+      loadoutTrayFits: loadoutTray.scrollHeight <= loadoutTray.clientHeight + 1,
       leftOverflowY: getComputedStyle(leftRail).overflowY,
       rendererInsideCenter:
         rendererBox.top >= centerBox.top - 1 &&
@@ -369,41 +365,52 @@ test("default playtest route starts with concise Pixi play surface", async ({ pa
       rendererNonzero: rendererBox.width > 0 && rendererBox.height > 0,
       rendererShapeRatio: Number((rendererBox.width / rendererBox.height).toFixed(2)),
       rightOverflowY: getComputedStyle(rightRail).overflowY,
+      rightRailFits: rightRail.scrollHeight <= rightRail.clientHeight + 1,
+      sidecarOverflowY: getComputedStyle(
+        document.querySelector('[data-testid="default-pixi-sidecar"]')!
+      ).overflowY,
+      sidecarFits:
+        document.querySelector('[data-testid="default-pixi-sidecar"]')!.scrollHeight <=
+        document.querySelector('[data-testid="default-pixi-sidecar"]')!.clientHeight + 1,
       viewportHeight: window.innerHeight
     };
   });
   expect(cockpitLayout.dashboardOverflowY).toBe("visible");
-  expect(cockpitLayout.leftOverflowY).toBe("auto");
+  expect(cockpitLayout.leftOverflowY).toBe("hidden");
   expect(cockpitLayout.centerOverflowY).toBe("visible");
-  expect(cockpitLayout.rightOverflowY).toBe("auto");
+  expect(cockpitLayout.rightOverflowY).toBe("hidden");
+  expect(cockpitLayout.sidecarOverflowY).toBe("hidden");
   expect(cockpitLayout.dashboardHeight).toBeGreaterThanOrEqual(
     Math.min(560, cockpitLayout.viewportHeight - 160)
   );
   expect(cockpitLayout.fitStageInsideBoardArea).toBe(true);
   expect(cockpitLayout.fitStageNonzero).toBe(true);
   expect(cockpitLayout.loadoutHeadingsInsideTray).toBe(true);
+  expect(cockpitLayout.loadoutTrayFits).toBe(true);
   expect(cockpitLayout.rendererInsideCenter).toBe(true);
   expect(cockpitLayout.rendererInsideFitStage).toBe(true);
   expect(cockpitLayout.rendererNonzero).toBe(true);
   expect(cockpitLayout.rendererShapeRatio).toBeGreaterThan(1.05);
   expect(cockpitLayout.rendererShapeRatio).toBeLessThan(1.09);
+  expect(cockpitLayout.rightRailFits).toBe(true);
+  expect(cockpitLayout.sidecarFits).toBe(true);
   await expect(page.locator(".app-shell").filter({ has: playtestRoute })).toBeVisible();
   await expect(battlefield).toHaveClass(/default-pixi-battlefield-section/);
   await expect(battlefield.getByTestId("default-pixi-cockpit")).toBeVisible();
   await expect(battlefield.getByTestId("default-pixi-sidecar")).toBeVisible();
   await expectNoHorizontalScroll(playtestRoute);
   await expect(
-    page.getByRole("heading", { name: "Current Decision", exact: true })
+    page.getByRole("heading", { name: "Action Rail", exact: true })
   ).toBeVisible();
-  await expect(decisionPanel.getByTestId("default-playtest-decision")).toBeVisible();
-  await expect(decisionPanel.getByText("Round")).toBeVisible();
-  await expect(decisionPanel.getByText("Phase")).toBeVisible();
-  await expect(decisionPanel.getByText("Board Charge")).toBeVisible();
+  await expect(decisionPanel.getByTestId("default-action-rail-message")).toBeVisible();
+  await expect(decisionPanel.getByTestId("default-action-rail-progress")).toHaveText(
+    "Planning"
+  );
   await expect(decisionPanel.getByTestId("default-playtest-upgrade-copy")).toContainText(
     "Cinder Scout"
   );
   await expect(page.getByTestId("post-pack-suggestions-panel")).toHaveCount(0);
-  await expect(page.getByTestId("default-combat-preview-status")).toBeVisible();
+  await expect(page.getByTestId("default-combat-preview-status")).toHaveCount(0);
   await expect(panel(page, "Last Recorded Combat")).toHaveCount(0);
   const loadoutTray = page.getByTestId("default-loadout-tray");
   await expect(loadoutTray).toBeVisible();
@@ -472,16 +479,24 @@ test("default playtest route starts with concise Pixi play surface", async ({ pa
   await expect(
     allyInspector.getByRole("heading", { name: "Ember Scraprunner" })
   ).toBeVisible();
-  await expect(allyInspector.getByText("Your side", { exact: true })).toBeVisible();
+  await expect(
+    allyInspector.getByTestId("default-pixi-selected-card-context")
+  ).toHaveText("Your side");
   await expect(allyInspector.getByTestId("compact-inspector-rules")).toContainText(
     "Quickstart. When destroyed, sparks the nearest enemy."
   );
-  await expect(enemyInspector.getByText(/\| encounter \|/)).toBeVisible();
-  await expect(enemyInspector.getByText("Enemy side", { exact: true })).toBeVisible();
+  await expect(
+    enemyInspector.getByTestId("default-pixi-selected-card-meta")
+  ).toContainText("| encounter |");
+  await expect(
+    enemyInspector.getByTestId("default-pixi-selected-card-context")
+  ).toHaveText("Enemy side");
   await expect(enemyInspector.getByTestId("compact-inspector-rules")).toContainText(
     "Quickstart. When destroyed, sparks the nearest enemy."
   );
-  await expect(allyInspector.getByText("Full card details")).toBeVisible();
+  await expect(
+    allyInspector.getByTestId("default-pixi-selected-card-details")
+  ).toBeVisible();
   const engagementPreview = battlefield.locator(
     ".default-pixi-sidecar [data-testid='engagement-preview']"
   );
@@ -492,10 +507,8 @@ test("default playtest route starts with concise Pixi play surface", async ({ pa
   await expect(
     engagementPreview.getByText("Your Ember Scraprunner cannot attack yet.")
   ).toBeVisible();
-  await expect(
-    engagementPreview.getByText("Target is 2 hexes away, range 1.")
-  ).toBeVisible();
-  await expect(engagementPreview.getByText("Next move: r4 c2 to r4 c3.")).toBeVisible();
+  await expect(engagementPreview).toContainText("Target is 2 hexes away, range 1.");
+  await expect(engagementPreview).toContainText("Next move: r4 c2 to r4 c3.");
   await expect(
     engagementPreview.getByText("Out of range", { exact: true })
   ).toBeVisible();
@@ -530,9 +543,7 @@ test("default Pixi board refits after viewport resize", async ({ page }) => {
     "Placing Sparkcatch Apprentice. Click a highlighted Pixi cell."
   );
   await clickPixiCell(page, rendererHost, 4, 0);
-  await expect(
-    boardTray.getByRole("listitem").filter({ hasText: "Sparkcatch Apprentice" }).first()
-  ).toBeVisible();
+  await expect(boardTray).toContainText("+1 more card");
   await expect(rendererHost.locator("canvas")).toHaveCount(1);
 
   expectNoBrowserErrors(errors);
@@ -587,27 +598,31 @@ test("default compact inspector can reveal full card details", async ({ page }) 
   await expect(
     allyInspector.getByRole("heading", { name: "Ember Scraprunner" })
   ).toBeVisible();
-  await expect(allyInspector.getByText(/Unit \| board \| Ember/)).toBeVisible();
+  await expect(
+    allyInspector.getByTestId("default-pixi-selected-card-meta")
+  ).toContainText("Unit | board | Ember");
   await expect(allyInspector.getByTestId("compact-inspector-rules")).toContainText(
     "Quickstart. When destroyed, sparks the nearest enemy."
   );
-  const allyCardDetails = allyInspector.locator("details.card-inspector-details-toggle");
+  const allyCardDetails = allyInspector.getByTestId("default-pixi-selected-card-details");
   await expect(allyCardDetails).toBeVisible();
   expect(
     await allyCardDetails.evaluate((node) => (node as HTMLDetailsElement).open)
   ).toBe(false);
-  await allyCardDetails.locator("summary").click();
-  await expect(allyCardDetails.getByText("Cost")).toBeVisible();
-  await expect(allyCardDetails.getByText(/Charge/)).toBeVisible();
   await expect(
-    allyCardDetails.getByRole("heading", { name: "Legal Actions" })
-  ).toBeVisible();
+    allyCardDetails.getByTestId("default-pixi-selected-card-details-summary")
+  ).toHaveText("Details");
+  await allyCardDetails.getByTestId("default-pixi-selected-card-details-summary").click();
+  await expect(allyCardDetails).toContainText("Cost");
+  await expect(allyCardDetails).toContainText("Charge");
 
   await clickPixiCell(page, rendererHost, 3, 3);
   await expect(
     enemyInspector.getByRole("heading", { name: "Ember Scraprunner" })
   ).toBeVisible();
-  await expect(enemyInspector.getByText(/Unit \| encounter \| Ember/)).toBeVisible();
+  await expect(
+    enemyInspector.getByTestId("default-pixi-selected-card-meta")
+  ).toContainText("Unit | encounter | Ember");
   await expect(enemyInspector.getByTestId("compact-inspector-rules")).toContainText(
     "Quickstart. When destroyed, sparks the nearest enemy."
   );
@@ -679,9 +694,7 @@ test("default loadout tray exposes first-fold loadout edits", async ({ page }) =
     "Placing Sparkcatch Apprentice. Click a highlighted Pixi cell."
   );
   await clickPixiCell(page, rendererHost, 4, 0);
-  await expect(
-    boardTray.getByRole("listitem").filter({ hasText: "Sparkcatch Apprentice" }).first()
-  ).toBeVisible();
+  await expect(boardTray).toContainText("+1 more card");
 
   const emberSourceTrayRow = sourcesTray
     .getByRole("listitem")
@@ -1037,8 +1050,8 @@ test("default rewards gate Pack Offers before advance", async ({ page }) => {
   const { errors } = await gotoDefaultPlaytestRoute(page);
 
   await recordDefaultCombat(page);
-  await unlockFirstCommanderDoctrine(page);
   await openAndCommitFirstPackOffer(page);
+  await unlockFirstCommanderDoctrine(page);
   await expect(page.getByRole("button", { name: "Advance" })).toBeEnabled();
 
   expectNoBrowserErrors(errors);
@@ -1048,9 +1061,10 @@ test("default post-pack suggestions apply after reward advance", async ({ page }
   const { errors } = await gotoDefaultPlaytestRoute(page, { debug: true });
 
   await recordDefaultCombat(page);
+  await openAndCommitFirstPackOffer(page);
   await unlockFirstCommanderDoctrine(page);
-  const postPackSuggestions = await openAndCommitFirstPackOffer(page);
   await advanceToNextPlanningAfterRewards(page);
+  const postPackSuggestions = await expectPostPackSuggestions(page);
   await expect(
     postPackSuggestions.getByTestId("post-pack-suggestion").first()
   ).toBeVisible();

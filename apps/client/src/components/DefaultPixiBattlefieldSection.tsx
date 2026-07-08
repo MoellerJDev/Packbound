@@ -210,20 +210,13 @@ const DefaultPixiCommanderEditControls = ({
     className="default-pixi-edit-controls default-pixi-commander-edit-controls"
     data-testid="default-pixi-commander-edit-controls"
   >
-    <dl>
-      <div>
-        <dt>Mode</dt>
-        <dd data-testid="default-pixi-commander-edit-mode">{view.modeLabel}</dd>
-      </div>
-      <div>
-        <dt>Commander</dt>
-        <dd data-testid="default-pixi-commander-edit-selected">{view.commanderName}</dd>
-      </div>
-      <div>
-        <dt>Zone</dt>
-        <dd data-testid="default-pixi-commander-edit-zone">{view.zoneLabel}</dd>
-      </div>
-    </dl>
+    <div className="default-pixi-commander-heading">
+      <span data-testid="default-pixi-commander-edit-mode">{view.modeLabel}</span>
+      <strong data-testid="default-pixi-commander-edit-selected">
+        {view.commanderName}
+      </strong>
+      <small data-testid="default-pixi-commander-edit-zone">{view.zoneLabel}</small>
+    </div>
     <div className="button-row compact">
       <button
         type="button"
@@ -292,23 +285,28 @@ const DefaultCombatPlaybackPanel = ({
     <div className="button-row compact">
       <button
         type="button"
+        aria-label={
+          playback.replay.status === "paused"
+            ? "Resume Combat Playback"
+            : "Play Combat Playback"
+        }
         onClick={controller.onPlayCombatPlayback}
         disabled={playback.commands.length === 0 || playback.replay.status === "playing"}
       >
-        {playback.replay.status === "paused"
-          ? "Resume Combat Playback"
-          : "Play Combat Playback"}
+        {playback.replay.status === "paused" ? "Resume" : "Play"}
       </button>
       <button
         type="button"
+        aria-label="Pause Combat Playback"
         className="secondary"
         onClick={controller.onPauseCombatPlayback}
         disabled={playback.replay.status !== "playing"}
       >
-        Pause Combat Playback
+        Pause
       </button>
       <button
         type="button"
+        aria-label="Step Combat Playback"
         className="secondary"
         onClick={controller.onStepCombatPlayback}
         disabled={
@@ -317,14 +315,15 @@ const DefaultCombatPlaybackPanel = ({
           playback.replay.status === "complete"
         }
       >
-        Step Combat Playback
+        Step
       </button>
       <button
         type="button"
+        aria-label="Reset Combat Playback"
         className="secondary"
         onClick={controller.onResetCombatPlayback}
       >
-        Reset Combat Playback
+        Reset
       </button>
     </div>
   </div>
@@ -358,14 +357,50 @@ const DefaultPixiSelectedCard = ({
   readonly tone: "ally" | "enemy";
 }) => (
   <section className={`default-pixi-selected-card ${tone}`} data-testid={testId}>
-    <h3>{title}</h3>
-    <CardInspectorView
-      contextLabel={contextLabel}
-      inspection={inspection}
-      emptyText={emptyText}
-      showLegalActions={tone === "ally"}
-      variant="mini"
-    />
+    <div className="default-pixi-selected-head">
+      <h3>{title}</h3>
+      <span data-testid="default-pixi-selected-card-context">{contextLabel}</span>
+    </div>
+    {inspection ? (
+      <div className="default-pixi-selected-summary">
+        <div className="default-pixi-selected-title-line">
+          <h4>{inspection.name}</h4>
+          <p className="muted" data-testid="default-pixi-selected-card-meta">
+            {inspection.cardType} | {inspection.zone ?? "definition"} |{" "}
+            {inspection.aspectText}
+          </p>
+        </div>
+        {inspection.combatStats ? (
+          <div
+            className="stat-chip-row compact-inspector-chips"
+            aria-label={`${inspection.name} combat stat chips`}
+          >
+            {inspection.combatStats.chips.map((chip) => (
+              <span key={chip} className="stat-chip">
+                {chip}
+              </span>
+            ))}
+          </div>
+        ) : null}
+        <details
+          className="compact-details card-inspector-details-toggle"
+          data-testid="default-pixi-selected-card-details"
+        >
+          <summary data-testid="default-pixi-selected-card-details-summary">
+            Details
+          </summary>
+          <CardInspectorView
+            contextLabel={contextLabel}
+            inspection={inspection}
+            emptyText={emptyText}
+            showLegalActions={tone === "ally"}
+            variant="compact"
+          />
+        </details>
+      </div>
+    ) : (
+      <p className="muted">{emptyText}</p>
+    )}
   </section>
 );
 

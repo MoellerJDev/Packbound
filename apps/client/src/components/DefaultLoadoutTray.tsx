@@ -5,8 +5,8 @@ import type { CardDefId, CardInstance, CardInstanceId } from "@packbound/shared"
 import type { LoadoutZonesPanelView } from "./LoadoutZonesPanel";
 import { UpgradeBadge } from "./upgradeBadges";
 
-const POOL_CARD_LIMIT = 4;
-const ACTIVE_ZONE_CARD_LIMIT = 3;
+const POOL_CARD_LIMIT = 2;
+const ACTIVE_ZONE_CARD_LIMIT = 1;
 
 const activeCardUpgradeLevel = (
   activeCards: LoadoutZonesPanelView["activeCards"],
